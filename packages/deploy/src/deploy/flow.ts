@@ -238,6 +238,10 @@ export async function deploy(
 		appId: config.appId,
 		version,
 		timeoutMs: config.queueTimeoutSec * 1000,
+		environments: {
+			dev: config.environment === "dev" || config.environment === "both",
+			production: config.environment === "production" || config.environment === "both",
+		},
 		confirmCode: options.confirmCode,
 		onQueueEvent: options.onQueueEvent,
 	});

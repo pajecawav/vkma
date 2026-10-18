@@ -45,6 +45,13 @@ export interface WaitForQueueOptions extends FetchClientOptions {
 	/** Overall deadline in ms (from `queueTimeoutSec` / `--timeout`). */
 	readonly timeoutMs: number;
 	/**
+	 * Environments this deploy targets. Non-targeted environments count as
+	 * handled immediately, so single-environment deploys terminate on their
+	 * own URL event instead of waiting for a server skip event (202).
+	 * Default: both.
+	 */
+	readonly environments?: { dev: boolean; production: boolean };
+	/**
 	 * Provides the confirmation code for event 205.
 	 * Without it, event 205 fails with a `user` error explaining the options.
 	 */
@@ -91,7 +98,8 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 	}
 
 	const deadline = Date.now() + options.timeoutMs;
-	const handled = { production: false, dev: false };
+	const targets = options.environments ?? { dev: true, production: true };
+	const handled = { production: !targets.production, dev: !targets.dev };
 	const result: {
 		urls: { production?: Record<string, string>; dev?: Record<string, string> };
 		testGroupUrl?: string;

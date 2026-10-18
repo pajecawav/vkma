@@ -1,0 +1,353 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createFetchSpy, instantSleep, route } from "../test-utils.ts";
+import { completionScript } from "./completions.ts";
+import { main } from "./main.ts";
+
+let root: string;
+let out: string[];
+let err: string[];
+const stdout = { write: (text: string) => out.push(text), isTTY: false };
+const stderr = { write: (text: string) => err.push(text) };
+const stdin = { isTTY: false };
+
+beforeEach(async () => {
+	root = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-cli-"));
+	out = [];
+	err = [];
+});
+
+afterEach(async () => {
+	await fs.rm(root, { recursive: true, force: true });
+});
+
+function env(extra: Record<string, string | undefined> = {}): Record<string, string | undefined> {
+	return { HOME: path.join(root, "home"), PATH: process.env["PATH"], ...extra };
+}
+
+function makeProject(): Promise<void> {
+	return fs
+		.mkdir(path.join(root, "build"), { recursive: true })
+		.then(() => fs.writeFile(path.join(root, "build", "index.html"), "ok"));
+}
+
+describe("main()", () => {
+	it("prints help and exits 0", async () => {
+		const code = await main(["--help"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(0);
+		expect(out.join("")).toContain("vkma-deploy");
+		expect(out.join("")).toContain("vk-hosting-config.json");
+	});
+
+	it("prints version", async () => {
+		const code = await main(["--version"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(0);
+		expect(out.join("")).toMatch(/^\d+\.\d+\.\d+\n$/);
+	});
+
+	it("rejects unknown flags with exit 1", async () => {
+		const code = await main(["--nope"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("Unknown flag");
+	});
+
+	it("prints completion scripts", async () => {
+		const code = await main(["completions", "bash"], {
+			stdout,
+			stderr,
+			stdin,
+			env: env(),
+			cwd: root,
+		});
+		expect(code).toBe(0);
+		expect(out.join("")).toContain("complete -F _vkma_deploy_completions vkma-deploy");
+		expect(completionScript("fish")).toContain("complete -c vkma-deploy");
+		expect(completionScript("zsh")).toContain("#compdef vkma-deploy");
+	});
+
+	it("validates the completions shell", async () => {
+		const code = await main(["completions", "tcsh"], {
+			stdout,
+			stderr,
+			stdin,
+			env: env(),
+			cwd: root,
+		});
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("bash|zsh|fish");
+	});
+
+	it("config command prints the resolved config with redacted token", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", accessToken: "super-secret-token" }),
+		);
+		const code = await main(["config"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(0);
+		const text = out.join("");
+		expect(text).toContain("appId");
+		expect(text).toContain("42");
+		expect(text).not.toContain("super-secret-token");
+		expect(text).toContain("***");
+	});
+
+	it("config --json emits parseable JSON", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 7, staticPath: "./build" }),
+		);
+		const code = await main(["config", "--json"], {
+			stdout,
+			stderr,
+			stdin,
+			env: env(),
+			cwd: root,
+		});
+		expect(code).toBe(0);
+		const record = JSON.parse(out[0] ?? "{}") as { data: { config: { appId: number } } };
+		expect(record.data.config.appId).toBe(7);
+	});
+
+	it("config command fails on invalid config with exit 1", async () => {
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: "x" }),
+		);
+		const code = await main(["config"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("appId");
+	});
+
+	it("logout reports when nothing is stored", async () => {
+		const code = await main(["logout"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(0);
+		expect(out.join("")).toContain("No stored credentials");
+	});
+
+	it("deploy --dry-run works without a token and emits no network", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(() => ({ body: {} }));
+		const code = await main(["--dry-run"], {
+			stdout,
+			stderr,
+			stdin,
+			env: env(),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+		});
+		expect(code).toBe(0);
+		expect(spy.calls.length).toBe(0);
+		expect(out.join("")).toContain("Dry run");
+	});
+
+	it("deploy runs end-to-end through the mocked API and exits 0", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(
+			route([
+				[
+					"getGoHostingUploadServer",
+					() => ({ body: { response: { upload_url: "https://upload.vk/t" } } }),
+				],
+				["upload.vk/t", () => ({ body: { ticket: 1 } })],
+				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
+				[
+					"subscribeToHostingQueue",
+					() => ({
+						body: {
+							response: { base_url: "https://q.vk/", key: "k", ts: 1, app_id: 1 },
+						},
+					}),
+				],
+				[
+					"act=a_check",
+					() => ({
+						body: {
+							ts: 2,
+							events: [
+								{
+									data: {
+										type: "success",
+										code: 201,
+										message: {
+											is_production: true,
+											urls: { iframe_secure_url: "https://app" },
+										},
+									},
+								},
+								{
+									data: {
+										type: "success",
+										code: 202,
+										message: { environment: "1" },
+									},
+								},
+							],
+						},
+					}),
+				],
+			]),
+		);
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		const text = out.join("");
+		expect(text).toContain("Access token: environment variable");
+		expect(text).toContain("vk.ru:\thttps://app");
+		expect(text).toContain("version 9");
+	});
+
+	it("deploy maps API errors to exit code 3", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(() => ({
+			body: { error: { error_code: 15, error_msg: "nope" } },
+		}));
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(3);
+		expect(err.join("")).toContain("15");
+	});
+
+	it("deploy without a token exits 1 with a login hint", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const code = await main([], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("vkma-deploy login");
+	});
+
+	it("--json mode keeps stdout parseable end-to-end", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(
+			route([
+				[
+					"getGoHostingUploadServer",
+					() => ({ body: { response: { upload_url: "https://upload.vk/t" } } }),
+				],
+				["upload.vk/t", () => ({ body: { ticket: 1 } })],
+				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
+				[
+					"subscribeToHostingQueue",
+					() => ({
+						body: {
+							response: { base_url: "https://q.vk/", key: "k", ts: 1, app_id: 1 },
+						},
+					}),
+				],
+				[
+					"act=a_check",
+					() => ({
+						body: {
+							ts: 2,
+							events: [
+								{ data: { type: "success", code: 200 } },
+								{
+									data: {
+										type: "success",
+										code: 201,
+										message: {
+											is_production: true,
+											urls: { iframe_secure_url: "https://app" },
+										},
+									},
+								},
+							],
+						},
+					}),
+				],
+			]),
+		);
+		const code = await main(["--json", "--env", "production"], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		const records = out.map(line => JSON.parse(line) as { event: string });
+		expect(records.some(record => record.event === "deploy:success")).toBe(true);
+		expect(spy.calls[0]?.url).toContain("environment=2");
+	});
+
+	it("login saves credentials without printing the token", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(
+			route([
+				["get_auth_code", () => ({ body: { auth_code: "A", device_id: "D" } })],
+				[
+					"code_auth_token",
+					() => ({ body: { access_token: "fresh-secret-token", expires_in: 100 } }),
+				],
+			]),
+		);
+		const home = path.join(root, "home");
+		const code = await main(["login"], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ XDG_CONFIG_HOME: path.join(home, ".config") }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		const text = out.join("");
+		expect(text).toContain("Token saved");
+		expect(text).not.toContain("fresh-secret-token");
+		const stored = JSON.parse(
+			await fs.readFile(
+				path.join(home, ".config", "vkma", "deploy", "credentials.json"),
+				"utf8",
+			),
+		) as { accessToken: string };
+		expect(stored.accessToken).toBe("fresh-secret-token");
+	});
+
+	it("login without appId exits 1 with guidance", async () => {
+		const code = await main(["login"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("appId");
+	});
+});
