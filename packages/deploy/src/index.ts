@@ -35,7 +35,7 @@ export {
 } from "./credentials/store.ts";
 export type { StoredCredentials, LoadedCredentials } from "./credentials/store.ts";
 
-export { deploy } from "./deploy/flow.ts";
+export { deploy, deployResolved } from "./deploy/flow.ts";
 export type { DeployInput, DeployOptions, DeployResult, DeployEvent } from "./deploy/flow.ts";
 export { waitForQueue } from "./deploy/queue.ts";
 export type {

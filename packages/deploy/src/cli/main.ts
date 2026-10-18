@@ -18,7 +18,12 @@ import {
 	loadCredentials,
 	saveCredentials,
 } from "../credentials/store.ts";
-import { deploy, type DeployEvent, type DeployOptions, type DeployResult } from "../deploy/flow.ts";
+import {
+	deployResolved,
+	type DeployEvent,
+	type DeployOptions,
+	type DeployResult,
+} from "../deploy/flow.ts";
 import type { QueueEvent } from "../deploy/queue.ts";
 import { DeployError, isDeployError } from "../errors.ts";
 import { CliLogger, formatBytes } from "../logger/index.ts";
@@ -195,7 +200,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 
 	// --interactive fills only what is still missing; it never overrides an
 	// explicit flag, env var, or config value.
-	const finalOverrides: Record<string, unknown> = { ...overrides };
+	let effectiveConfig = config;
 	if (parsed.booleans.interactive && stdin.isTTY === true && config.testGroupName === undefined) {
 		const wantsGroup = await confirm("Deploy into a test group?", false, {
 			signal: context.signal,
@@ -209,7 +214,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 				input: context.input,
 			});
 			if (name !== "") {
-				finalOverrides["testGroupName"] = name;
+				effectiveConfig = { ...config, testGroupName: name };
 			}
 		}
 	}
@@ -236,20 +241,19 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 			: undefined;
 
 	const deployOptions: DeployOptions = {
-		cwd,
-		configPath: parsed.values.config,
 		env,
 		signal: context.signal,
 		fetchImpl: context.fetchImpl,
 		sleep: context.sleep,
 		confirmCode,
 		dryRun: parsed.booleans.dryRun,
-		overrides: finalOverrides,
 		onEvent: event => renderDeployEvent(logger, event),
 		onQueueEvent: event => renderQueueEvent(logger, event),
 	};
 
-	const result = await deploy(undefined, deployOptions);
+	// The config is already resolved above; deployResolved skips the second
+	// discovery + TS temp-file pass that deploy() would perform.
+	const result = await deployResolved({ config: effectiveConfig, meta }, deployOptions, cwd);
 	if (parsed.booleans.dryRun) {
 		logger.info("Dry run: no upload was performed.", { result });
 	}
@@ -331,7 +335,6 @@ async function runConfig(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		cwd,
 		configPath: parsed.values.config,
 		env,
-		overrides: parsed.booleans.dryRun ? {} : undefined,
 	});
 
 	const safeConfig = {

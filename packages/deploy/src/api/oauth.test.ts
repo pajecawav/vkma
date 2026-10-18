@@ -59,6 +59,27 @@ describe("loginDeviceFlow", () => {
 		).rejects.toSatisfy((error: unknown) => (error as DeployError).code === "E_LOGIN_TIMEOUT");
 	});
 
+	it("includes the last poll error in the timeout message for diagnosis", async () => {
+		const spy = createFetchSpy(
+			route([
+				["get_auth_code", () => ({ body: { auth_code: "A", device_id: "D" } })],
+				["code_auth_token", () => ({ status: 403, body: {} })],
+			]),
+		);
+		// Real sleep: a handful of polls until the deadline, not a hot spin.
+		await expect(
+			loginDeviceFlow({
+				...BASE,
+				fetchImpl: spy.fetchImpl,
+				timeoutMs: 30,
+				pollIntervalMs: 5,
+				sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
+			}),
+		).rejects.toSatisfy((error: unknown) =>
+			(error as DeployError).message.includes("Last poll error: HTTP 403"),
+		);
+	});
+
 	it("fails when the token response carries an error payload", async () => {
 		const spy = createFetchSpy(
 			sequence(

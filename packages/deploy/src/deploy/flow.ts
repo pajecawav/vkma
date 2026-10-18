@@ -10,7 +10,12 @@ import fs from "node:fs/promises";
 import { callApi, type FetchLike, type HttpOptions, type RequestEvent } from "../api/client.ts";
 import { uploadBundle } from "../api/upload.ts";
 import { resolveConfig } from "../config/resolve.ts";
-import type { DeployConfigInput, ResolvedConfig, ResolvedConfigMeta } from "../config/schema.ts";
+import type {
+	DeployConfigInput,
+	ResolveResult,
+	ResolvedConfig,
+	ResolvedConfigMeta,
+} from "../config/schema.ts";
 import { ENV_BOTH, ENV_DEV, ENV_PRODUCTION } from "../constants.ts";
 import { loadCredentials } from "../credentials/store.ts";
 import { DeployError } from "../errors.ts";
@@ -132,15 +137,28 @@ export async function deploy(
 	input?: DeployInput,
 	options: DeployOptions = {},
 ): Promise<DeployResult> {
-	const startedAt = Date.now();
 	const cwd = typeof input === "string" ? input : (options.cwd ?? process.cwd());
-
-	const { config, meta } = await resolveConfig({
+	const resolved = await resolveConfig({
 		cwd,
 		configPath: options.configPath,
 		env: options.env,
 		overrides: typeof input === "object" && input !== null ? input : options.overrides,
 	});
+	return deployResolved(resolved, options, cwd);
+}
+
+/**
+ * Runs a deploy from an already-resolved configuration. The CLI resolves
+ * once for logging and passes the result here — a second discovery pass
+ * (and a second TS temp-file round-trip) per deploy is pure waste.
+ */
+export async function deployResolved(
+	resolved: ResolveResult,
+	options: DeployOptions = {},
+	cwd: string = process.cwd(),
+): Promise<DeployResult> {
+	const startedAt = Date.now();
+	const { config, meta } = resolved;
 	options.onEvent?.({ type: "config:resolved", config, meta });
 
 	const env = options.env ?? process.env;

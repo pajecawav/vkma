@@ -87,7 +87,11 @@ JSON configs get editor autocomplete via `$schema`:
 | `queueTimeoutSec` | integer                       | `600`                       | Hosting queue deadline (fixes the upstream infinite hang)         |
 
 Unknown legacy fields and unsupported ones (`proxy_url`, `debug`, `noprompt`)
-produce warnings, never silent drops.
+produce warnings, never silent drops. New-format configs are strict: an
+unknown or misspelled field (e.g. `static_path` in a `vkma-deploy.config.*`)
+fails validation naming the key instead of silently deploying defaults.
+`$schema` is whitelisted in JSON files for editor autocomplete; TS configs
+get their types from `defineDeployConfig` and never carry `$schema`.
 
 ### Environment variables
 
@@ -174,9 +178,11 @@ The library never calls `process.exit` and never touches global state; all
 failures are `DeployError`s with a `kind` (`config` | `user` | `network` |
 `api` | `aborted`) and the matching exit code.
 
-Granular building blocks are exported too: `resolveConfig`, `loginDeviceFlow`,
-`zipDirectory`, `uploadBundle`, `waitForQueue`, `callApi`,
-`loadCredentials`/`saveCredentials`/`clearCredentials`, `createRedactor`.
+Granular building blocks are exported too: `resolveConfig`, `deployResolved`
+(run the flow from an already-resolved config — what the CLI uses to avoid
+resolving twice), `loginDeviceFlow`, `zipDirectory`, `uploadBundle`,
+`waitForQueue`, `callApi`, `loadCredentials`/`saveCredentials`/
+`clearCredentials`, `createRedactor`.
 
 ## Credentials
 

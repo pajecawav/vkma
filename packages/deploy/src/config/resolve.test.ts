@@ -181,6 +181,20 @@ describe("resolveConfig", () => {
 		expect(meta.warnings.some(w => w.includes("who_is_this"))).toBe(true);
 	});
 
+	it("rejects unknown fields in new-format configs instead of ignoring them", async () => {
+		// A snake_case typo in a new-format file must fail naming the key,
+		// not silently deploy with defaults (legacy files are exempt: their
+		// unknown fields produce warnings instead).
+		await write(
+			root,
+			"vkma-deploy.config.json",
+			JSON.stringify({ appId: 1, static_path: "./build" }),
+		);
+		await expect(resolveConfig({ cwd: root, env: CLEAN_ENV })).rejects.toThrow(
+			/static_path|Unexpected|unrecognized|property/i,
+		);
+	});
+
 	it("rejects invalid legacy update_prod values (upstream validated 0/1/bool)", async () => {
 		await write(
 			root,

@@ -81,6 +81,10 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 	const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 	const sleep =
 		options.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
+	// Surfaced in the timeout error: "not confirmed yet" and a permanently
+	// broken poll (bad client_id, revoked app) are both non-200 answers, so
+	// we cannot fail fast — but we can explain what kept happening.
+	let lastPollError: string | undefined;
 
 	for (;;) {
 		if (options.signal?.aborted) {
@@ -89,10 +93,10 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 		if (Date.now() >= deadline) {
 			throw new DeployError(
 				"network",
-				`Login timed out — did you confirm access in the browser? (${confirmUrl})`,
-				{
-					code: "E_LOGIN_TIMEOUT",
-				},
+				`Login timed out — did you confirm access in the browser? (${confirmUrl})${
+					lastPollError === undefined ? "" : ` Last poll error: ${lastPollError}`
+				}`,
+				{ code: "E_LOGIN_TIMEOUT" },
 			);
 		}
 
@@ -108,6 +112,7 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 			}
 			// Not confirmed yet (VK answers non-200 until the user approves)
 			// or a transient network hiccup — keep polling.
+			lastPollError = (error as Error).message;
 			options.onEvent?.({
 				kind: "retry",
 				attempt: 1,

@@ -45,13 +45,16 @@ export const DeployConfigSchema = Type.Object(
 		),
 		endpoints: Type.Optional(
 			Type.Partial(
-				Type.Object({
-					mobile: Type.String({
-						description: "Entry file for the mobile app (iOS & Android).",
-					}),
-					mvk: Type.String({ description: "Entry file for m.vk.ru." }),
-					web: Type.String({ description: "Entry file for vk.ru." }),
-				}),
+				Type.Object(
+					{
+						mobile: Type.String({
+							description: "Entry file for the mobile app (iOS & Android).",
+						}),
+						mvk: Type.String({ description: "Entry file for m.vk.ru." }),
+						web: Type.String({ description: "Entry file for vk.ru." }),
+					},
+					{ additionalProperties: false },
+				),
 				{
 					description:
 						"Entry files per platform. Only configured platforms are checked in preflight and sent as endpoint_* params (upstream parity); the rest use VK server defaults.",
@@ -111,6 +114,10 @@ export const DeployConfigSchema = Type.Object(
 		),
 	},
 	{
+		// Strict: a misspelled field (e.g. static_path in a new-format file)
+		// must fail validation naming the key, not silently deploy defaults.
+		// `$schema` above stays whitelisted for JSON-editor autocomplete.
+		additionalProperties: false,
 		$schema: "https://json-schema.org/draft/2020-12/schema",
 		$id: "https://unpkg.com/@vkma.dev/deploy/schema/vkma-deploy.config.schema.json",
 		title: "vkma-deploy configuration",
@@ -118,8 +125,12 @@ export const DeployConfigSchema = Type.Object(
 	},
 );
 
-/** Shape accepted in config files, `defineDeployConfig`, and `deploy()`. */
-export type DeployConfigInput = Static<typeof DeployConfigSchema>;
+/**
+ * Shape accepted in config files, `defineDeployConfig`, and `deploy()`.
+ * `$schema` is deliberately absent from the input type: it is JSON-editor
+ * metadata, allowed (and stripped) only when loading JSON files.
+ */
+export type DeployConfigInput = Omit<Static<typeof DeployConfigSchema>, "$schema">;
 
 /** Fully resolved configuration after defaults, env vars, and overrides. */
 export interface ResolvedConfig {

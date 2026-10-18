@@ -1,4 +1,5 @@
 {
+	"additionalProperties": false,
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://unpkg.com/@vkma.dev/deploy/schema/vkma-deploy.config.schema.json",
 	"title": "vkma-deploy configuration",
@@ -25,6 +26,7 @@
 			"type": "string"
 		},
 		"endpoints": {
+			"additionalProperties": false,
 			"type": "object",
 			"properties": {
 				"mobile": {
