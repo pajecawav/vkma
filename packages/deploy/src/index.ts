@@ -35,5 +35,34 @@ export {
 } from "./credentials/store.ts";
 export type { StoredCredentials, LoadedCredentials } from "./credentials/store.ts";
 
+export { deploy } from "./deploy/flow.ts";
+export type { DeployInput, DeployOptions, DeployResult, DeployEvent } from "./deploy/flow.ts";
+export { waitForQueue } from "./deploy/queue.ts";
+export type {
+	WaitForQueueOptions,
+	QueueResult,
+	QueueEvent,
+	QueueUrlUpdate,
+} from "./deploy/queue.ts";
+
+export { callApi, httpGet, parseJsonBody, joinUrl } from "./api/client.ts";
+export type {
+	ApiParams,
+	ApiParamValue,
+	FetchClientOptions,
+	FetchLike,
+	HttpOptions,
+	RequestEvent,
+} from "./api/client.ts";
+export { loginDeviceFlow } from "./api/oauth.ts";
+export type { LoginOptions, LoginResult } from "./api/oauth.ts";
+export { uploadBundle } from "./api/upload.ts";
+export type { UploadOptions } from "./api/upload.ts";
+
+export { zipDirectory } from "./zip.ts";
+export type { ZipOptions, ZipResult } from "./zip.ts";
+export { preflight, endpointFilePath } from "./preflight.ts";
+export type { PreflightResult } from "./preflight.ts";
+
 export { createRedactor } from "./redact.ts";
 export type { Redactor } from "./redact.ts";
