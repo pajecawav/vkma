@@ -1,26 +1,31 @@
 {
 	"name": "@vkma.dev/deploy",
 	"version": "0.0.0",
-	"description": "Deploy tooling for VK Mini Apps",
+	"description": "Deploy CLI and library for VK Mini Apps hosting. Drop-in compatible with @vkontakte/vk-miniapps-deploy.",
 	"type": "module",
 	"license": "MIT",
 	"publishConfig": {
 		"access": "public"
 	},
 	"engines": {
-		"node": ">=22"
+		"node": ">=22.18"
 	},
 	"sideEffects": false,
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
+	"bin": {
+		"vkma-deploy": "./dist/cli.js"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
-		}
+		},
+		"./schema": "./schema/vkma-deploy.config.schema.json"
 	},
 	"files": [
-		"dist"
+		"dist",
+		"schema"
 	],
 	"scripts": {
 		"build": "tsdown",
@@ -29,7 +34,12 @@
 		"test": "vitest run",
 		"test:watch": "vitest watch"
 	},
+	"dependencies": {
+		"@sinclair/typebox": "^0.34.39",
+		"fflate": "^0.8.2"
+	},
 	"devDependencies": {
+		"@types/node": "catalog:",
 		"publint": "catalog:",
 		"tsdown": "catalog:",
 		"vitest": "catalog:"
