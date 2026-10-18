@@ -90,6 +90,11 @@ export class CliLogger {
 		return this.redactor.redactString(text);
 	}
 
+	/** Registers a secret value to be masked in every output mode. */
+	public addSecret(secret: string | undefined | null): void {
+		this.redactor.add(secret);
+	}
+
 	/** CI_URLS mode: print raw URL keys instead of platform labels. */
 	public setCiUrls(value: boolean): void {
 		this.ciUrls = value;

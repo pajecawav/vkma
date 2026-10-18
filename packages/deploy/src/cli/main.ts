@@ -176,6 +176,16 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 	});
 	logger.setCiUrls(meta.ciUrls);
 
+	// Defense in depth: register every token this run may print so the
+	// redactor's exact-value layer is live, not just the regex layer.
+	if (config.accessToken !== undefined && config.accessToken !== "") {
+		logger.addSecret(config.accessToken);
+	}
+	const stored = await loadCredentials(env);
+	if (stored !== undefined) {
+		logger.addSecret(stored.accessToken);
+	}
+
 	// --interactive fills only what is still missing; it never overrides an
 	// explicit flag, env var, or config value.
 	const finalOverrides: Record<string, unknown> = { ...overrides };
@@ -275,6 +285,7 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 		{ accessToken: result.accessToken, expiresIn: result.expiresIn },
 		env,
 	);
+	logger.addSecret(result.accessToken);
 	logger.step(`Token saved to ${savedTo}`);
 	logger.info("Credentials file is mode 0600. For CI use the VKMA_ACCESS_TOKEN env variable.");
 	return 0;

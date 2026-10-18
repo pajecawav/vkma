@@ -84,13 +84,32 @@ async function backoffDelay(attempt: number, options: HttpOptions): Promise<void
 	await sleep(base * 2 ** (attempt - 1) + jitter);
 }
 
+/**
+ * Masks secret values inside response body previews: JSON string values of
+ * token fields and `access_token`-style query parameters. The JSON key
+ * `"code"` is deliberately untouched — VK error payloads use it for error
+ * codes, which must stay readable in verbose diagnostics.
+ */
+const SECRET_JSON_RE = /("(?:access_token|refresh_token)"\s*:\s*)"[^"]*"/g;
+const SECRET_QUERY_RE = /([?&](?:access_token|refresh_token|code)=)[^&\s"']*/g;
+
+function maskSecrets(text: string): string {
+	return text.replace(SECRET_JSON_RE, '$1"***"').replace(SECRET_QUERY_RE, "$1***");
+}
+
 /** Max response body length embedded into verbose "response" events. */
 export const BODY_PREVIEW_LIMIT = 1024;
 
+/**
+ * Truncated response body preview for verbose diagnostics. Secrets are
+ * masked over the full text before truncation, so a token straddling the
+ * cut can never leak into the event stream (AGENTS.md invariant #3).
+ */
 export function bodyPreview(text: string): string {
-	return text.length > BODY_PREVIEW_LIMIT
-		? `${text.slice(0, BODY_PREVIEW_LIMIT)}… (${text.length} bytes)`
-		: text;
+	const masked = maskSecrets(text);
+	return masked.length > BODY_PREVIEW_LIMIT
+		? `${masked.slice(0, BODY_PREVIEW_LIMIT)}… (${masked.length} bytes)`
+		: masked;
 }
 
 /** GET with retry on transport errors and retriable statuses. */

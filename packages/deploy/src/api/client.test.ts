@@ -152,6 +152,33 @@ describe("callApi", () => {
 		expect((bodies[0] ?? "").length).toBeLessThan(1200);
 	});
 
+	it("masks token values in response body previews (invariant #3)", async () => {
+		const spy = createFetchSpy(() => ({
+			body: {
+				access_token: "tok-secret-1234567890",
+				refresh_token: "ref-secret-1234567890",
+				error_code: 6,
+			},
+		}));
+		const bodies: string[] = [];
+		await httpGet("https://api.vk.ru/method/m?access_token=tok-secret-1234567890", {
+			sleep: instantSleep,
+			backoffBaseMs: 0,
+			fetchImpl: spy.fetchImpl,
+			onEvent: event => {
+				if (event.kind === "response" && event.body !== undefined) {
+					bodies.push(event.body);
+				}
+			},
+		});
+		expect(bodies.length).toBe(1);
+		expect(bodies[0]).not.toContain("tok-secret");
+		expect(bodies[0]).not.toContain("ref-secret");
+		expect(bodies[0]).toContain('"access_token":"***"');
+		// Error codes must stay readable — the JSON key "code" is never masked.
+		expect(bodies[0]).toContain('"error_code":6');
+	});
+
 	it("throws aborted when the signal is already aborted", async () => {
 		const spy = createFetchSpy(() => vkOk({}));
 		const controller = new AbortController();

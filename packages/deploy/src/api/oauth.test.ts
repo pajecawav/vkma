@@ -83,6 +83,28 @@ describe("loginDeviceFlow", () => {
 		expect(spy.calls.length).toBe(2);
 	});
 
+	it("never leaks the access token into onEvent response bodies", async () => {
+		const spy = createFetchSpy(
+			sequence(
+				{ body: { auth_code: "A", device_id: "D" } },
+				{ body: { access_token: "super-secret-token-987", expires_in: 1 } },
+			),
+		);
+		const bodies: string[] = [];
+		await loginDeviceFlow({
+			...BASE,
+			fetchImpl: spy.fetchImpl,
+			onEvent: event => {
+				if (event.kind === "response" && event.body !== undefined) {
+					bodies.push(event.body);
+				}
+			},
+		});
+		expect(bodies.length).toBe(2);
+		expect(bodies.some(body => body.includes("super-secret-token-987"))).toBe(false);
+		expect(bodies[1]).toContain('"access_token":"***"');
+	});
+
 	it("calls the injected opener with the confirmation URL when provided", async () => {
 		const spy = createFetchSpy(
 			sequence(
