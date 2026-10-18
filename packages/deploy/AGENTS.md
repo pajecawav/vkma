@@ -37,7 +37,11 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    `cli_version=2`, multipart field `file`, base64 `upload_response` mirror
    upstream 1.0.3. See `src/constants.ts` for the exact values.
 2. **The library never touches `process`** (no exit, no stdin, no env reads
-   outside injected `env`). Only `src/cli*` may.
+   outside injected `env`, no spawning — the OAuth browser opener is an
+   injected callback, supplied only by the CLI and only on a TTY; the
+   `stripTypeScriptTypes` emitWarning shim in `load.ts` is the single
+   documented exception, scoped and restored synchronously).
+   Only `src/cli*` may.
 3. **Secrets never leak.** Everything printed or thrown goes through the
    redactor; the login command never prints the token itself.
 4. **Stable exit codes**: 0 ok · 1 config/user · 2 network/timeout ·

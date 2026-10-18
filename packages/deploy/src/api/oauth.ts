@@ -11,7 +11,6 @@
  * hard deadline instead of an infinite prompt loop.
  */
 
-import { spawn } from "node:child_process";
 import { DeployError } from "../errors.ts";
 import { httpGet, joinUrl, parseJsonBody, type HttpOptions } from "./client.ts";
 
@@ -21,10 +20,12 @@ export interface LoginOptions extends HttpOptions {
 	readonly oauthClientId: number;
 	/** Print the auth URL through this callback (CLI logs it). */
 	readonly onAuthUrl?: (url: string) => void;
-	/** Try to open the browser automatically. Default: true. */
-	readonly openBrowser?: boolean;
-	/** opener injection point for tests. */
-	readonly spawnOpener?: (url: string) => void;
+	/**
+	 * Opens the confirmation URL in a browser. The library never spawns
+	 * processes — the CLI layer injects its opener here, and only for
+	 * interactive (TTY) runs.
+	 */
+	readonly openBrowser?: (url: string) => void;
 	readonly pollIntervalMs?: number;
 	readonly timeoutMs?: number;
 }
@@ -36,18 +37,6 @@ export interface LoginResult {
 
 const DEFAULT_POLL_INTERVAL_MS = 1500;
 const DEFAULT_TIMEOUT_MS = 5 * 60_000;
-
-function defaultSpawnOpener(url: string): void {
-	const platform = process.platform;
-	const command = platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
-	const args = platform === "win32" ? ["/c", "start", "", url] : [url];
-	try {
-		const child = spawn(command, args, { detached: true, stdio: "ignore" });
-		child.unref();
-	} catch {
-		// Opener is best-effort; the URL is printed regardless.
-	}
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -82,9 +71,7 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 
 	const confirmUrl = `${joinUrl(options.oauthHost, "code_auth")}?stage=check&code=${encodeURIComponent(authCode)}&revoke=1`;
 	options.onAuthUrl?.(confirmUrl);
-	if (options.openBrowser !== false) {
-		(options.spawnOpener ?? defaultSpawnOpener)(confirmUrl);
-	}
+	options.openBrowser?.(confirmUrl);
 
 	const tokenUrl =
 		joinUrl(options.oauthHost, "code_auth_token") +

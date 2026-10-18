@@ -7,7 +7,6 @@ const BASE = {
 	appId: 42,
 	oauthHost: "https://oauth.vk.ru/",
 	oauthClientId: 6670517,
-	openBrowser: false,
 	sleep: instantSleep,
 	pollIntervalMs: 1,
 };
@@ -70,5 +69,33 @@ describe("loginDeviceFlow", () => {
 		await expect(loginDeviceFlow({ ...BASE, fetchImpl: spy.fetchImpl })).rejects.toSatisfy(
 			(error: unknown) => (error as DeployError).code === "E_AUTH_TOKEN",
 		);
+	});
+
+	it("never spawns anything by itself — the browser opener is an injected callback", async () => {
+		const spy = createFetchSpy(
+			sequence(
+				{ body: { auth_code: "A", device_id: "D" } },
+				{ body: { access_token: "t", expires_in: 1 } },
+			),
+		);
+		// No openBrowser callback: nothing may happen beyond the HTTP flow.
+		await loginDeviceFlow({ ...BASE, fetchImpl: spy.fetchImpl });
+		expect(spy.calls.length).toBe(2);
+	});
+
+	it("calls the injected opener with the confirmation URL when provided", async () => {
+		const spy = createFetchSpy(
+			sequence(
+				{ body: { auth_code: "A2", device_id: "D" } },
+				{ body: { access_token: "t", expires_in: 1 } },
+			),
+		);
+		const opened: string[] = [];
+		await loginDeviceFlow({
+			...BASE,
+			fetchImpl: spy.fetchImpl,
+			openBrowser: url => opened.push(url),
+		});
+		expect(opened).toEqual(["https://oauth.vk.ru/code_auth?stage=check&code=A2&revoke=1"]);
 	});
 });

@@ -25,6 +25,7 @@ import { CliLogger, formatBytes } from "../logger/index.ts";
 import { createRedactor } from "../redact.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
 import { completionScript, COMPLETION_SHELLS } from "./completions.ts";
+import { openUrl } from "./opener.ts";
 import { confirm, text } from "./prompt.ts";
 
 const VERSION = pkg.version;
@@ -38,6 +39,8 @@ export interface MainOptions {
 	readonly signal?: AbortSignal;
 	readonly fetchImpl?: FetchLike;
 	readonly sleep?: (ms: number) => Promise<void>;
+	/** Browser opener injection point for tests; default opens a real tab. */
+	readonly openUrl?: (url: string) => void;
 }
 
 const HELP = `vkma-deploy — deploy VK Mini Apps hosting (${VERSION})
@@ -263,6 +266,9 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 			logger.info(
 				`Open this URL to authorize vkma-deploy (browser should open automatically):\n  ${url}`,
 			),
+		// The browser opens only in interactive runs; CI/tests/pipe stdin
+		// just get the printed URL.
+		openBrowser: stdin.isTTY === true ? (context.openUrl ?? openUrl) : undefined,
 	});
 
 	const savedTo = await saveCredentials(

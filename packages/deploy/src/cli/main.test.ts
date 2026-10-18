@@ -323,16 +323,19 @@ describe("main()", () => {
 			]),
 		);
 		const home = path.join(root, "home");
+		const opened: string[] = [];
 		const code = await main(["login"], {
 			stdout,
 			stderr,
-			stdin,
+			stdin, // not a TTY -> the browser must NOT open
 			env: env({ XDG_CONFIG_HOME: path.join(home, ".config") }),
 			cwd: root,
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
+			openUrl: url => opened.push(url),
 		});
 		expect(code).toBe(0);
+		expect(opened).toEqual([]);
 		const text = out.join("");
 		expect(text).toContain("Token saved");
 		expect(text).not.toContain("fresh-secret-token");
@@ -343,6 +346,33 @@ describe("main()", () => {
 			),
 		) as { accessToken: string };
 		expect(stored.accessToken).toBe("fresh-secret-token");
+	});
+
+	it("login opens the browser only when stdin is a TTY", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(
+			route([
+				["get_auth_code", () => ({ body: { auth_code: "TTY", device_id: "D" } })],
+				["code_auth_token", () => ({ body: { access_token: "tty-token", expires_in: 1 } })],
+			]),
+		);
+		const opened: string[] = [];
+		const code = await main(["login"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ XDG_CONFIG_HOME: path.join(root, "home", ".config") }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+			openUrl: url => opened.push(url),
+		});
+		expect(code).toBe(0);
+		expect(opened).toEqual(["https://oauth.vk.ru/code_auth?stage=check&code=TTY&revoke=1"]);
 	});
 
 	it("login without appId exits 1 with guidance", async () => {
