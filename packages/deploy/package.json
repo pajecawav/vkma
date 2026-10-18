@@ -30,6 +30,7 @@
 	"scripts": {
 		"build": "tsdown",
 		"dev": "tsdown --watch",
+		"schema": "node --experimental-strip-types scripts/gen-schema.ts",
 		"lint:package": "publint",
 		"test": "vitest run",
 		"test:watch": "vitest watch"

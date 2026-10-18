@@ -1,0 +1,106 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://unpkg.com/@vkma.dev/deploy/schema/vkma-deploy.config.schema.json",
+	"title": "vkma-deploy configuration",
+	"description": "Configuration for @vkma.dev/deploy (vkma-deploy).",
+	"type": "object",
+	"properties": {
+		"$schema": {
+			"description": "JSON Schema reference for this file.",
+			"type": "string"
+		},
+		"appId": {
+			"minimum": 1,
+			"description": "VK Mini App ID. Can also come from VKMA_APP_ID / MINI_APPS_APP_ID.",
+			"type": "integer"
+		},
+		"staticPath": {
+			"minLength": 1,
+			"description": "Directory with the built app that gets zipped and uploaded, e.g. \"./build\".",
+			"type": "string"
+		},
+		"bundle": {
+			"minLength": 1,
+			"description": "Path to a prebuilt .zip archive. Skips zipping. Mutually exclusive with staticPath.",
+			"type": "string"
+		},
+		"endpoints": {
+			"type": "object",
+			"properties": {
+				"mobile": {
+					"description": "Entry file for the mobile app (iOS & Android).",
+					"type": "string"
+				},
+				"mvk": {
+					"description": "Entry file for m.vk.ru.",
+					"type": "string"
+				},
+				"web": {
+					"description": "Entry file for vk.ru.",
+					"type": "string"
+				}
+			},
+			"description": "Entry files per platform. Missing platforms default to \"index.html\"."
+		},
+		"environment": {
+			"description": "Which hosting environment to deploy to. Default: \"both\".",
+			"anyOf": [
+				{
+					"const": "dev",
+					"type": "string"
+				},
+				{
+					"const": "production",
+					"type": "string"
+				},
+				{
+					"const": "both",
+					"type": "string"
+				}
+			]
+		},
+		"updateProd": {
+			"description": "Switch production URLs to the new version. Default: true.",
+			"type": "boolean"
+		},
+		"updateDev": {
+			"description": "Switch dev URLs to the new version. Default: true.",
+			"type": "boolean"
+		},
+		"testGroupName": {
+			"minLength": 1,
+			"description": "Deploy into a named test group instead of the common dev environment.",
+			"type": "string"
+		},
+		"accessToken": {
+			"description": "VK access token. Prefer VKMA_ACCESS_TOKEN or `vkma-deploy login` over committing it.",
+			"type": "string"
+		},
+		"apiHost": {
+			"default": "https://api.vk.ru/method/",
+			"description": "VK API base URL.",
+			"type": "string"
+		},
+		"oauthHost": {
+			"default": "https://oauth.vk.ru/",
+			"description": "VK OAuth base URL.",
+			"type": "string"
+		},
+		"apiVersion": {
+			"default": "5.199",
+			"description": "VK API version. Default: \"5.199\". Set \"5.131\" for exact upstream compatibility.",
+			"type": "string"
+		},
+		"oauthClientId": {
+			"default": 6670517,
+			"description": "OAuth client used by the device flow.",
+			"type": "integer"
+		},
+		"queueTimeoutSec": {
+			"minimum": 1,
+			"default": 600,
+			"description": "Max seconds to wait for the hosting queue before failing.",
+			"type": "integer"
+		}
+	}
+}
