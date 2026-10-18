@@ -226,6 +226,23 @@ describe("waitForQueue", () => {
 		);
 	});
 
+	it("keeps the detail when the queue error message is a plain string (upstream shape)", async () => {
+		const spy = createFetchSpy(
+			route([
+				["subscribeToHostingQueue", subscribeResponse],
+				[
+					"act=a_check",
+					() => poll([{ type: "error", code: 103, message: "boom-string" }], 2),
+				],
+			]),
+		);
+		await expect(waitForQueue({ ...BASE, fetchImpl: spy.fetchImpl })).rejects.toSatisfy(
+			(error: unknown) =>
+				(error as DeployError).kind === "api" &&
+				(error as DeployError).message.includes("boom-string"),
+		);
+	});
+
 	it("times out instead of polling forever (fixes upstream issue #119)", async () => {
 		const spy = createFetchSpy(async url => {
 			if (url.includes("subscribeToHostingQueue")) {

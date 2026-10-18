@@ -139,7 +139,8 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 			}
 			const type = data["type"];
 			const code = Number(data["code"] ?? 0);
-			const message = isRecord(data["message"]) ? data["message"] : undefined;
+			const rawMessage = data["message"];
+			const message = isRecord(rawMessage) ? rawMessage : undefined;
 
 			if (type === "error") {
 				if (code === ERROR_TEST_GROUP_UPDATE) {
@@ -149,7 +150,11 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 					} satisfies RequestEvent);
 					continue;
 				}
-				const rawDetail = message?.["message"];
+				// VK has been observed sending `message` both as an object
+				// ({ message: "..." }) and as a plain string (upstream
+				// concatenated it directly) — handle both shapes.
+				const rawDetail =
+					typeof rawMessage === "string" ? rawMessage : message?.["message"];
 				const detail =
 					typeof rawDetail === "string"
 						? rawDetail
