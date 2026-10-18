@@ -111,6 +111,30 @@ describe("main()", () => {
 		expect(record.data.config.appId).toBe(7);
 	});
 
+	it("--json stays ANSI-free even when stdout is a TTY", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 7, staticPath: "./build" }),
+		);
+		const ttyOut: string[] = [];
+		const code = await main(["config", "--json"], {
+			stdout: { write: (text: string) => ttyOut.push(text), isTTY: true },
+			stderr,
+			stdin,
+			env: env(),
+			cwd: root,
+		});
+		expect(code).toBe(0);
+		const text = ttyOut.join("");
+		expect(text).not.toContain("\u001b");
+		for (const line of text.trim().split("\n")) {
+			if (line !== "") {
+				expect(() => JSON.parse(line)).not.toThrow();
+			}
+		}
+	});
+
 	it("config command fails on invalid config with exit 1", async () => {
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),

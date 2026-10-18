@@ -112,8 +112,13 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 
 	const mode = parsed.booleans.json ? "json" : parsed.booleans.quiet ? "quiet" : "pretty";
 	const level = parsed.booleans.quiet ? "error" : parsed.booleans.verbose ? "debug" : "info";
+	// Machine-readable output must never contain ANSI escapes, even when
+	// stdout is a TTY (logger.step paints before emit; CI parsers choke).
 	const color =
-		!parsed.booleans.noColor && env["NO_COLOR"] === undefined && stdout.isTTY === true;
+		mode !== "json" &&
+		!parsed.booleans.noColor &&
+		env["NO_COLOR"] === undefined &&
+		stdout.isTTY === true;
 	const logger = new CliLogger({
 		mode,
 		color,

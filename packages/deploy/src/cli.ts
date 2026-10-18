@@ -2,7 +2,11 @@
 
 /**
  * Binary entry: wires SIGINT to an AbortSignal and turns `main()`'s exit
- * code into `process.exit`. Everything testable lives in `cli/main.ts`.
+ * code into `process.exitCode`. Everything testable lives in `cli/main.ts`.
+ *
+ * `process.exitCode` (not `process.exit`) so pending piped-stdout writes
+ * drain before the process ends — `--json | jq` must never lose tail
+ * records. The event loop exits on its own once main() resolves.
  */
 
 import { main } from "./cli/main.ts";
@@ -20,4 +24,4 @@ process.on("SIGINT", () => {
 });
 
 const code = await main(process.argv.slice(2), { signal: controller.signal });
-process.exit(code);
+process.exitCode = code;
