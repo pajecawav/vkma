@@ -88,8 +88,9 @@ function buildTaskParams(config: ResolvedConfig): Record<string, string | number
 	if (config.testGroupName !== undefined) {
 		params["test_group_name"] = config.testGroupName;
 	}
-	for (const platform of ["mobile", "mvk", "web"] as const) {
-		params[`endpoint_${platform}`] = config.endpoints[platform];
+	// Upstream parity: endpoint_* params exist only for configured platforms.
+	for (const [platform, endpoint] of Object.entries(config.endpoints)) {
+		params[`endpoint_${platform}`] = endpoint;
 	}
 	return params;
 }

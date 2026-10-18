@@ -70,21 +70,21 @@ JSON configs get editor autocomplete via `$schema`:
 
 ### Fields
 
-| Field             | Type                          | Default                     | Notes                                                      |
-| ----------------- | ----------------------------- | --------------------------- | ---------------------------------------------------------- |
-| `appId`           | integer                       | — (required)                | Or `VKMA_APP_ID` / `MINI_APPS_APP_ID`                      |
-| `staticPath`      | string                        | — (required w/o bundle)     | Directory to zip, e.g. `"./build"` (legacy: `static_path`) |
-| `bundle`          | string                        | —                           | Prebuilt `.zip`; skips zipping (legacy: `bundleFile`)      |
-| `endpoints`       | `{mobile?, mvk?, web?}`       | all `"index.html"`          | Entry files per platform                                   |
-| `environment`     | `"dev"\|"production"\|"both"` | `"both"`                    | What to deploy (legacy env var values work too)            |
-| `updateProd`      | boolean                       | `true`                      | Switch production URLs (independent — fixes upstream #118) |
-| `updateDev`       | boolean                       | `true`                      | Switch dev URLs                                            |
-| `testGroupName`   | string                        | —                           | Deploy into a named test group (dev only)                  |
-| `accessToken`     | string                        | —                           | Prefer env var or `vkma-deploy login` over committing      |
-| `apiHost`         | string                        | `https://api.vk.ru/method/` |                                                            |
-| `oauthHost`       | string                        | `https://oauth.vk.ru/`      |                                                            |
-| `apiVersion`      | string                        | `"5.199"`                   | Use `"5.131"` for exact upstream parity                    |
-| `queueTimeoutSec` | integer                       | `600`                       | Hosting queue deadline (fixes the upstream infinite hang)  |
+| Field             | Type                          | Default                     | Notes                                                             |
+| ----------------- | ----------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `appId`           | integer                       | — (required)                | Or `VKMA_APP_ID` / `MINI_APPS_APP_ID`                             |
+| `staticPath`      | string                        | — (required w/o bundle)     | Directory to zip, e.g. `"./build"` (legacy: `static_path`)        |
+| `bundle`          | string                        | —                           | Prebuilt `.zip`; skips zipping (legacy: `bundleFile`)             |
+| `endpoints`       | `{mobile?, mvk?, web?}`       | none (VK server defaults)   | Entry files per platform; only configured ones are checked & sent |
+| `environment`     | `"dev"\|"production"\|"both"` | `"both"`                    | What to deploy (legacy env var values work too)                   |
+| `updateProd`      | boolean                       | `true`                      | Switch production URLs (independent — fixes upstream #118)        |
+| `updateDev`       | boolean                       | `true`                      | Switch dev URLs                                                   |
+| `testGroupName`   | string                        | —                           | Deploy into a named test group (dev only)                         |
+| `accessToken`     | string                        | —                           | Prefer env var or `vkma-deploy login` over committing             |
+| `apiHost`         | string                        | `https://api.vk.ru/method/` |                                                                   |
+| `oauthHost`       | string                        | `https://oauth.vk.ru/`      |                                                                   |
+| `apiVersion`      | string                        | `"5.199"`                   | Use `"5.131"` for exact upstream parity                           |
+| `queueTimeoutSec` | integer                       | `600`                       | Hosting queue deadline (fixes the upstream infinite hang)         |
 
 Unknown legacy fields and unsupported ones (`proxy_url`, `debug`, `noprompt`)
 produce warnings, never silent drops.
@@ -187,8 +187,10 @@ requires no re-login.
 
 - Queue polling has a hard deadline (default 10 min) instead of hanging
   forever; single-environment deploys terminate on their own URL event.
-- Missing `staticPath`/`endpoints`/files fail in preflight with actionable
-  messages instead of zipping `./undefined` or throwing `TypeError`.
+- Missing `staticPath` or a _configured_ endpoint file fails in preflight
+  with an actionable message instead of zipping `./undefined` or throwing
+  `TypeError`. Unconfigured platforms are neither checked nor sent as
+  `endpoint_*` params — exactly like upstream 1.0.3.
 - Retries use exponential backoff with jitter; VK error 6 is retried.
 - The access token is masked in every log line and error, in every mode.
 - `updateProd`/`updateDev` are independent booleans (upstream could not

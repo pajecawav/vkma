@@ -58,8 +58,9 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 
 - infinite long-poll hang (upstream #119) → `queueTimeoutSec` deadline
 - single-environment deploys terminating without server skip events
-- missing `static_path` → zipped `./undefined`; missing `endpoints` →
-  TypeError — both replaced by preflight errors
+- missing `static_path` → zipped `./undefined`; missing _configured_
+  endpoint file → preflight errors (unconfigured endpoints are valid:
+  nothing is checked or sent, matching upstream)
 - declining a prompt must not exit 0; prompted values must not clobber
   config
 - token in query strings leaked into logs → masked everywhere

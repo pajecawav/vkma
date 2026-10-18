@@ -100,12 +100,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 		appId: merged["appId"] as number,
 		staticPath: normalizeMaybePath(merged["staticPath"] as string | undefined),
 		bundle: normalizeMaybePath(merged["bundle"] as string | undefined),
-		endpoints: {
-			...CONFIG_DEFAULTS.endpoints,
-			...(merged["endpoints"] as
-				| Partial<Record<"mobile" | "mvk" | "web", string>>
-				| undefined),
-		},
+		endpoints: (merged["endpoints"] as Partial<Record<"mobile" | "mvk" | "web", string>>) ?? {},
 		environment:
 			(merged["environment"] as ResolvedConfig["environment"]) ?? CONFIG_DEFAULTS.environment,
 		updateProd: (merged["updateProd"] as boolean | undefined) ?? CONFIG_DEFAULTS.updateProd,

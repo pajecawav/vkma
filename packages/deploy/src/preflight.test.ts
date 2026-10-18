@@ -19,7 +19,7 @@ function makeConfig(overrides: Partial<ResolvedConfig>): ResolvedConfig {
 	return {
 		appId: 1,
 		staticPath: "./build",
-		endpoints: { ...CONFIG_DEFAULTS.endpoints },
+		endpoints: { mobile: "index.html", mvk: "index.html", web: "index.html" },
 		environment: "both",
 		updateProd: true,
 		updateDev: true,
@@ -90,6 +90,27 @@ describe("preflight", () => {
 			endpoints: { mobile: "index.html?cache=1", mvk: "index.html", web: "index.html" },
 		});
 		await expect(preflight(config, root)).resolves.toBeDefined();
+	});
+
+	it("skips endpoint checks for unconfigured platforms (upstream parity)", async () => {
+		// No index.html at all — upstream deployed this fine when only
+		// `endpoints: { web: "custom.html" }` was configured.
+		await fs.mkdir(path.join(root, "build"), { recursive: true });
+		await fs.writeFile(path.join(root, "build", "custom.html"), "ok");
+		const result = await preflight(makeConfig({ endpoints: { web: "custom.html" } }), root);
+		expect(result.endpointFiles).toEqual([
+			{
+				platform: "web",
+				endpoint: "custom.html",
+				file: path.join(root, "build", "custom.html"),
+			},
+		]);
+	});
+
+	it("passes with no endpoints configured at all (server defaults)", async () => {
+		await makeBuildDir();
+		const result = await preflight(makeConfig({ endpoints: {} }), root);
+		expect(result.endpointFiles).toEqual([]);
 	});
 
 	it("validates a prebuilt bundle instead", async () => {

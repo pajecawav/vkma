@@ -360,7 +360,11 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 			break;
 		}
 		case "preflight:done":
-			logger.step(`Preflight passed (${event.endpointFiles.length} endpoint files checked)`);
+			logger.step(
+				event.endpointFiles.length > 0
+					? `Preflight passed (${event.endpointFiles.length} endpoint files checked)`
+					: "Preflight passed (no endpoint checks — server defaults apply)",
+			);
 			break;
 		case "zip:done":
 			logger.step(

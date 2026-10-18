@@ -54,7 +54,7 @@ export const DeployConfigSchema = Type.Object(
 				}),
 				{
 					description:
-						'Entry files per platform. Missing platforms default to "index.html".',
+						"Entry files per platform. Only configured platforms are checked in preflight and sent as endpoint_* params (upstream parity); the rest use VK server defaults.",
 				},
 			),
 		),
@@ -126,7 +126,7 @@ export interface ResolvedConfig {
 	readonly appId: number;
 	readonly staticPath?: string;
 	readonly bundle?: string;
-	readonly endpoints: Readonly<{ mobile: string; mvk: string; web: string }>;
+	readonly endpoints: Readonly<Partial<Record<"mobile" | "mvk" | "web", string>>>;
 	readonly environment: "dev" | "production" | "both";
 	readonly updateProd: boolean;
 	readonly updateDev: boolean;
@@ -160,15 +160,12 @@ export interface ResolvedConfigMeta {
 	readonly ciUrls: boolean;
 }
 
-const DEFAULT_ENDPOINTS = { mobile: "index.html", mvk: "index.html", web: "index.html" } as const;
-
 export const CONFIG_DEFAULTS = {
 	apiHost: DEFAULT_API_HOST,
 	oauthHost: DEFAULT_OAUTH_HOST,
 	apiVersion: API_VERSION,
 	oauthClientId: OAUTH_CLIENT_ID,
 	queueTimeoutSec: DEFAULT_QUEUE_TIMEOUT_SEC,
-	endpoints: DEFAULT_ENDPOINTS,
 	environment: "both" as const,
 	updateProd: true,
 	updateDev: true,

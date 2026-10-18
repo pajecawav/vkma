@@ -94,11 +94,9 @@ describe("resolveConfig", () => {
 		const { config, meta } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBe(42);
 		expect(config.staticPath).toBe("./build");
-		expect(config.endpoints).toEqual({
-			mobile: "index.html",
-			mvk: "index.html",
-			web: "index.html",
-		});
+		// Upstream parity: unconfigured endpoints stay empty — no defaults are
+		// injected, so no endpoint_* params are sent and nothing is checked.
+		expect(config.endpoints).toEqual({});
 		expect(config.environment).toBe("both");
 		expect(config.updateProd).toBe(true);
 		expect(config.apiVersion).toBe("5.199");
@@ -178,11 +176,7 @@ describe("resolveConfig", () => {
 		expect(config.updateProd).toBe(true);
 		expect(config.updateDev).toBe(false);
 		expect(config.testGroupName).toBe("qa");
-		expect(config.endpoints).toEqual({
-			mobile: "m.html",
-			mvk: "index.html",
-			web: "index.html",
-		});
+		expect(config.endpoints).toEqual({ mobile: "m.html" });
 		expect(meta.warnings.some(w => w.includes("debug"))).toBe(true);
 		expect(meta.warnings.some(w => w.includes("who_is_this"))).toBe(true);
 	});

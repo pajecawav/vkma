@@ -161,9 +161,8 @@ describe("deploy()", () => {
 		expect(serverUrl).toContain("environment=3");
 		expect(serverUrl).toContain("update_prod=1");
 		expect(serverUrl).toContain("update_dev=1");
-		expect(serverUrl).toContain("endpoint_mobile=index.html");
-		expect(serverUrl).toContain("endpoint_mvk=index.html");
-		expect(serverUrl).toContain("endpoint_web=index.html");
+		// No endpoints configured -> no endpoint_* params (upstream parity).
+		expect(serverUrl).not.toContain("endpoint_");
 		expect(serverUrl).toContain("v=5.199");
 		expect(serverUrl).toContain("cli_version=2");
 
@@ -205,6 +204,19 @@ describe("deploy()", () => {
 	it("sends test_group_name when configured", async () => {
 		await deploy(undefined, { ...baseOptions(), overrides: { testGroupName: "qa" } });
 		expect(spy.calls[0]?.url).toContain("test_group_name=qa");
+	});
+
+	it("sends endpoint_* params only for configured platforms (upstream parity)", async () => {
+		await fs.writeFile(path.join(root, "build", "m.html"), "m");
+		await fs.writeFile(path.join(root, "build", "w.html"), "w");
+		await deploy(undefined, {
+			...baseOptions(),
+			overrides: { endpoints: { mobile: "m.html", web: "w.html" } },
+		});
+		const serverUrl = spy.calls[0]?.url ?? "";
+		expect(serverUrl).toContain("endpoint_mobile=m.html");
+		expect(serverUrl).toContain("endpoint_web=w.html");
+		expect(serverUrl).not.toContain("endpoint_mvk");
 	});
 
 	it("honors apiVersion 5.131 pinned for upstream parity", async () => {

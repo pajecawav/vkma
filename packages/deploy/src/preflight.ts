@@ -64,8 +64,11 @@ export async function preflight(config: ResolvedConfig, cwd: string): Promise<Pr
 		});
 	}
 
-	for (const platform of ["mobile", "mvk", "web"] as const) {
-		const endpoint = config.endpoints[platform];
+	// Upstream parity: only platforms explicitly configured in `endpoints`
+	// are checked (and later sent as endpoint_* params). Unconfigured
+	// platforms are left to VK server defaults — a config with just
+	// `endpoints: { web: "custom.html" }` deploys without index.html.
+	for (const [platform, endpoint] of Object.entries(config.endpoints)) {
 		const file = endpointFilePath(staticAbs, endpoint);
 		const stats = await fs.stat(file).catch(() => undefined);
 		if (stats === undefined || !stats.isFile()) {

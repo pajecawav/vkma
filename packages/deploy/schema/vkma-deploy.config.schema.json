@@ -40,7 +40,7 @@
 					"type": "string"
 				}
 			},
-			"description": "Entry files per platform. Missing platforms default to \"index.html\"."
+			"description": "Entry files per platform. Only configured platforms are checked in preflight and sent as endpoint_* params (upstream parity); the rest use VK server defaults."
 		},
 		"environment": {
 			"description": "Which hosting environment to deploy to. Default: \"both\".",
