@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createFetchSpy, instantSleep, route } from "../test-utils.ts";
 import { completionScript } from "./completions.ts";
@@ -370,6 +371,57 @@ describe("main()", () => {
 			),
 		) as { accessToken: string };
 		expect(stored.accessToken).toBe("fresh-secret-token");
+	});
+
+	it("empty confirmation code aborts with exit 130 (interactive)", async () => {
+		await makeProject();
+		// testGroupName is preset so the test-group prompt is skipped and the
+		// event-205 code prompt is the only one reading from stdin.
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", testGroupName: "qa" }),
+		);
+		const spy = createFetchSpy(
+			route([
+				[
+					"getGoHostingUploadServer",
+					() => ({ body: { response: { upload_url: "https://upload.vk/ticket" } } }),
+				],
+				["upload.vk/ticket", () => ({ body: { ticket_id: "T" } })],
+				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
+				[
+					"subscribeToHostingQueue",
+					() => ({
+						body: {
+							response: { base_url: "https://queue.vk/", key: "k", ts: 1, app_id: 9 },
+						},
+					}),
+				],
+				[
+					"act=a_check",
+					() => ({ body: { ts: 2, events: [{ data: { type: "success", code: 205 } }] } }),
+				],
+			]),
+		);
+		const input = new PassThrough();
+		const pending = main(["--interactive"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		// The empty line answers the event-205 confirmation-code prompt.
+		// PassThrough buffers, so writing before the prompt starts is fine.
+		input.write("\n");
+		const code = await pending;
+		expect(code).toBe(130);
+		// Pretty mode renders aborted errors as "canceled"; the detailed
+		// message surfaces in --json mode.
+		expect(err.join("")).toContain("canceled");
 	});
 
 	it("login opens the browser only when stdin is a TTY", async () => {

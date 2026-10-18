@@ -126,8 +126,12 @@ Exit codes: `0` success · `1` config/user error · `2` network/timeout ·
 By default the CLI never prompts — it is CI-safe. With `--interactive` (and a
 TTY) it prompts **only** for values that are not already set (flag > env >
 config > prompt), and prompted values are used for the current run only —
-nothing is written back into your config. Declining a prompt cancels with
-exit code `130`, never a fake success.
+nothing is written back into your config. Declining the optional test-group
+prompt simply deploys without a group; canceling the confirmation-code
+prompt (empty answer or Ctrl+C) aborts with exit code `130`, never a fake
+success. Note that `--interactive` cannot rescue a config missing
+`appId`/`staticPath` — resolution fails before any prompt with a
+configuration error.
 
 The one unconditional prompt is the confirmation code VK sends for some
 deploys (queue event 205): in a terminal you will be asked to enter it; in CI
@@ -195,7 +199,8 @@ requires no re-login.
 - The access token is masked in every log line and error, in every mode.
 - `updateProd`/`updateDev` are independent booleans (upstream could not
   update only production URLs — issue #118).
-- Declining a prompt exits `130`, not `0`.
+- Canceling the confirmation-code prompt exits `130`, not `0`; declining
+  the test-group prompt proceeds without a group.
 - No `postinstall` noise, no unused dependencies, ESM-only, 2 runtime deps
   (`@sinclair/typebox`, `fflate`).
 - Proxy support (`proxy_url`) is not implemented yet; set

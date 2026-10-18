@@ -61,7 +61,9 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 - missing `static_path` → zipped `./undefined`; missing _configured_
   endpoint file → preflight errors (unconfigured endpoints are valid:
   nothing is checked or sent, matching upstream)
-- declining a prompt must not exit 0; prompted values must not clobber
+- declining the confirmation-code prompt (empty answer/Ctrl+C) aborts with
+  130; declining the test-group prompt proceeds without a group; prompted
+  values must not clobber
   config
 - token in query strings leaked into logs → masked everywhere
 - fixed 1s retry → exponential backoff with jitter; VK error 6 retried

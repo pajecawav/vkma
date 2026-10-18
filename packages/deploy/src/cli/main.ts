@@ -36,6 +36,8 @@ export interface MainOptions {
 	readonly stdout?: { write(text: string): void; isTTY?: boolean };
 	readonly stderr?: { write(text: string): void };
 	readonly stdin?: { isTTY?: boolean };
+	/** Prompt input stream injection (tests); defaults to process.stdin. */
+	readonly input?: NodeJS.ReadableStream;
 	readonly signal?: AbortSignal;
 	readonly fetchImpl?: FetchLike;
 	readonly sleep?: (ms: number) => Promise<void>;
@@ -198,9 +200,14 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		const wantsGroup = await confirm("Deploy into a test group?", false, {
 			signal: context.signal,
 			stdin,
+			input: context.input,
 		});
 		if (wantsGroup) {
-			const name = await text("Test group name:", { signal: context.signal, stdin });
+			const name = await text("Test group name:", {
+				signal: context.signal,
+				stdin,
+				input: context.input,
+			});
 			if (name !== "") {
 				finalOverrides["testGroupName"] = name;
 			}
@@ -213,11 +220,16 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 					const code = await text("Confirmation code (sent by VK):", {
 						signal: context.signal,
 						stdin,
+						input: context.input,
 					});
 					if (code === "") {
-						throw new DeployError("user", "Confirmation code is required (event 205)", {
-							code: 205,
-						});
+						// An empty answer means the user refuses to continue —
+						// a cancel, not a config problem (exit 130).
+						throw new DeployError(
+							"aborted",
+							"Confirmation code declined — deploy canceled (event 205)",
+							{ code: "E_ABORTED" },
+						);
 					}
 					return code;
 				}
@@ -256,7 +268,11 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 	let appId = config.appId;
 	if (!Number.isInteger(appId) || appId < 1) {
 		if (parsed.booleans.interactive && stdin.isTTY === true) {
-			const answer = await text("App ID to authorize:", { signal: context.signal, stdin });
+			const answer = await text("App ID to authorize:", {
+				signal: context.signal,
+				stdin,
+				input: context.input,
+			});
 			appId = Number.parseInt(answer, 10);
 		}
 		if (!Number.isInteger(appId) || appId < 1) {

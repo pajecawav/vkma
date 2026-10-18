@@ -27,6 +27,29 @@ function requireTty(options: PromptOptions): void {
 	}
 }
 
+function isAbortError(error: unknown): boolean {
+	return error instanceof Error && error.name === "AbortError";
+}
+
+/**
+ * Asks one question; an aborted signal (Ctrl+C) rejects with an
+ * `aborted` DeployError instead of leaving the question dangling.
+ */
+async function ask(
+	rl: readline.Interface,
+	query: string,
+	signal: AbortSignal | undefined,
+): Promise<string> {
+	try {
+		return await rl.question(query, { signal });
+	} catch (error) {
+		if (isAbortError(error) || signal?.aborted === true) {
+			throw new DeployError("aborted", "Prompt canceled", { code: "E_ABORTED" });
+		}
+		throw error;
+	}
+}
+
 export async function confirm(
 	question: string,
 	defaultValue = true,
@@ -39,7 +62,9 @@ export async function confirm(
 	});
 	try {
 		const hint = defaultValue ? "Y/n" : "y/N";
-		const answer = (await rl.question(`${question} (${hint}) `)).trim().toLowerCase();
+		const answer = (await ask(rl, `${question} (${hint}) `, options.signal))
+			.trim()
+			.toLowerCase();
 		if (answer === "") {
 			return defaultValue;
 		}
@@ -56,7 +81,7 @@ export async function text(question: string, options: PromptOptions = {}): Promi
 		output: (options.output ?? process.stdout) as NodeJS.WritableStream,
 	});
 	try {
-		return (await rl.question(`${question} `)).trim();
+		return (await ask(rl, `${question} `, options.signal)).trim();
 	} finally {
 		rl.close();
 	}
