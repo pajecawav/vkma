@@ -8,7 +8,7 @@
 
 import { randomBytes } from "node:crypto";
 import { DeployError } from "../errors.ts";
-import { parseJsonBody, type FetchLike, type HttpOptions } from "./client.ts";
+import { parseJsonBody, bodyPreview, type FetchLike, type HttpOptions } from "./client.ts";
 
 export interface UploadOptions extends HttpOptions {
 	/** Called at most every `progressIntervalMs` (plus the final call). */
@@ -45,10 +45,15 @@ function countingStream(
 	let offset = 0;
 	let sent = 0;
 	let lastReport = 0;
+	let reportedSent = -1;
 	return new ReadableStream<Uint8Array>({
 		pull(controller) {
 			if (offset >= body.length) {
-				onProgress(body.length, body.length);
+				// The last chunk already reported completion; do not emit twice
+				// (the duplicated "100%" line was a real-world report).
+				if (reportedSent !== body.length) {
+					onProgress(body.length, body.length);
+				}
 				controller.close();
 				return;
 			}
@@ -58,6 +63,7 @@ function countingStream(
 			const now = Date.now();
 			if (now - lastReport >= intervalMs || sent === body.length) {
 				lastReport = now;
+				reportedSent = sent;
 				onProgress(sent, body.length);
 			}
 			controller.enqueue(chunk);
@@ -109,7 +115,11 @@ export async function uploadBundle(
 			} as RequestInit);
 
 			const text = await response.text();
-			options.onEvent?.({ kind: "response", status: response.status });
+			options.onEvent?.({
+				kind: "response",
+				status: response.status,
+				body: bodyPreview(text),
+			});
 
 			if (response.ok) {
 				return parseJsonBody(text, uploadUrl) as Record<string, unknown>;

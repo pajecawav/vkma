@@ -98,9 +98,7 @@ async function loadTypeScriptConfig(filePath: string): Promise<DeployConfigInput
 		throw new DeployError("config", `Cannot read config file ${filePath}`, { cause });
 	}
 
-	// `mode: "strip"` matches tsc `verbatimModuleSyntax`: no enums, no
-	// namespaces, no parameter properties in config files.
-	const stripped = stripTypeScriptTypes(source, { mode: "strip" });
+	const stripped = stripTypesQuietly(source, filePath);
 
 	const tempPath = path.join(
 		path.dirname(filePath),
@@ -112,6 +110,46 @@ async function loadTypeScriptConfig(filePath: string): Promise<DeployConfigInput
 		return unwrapDefault(module, filePath);
 	} finally {
 		await fs.rm(tempPath, { force: true });
+	}
+}
+
+/**
+ * Strips types without Node's ExperimentalWarning noise.
+ *
+ * `module.stripTypeScriptTypes` prints a warning on first use in every
+ * process; for a config loader that is pure noise. We shim
+ * `process.emitWarning` strictly around the synchronous strip call and
+ * restore the original immediately — no lasting global mutation. This is a
+ * documented exception to the "library never touches process" invariant.
+ */
+function stripTypesQuietly(source: string, filePath: string): string {
+	const originalEmit = process.emitWarning.bind(process);
+	const forward = originalEmit as unknown as (
+		warning: string | Error,
+		...args: unknown[]
+	) => void;
+	const shim = (warning: string | Error, ...args: unknown[]): void => {
+		if (
+			typeof warning === "string" &&
+			warning.includes("stripTypeScriptTypes is an experimental feature")
+		) {
+			return;
+		}
+		forward(warning, ...args);
+	};
+	process.emitWarning = shim;
+	try {
+		// `mode: "strip"` matches tsc `verbatimModuleSyntax`: no enums, no
+		// namespaces, no parameter properties in config files.
+		return stripTypeScriptTypes(source, { mode: "strip" });
+	} catch (cause) {
+		throw new DeployError(
+			"config",
+			`Failed to strip types from ${filePath}: config files must avoid enums, namespaces, and parameter properties (native "strip" mode)`,
+			{ cause },
+		);
+	} finally {
+		process.emitWarning = originalEmit;
 	}
 }
 

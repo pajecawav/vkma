@@ -59,7 +59,7 @@ export type DeployEvent =
 			bundlePath?: string;
 			endpointFiles: { platform: string; file: string }[];
 	  }
-	| { type: "zip:done"; bytes: number; files: number }
+	| { type: "zip:done"; bytes: number; archiveBytes: number; files: number }
 	| { type: "upload:start"; total: number }
 	| { type: "upload:progress"; sent: number; total: number }
 	| { type: "upload:done" }
@@ -158,11 +158,21 @@ export async function deploy(
 	if (preflightResult.bundlePath !== undefined) {
 		const file = await fs.readFile(preflightResult.bundlePath);
 		archive = new Uint8Array(file);
-		options.onEvent?.({ type: "zip:done", bytes: archive.length, files: 1 });
+		options.onEvent?.({
+			type: "zip:done",
+			bytes: archive.length,
+			archiveBytes: archive.length,
+			files: 1,
+		});
 	} else {
 		const zipped = await zipDirectory(preflightResult.staticPath as string);
 		archive = zipped.archive;
-		options.onEvent?.({ type: "zip:done", bytes: zipped.bytes, files: zipped.files });
+		options.onEvent?.({
+			type: "zip:done",
+			bytes: zipped.bytes,
+			archiveBytes: archive.length,
+			files: zipped.files,
+		});
 	}
 
 	if (options.dryRun === true) {

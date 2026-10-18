@@ -33,6 +33,8 @@ describe("uploadBundle", () => {
 			(call?.bodyBytes ?? new Uint8Array()).length,
 		);
 		expect(bodyText).toContain(new TextDecoder().decode(ARCHIVE));
+		const completions = progress.filter(entry => entry.sent === entry.total);
+		expect(completions.length).toBe(1);
 		expect(progress.at(-1)).toEqual({
 			sent: (call?.bodyBytes ?? new Uint8Array()).length,
 			total: (call?.bodyBytes ?? new Uint8Array()).length,

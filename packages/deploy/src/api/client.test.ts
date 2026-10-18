@@ -131,6 +131,27 @@ describe("callApi", () => {
 		expect(urls[0]).not.toContain("token-1234567890");
 	});
 
+	it("includes a truncated response body preview in response events (verbose diagnostics)", async () => {
+		const spy = createFetchSpy(() => vkOk({ padding: "x".repeat(5000) }));
+		const bodies: string[] = [];
+		await callApi(
+			"m",
+			{},
+			{
+				...BASE,
+				fetchImpl: spy.fetchImpl,
+				onEvent: event => {
+					if (event.kind === "response" && event.body !== undefined) {
+						bodies.push(event.body);
+					}
+				},
+			},
+		);
+		expect(bodies.length).toBe(1);
+		expect(bodies[0]).toContain("bytes)");
+		expect((bodies[0] ?? "").length).toBeLessThan(1200);
+	});
+
 	it("throws aborted when the signal is already aborted", async () => {
 		const spy = createFetchSpy(() => vkOk({}));
 		const controller = new AbortController();

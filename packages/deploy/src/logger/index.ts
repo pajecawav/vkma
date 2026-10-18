@@ -85,6 +85,11 @@ export class CliLogger {
 		this.stderr = options.stderr;
 	}
 
+	/** Masks known secrets inside arbitrary text (used for verbose bodies). */
+	public redactString(text: string): string {
+		return this.redactor.redactString(text);
+	}
+
 	/** CI_URLS mode: print raw URL keys instead of platform labels. */
 	public setCiUrls(value: boolean): void {
 		this.ciUrls = value;

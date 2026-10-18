@@ -357,7 +357,9 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 			logger.step(`Preflight passed (${event.endpointFiles.length} endpoint files checked)`);
 			break;
 		case "zip:done":
-			logger.step(`Bundle: ${formatBytes(event.bytes)} (${event.files} files)`);
+			logger.step(
+				`Bundle: ${formatBytes(event.archiveBytes)} zip (${formatBytes(event.bytes)} sources, ${event.files} files)`,
+			);
 			break;
 		case "upload:start":
 			logger.spinnerStart(`Uploading bundle (${formatBytes(event.total)})`);
@@ -375,14 +377,17 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 		case "deploy:success":
 			renderSuccess(logger, event.result);
 			break;
-		case "http":
+		case "http": {
+			const part = event.event;
+			const suffix = part.body === undefined ? "" : `\n${logger.redactString(part.body)}`;
 			logger.debug(
-				`${event.event.method ?? "GET"} ${event.event.url ?? ""} ${String(event.event.status ?? "")}`.trim(),
+				`${part.method ?? "GET"} ${part.url ?? ""} -> ${String(part.status ?? "")}${suffix}`.trim(),
 				{
-					request: event.event,
+					request: part,
 				},
 			);
 			break;
+		}
 	}
 }
 

@@ -22,6 +22,8 @@ export interface RequestEvent {
 	readonly url?: string;
 	readonly method?: string;
 	readonly status?: number;
+	/** Response body preview (truncated) — present on "response" events. */
+	readonly body?: string;
 	readonly attempt?: number;
 	readonly maxAttempts?: number;
 	readonly error?: string;
@@ -82,6 +84,15 @@ async function backoffDelay(attempt: number, options: HttpOptions): Promise<void
 	await sleep(base * 2 ** (attempt - 1) + jitter);
 }
 
+/** Max response body length embedded into verbose "response" events. */
+export const BODY_PREVIEW_LIMIT = 1024;
+
+export function bodyPreview(text: string): string {
+	return text.length > BODY_PREVIEW_LIMIT
+		? `${text.slice(0, BODY_PREVIEW_LIMIT)}… (${text.length} bytes)`
+		: text;
+}
+
 /** GET with retry on transport errors and retriable statuses. */
 export async function httpGet(
 	url: string,
@@ -104,7 +115,11 @@ export async function httpGet(
 				redirect: "follow",
 			});
 			const text = await response.text();
-			options.onEvent?.({ kind: "response", status: response.status });
+			options.onEvent?.({
+				kind: "response",
+				status: response.status,
+				body: bodyPreview(text),
+			});
 			if (response.ok) {
 				return { status: response.status, text };
 			}
