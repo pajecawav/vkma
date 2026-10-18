@@ -1,3 +1,21 @@
+packages:
+    - apps/*
+    - packages/*
+    - packages/devtools/*
+
+catalog:
+    "@types/node": ^26.6.5
+    "@types/react": ^19.3.0
+    "@types/react-dom": ^19.3.0
+    cross-env: ^10.1.0
+    npm-run-all2: ^9.0.3
+    publint: ^0.3.25
+    react: ^19.3.1
+    react-dom: ^19.3.1
+    tsdown: ^0.23.1
+    typescript: ^7.0.2
+    vitest: ^5.0.5
+
 allowBuilds:
     esbuild: true
 minimumReleaseAgeExclude:

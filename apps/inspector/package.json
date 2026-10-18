@@ -1,0 +1,34 @@
+{
+	"name": "@vkma.dev/inspector",
+	"version": "0.0.0",
+	"description": "Browser devtools extension for inspecting VK Mini Apps",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"dev": "rsbuild build --watch",
+		"start": "web-ext run --source-dir dist --target chromium",
+		"start:firefox": "web-ext run --source-dir dist --target firefox",
+		"build": "run-s build:rsbuild build:webext",
+		"build:chrome": "cross-env BROWSER=chrome run-s build:rsbuild build:webext:chrome",
+		"build:firefox": "cross-env BROWSER=firefox run-s build:rsbuild build:webext:firefox",
+		"build:rsbuild": "rsbuild build",
+		"build:webext": "web-ext build --source-dir dist --overwrite-dest",
+		"build:webext:chrome": "web-ext build --source-dir dist --overwrite-dest --filename vkma-inspector-chrome-{version}.zip",
+		"build:webext:firefox": "web-ext build --source-dir dist --overwrite-dest --filename vkma-inspector-firefox-{version}.zip"
+	},
+	"devDependencies": {
+		"@rsbuild/core": "^2.2.13",
+		"@rsbuild/plugin-solid": "^1.2.2",
+		"@types/chrome": "^0.3.5",
+		"@types/node": "catalog:",
+		"cross-env": "catalog:",
+		"npm-run-all2": "catalog:",
+		"solid-js": "^1.9.17",
+		"typescript": "catalog:",
+		"web-ext": "^10.8.0"
+	}
+}

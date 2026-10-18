@@ -1,0 +1,37 @@
+{
+	"name": "@vkma.dev/deploy",
+	"version": "0.0.0",
+	"description": "Deploy tooling for VK Mini Apps",
+	"type": "module",
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"lint:package": "publint",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"devDependencies": {
+		"publint": "catalog:",
+		"tsdown": "catalog:",
+		"vitest": "catalog:"
+	}
+}

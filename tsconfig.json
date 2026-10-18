@@ -1,4 +1,10 @@
 {
 	"files": [],
-	"references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+	"references": [
+		{ "path": "./tsconfig.node.json" },
+		{ "path": "./packages/bridge" },
+		{ "path": "./packages/deploy" },
+		{ "path": "./packages/devtools/core" },
+		{ "path": "./packages/devtools/react" }
+	]
 }

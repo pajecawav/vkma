@@ -3,3 +3,5 @@ dist
 .swc
 *.tsbuildinfo
 coverage
+.astro
+web-ext-artifacts

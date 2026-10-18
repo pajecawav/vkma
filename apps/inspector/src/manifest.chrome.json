@@ -1,0 +1,14 @@
+{
+	"manifest_version": 3,
+	"name": "VKMA Inspector",
+	"version": "0.0.0",
+	"description": "DevTools inspector for VK Mini Apps",
+	"background": {
+		"service_worker": "background.js",
+		"type": "module"
+	},
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "VKMA Inspector"
+	}
+}

@@ -25,8 +25,25 @@ jobs:
             - name: Build
               run: pnpm build
 
+            - name: Build inspector (firefox)
+              run: pnpm --filter @vkma.dev/inspector build:firefox
+
             - name: Lint
               run: pnpm lint
 
             - name: Test
               run: pnpm test
+
+            - name: Upload inspector artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: inspector
+                  path: apps/inspector/web-ext-artifacts/
+                  if-no-files-found: error
+
+            - name: Upload web artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: web
+                  path: apps/web/dist/
+                  if-no-files-found: error

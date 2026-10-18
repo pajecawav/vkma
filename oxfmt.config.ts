@@ -1,5 +1,5 @@
 import { defineOxfmtConfig } from "@pajecawav/tools";
 
 export default defineOxfmtConfig({
-	ignorePatterns: ["**/dist", "**/coverage"],
+	ignorePatterns: ["**/dist", "**/coverage", "**/.astro", "**/web-ext-artifacts"],
 });

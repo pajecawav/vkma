@@ -25,5 +25,5 @@
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedSideEffectImports": true
 	},
-	"include": ["commitlint.config.js", "oxfmt.config.ts", "oxlint.config.ts"]
+	"include": ["oxfmt.config.ts", "oxlint.config.ts"]
 }
