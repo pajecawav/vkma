@@ -1,0 +1,4 @@
+[submodule "packages/api-schema/schema"]
+	path = packages/api-schema/schema
+	url = https://github.com/VKCOM/vk-api-schema.git
+	branch = master

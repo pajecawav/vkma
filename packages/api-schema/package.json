@@ -1,0 +1,63 @@
+{
+	"name": "@vkma.dev/api-schema",
+	"version": "0.5199.0",
+	"description": "Generated TypeScript types, zod and valibot schemas for the VK API",
+	"type": "module",
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./zod": {
+			"types": "./dist/zod.d.ts",
+			"import": "./dist/zod.js"
+		},
+		"./valibot": {
+			"types": "./dist/valibot.d.ts",
+			"import": "./dist/valibot.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"generate": "node scripts/generate.ts",
+		"build": "pnpm generate && tsdown",
+		"dev": "tsdown --watch",
+		"lint:package": "publint",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"peerDependencies": {
+		"valibot": ">=1.0.0 <2",
+		"zod": ">=4.0.0 <5"
+	},
+	"peerDependenciesMeta": {
+		"valibot": {
+			"optional": true
+		},
+		"zod": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@pajecawav/json2code": "catalog:",
+		"@types/node": "catalog:",
+		"publint": "catalog:",
+		"tsdown": "catalog:",
+		"valibot": "catalog:",
+		"vitest": "catalog:",
+		"zod": "catalog:"
+	}
+}
