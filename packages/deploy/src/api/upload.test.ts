@@ -25,7 +25,7 @@ describe("uploadBundle", () => {
 		const bodyText = new TextDecoder().decode(call?.bodyBytes ?? new Uint8Array());
 		expect(bodyText.startsWith(`--${boundary}\r\n`)).toBe(true);
 		expect(bodyText).toContain(
-			'Content-Disposition: form-data; name="file"; filename="bundle.zip"',
+			'Content-Disposition: form-data; name="file"; filename="build.zip"',
 		);
 		expect(bodyText).toContain("Content-Type: application/zip");
 		expect(bodyText.endsWith(`\r\n--${boundary}--\r\n`)).toBe(true);

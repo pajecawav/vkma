@@ -97,7 +97,9 @@ export async function uploadBundle(
 		}
 		try {
 			const boundary = `----vkmaDeploy${randomBytes(12).toString("hex")}`;
-			const body = buildMultipartBody("file", "bundle.zip", archive, boundary);
+			// "build.zip" matches upstream's zip-a-folder output name exactly
+			// (their default bundleFile) — one less wire difference.
+			const body = buildMultipartBody("file", "build.zip", archive, boundary);
 			options.onEvent?.({ kind: "request", method: "POST", url: uploadUrl });
 
 			const response = await fetchImpl(uploadUrl, {

@@ -168,7 +168,7 @@ describe("deploy()", () => {
 
 		const uploadCall = spy.calls[1];
 		const uploadBody = new TextDecoder().decode(uploadCall?.bodyBytes ?? new Uint8Array());
-		expect(uploadBody).toContain("bundle.zip");
+		expect(uploadBody).toContain("build.zip");
 
 		// Extract the zip payload from the multipart envelope and verify it.
 		const raw = uploadCall?.bodyBytes ?? new Uint8Array();
