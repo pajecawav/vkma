@@ -108,6 +108,31 @@ describe("CliLogger", () => {
 		logger.progress(50, 100);
 		expect(out).toEqual([]);
 	});
+
+	it("prints on a fresh line while the spinner is running and resumes it", () => {
+		const out: string[] = [];
+		const err: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "debug",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: text => err.push(text) },
+		});
+		logger.spinnerStart("Waiting for hosting queue…");
+		expect(logger.spinnerActive).toBe(true);
+		logger.debug('← 200 {"ts":"1"}');
+		const text = out.join("");
+		// The spinner line is cleared first, so frames cannot glue onto
+		// the printed line ("Waiting…GET -> 200" was a real-world report).
+		expect(text).toContain("\r\x1b[2K← 200");
+		expect(text).toContain('← 200 {"ts":"1"}\n');
+		// The animation resumes afterwards and stops cleanly.
+		expect(logger.spinnerActive).toBe(true);
+		logger.spinnerStop();
+		expect(logger.spinnerActive).toBe(false);
+	});
 });
 
 describe("formatBytes", () => {

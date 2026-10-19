@@ -133,6 +133,10 @@ export class CliLogger {
 			}
 			return;
 		}
+		// Pretty: never print into a live spinner frame — clear the line
+		// first and resume the animation after ("Waiting…GET -> 200" glue
+		// was a real-world verbose-mode report).
+		const resume = this.pauseSpinner();
 		const colored =
 			record.level === "error"
 				? this.paint(record.message, "red")
@@ -146,6 +150,7 @@ export class CliLogger {
 		} else {
 			this.writeOut(colored);
 		}
+		resume();
 	}
 
 	public debug(message: string, data?: unknown): void {
@@ -192,12 +197,34 @@ export class CliLogger {
 		}
 		this.spinnerText = text;
 		this.stdout.write("\x1b[?25l"); // hide cursor
+		this.startSpinnerTimer();
+	}
+
+	private startSpinnerTimer(): void {
 		this.spinnerTimer = setInterval(() => {
 			this.spinnerFrame = (this.spinnerFrame + 1) % SPINNER_FRAMES.length;
 			this.stdout.write(
 				`\r${this.paint(SPINNER_FRAMES[this.spinnerFrame] ?? "⠋", "cyan")} ${this.spinnerText}`,
 			);
 		}, 80);
+	}
+
+	/**
+	 * Suspends the spinner animation and returns a resumer; a no-op pair
+	 * when nothing is spinning. Printed lines always start fresh instead
+	 * of gluing onto the current frame.
+	 */
+	private pauseSpinner(): () => void {
+		if (this.spinnerTimer === undefined || !this.interactive) {
+			return () => {};
+		}
+		clearInterval(this.spinnerTimer);
+		this.spinnerTimer = undefined;
+		this.clearLine();
+		return () => {
+			this.stdout.write("\x1b[?25l"); // keep the cursor hidden while spinning
+			this.startSpinnerTimer();
+		};
 	}
 
 	public spinnerStop(): void {
@@ -234,6 +261,11 @@ export class CliLogger {
 		}
 		if (!this.interactive) {
 			return;
+		}
+		// The progress bar replaces the upload spinner instead of racing
+		// its \r frames.
+		if (this.spinnerTimer !== undefined) {
+			this.spinnerStop();
 		}
 		const now = Date.now();
 		let speedText = "";
@@ -275,6 +307,9 @@ export class CliLogger {
 		if (this.mode === "quiet") {
 			return;
 		}
+		// Multi-line block: hold the spinner for the whole block, not just
+		// the header line.
+		const resume = this.pauseSpinner();
 		this.info(this.paint(`URLs changed for ${environment}:`, "green"));
 		for (const [key, url] of Object.entries(urls)) {
 			if (this.ciUrls) {
@@ -284,6 +319,7 @@ export class CliLogger {
 				this.writeOut(`${label !== undefined ? `${label}:` : key}\t${url}`);
 			}
 		}
+		resume();
 	}
 
 	public final(result: DeployResult): void {

@@ -521,13 +521,24 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 			break;
 		case "http": {
 			const part = event.event;
-			const suffix = part.body === undefined ? "" : `\n${logger.redactString(part.body)}`;
-			logger.debug(
-				`${part.method ?? "GET"} ${part.url ?? ""} -> ${String(part.status ?? "")}${suffix}`.trim(),
-				{
+			if (part.kind === "request") {
+				logger.debug(`${part.method ?? "GET"} ${part.url ?? ""}`.trim(), {
 					request: part,
-				},
-			);
+				});
+			} else if (part.kind === "response") {
+				const body = part.body === undefined ? "" : ` ${logger.redactString(part.body)}`;
+				logger.debug(`← ${String(part.status ?? "?")}${body}`.trim(), {
+					request: part,
+				});
+			} else {
+				const attempt =
+					part.attempt === undefined
+						? ""
+						: ` ${String(part.attempt)}/${String(part.maxAttempts ?? "?")}:`;
+				logger.debug(`↻${attempt} ${part.error ?? ""}`.trim(), {
+					request: part,
+				});
+			}
 			break;
 		}
 	}
