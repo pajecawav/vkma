@@ -6,7 +6,10 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 
 ## Commands
 
-- `pnpm build` — tsdown (ESM + dts, entries: `src/index.ts`, `src/cli.ts`)
+- `pnpm build` — tsdown (ESM-only, **unbundled**: dist mirrors src 1:1,
+  with `.d.ts.map`/`.js.map` back to `src/`; `src/` ships in the tarball
+  so IDE go-to-source lands on real sources, entries: `src/index.ts`,
+  `src/cli.ts`)
 - `pnpm test` — vitest (co-located `*.test.ts`)
 - `pnpm schema` — regenerate `schema/vkma-deploy.config.schema.json` after
   changing `src/config/schema.ts` (a test fails if they drift)
