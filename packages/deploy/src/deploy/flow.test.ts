@@ -159,9 +159,10 @@ describe("deploy()", () => {
 		const serverUrl = spy.calls[0]?.url ?? "";
 		expect(serverUrl).toContain("app_id=42");
 		expect(serverUrl).toContain("environment=3");
-		expect(serverUrl).toContain("update_prod=1");
-		expect(serverUrl).toContain("update_dev=1");
-		// No endpoints configured -> no endpoint_* params (upstream parity).
+		// Upstream parity: no update flags / endpoints in the config -> none
+		// sent; the server applies its own defaults.
+		expect(serverUrl).not.toContain("update_prod");
+		expect(serverUrl).not.toContain("update_dev");
 		expect(serverUrl).not.toContain("endpoint_");
 		expect(serverUrl).toContain("v=5.199");
 		expect(serverUrl).toContain("cli_version=2");
@@ -193,10 +194,11 @@ describe("deploy()", () => {
 	it("maps environment dev to bitmask 1 and update flags to 0/1", async () => {
 		await deploy(undefined, {
 			...baseOptions(),
-			overrides: { environment: "dev", updateProd: false },
+			overrides: { environment: "dev", updateProd: false, updateDev: true },
 		});
 		const serverUrl = spy.calls[0]?.url ?? "";
 		expect(serverUrl).toContain("environment=1");
+		// Explicit flags are sent with their 0/1 value.
 		expect(serverUrl).toContain("update_prod=0");
 		expect(serverUrl).toContain("update_dev=1");
 	});

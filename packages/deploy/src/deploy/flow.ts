@@ -83,15 +83,25 @@ function environmentBitmask(environment: ResolvedConfig["environment"]): number 
 	}
 }
 
-function buildTaskParams(config: ResolvedConfig): Record<string, string | number> {
+function buildTaskParams(
+	config: ResolvedConfig,
+	sources: ResolvedConfigMeta["sources"],
+): Record<string, string | number> {
 	const params: Record<string, string | number> = {
 		app_id: config.appId,
 		environment: environmentBitmask(config.environment),
-		update_prod: config.updateProd ? 1 : 0,
-		update_dev: config.updateDev ? 1 : 0,
 	};
 	if (config.testGroupName !== undefined) {
 		params["test_group_name"] = config.testGroupName;
+	}
+	// Upstream parity ('update_prod' in cfg): the flags are sent only when
+	// explicitly set — via config file, env var, or CLI flag. Absent flags
+	// fall back to VK server defaults instead of pinning 1/1.
+	if (sources["updateProd"] !== undefined) {
+		params["update_prod"] = config.updateProd ? 1 : 0;
+	}
+	if (sources["updateDev"] !== undefined) {
+		params["update_dev"] = config.updateDev ? 1 : 0;
 	}
 	// Upstream parity: endpoint_* params exist only for configured platforms.
 	for (const [platform, endpoint] of Object.entries(config.endpoints)) {
@@ -220,7 +230,7 @@ export async function deployResolved(
 		sleep: options.sleep,
 	};
 
-	const taskParams = buildTaskParams(config);
+	const taskParams = buildTaskParams(config, meta.sources);
 	const uploadServer = await callApi("apps.getGoHostingUploadServer", taskParams, {
 		...httpOptions,
 		accessToken,
