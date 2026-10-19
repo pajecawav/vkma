@@ -33,6 +33,45 @@ function makeProject(): Promise<void> {
 		.then(() => fs.writeFile(path.join(root, "build", "index.html"), "ok"));
 }
 
+/** Full successful deploy route: upload -> task -> queue -> URL event. */
+function deployRoute(): Parameters<typeof route>[0] {
+	return [
+		[
+			"getGoHostingUploadServer",
+			() => ({ body: { response: { upload_url: "https://upload.vk/t" } } }),
+		],
+		["upload.vk/t", () => ({ body: { ticket: 1 } })],
+		["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
+		[
+			"subscribeToHostingQueue",
+			() => ({
+				body: { response: { base_url: "https://q.vk/", key: "k", ts: 1, app_id: 1 } },
+			}),
+		],
+		[
+			"act=a_check",
+			() => ({
+				body: {
+					ts: 2,
+					events: [
+						{
+							data: {
+								type: "success",
+								code: 201,
+								message: {
+									is_production: true,
+									urls: { iframe_secure_url: "https://app" },
+								},
+							},
+						},
+						{ data: { type: "success", code: 202, message: { environment: "1" } } },
+					],
+				},
+			}),
+		],
+	];
+}
+
 describe("main()", () => {
 	it("prints help and exits 0", async () => {
 		const code = await main(["--help"], { stdout, stderr, stdin, env: env(), cwd: root });
@@ -409,7 +448,9 @@ describe("main()", () => {
 			stderr,
 			stdin: { isTTY: true },
 			input,
-			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890" }),
+			// CI=1 skips the pre-deploy confirm, so the event-205 code prompt
+			// is the only reader of stdin in this test.
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890", CI: "1" }),
 			cwd: root,
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
@@ -449,6 +490,153 @@ describe("main()", () => {
 		});
 		expect(code).toBe(0);
 		expect(opened).toEqual(["https://oauth.vk.ru/code_auth?stage=check&code=TTY&revoke=1"]);
+	});
+
+	it("pre-deploy confirm: Enter proceeds with the deploy", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("\n");
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls.length).toBeGreaterThan(0);
+		expect(out.join("")).toContain("Deploy plan:");
+		// Warnings render on stderr.
+		expect(err.join("")).toContain("production URLs will switch to the new version");
+	});
+
+	it("pre-deploy confirm: declining cancels with 130 and zero network calls", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("n\n");
+		const code = await pending;
+		expect(code).toBe(130);
+		// Canceled before preflight/zip/upload: nothing touched the network.
+		expect(spy.calls.length).toBe(0);
+		expect(err.join("")).toContain("canceled");
+	});
+
+	it("pre-deploy confirm: CI env var skips the prompt", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		// TTY stdin but no input ever written: if the prompt fired here, the
+		// test would hang until timeout.
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", CI: "1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		expect(spy.calls.length).toBeGreaterThan(0);
+	});
+
+	it("pre-deploy confirm: --yes skips the prompt", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const code = await main(["--yes"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		expect(spy.calls.length).toBeGreaterThan(0);
+	});
+
+	it("pre-deploy confirm: --dry-run skips the prompt", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const code = await main(["--dry-run"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		expect(spy.calls.length).toBe(0);
+		expect(out.join("")).toContain("Dry run");
+	});
+
+	it("pre-deploy confirm: --json logs the plan instead of prompting", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const code = await main(["--json"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		const records = out
+			.filter(line => line.trim() !== "")
+			.map(
+				line =>
+					JSON.parse(line) as {
+						event: string;
+						message: string;
+						data?: { plan?: { appId: number } };
+					},
+			);
+		const plan = records.find(record => record.message === "deploy plan");
+		expect(plan?.data?.plan?.appId).toBe(42);
 	});
 
 	it("login without appId exits 1 with guidance", async () => {

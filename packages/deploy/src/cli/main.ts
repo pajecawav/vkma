@@ -26,7 +26,7 @@ import {
 } from "../deploy/flow.ts";
 import type { QueueEvent } from "../deploy/queue.ts";
 import { DeployError, isDeployError } from "../errors.ts";
-import { CliLogger, formatBytes } from "../logger/index.ts";
+import { CliLogger, formatBytes, type LoggerMode } from "../logger/index.ts";
 import { createRedactor } from "../redact.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
 import { completionScript, COMPLETION_SHELLS } from "./completions.ts";
@@ -68,6 +68,8 @@ Flags:
   --update-dev / --no-update-dev   Switch dev URLs (default: update)
   --dry-run                        Validate, zip, and stop before any network
   --interactive                    Fill missing values with prompts (TTY only)
+  --yes, -y                        Skip the pre-deploy confirmation
+                                   (also skipped for CI, non-TTY, --json/--quiet, --dry-run)
   --json                           Machine-readable newline-delimited events
   --verbose, -v                    Debug output incl. HTTP requests (redacted)
   --quiet, -q                      Errors only
@@ -138,13 +140,13 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 	try {
 		switch (parsed.command) {
 			case "login":
-				return await runLogin(parsed, { ...options, env, cwd, stdin, logger });
+				return await runLogin(parsed, { ...options, env, cwd, stdin, logger, mode });
 			case "logout":
 				return await runLogout({ env, logger });
 			case "config":
-				return await runConfig(parsed, { ...options, env, cwd, logger });
+				return await runConfig(parsed, { ...options, env, cwd, logger, mode });
 			default:
-				return await runDeploy(parsed, { ...options, env, cwd, stdin, logger });
+				return await runDeploy(parsed, { ...options, env, cwd, stdin, logger, mode });
 		}
 	} catch (error) {
 		logger.fail(error, parsed.booleans.verbose);
@@ -158,6 +160,7 @@ interface RunContext extends MainOptions {
 	readonly env: Record<string, string | undefined>;
 	readonly cwd: string;
 	readonly logger: CliLogger;
+	readonly mode: LoggerMode;
 }
 
 async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<number> {
@@ -239,6 +242,32 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 					return code;
 				}
 			: undefined;
+
+	renderDeployPlan(logger, context.mode, effectiveConfig, meta);
+
+	// Pre-deploy confirmation: interactive humans get a last look at where
+	// the deploy goes before anything leaves the machine. Auto-skipped for
+	// --yes/--dry-run, CI (CI env var), non-TTY stdin, and json/quiet modes
+	// (pipelines stay parseable).
+	if (
+		!parsed.booleans.yes &&
+		context.mode === "pretty" &&
+		stdin.isTTY === true &&
+		env["CI"] === undefined &&
+		!parsed.booleans.dryRun
+	) {
+		const proceed = await confirm("Deploy?", true, {
+			signal: context.signal,
+			stdin,
+			input: context.input,
+		});
+		if (!proceed) {
+			// A cancel, not an error: nothing was uploaded (exit 130).
+			throw new DeployError("aborted", "Deploy canceled before upload", {
+				code: "E_ABORTED",
+			});
+		}
+	}
 
 	const deployOptions: DeployOptions = {
 		env,
@@ -366,6 +395,60 @@ async function runConfig(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		logger.info(`  ${key} = ${JSON.stringify(value)}${suffix}`);
 	}
 	return 0;
+}
+
+/**
+ * Prints where the deploy is going — always logged (NDJSON event in json
+ * mode), so pipelines can audit targets even though they skip the prompt.
+ */
+function renderDeployPlan(
+	logger: CliLogger,
+	mode: LoggerMode,
+	config: ResolvedConfig,
+	meta: ResolvedConfigMeta,
+): void {
+	const target =
+		config.environment === "production"
+			? "production"
+			: config.environment === "dev"
+				? "dev"
+				: "production + dev";
+	const endpoints =
+		Object.keys(config.endpoints).length > 0
+			? Object.entries(config.endpoints)
+					.map(([platform, endpoint]) => `${platform}=${endpoint}`)
+					.join(", ")
+			: "server defaults";
+	const plan = {
+		appId: config.appId,
+		configPath: meta.configPath ?? null,
+		environment: config.environment,
+		updateProd: config.updateProd,
+		updateDev: config.updateDev,
+		testGroupName: config.testGroupName ?? null,
+		bundle: config.bundle ?? config.staticPath ?? null,
+		endpoints: config.endpoints,
+	};
+	if (mode === "json") {
+		logger.info("deploy plan", { plan });
+		return;
+	}
+	logger.info(
+		[
+			"Deploy plan:",
+			`  app:        ${String(config.appId)}${meta.configPath === undefined ? "" : `  (${meta.configPath})`}`,
+			`  target:     ${target}  (environment: ${config.environment})`,
+			`  URL switch: prod ${config.updateProd ? "yes" : "no"} · dev ${config.updateDev ? "yes" : "no"}`,
+			`  test group: ${config.testGroupName ?? "—"}`,
+			`  bundle:     ${config.bundle ?? config.staticPath ?? "—"}  ·  endpoints: ${endpoints}`,
+		].join("\n"),
+	);
+	if (
+		config.updateProd &&
+		(config.environment === "production" || config.environment === "both")
+	) {
+		logger.warn("production URLs will switch to the new version");
+	}
 }
 
 function renderResolve(logger: CliLogger, _config: ResolvedConfig, meta: ResolvedConfigMeta): void {

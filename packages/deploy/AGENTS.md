@@ -48,6 +48,9 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    3 VK API · 130 aborted. Mapped via `DeployError.kind`.
 5. **Prompts are opt-in** (`--interactive`, TTY only) and fill only values
    that are not already set (precedence: flag > env > config > prompt).
+   Two exceptions, both TTY-only and auto-skipped for `--yes`/`--dry-run`,
+   the `CI` env var, and `--json`/`--quiet` modes: the event-205
+   confirmation code and the pre-deploy confirmation.
 6. **Runtime deps are exactly two**: `@sinclair/typebox` (schema +
    validation) and `fflate` (zip). Everything else is hand-rolled on
    Node stdlib. Adding a dependency requires an explicit user decision.

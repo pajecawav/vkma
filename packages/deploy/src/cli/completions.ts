@@ -14,6 +14,7 @@ const FLAGS = [
 	"--test-group",
 	"--dry-run",
 	"--interactive",
+	"--yes",
 	"--update-prod",
 	"--no-update-prod",
 	"--update-dev",

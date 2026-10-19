@@ -119,8 +119,9 @@ vkma-deploy completions <shell>  Print shell completion (bash|zsh|fish)
 
 Flags: `--env <dev|production|both>`, `--config <path>`, `--timeout <sec>`,
 `--test-group <name>`, `--update-prod/--no-update-prod`,
-`--update-dev/--no-update-dev`, `--dry-run`, `--interactive`, `--json`,
-`--verbose/-v`, `--quiet/-q`, `--no-color`, `--help/-h`, `--version/-V`.
+`--update-dev/--no-update-dev`, `--dry-run`, `--interactive`, `--yes/-y`,
+`--json`, `--verbose/-v`, `--quiet/-q`, `--no-color`, `--help/-h`,
+`--version/-V`.
 
 Exit codes: `0` success · `1` config/user error · `2` network/timeout ·
 `3` VK API error · `130` aborted (Ctrl+C).
@@ -140,6 +141,13 @@ configuration error.
 The one unconditional prompt is the confirmation code VK sends for some
 deploys (queue event 205): in a terminal you will be asked to enter it; in CI
 provide it programmatically via the library API.
+
+Before a deploy, the CLI prints a deploy plan — target environments, URL
+switching, test group, bundle, endpoints — and asks `Deploy? (Y/n)`.
+`Enter` proceeds, `n` cancels with exit code `130` before anything leaves
+the machine. The prompt is skipped (the plan is still logged) for `--yes`/`-y`,
+`--dry-run`, the `CI` environment variable, non-TTY stdin, and
+`--json`/`--quiet` modes.
 
 ### CI
 

@@ -19,6 +19,7 @@ const VALUE_FLAGS = new Set(["--env", "--config", "--timeout", "--test-group"]);
 const BOOLEAN_FLAGS = new Set([
 	"--dry-run",
 	"--interactive",
+	"--yes",
 	"--verbose",
 	"--quiet",
 	"--json",
@@ -33,6 +34,7 @@ const BOOLEAN_FLAGS = new Set([
 const SHORT_FLAGS = new Map([
 	["-v", "--verbose"],
 	["-q", "--quiet"],
+	["-y", "--yes"],
 	["-h", "--help"],
 	["-V", "--version"],
 ]);
@@ -49,6 +51,7 @@ export interface ParsedArgs {
 	readonly booleans: {
 		readonly dryRun: boolean;
 		readonly interactive: boolean;
+		readonly yes: boolean;
 		readonly verbose: boolean;
 		readonly quiet: boolean;
 		readonly json: boolean;
@@ -71,6 +74,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let testGroup: string | undefined;
 	let dryRun = false;
 	let interactive = false;
+	let yes = false;
 	let verbose = false;
 	let quiet = false;
 	let json = false;
@@ -160,6 +164,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			case "--interactive":
 				interactive = true;
 				break;
+			case "--yes":
+				yes = true;
+				break;
 			case "--verbose":
 				verbose = true;
 				break;
@@ -202,6 +209,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 		booleans: {
 			dryRun,
 			interactive,
+			yes,
 			verbose,
 			quiet,
 			json,
