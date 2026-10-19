@@ -234,7 +234,7 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 					if (options.confirmCode === undefined) {
 						throw new DeployError(
 							"user",
-							"Deploy requires a confirmation code (VK sent it via message, event 205). Run from a terminal, pass --interactive, or provide a confirmCode() callback.",
+							"Deploy requires a confirmation code (VK sent it via message, event 205). Run from an interactive terminal to enter it, or provide a confirmCode() callback (library).",
 							{ code: 205 },
 						);
 					}

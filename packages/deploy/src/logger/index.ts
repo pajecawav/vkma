@@ -211,6 +211,11 @@ export class CliLogger {
 		}
 	}
 
+	/** True while the TTY spinner is animating (queue/upload wait). */
+	public get spinnerActive(): boolean {
+		return this.spinnerTimer !== undefined;
+	}
+
 	public spinnerUpdate(text: string): void {
 		this.spinnerText = text;
 	}

@@ -222,10 +222,19 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		}
 	}
 
+	// Event 205 cannot be pre-configured: VK sends the confirmation code to
+	// the developer mid-queue, so this prompt is unconditional for
+	// interactive terminals (AGENTS.md invariant #5) — no --interactive
+	// required. json/quiet/non-TTY runs get no prompt and the queue fails
+	// with an explanatory user error instead of hanging silently.
 	const confirmCode =
-		parsed.booleans.interactive && stdin.isTTY === true
+		stdin.isTTY === true && context.mode === "pretty"
 			? async () => {
-					const code = await text("Confirmation code (sent by VK):", {
+					logger.spinnerStop();
+					logger.info(
+						"Please, confirm deploy on your phone (VK sent a confirmation code).",
+					);
+					const code = await text("Confirmation code:", {
 						signal: context.signal,
 						stdin,
 						input: context.input,
@@ -501,8 +510,13 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 			break;
 		case "task:created":
 			logger.info(`Hosting task created (version ${String(event.version)})`);
+			// Feedback while long-polling: without it the CLI looks hung
+			// between task creation and the first queue event (a real-world
+			// report confused this silence for a deadlock).
+			logger.spinnerStart("Waiting for hosting queue…");
 			break;
 		case "deploy:success":
+			logger.spinnerStop();
 			renderSuccess(logger, event.result);
 			break;
 		case "http": {
@@ -519,30 +533,51 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 	}
 }
 
+/** Stops the queue spinner for a print, resuming it if it was running. */
+function pauseQueueSpinner(logger: CliLogger, print: () => void): void {
+	const wasSpinning = logger.spinnerActive;
+	logger.spinnerStop();
+	print();
+	if (wasSpinning) {
+		logger.spinnerStart("Waiting for hosting queue…");
+	}
+}
+
 function renderQueueEvent(logger: CliLogger, event: QueueEvent): void {
 	if (event.urlUpdate !== undefined) {
-		logger.urlsBlock(event.urlUpdate.isProduction ? "production" : "dev", event.urlUpdate.urls);
+		const update = event.urlUpdate;
+		pauseQueueSpinner(logger, () => {
+			logger.urlsBlock(update.isProduction ? "production" : "dev", update.urls);
+		});
+		return;
+	}
+	// 205 renders only after a successful apps.confirmDeploy — the prompt
+	// already stopped the spinner, so resume it unconditionally.
+	if (event.code === 205) {
+		logger.spinnerStop();
+		logger.info("Confirmation code accepted");
+		logger.spinnerStart("Waiting for hosting queue…");
 		return;
 	}
 	switch (event.code) {
 		case 200:
-			logger.info("Hosting reported deploy success");
+			pauseQueueSpinner(logger, () => logger.info("Hosting reported deploy success"));
 			break;
 		case 202:
 			logger.debug("Environment skipped by server");
 			break;
 		case 203:
-			logger.info("Confirm the deploy on your phone (push notification sent)");
+			pauseQueueSpinner(logger, () =>
+				logger.info("Confirm the deploy on your phone (push notification sent)"),
+			);
 			break;
 		case 204:
-			logger.step("Deploy confirmed");
-			break;
-		case 205:
-			logger.info("VK sent a confirmation code");
+			pauseQueueSpinner(logger, () => logger.step("Deploy confirmed"));
 			break;
 		case 206:
 			if (event.testGroupUrl !== undefined) {
-				logger.info(`Test group URL: ${event.testGroupUrl}`);
+				const url = event.testGroupUrl;
+				pauseQueueSpinner(logger, () => logger.info(`Test group URL: ${url}`));
 			}
 			break;
 		default:

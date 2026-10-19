@@ -412,13 +412,11 @@ describe("main()", () => {
 		expect(stored.accessToken).toBe("fresh-secret-token");
 	});
 
-	it("empty confirmation code aborts with exit 130 (interactive)", async () => {
+	it("empty event-205 confirmation code aborts with exit 130 (no --interactive needed)", async () => {
 		await makeProject();
-		// testGroupName is preset so the test-group prompt is skipped and the
-		// event-205 code prompt is the only one reading from stdin.
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", testGroupName: "qa" }),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -443,13 +441,14 @@ describe("main()", () => {
 			]),
 		);
 		const input = new PassThrough();
-		const pending = main(["--interactive"], {
+		// No --interactive flag: the 205 prompt is unconditional for a TTY.
+		// CI=1 skips only the pre-deploy confirm, leaving stdin to the code
+		// prompt alone.
+		const pending = main([], {
 			stdout,
 			stderr,
 			stdin: { isTTY: true },
 			input,
-			// CI=1 skips the pre-deploy confirm, so the event-205 code prompt
-			// is the only reader of stdin in this test.
 			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890", CI: "1" }),
 			cwd: root,
 			fetchImpl: spy.fetchImpl,
@@ -463,6 +462,90 @@ describe("main()", () => {
 		// Pretty mode renders aborted errors as "canceled"; the detailed
 		// message surfaces in --json mode.
 		expect(err.join("")).toContain("canceled");
+	});
+
+	it("event 205 prompts for the code without --interactive and confirms the deploy", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build" }),
+		);
+		let polls = 0;
+		const spy = createFetchSpy(async (url: string) => {
+			if (url.includes("getGoHostingUploadServer")) {
+				return { body: { response: { upload_url: "https://upload.vk/t" } } };
+			}
+			if (url.includes("upload.vk/t")) {
+				return { body: { ticket: 1 } };
+			}
+			if (url.includes("createGoHostingTask")) {
+				return { body: { response: { version: 9 } } };
+			}
+			if (url.includes("subscribeToHostingQueue")) {
+				return {
+					body: { response: { base_url: "https://q.vk/", key: "k", ts: 1, app_id: 1 } },
+				};
+			}
+			if (url.includes("apps.confirmDeploy")) {
+				return { body: { response: { ok: 1 } } };
+			}
+			if (url.includes("act=a_check")) {
+				polls += 1;
+				if (polls === 1) {
+					return { body: { ts: 2, events: [{ data: { type: "success", code: 205 } }] } };
+				}
+				return {
+					body: {
+						ts: 3,
+						events: [
+							{
+								data: {
+									type: "success",
+									code: 201,
+									message: {
+										is_production: true,
+										urls: { iframe_secure_url: "https://p" },
+									},
+								},
+							},
+							{
+								data: {
+									type: "success",
+									code: 201,
+									message: {
+										is_production: false,
+										urls: { iframe_secure_url: "https://d" },
+									},
+								},
+							},
+						],
+					},
+				};
+			}
+			return { body: {} };
+		});
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			// CI=1 skips only the pre-deploy confirm; the 205 prompt is
+			// unconditional for a TTY.
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", CI: "1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("4242\n");
+		const code = await pending;
+		expect(code).toBe(0);
+		const confirmUrl =
+			spy.calls.find(call => call.url.includes("apps.confirmDeploy"))?.url ?? "";
+		expect(confirmUrl).toContain("code=4242");
+		const text = out.join("");
+		expect(text).toContain("confirm deploy on your phone");
+		expect(text).toContain("Confirmation code accepted");
 	});
 
 	it("login opens the browser only when stdin is a TTY", async () => {
