@@ -116,7 +116,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 			(merged["queueTimeoutSec"] as number | undefined) ?? CONFIG_DEFAULTS.queueTimeoutSec,
 	};
 
-	validateCrossFields(config, file, cwd);
+	validateCrossFields(config);
 
 	return {
 		config,
@@ -164,21 +164,9 @@ function dedupeIssues(issues: ConfigIssue[]): ConfigIssue[] {
 	});
 }
 
-function validateCrossFields(
-	config: ResolvedConfig,
-	file: LoadedConfigFile | undefined,
-	cwd: string,
-): void {
+function validateCrossFields(config: ResolvedConfig): void {
 	const issues: ConfigIssue[] = [];
 
-	if (!config.appId || config.appId < 1) {
-		issues.push({
-			path: "appId",
-			message: file
-				? `appId is required: set it in the config file (${file.path}), or via env VKMA_APP_ID / MINI_APPS_APP_ID`
-				: `appId is required: no config file found (looked up from ${cwd}) — create vkma-deploy.config.json, e.g. { "appId": 123, "staticPath": "./build", "endpoints": { "web": "index.html" } }, or set env VKMA_APP_ID / MINI_APPS_APP_ID`,
-		});
-	}
 	if (config.testGroupName !== undefined && config.environment === "production") {
 		issues.push({
 			path: "testGroupName",
@@ -191,19 +179,37 @@ function validateCrossFields(
 	}
 }
 
+export interface ReadinessHints {
+	/** A legacy (vk-hosting-config.json) file was discovered. */
+	readonly legacy?: boolean;
+	/** Directory discovery started from — used in the no-config hint. */
+	readonly cwd?: string;
+	/** Whether any config file was discovered. */
+	readonly hasConfigFile?: boolean;
+	/** Path of the discovered config file, when there is one. */
+	readonly configPath?: string;
+}
+
 /**
- * Deploy-completeness checks that only the deploy path needs. Resolution
- * itself (used by `login` and `config`) must not demand a deployable
- * bundle — that contract belongs to the deploy flow, so it is enforced
- * here and called from `deployResolved`.
+ * Operation readiness for the deploy flow. appId presence belongs here,
+ * not in resolution: `login` demands it too, but on its own terms (an
+ * interactive prompt or login-specific guidance). Resolution stays
+ * consumer-agnostic; the deploy contract — a deployable bundle and the
+ * app to deploy it to — is enforced here at the mouth of the flow.
  */
-export function assertDeployReadiness(
-	config: ResolvedConfig,
-	hints: { legacy?: boolean } = {},
-): void {
+export function assertDeployReadiness(config: ResolvedConfig, hints: ReadinessHints = {}): void {
 	const issues: ConfigIssue[] = [];
 	const legacyHint = hints.legacy === true ? " (upstream: static_path)" : "";
 
+	if (!config.appId || config.appId < 1) {
+		issues.push({
+			path: "appId",
+			message:
+				hints.hasConfigFile === false
+					? `appId is required: no config file found${hints.cwd === undefined ? "" : ` (looked up from ${hints.cwd})`} — create vkma-deploy.config.json, e.g. { "appId": 123, "staticPath": "./build", "endpoints": { "web": "index.html" } }, or set env VKMA_APP_ID / MINI_APPS_APP_ID`
+					: `appId is required: set it in the config file${hints.configPath === undefined ? "" : ` (${hints.configPath})`}, or via env VKMA_APP_ID / MINI_APPS_APP_ID`,
+		});
+	}
 	if (config.staticPath !== undefined && config.bundle !== undefined) {
 		issues.push({
 			path: "staticPath / bundle",

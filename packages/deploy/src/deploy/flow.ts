@@ -174,7 +174,12 @@ export async function deployResolved(
 	// Deploy-only completeness: login and `config` resolve without it, so
 	// it is enforced here at the mouth of the deploy flow (the wire
 	// invariant — VK ignores tasks without endpoint_* params — lives on).
-	assertDeployReadiness(config, { legacy: meta.legacy });
+	assertDeployReadiness(config, {
+		legacy: meta.legacy,
+		cwd,
+		hasConfigFile: meta.configPath !== undefined,
+		configPath: meta.configPath,
+	});
 
 	const env = options.env ?? process.env;
 	const preflightResult = await preflight(config, cwd);

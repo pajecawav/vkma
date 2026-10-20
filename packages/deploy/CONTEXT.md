@@ -10,13 +10,15 @@ Two distinct contracts over the same config:
 
 - **Resolution** (`resolveConfig`) — discovery, legacy mapping, env
   aliases, merge order (flag > env > config > default), and config
-  sanity that applies to _every_ consumer (`appId` present, test group
-  only in dev). Login and `config` use resolution alone.
-- **Deploy readiness** (`assertDeployReadiness`) — the deployable-bundle
-  contract: exactly one of `staticPath`/`bundle`, at least one endpoint
+  sanity that applies to _every_ consumer (test group only in dev).
+  Login and `config` use resolution alone.
+- **Deploy readiness** (`assertDeployReadiness`) — the operation
+  contract for deploy: `appId` present (which app), exactly one of
+  `staticPath`/`bundle` (what to ship), and at least one endpoint
   platform (VK ignores tasks without `endpoint_*` params). Enforced at
   the mouth of the deploy flow (`deployResolved`), never during
-  resolution.
+  resolution. `login` demands `appId` on its own terms — an interactive
+  prompt under `--interactive`, otherwise login-specific guidance.
 
 ## Retry budget
 

@@ -60,15 +60,13 @@ describe("resolveConfig", () => {
 		expect(meta.configPath).toBeUndefined();
 	});
 
-	it("requires appId with guidance when no config file exists", async () => {
-		const promise = resolveConfig({
+	it("resolves without appId — appId is operation-level, not resolution-level", async () => {
+		const { config } = await resolveConfig({
 			cwd: root,
 			env: CLEAN_ENV,
-			overrides: { bundle: "./b.zip" },
+			overrides: { bundle: "./b.zip", endpoints: { web: "index.html" } },
 		});
-		await expect(promise).rejects.toBeInstanceOf(ConfigValidationError);
-		await expect(promise).rejects.toThrow(/no config file found/);
-		await expect(promise).rejects.toThrow(/vkma-deploy\.config\.json/);
+		expect(config.appId).toBeUndefined();
 	});
 
 	it("resolves without deploy completeness (staticPath/endpoints are deploy-level)", async () => {
@@ -318,6 +316,28 @@ describe("resolveConfig", () => {
 });
 
 describe("assertDeployReadiness", () => {
+	it("requires appId with template guidance when no config file was found", async () => {
+		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
+		expect(config.appId).toBeUndefined();
+		expect(() => assertDeployReadiness(config, { hasConfigFile: false, cwd: root })).toThrow(
+			/no config file found/,
+		);
+		expect(() => assertDeployReadiness(config, { hasConfigFile: false, cwd: root })).toThrow(
+			/vkma-deploy\.config\.json/,
+		);
+	});
+
+	it("requires appId and names the config file when one was found", async () => {
+		await write(root, "vkma-deploy.config.json", JSON.stringify({ staticPath: "./build" }));
+		const { config, meta } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
+		expect(() =>
+			assertDeployReadiness(config, {
+				hasConfigFile: meta.configPath !== undefined,
+				configPath: meta.configPath,
+			}),
+		).toThrow(new RegExp((meta.configPath ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+	});
+
 	it("accepts a config with staticPath and endpoints", async () => {
 		const { config } = await resolveConfig({
 			cwd: root,

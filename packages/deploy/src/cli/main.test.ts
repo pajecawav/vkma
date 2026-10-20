@@ -731,10 +731,42 @@ describe("main()", () => {
 		const code = await main(["login"], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(1);
 		const text = err.join("");
-		expect(text).toContain("appId");
-		// Login must not demand deploy completeness — only appId matters here.
+		// Login-specific guidance, not the deploy readiness wall.
+		expect(text).toContain("appId is required for login");
 		expect(text).not.toMatch(/staticPath is required/);
 		expect(text).not.toMatch(/at least one platform/);
-		expect(text).toMatch(/no config file found/);
+	});
+
+	it("login --interactive prompts for a missing appId", async () => {
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ staticPath: "./build" }),
+		);
+		const spy = createFetchSpy(
+			route([
+				["get_auth_code", () => ({ body: { auth_code: "AC", device_id: "D" } })],
+				[
+					"code_auth_token",
+					() => ({ body: { access_token: "prompted-token", expires_in: 1 } }),
+				],
+			]),
+		);
+		const input = new PassThrough();
+		const pending = main(["login", "--interactive"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ XDG_CONFIG_HOME: path.join(root, "home", ".config") }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+			openUrl: () => {},
+		});
+		// PassThrough buffers, so writing before the prompt starts is fine.
+		input.write("777\n");
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls[0]?.url).toContain("mini_app_id=777");
 	});
 });
