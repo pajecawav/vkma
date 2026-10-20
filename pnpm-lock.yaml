@@ -172,7 +172,7 @@ catalogs:
       version: 1.2.6
     '@pajecawav/json2code':
       specifier: ^0.2.0
-      version: 0.2.0
+      version: 0.2.1
     '@rsbuild/core':
       specifier: ^2.2.14
       version: 2.2.14
@@ -318,7 +318,7 @@ importers:
     devDependencies:
       '@pajecawav/json2code':
         specifier: 'catalog:'
-        version: 0.2.0
+        version: 0.2.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.5
@@ -1604,8 +1604,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@pajecawav/json2code@0.2.0':
-    resolution: {integrity: sha512-kuOLPKG6/Wdv8qWV4xfE9ewyhIYEc2rJNuj5oSjJgwn2BZAJ1Zz4C9c48JA1jU9D+0UMiAr8ZE941EZ5L/2b9Q==}
+  '@pajecawav/json2code@0.2.1':
+    resolution: {integrity: sha512-sxPoZN/gYtq8BnsmULkYPv8/poNSaetG+yUIoN8CViU7uNBCDgIAVlwcemfAicEWPtlGrybZfSP6Mbyam0xQTA==}
     engines: {node: '>=22.18.0'}
     hasBin: true
 
@@ -5900,7 +5900,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.88.0':
     optional: true
 
-  '@pajecawav/json2code@0.2.0':
+  '@pajecawav/json2code@0.2.1':
     dependencies:
       citty: 0.2.2
       consola: 3.4.2
