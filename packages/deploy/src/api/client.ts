@@ -16,6 +16,12 @@ import { runWithRetry } from "./retry.ts";
 /** Internal marker: VK error 6 is retriable within the call budget. */
 const VK_RATE_LIMIT_RETRY = "E_VK_RATE_LIMIT_RETRY";
 
+/** Internal marker: VK error 22 on the task-creation call is a known
+ * upstream flake ("invalid upload_response" despite a valid upload answer,
+ * upstream issue #3) and gets more chances within the budget. */
+const VK_UPLOAD_RESPONSE_RETRY = "E_VK_UPLOAD_RESPONSE_RETRY";
+const UPLOAD_TASK_METHOD = "apps.createGoHostingTask";
+
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 export type ApiParamValue = string | number | boolean | undefined;
@@ -310,6 +316,14 @@ export async function callApi(
 						details: { error },
 					});
 				}
+				if (code === 22 && method === UPLOAD_TASK_METHOD) {
+					// Upstream issue #3 flake; other methods see error 22 as
+					// a plain (non-retriable) api error.
+					throw new DeployError("network", "VK error 22 (invalid upload_response)", {
+						code: VK_UPLOAD_RESPONSE_RETRY,
+						details: { error },
+					});
+				}
 				if (code === 5) {
 					throw new DeployError(
 						"api",
@@ -338,17 +352,27 @@ export async function callApi(
 			signal: options.signal,
 			shouldRetry: error =>
 				isRetriableTransport(error) ||
-				(error instanceof DeployError && error.code === VK_RATE_LIMIT_RETRY),
+				(error instanceof DeployError &&
+					(error.code === VK_RATE_LIMIT_RETRY ||
+						error.code === VK_UPLOAD_RESPONSE_RETRY)),
 			onRetry: info => options.onEvent?.({ kind: "retry", ...info }),
 			finalizeError: (error, maxAttempts) => {
-				if (error instanceof DeployError && error.code === VK_RATE_LIMIT_RETRY) {
+				if (error instanceof DeployError && typeof error.code === "string") {
 					const vkError =
 						(error.details as { error?: Record<string, unknown> } | undefined)?.error ??
 						{};
-					return new DeployError("api", `VK API error ${vkErrorMessage(vkError)}`, {
-						code: 6,
-						details: vkError,
-					});
+					if (error.code === VK_RATE_LIMIT_RETRY) {
+						return new DeployError("api", `VK API error ${vkErrorMessage(vkError)}`, {
+							code: 6,
+							details: vkError,
+						});
+					}
+					if (error.code === VK_UPLOAD_RESPONSE_RETRY) {
+						return new DeployError("api", `VK API error ${vkErrorMessage(vkError)}`, {
+							code: 22,
+							details: vkError,
+						});
+					}
 				}
 				return finalizeTransportError(error, maxAttempts);
 			},

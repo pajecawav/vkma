@@ -104,6 +104,39 @@ describe("callApi", () => {
 		expect(spy.calls.length).toBe(3);
 	});
 
+	it("retries VK error 22 on createGoHostingTask (upstream issue #3 flake)", async () => {
+		const spy = createFetchSpy(
+			sequence(
+				{ body: { error: { error_code: 22, error_msg: "invalid upload_response" } } },
+				{ body: { error: { error_code: 22, error_msg: "invalid upload_response" } } },
+				vkOk({ version: 5 }),
+			),
+		);
+		const result = await callApi(
+			"apps.createGoHostingTask",
+			{},
+			{
+				...BASE,
+				fetchImpl: spy.fetchImpl,
+			},
+		);
+		expect(result).toEqual({ version: 5 });
+		expect(spy.calls.length).toBe(3);
+	});
+
+	it("does not retry VK error 22 on other methods", async () => {
+		const spy = createFetchSpy(() => ({
+			body: { error: { error_code: 22, error_msg: "nope" } },
+		}));
+		await expect(
+			callApi("apps.getGoHostingTask", {}, { ...BASE, fetchImpl: spy.fetchImpl }),
+		).rejects.toSatisfy((error: unknown) => {
+			const e = error as DeployError;
+			return e.kind === "api" && e.code === 22;
+		});
+		expect(spy.calls.length).toBe(1);
+	});
+
 	it("retries transport failures with backoff", async () => {
 		let failures = 0;
 		const spy = createFetchSpy(() => {
