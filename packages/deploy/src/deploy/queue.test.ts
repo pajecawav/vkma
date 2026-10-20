@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { FetchLike } from "../api/client.ts";
 import { DeployError } from "../errors.ts";
 import { createFetchSpy, route, instantSleep } from "../test-utils.ts";
 import { waitForQueue, type QueueEvent } from "./queue.ts";
@@ -254,6 +255,73 @@ describe("waitForQueue", () => {
 		await expect(
 			waitForQueue({ ...BASE, fetchImpl: spy.fetchImpl, timeoutMs: 60 }),
 		).rejects.toSatisfy((error: unknown) => (error as DeployError).code === "E_QUEUE_TIMEOUT");
+	});
+
+	it("cuts an in-flight poll at the deadline, not only between polls", async () => {
+		// A poll that never resolves on its own — only the abort path can end
+		// it, like a hung server connection. Deadline checks between polls
+		// are advisory on their own.
+		const fetchImpl: FetchLike = (url, init) => {
+			if (url.includes("subscribeToHostingQueue")) {
+				return Promise.resolve(
+					new Response(JSON.stringify(subscribeResponse().body), { status: 200 }),
+				);
+			}
+			return new Promise<never>((_resolve, reject) => {
+				init?.signal?.addEventListener("abort", () => {
+					reject(new DOMException("This operation was aborted", "AbortError"));
+				});
+			});
+		};
+		await expect(waitForQueue({ ...BASE, fetchImpl, timeoutMs: 40 })).rejects.toSatisfy(
+			(error: unknown) => (error as DeployError).code === "E_QUEUE_TIMEOUT",
+		);
+	});
+
+	it("pauses the deadline while the event-205 confirmation prompt is open", async () => {
+		let polls = 0;
+		const spy = createFetchSpy(url => {
+			if (url.includes("subscribeToHostingQueue")) {
+				return subscribeResponse();
+			}
+			if (url.includes("apps.confirmDeploy")) {
+				return { body: { response: 1 } };
+			}
+			polls += 1;
+			if (polls === 1) {
+				return poll(
+					[
+						{ type: "success", code: 205 },
+						{ type: "success", code: 204 },
+					],
+					2,
+				);
+			}
+			return poll(
+				[
+					{
+						type: "success",
+						code: 201,
+						message: { is_production: true, urls: { [URLS.web]: "https://p" } },
+					},
+					{ type: "success", code: 202, message: { environment: "1" } },
+				],
+				3,
+			);
+		});
+		const result = await waitForQueue({
+			...BASE,
+			fetchImpl: spy.fetchImpl,
+			timeoutMs: 40,
+			confirmCode: async () => {
+				// Reading the code from a phone takes longer than the whole
+				// deadline — the budget must not burn while the user types.
+				await new Promise(resolve => setTimeout(resolve, 90));
+				return "4242";
+			},
+		});
+		expect(result.confirmed).toBe(true);
+		expect(result.urls.production).toEqual({ [URLS.web]: "https://p" });
 	});
 
 	it("rejects malformed subscribe responses", async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DeployError } from "../errors.ts";
 import { createFetchSpy, route, sequence, instantSleep } from "../test-utils.ts";
+import type { FetchLike } from "./client.ts";
 import { loginDeviceFlow } from "./oauth.ts";
 
 const BASE = {
@@ -92,6 +93,26 @@ describe("loginDeviceFlow", () => {
 		await expect(
 			loginDeviceFlow({ ...BASE, fetchImpl: spy.fetchImpl, timeoutMs: 10 }),
 		).rejects.toSatisfy((error: unknown) => (error as DeployError).code === "E_LOGIN_TIMEOUT");
+	});
+
+	it("cuts an in-flight token poll at the deadline, not only between polls", async () => {
+		const fetchImpl: FetchLike = (url, init) => {
+			if (url.includes("get_auth_code")) {
+				return Promise.resolve(
+					new Response(JSON.stringify({ auth_code: "A", device_id: "D" }), {
+						status: 200,
+					}),
+				);
+			}
+			return new Promise<never>((_resolve, reject) => {
+				init?.signal?.addEventListener("abort", () => {
+					reject(new DOMException("This operation was aborted", "AbortError"));
+				});
+			});
+		};
+		await expect(loginDeviceFlow({ ...BASE, fetchImpl, timeoutMs: 20 })).rejects.toSatisfy(
+			(error: unknown) => (error as DeployError).code === "E_LOGIN_TIMEOUT",
+		);
 	});
 
 	it("includes the last poll error in the timeout message for diagnosis", async () => {

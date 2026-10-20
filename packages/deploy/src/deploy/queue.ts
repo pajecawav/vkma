@@ -12,6 +12,7 @@
 
 import {
 	callApi,
+	deadlineSignal,
 	httpGet,
 	parseJsonBody,
 	type FetchClientOptions,
@@ -97,7 +98,7 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 		});
 	}
 
-	const deadline = Date.now() + options.timeoutMs;
+	let deadline = Date.now() + options.timeoutMs;
 	const targets = options.environments ?? { dev: true, production: true };
 	const handled = { production: !targets.production, dev: !targets.dev };
 	const result: {
@@ -108,6 +109,13 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 	} = { urls: {}, pushSent: false, confirmed: false };
 	let currentTs = String(ts);
 
+	const queueTimeoutError = (): DeployError =>
+		new DeployError(
+			"network",
+			`Timed out waiting for the hosting queue after ${Math.round(options.timeoutMs / 1000)}s (upstream hangs forever here — issue #119). Increase with --timeout <sec> or VKMA_TIMEOUT.`,
+			{ code: "E_QUEUE_TIMEOUT" },
+		);
+
 	for (;;) {
 		if (options.signal?.aborted) {
 			throw new DeployError("aborted", "Aborted while waiting for the deploy queue", {
@@ -115,18 +123,32 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 			});
 		}
 		if (Date.now() > deadline) {
-			throw new DeployError(
-				"network",
-				`Timed out waiting for the hosting queue after ${Math.round(options.timeoutMs / 1000)}s (upstream hangs forever here — issue #119). Increase with --timeout <sec> or VKMA_TIMEOUT.`,
-				{ code: "E_QUEUE_TIMEOUT" },
-			);
+			throw queueTimeoutError();
 		}
 
 		const pollUrl =
 			`${baseUrl}?act=a_check&key=${encodeURIComponent(key)}&ts=${encodeURIComponent(currentTs)}` +
 			`&id=${pollId}&wait=${QUEUE_POLL_WAIT_SEC}`;
-		const { text } = await httpGet(pollUrl, options);
-		const json = parseJsonBody(text, pollUrl) as QueueResponse;
+		let pollText: string;
+		try {
+			// Per-request deadline: a hung poll must not outlive the budget.
+			const response = await httpGet(pollUrl, {
+				...options,
+				signal: deadlineSignal(options.signal, deadline),
+			});
+			pollText = response.text;
+		} catch (error) {
+			if (
+				error instanceof DeployError &&
+				error.kind === "aborted" &&
+				options.signal?.aborted !== true
+			) {
+				// The per-request deadline cut this poll, not the user.
+				throw queueTimeoutError();
+			}
+			throw error;
+		}
+		const json = parseJsonBody(pollText, pollUrl) as QueueResponse;
 		if (json.ts === undefined) {
 			throw new DeployError("api", "Queue response is missing ts", { code: "E_BAD_QUEUE" });
 		}
@@ -238,7 +260,11 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 							{ code: 205 },
 						);
 					}
+					const promptStartedAt = Date.now();
 					const code2 = await options.confirmCode();
+					// The deadline budgets network waiting, not the human
+					// entering the code VK just sent them.
+					deadline += Date.now() - promptStartedAt;
 					await callApi(
 						"apps.confirmDeploy",
 						{ app_id: options.appId, version: options.version, code: code2 },

@@ -12,7 +12,14 @@
  */
 
 import { DeployError } from "../errors.ts";
-import { httpGet, httpOnce, joinUrl, parseJsonBody, type HttpOptions } from "./client.ts";
+import {
+	deadlineSignal,
+	httpGet,
+	httpOnce,
+	joinUrl,
+	parseJsonBody,
+	type HttpOptions,
+} from "./client.ts";
 
 export interface LoginOptions extends HttpOptions {
 	readonly appId: number;
@@ -85,32 +92,43 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 	// we cannot fail fast — but we can explain what kept happening.
 	let lastPollError: string | undefined;
 
+	const loginTimeoutError = (): DeployError =>
+		new DeployError(
+			"network",
+			`Login timed out — did you confirm access in the browser?${
+				lastPollError === undefined ? "" : ` Last poll error: ${lastPollError}`
+			}`,
+			// The confirm URL carries a single-use code= parameter that
+			// the redactor would mask inside any message; it was already
+			// surfaced via onAuthUrl and survives verbatim in details.
+			{ code: "E_LOGIN_TIMEOUT", details: { confirmUrl } },
+		);
+
 	for (;;) {
 		if (options.signal?.aborted) {
 			throw new DeployError("aborted", "Login aborted", { code: "E_ABORTED" });
 		}
 		if (Date.now() >= deadline) {
-			throw new DeployError(
-				"network",
-				`Login timed out — did you confirm access in the browser?${
-					lastPollError === undefined ? "" : ` Last poll error: ${lastPollError}`
-				}`,
-				// The confirm URL carries a single-use code= parameter that
-				// the redactor would mask inside any message; it was already
-				// surfaced via onAuthUrl and survives verbatim in details.
-				{ code: "E_LOGIN_TIMEOUT", details: { confirmUrl } },
-			);
+			throw loginTimeoutError();
 		}
 
 		let status = 0;
 		let text = "";
 		try {
-			// Single-shot by design: the poll loop is its own retry.
-			const result = await httpOnce(tokenUrl, options);
+			// Single-shot by design: the poll loop is its own retry. The
+			// per-request deadline keeps a hung poll from outliving the budget.
+			const result = await httpOnce(tokenUrl, {
+				...options,
+				signal: deadlineSignal(options.signal, deadline),
+			});
 			status = result.status;
 			text = result.text;
 		} catch (error) {
 			if (error instanceof DeployError && error.kind === "aborted") {
+				if (options.signal?.aborted !== true) {
+					// The per-request deadline cut this poll, not the user.
+					throw loginTimeoutError();
+				}
 				throw error;
 			}
 			// Not confirmed yet (VK answers non-200 until the user approves)

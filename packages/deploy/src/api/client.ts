@@ -98,6 +98,22 @@ function aborted(): DeployError {
 }
 
 /**
+ * Composes the user signal with a hard per-request deadline, so a hung
+ * server cannot outlive the operation's budget — deadline checks between
+ * requests are advisory on their own (undici's own timeouts default to
+ * ~300s). The caller distinguishes a deadline abort from a user abort by
+ * checking its own signal.
+ */
+export function deadlineSignal(signal: AbortSignal | undefined, deadlineAt: number): AbortSignal {
+	const remaining = deadlineAt - Date.now();
+	if (remaining <= 0) {
+		return AbortSignal.abort(new Error("deadline exceeded"));
+	}
+	const timeoutSignal = AbortSignal.timeout(remaining);
+	return signal === undefined ? timeoutSignal : AbortSignal.any([signal, timeoutSignal]);
+}
+
+/**
  * Masks secret values inside response body previews: JSON string values of
  * token fields and `access_token`-style query parameters. The JSON key
  * `"code"` is deliberately untouched — VK error payloads use it for error
