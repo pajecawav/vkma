@@ -239,12 +239,17 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 	}
 
 	// Event 205 cannot be pre-configured: VK sends the confirmation code to
-	// the developer mid-queue, so this prompt is unconditional for
+	// the developer mid-queue, so this prompt is unconditional for real
 	// interactive terminals (AGENTS.md invariant #5) — no --interactive
-	// required. json/quiet/non-TTY runs get no prompt and the queue fails
-	// with an explanatory user error instead of hanging silently.
+	// required. Everything else fails fast with the queue's explanatory
+	// user error instead of hanging on readline: non-TTY, --json/--quiet,
+	// --yes, and CI runs — including pseudo-TTY CI (docker run -t and
+	// friends), which used to block forever.
 	const confirmCode =
-		stdin.isTTY === true && context.mode === "pretty"
+		stdin.isTTY === true &&
+		context.mode === "pretty" &&
+		env["CI"] === undefined &&
+		!parsed.booleans.yes
 			? async () => {
 					logger.spinnerStop();
 					logger.info(

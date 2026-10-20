@@ -446,27 +446,113 @@ describe("main()", () => {
 			]),
 		);
 		const input = new PassThrough();
-		// No --interactive flag: the 205 prompt is unconditional for a TTY.
-		// CI=1 skips only the pre-deploy confirm, leaving stdin to the code
-		// prompt alone.
+		// No --interactive flag: the 205 prompt is unconditional for a real
+		// interactive terminal (no CI env — see the CI test below).
 		const pending = main([], {
 			stdout,
 			stderr,
 			stdin: { isTTY: true },
 			input,
-			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890", CI: "1" }),
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890" }),
 			cwd: root,
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
 		});
-		// The empty line answers the event-205 confirmation-code prompt.
-		// PassThrough buffers, so writing before the prompt starts is fine.
+		// The first line answers the pre-deploy confirmation (Y). The second
+		// line (the declined 205 code) must arrive only after the prompt is
+		// actually asking: readline eagerly consumes pre-buffered lines and
+		// the second one would be lost before its question exists.
 		input.write("\n");
+		setTimeout(() => input.write("\n"), 30);
 		const code = await pending;
 		expect(code).toBe(130);
 		// Pretty mode renders aborted errors as "canceled"; the detailed
 		// message surfaces in --json mode.
 		expect(err.join("")).toContain("canceled");
+	});
+
+	it("event 205 in CI (even with a pseudo-TTY) fails fast instead of hanging", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(
+			route([
+				[
+					"getGoHostingUploadServer",
+					() => ({ body: { response: { upload_url: "https://upload.vk/ticket" } } }),
+				],
+				["upload.vk/ticket", () => ({ body: { ticket_id: "T" } })],
+				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
+				[
+					"subscribeToHostingQueue",
+					() => ({
+						body: {
+							response: { base_url: "https://queue.vk/", key: "k", ts: 1, app_id: 9 },
+						},
+					}),
+				],
+				[
+					"act=a_check",
+					() => ({ body: { ts: 2, events: [{ data: { type: "success", code: 205 } }] } }),
+				],
+			]),
+		);
+		// A CI runner with a pseudo-TTY (docker run -t) used to hang on the
+		// readline prompt forever — invariant #5 says CI skips it.
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890", CI: "1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("confirmation code");
+	});
+
+	it("--yes never prompts for the event-205 code either (invariant #5)", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(
+			route([
+				[
+					"getGoHostingUploadServer",
+					() => ({ body: { response: { upload_url: "https://upload.vk/ticket" } } }),
+				],
+				["upload.vk/ticket", () => ({ body: { ticket_id: "T" } })],
+				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
+				[
+					"subscribeToHostingQueue",
+					() => ({
+						body: {
+							response: { base_url: "https://queue.vk/", key: "k", ts: 1, app_id: 9 },
+						},
+					}),
+				],
+				[
+					"act=a_check",
+					() => ({ body: { ts: 2, events: [{ data: { type: "success", code: 205 } }] } }),
+				],
+			]),
+		);
+		const code = await main(["--yes"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(1);
+		expect(err.join("")).toContain("confirmation code");
 	});
 
 	it("event 205 prompts for the code without --interactive and confirms the deploy", async () => {
@@ -535,14 +621,15 @@ describe("main()", () => {
 			stderr,
 			stdin: { isTTY: true },
 			input,
-			// CI=1 skips only the pre-deploy confirm; the 205 prompt is
-			// unconditional for a TTY.
-			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", CI: "1" }),
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
 			cwd: root,
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
 		});
-		input.write("4242\n");
+		// First line: pre-deploy confirm (Y). The 205 code arrives deferred —
+		// readline eats pre-buffered lines eagerly (see the abort test).
+		input.write("\n");
+		setTimeout(() => input.write("4242\n"), 30);
 		const code = await pending;
 		expect(code).toBe(0);
 		const confirmUrl =

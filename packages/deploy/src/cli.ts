@@ -10,6 +10,7 @@
  */
 
 import { main } from "./cli/main.ts";
+import { closeAllPrompts } from "./cli/prompt.ts";
 import { SHOW_CURSOR } from "./logger/index.ts";
 
 const controller = new AbortController();
@@ -46,4 +47,8 @@ try {
 	// net so a bug never becomes an unhandled rejection.
 	process.stderr.write(`vkma-deploy: unexpected failure: ${String(error)}\n`);
 	process.exitCode = 1;
+} finally {
+	// Shared readline interfaces hold stdin; without this the process
+	// would not exit after an interactive run.
+	closeAllPrompts();
 }

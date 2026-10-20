@@ -4,6 +4,12 @@
  * Prompts exist only behind --interactive (or for the event-205 confirmation
  * code, which cannot be known in advance). Without a TTY they throw a `user`
  * DeployError instead of hanging — CI pipelines never get stuck.
+ *
+ * One readline interface is shared per input stream: sequential prompts
+ * (pre-deploy confirm, then the 205 code) on a freshly created interface
+ * never fire on non-TTY streams, because rl.close() leaves the stream
+ * paused for the next interface. The binary entry closes the shared
+ * interfaces after main() resolves so the process can exit.
  */
 
 import readline from "node:readline/promises";
@@ -24,6 +30,30 @@ function requireTty(options: PromptOptions): void {
 			"Prompt requested but stdin is not a TTY. Pass the value via a flag, env var, or config file instead.",
 			{ code: "E_NO_TTY" },
 		);
+	}
+}
+
+const sharedInterfaces = new WeakMap<object, readline.Interface>();
+const createdInterfaces: readline.Interface[] = [];
+
+function interfaceFor(options: PromptOptions): readline.Interface {
+	const input: object = options.input ?? process.stdin;
+	let rl = sharedInterfaces.get(input);
+	if (rl === undefined) {
+		rl = readline.createInterface({
+			input: input as NodeJS.ReadableStream,
+			output: (options.output ?? process.stdout) as NodeJS.WritableStream,
+		});
+		sharedInterfaces.set(input, rl);
+		createdInterfaces.push(rl);
+	}
+	return rl;
+}
+
+/** Closes every shared prompt interface so the process can exit. */
+export function closeAllPrompts(): void {
+	for (const rl of createdInterfaces.splice(0)) {
+		rl.close();
 	}
 }
 
@@ -56,33 +86,17 @@ export async function confirm(
 	options: PromptOptions = {},
 ): Promise<boolean> {
 	requireTty(options);
-	const rl = readline.createInterface({
-		input: options.input ?? process.stdin,
-		output: (options.output ?? process.stdout) as NodeJS.WritableStream,
-	});
-	try {
-		const hint = defaultValue ? "Y/n" : "y/N";
-		const answer = (await ask(rl, `${question} (${hint}) `, options.signal))
-			.trim()
-			.toLowerCase();
-		if (answer === "") {
-			return defaultValue;
-		}
-		return answer === "y" || answer === "yes";
-	} finally {
-		rl.close();
+	const rl = interfaceFor(options);
+	const hint = defaultValue ? "Y/n" : "y/N";
+	const answer = (await ask(rl, `${question} (${hint}) `, options.signal)).trim().toLowerCase();
+	if (answer === "") {
+		return defaultValue;
 	}
+	return answer === "y" || answer === "yes";
 }
 
 export async function text(question: string, options: PromptOptions = {}): Promise<string> {
 	requireTty(options);
-	const rl = readline.createInterface({
-		input: options.input ?? process.stdin,
-		output: (options.output ?? process.stdout) as NodeJS.WritableStream,
-	});
-	try {
-		return (await ask(rl, `${question} `, options.signal)).trim();
-	} finally {
-		rl.close();
-	}
+	const rl = interfaceFor(options);
+	return (await ask(rl, `${question} `, options.signal)).trim();
 }
