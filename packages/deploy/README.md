@@ -1,28 +1,19 @@
 # @vkma.dev/deploy
 
-Deploy CLI and library for [VK Mini Apps](https://dev.vk.com/en/mini-apps) hosting — a modern, drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
+Deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting — a modern, drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
 
 ```sh
 pnpm dlx @vkma.dev/deploy   # or: npx
 vkma-deploy                 # deploys using the config in your project
 ```
 
-## Why
-
-The official tool works, but it has sharp edges: an infinite deploy queue hang
-([#119](https://github.com/VKCOM/vk-miniapps-deploy/issues/119)), prompts that
-clobber config values and exit `0` when declined, tokens printed into logs,
-zero tests, no library API. `@vkma.dev/deploy` keeps the wire protocol 100 %
-compatible while fixing all of the above.
-
 **Drop-in compatibility** — your existing setup keeps working:
 
-- reads `vk-hosting-config.json` (legacy upstream format) as a fallback
+- reads `vk-hosting-config.json` (the legacy format) as a fallback
 - reads `MINI_APPS_ACCESS_TOKEN`, `MINI_APPS_APP_ID`, `MINI_APPS_ENVIRONMENT`,
   `CI_URLS` env vars (forever, not deprecated)
-- reuses the token stored by upstream in its configstore vault
-- API version defaults to `5.199` (set `apiVersion: "5.131"` for byte-exact
-  upstream parity)
+- reuses the token stored by the official tool, so migrating requires no
+  re-login
 
 ## Quick start
 
@@ -40,7 +31,7 @@ found wins (closest file beats file type). One file is the whole truth —
 there is no merging between config files.
 
 1. `vkma-deploy.config.{ts,mts,js,mjs,json}` — preferred
-2. `vk-hosting-config.json` — legacy upstream format (snake_case, mapped
+2. `vk-hosting-config.json` — legacy format (snake_case, mapped
    automatically with warnings for anything ignored)
 
 TypeScript configs work with zero extra dependencies (native type stripping,
@@ -77,14 +68,14 @@ JSON configs get editor autocomplete via `$schema`:
 | `bundle`          | string                               | —                           | Prebuilt `.zip`; skips zipping (legacy: `bundleFile`)                                                                    |
 | `endpoints`       | `{mobile?, mvk?, web?}`, ≥1 required | — (required)                | Entry files per platform; only configured ones are checked & sent. VK never processes a task with no `endpoint_*` params |
 | `environment`     | `"dev"\|"production"\|"both"`        | `"both"`                    | What to deploy (legacy env var values work too)                                                                          |
-| `updateProd`      | boolean                              | `true`                      | Switch production URLs (independent — fixes upstream #118)                                                               |
+| `updateProd`      | boolean                              | `true`                      | Switch production URLs (independent of `updateDev`)                                                                      |
 | `updateDev`       | boolean                              | `true`                      | Switch dev URLs                                                                                                          |
 | `testGroupName`   | string                               | —                           | Deploy into a named test group (dev only)                                                                                |
 | `accessToken`     | string                               | —                           | Prefer env var or `vkma-deploy login` over committing                                                                    |
 | `apiHost`         | string                               | `https://api.vk.ru/method/` |                                                                                                                          |
 | `oauthHost`       | string                               | `https://oauth.vk.ru/`      |                                                                                                                          |
-| `apiVersion`      | string                               | `"5.199"`                   | Use `"5.131"` for exact upstream parity                                                                                  |
-| `queueTimeoutSec` | integer                              | `600`                       | Hosting queue deadline (fixes the upstream infinite hang)                                                                |
+| `apiVersion`      | string                               | `"5.199"`                   |                                                                                                                          |
+| `queueTimeoutSec` | integer                              | `600`                       | Hosting queue deadline                                                                                                   |
 
 Unknown legacy fields and unsupported ones (`proxy_url`, `debug`, `noprompt`)
 produce warnings, never silent drops. New-format configs are strict: an
@@ -95,15 +86,15 @@ get their types from `defineDeployConfig` and never carry `$schema`.
 
 ### Environment variables
 
-| Variable                                          | Purpose                              |
-| ------------------------------------------------- | ------------------------------------ |
-| `VKMA_ACCESS_TOKEN` (or `MINI_APPS_ACCESS_TOKEN`) | Access token                         |
-| `VKMA_APP_ID` (or `MINI_APPS_APP_ID`)             | App ID override                      |
-| `VKMA_ENVIRONMENT` (or `MINI_APPS_ENVIRONMENT`)   | Target environment                   |
-| `VKMA_TEST_GROUP`                                 | Test group override                  |
-| `VKMA_TIMEOUT`                                    | Queue timeout (seconds)              |
-| `CI_URLS`                                         | Print raw URL keys (upstream compat) |
-| `NO_COLOR`                                        | Disable colors                       |
+| Variable                                          | Purpose                            |
+| ------------------------------------------------- | ---------------------------------- |
+| `VKMA_ACCESS_TOKEN` (or `MINI_APPS_ACCESS_TOKEN`) | Access token                       |
+| `VKMA_APP_ID` (or `MINI_APPS_APP_ID`)             | App ID override                    |
+| `VKMA_ENVIRONMENT` (or `MINI_APPS_ENVIRONMENT`)   | Target environment                 |
+| `VKMA_TEST_GROUP`                                 | Test group override                |
+| `VKMA_TIMEOUT`                                    | Queue timeout (seconds)            |
+| `CI_URLS`                                         | Print raw URL keys (legacy compat) |
+| `NO_COLOR`                                        | Disable colors                     |
 
 Precedence: CLI flags > env vars > config file > defaults.
 
@@ -197,28 +188,14 @@ resolving twice), `loginDeviceFlow`, `zipDirectory`, `uploadBundle`,
 `vkma-deploy login` runs the OAuth device flow (opens the browser, polls
 until you approve) and stores the token at
 `$XDG_CONFIG_HOME/vkma/deploy/credentials.json` with mode `0600`. The token
-is never printed. On first run the store also reads the upstream vault
-(`~/.config/configstore/@vkontakte/vk-miniapps-deploy.json`) so migrating
-requires no re-login.
+is never printed. On first run the store also reads the token saved by the
+official tool (`~/.config/configstore/@vkontakte/vk-miniapps-deploy.json`),
+so migrating requires no re-login.
 
-## Differences from upstream
+## Limitations
 
-- Queue polling has a hard deadline (default 10 min) instead of hanging
-  forever; single-environment deploys terminate on their own URL event.
-- Missing `staticPath` or a _configured_ endpoint file fails in preflight
-  with an actionable message instead of zipping `./undefined` or throwing
-  `TypeError`. Unconfigured platforms are neither checked nor sent as
-  `endpoint_*` params — exactly like upstream 1.0.3.
-- Retries use exponential backoff with jitter; VK error 6 is retried.
-- The access token is masked in every log line and error, in every mode.
-- `updateProd`/`updateDev` are independent booleans (upstream could not
-  update only production URLs — issue #118).
-- Canceling the confirmation-code prompt exits `130`, not `0`; declining
-  the test-group prompt proceeds without a group.
-- No `postinstall` noise, no unused dependencies, ESM-only, 2 runtime deps
-  (`@sinclair/typebox`, `fflate`).
-- Proxy support (`proxy_url`) is not implemented yet; set
-  `NODE_USE_ENV_PROXY=1` on Node 24+ as a workaround.
+- Proxy support is not implemented yet; set `NODE_USE_ENV_PROXY=1` on
+  Node 24+ as a workaround.
 
 ## License
 

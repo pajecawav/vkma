@@ -60,21 +60,45 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 7. Node >= 22.18 (native TS stripping for config files); `engines` is
    meaningful, don't lower it silently.
 
-## Upstream bugs this package fixes (regression-test them)
+## Upstream reference (@vkontakte/vk-miniapps-deploy 1.0.3)
 
-- infinite long-poll hang (upstream #119) → `queueTimeoutSec` deadline
-- single-environment deploys terminating without server skip events
+The npm tarball (`npm pack @vkontakte/vk-miniapps-deploy@1.0.3`) is the
+source of truth when in doubt. User-facing docs intentionally never
+mention upstream internals — that knowledge lives here.
+
+### Compatibility surface (public forever)
+
+- Legacy `vk-hosting-config.json` (snake_case) plus `MINI_APPS_*` and
+  `CI_URLS` env aliases; read-only fallback to the upstream configstore
+  vault (`~/.config/configstore/@vkontakte/vk-miniapps-deploy.json`) so
+  migrating users need no re-login.
+- `apiVersion` defaults to `5.199`; `"5.131"` is the exact upstream pin.
+  Both deliver queue events identically (verified live) — the difference
+  is cosmetic, kept only for byte-exact parity needs.
+- Wire semantics mirrored exactly: `update_prod`/`update_dev` are sent
+  only when explicitly configured (`'update_prod' in cfg` upstream
+  semantics, tracked via `meta.sources`); unconfigured endpoint platforms
+  are neither preflight-checked nor sent as `endpoint_*` params.
+- Proxy support (`proxy_url`) is intentionally not implemented; the
+  documented workaround is `NODE_USE_ENV_PROXY=1` on Node 24+.
+
+### Fixed bugs & intentional differences (regression-test them)
+
+- infinite long-poll hang (upstream #119) → `queueTimeoutSec` deadline;
+  single-environment deploys terminate on their own URL event
 - missing `static_path` → zipped `./undefined`; missing _configured_
   endpoint file → preflight errors; an empty `endpoints` block is a
   config error — VK never processes tasks without `endpoint_*` params
   (live-verified: the queue stays silent forever), so at least one
   platform is required
+- `updateProd`/`updateDev` are independent booleans (upstream #118:
+  production-only URL updates were impossible)
 - declining the confirmation-code prompt (empty answer/Ctrl+C) aborts with
   130; declining the test-group prompt proceeds without a group; prompted
-  values must not clobber
-  config
-- token in query strings leaked into logs → masked everywhere
+  values must not clobber config
+- token in query strings leaked into logs → masked everywhere, every mode
 - fixed 1s retry → exponential backoff with jitter; VK error 6 retried
+- no `postinstall` noise, ESM-only, 2 runtime deps
 
 ## Testing notes
 
