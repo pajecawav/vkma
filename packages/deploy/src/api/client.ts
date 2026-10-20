@@ -11,6 +11,10 @@
 
 import { CLI_VERSION } from "../constants.ts";
 import { DeployError } from "../errors.ts";
+import { runWithRetry } from "./retry.ts";
+
+/** Internal marker: VK error 6 is retriable within the call budget. */
+const VK_RATE_LIMIT_RETRY = "E_VK_RATE_LIMIT_RETRY";
 
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -46,9 +50,25 @@ export interface FetchClientOptions extends HttpOptions {
 	readonly apiVersion: string;
 }
 
-const defaultSleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
-
 const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+/**
+ * True for errors a fresh attempt can plausibly fix: transport failures
+ * (`E_TRANSPORT`) and the retriable HTTP statuses. Shared by every
+ * transport-calling module so the retry policy cannot drift again.
+ */
+export function isRetriableTransport(error: unknown): boolean {
+	if (!(error instanceof DeployError) || error.kind !== "network") {
+		return false;
+	}
+	if (error.code === "E_TRANSPORT") {
+		return true;
+	}
+	if (typeof error.code === "string" && error.code.startsWith("HTTP_")) {
+		return RETRIABLE_STATUS.has(Number(error.code.slice("HTTP_".length)));
+	}
+	return false;
+}
 
 function maskToken(url: string): string {
 	return url.replace(/([?&]access_token=)[^&\s]*/g, "$1***");
@@ -75,13 +95,6 @@ function isAbortError(error: unknown): boolean {
 
 function aborted(): DeployError {
 	return new DeployError("aborted", "Operation aborted", { code: "E_ABORTED" });
-}
-
-async function backoffDelay(attempt: number, options: HttpOptions): Promise<void> {
-	const base = options.backoffBaseMs ?? 500;
-	const jitter = Math.floor(Math.random() * 250);
-	const sleep = options.sleep ?? defaultSleep;
-	await sleep(base * 2 ** (attempt - 1) + jitter);
 }
 
 /**
@@ -112,84 +125,81 @@ export function bodyPreview(text: string): string {
 		: masked;
 }
 
-/** GET with retry on transport errors and retriable statuses. */
+/**
+ * Single transport attempt: one fetch, typed errors, request/response
+ * events. Retry policy lives in `runWithRetry`; callers own the budget.
+ */
+export async function httpOnce(
+	url: string,
+	options: HttpOptions,
+): Promise<{ status: number; text: string }> {
+	const fetchImpl = options.fetchImpl ?? fetch;
+	const method = "GET";
+	try {
+		options.onEvent?.({ kind: "request", method, url: maskToken(url) });
+		const response = await fetchImpl(url, {
+			method,
+			headers: { accept: "application/json, text/plain, */*" },
+			signal: options.signal,
+			redirect: "follow",
+		});
+		const text = await response.text();
+		options.onEvent?.({
+			kind: "response",
+			status: response.status,
+			body: bodyPreview(text),
+		});
+		if (response.ok) {
+			return { status: response.status, text };
+		}
+		throw new DeployError("network", `HTTP ${response.status} ${response.statusText}`.trim(), {
+			code: `HTTP_${response.status}`,
+			details: { url: maskToken(url) },
+		});
+	} catch (error) {
+		if (isAbortError(error) || options.signal?.aborted) {
+			throw aborted();
+		}
+		if (error instanceof DeployError) {
+			throw error;
+		}
+		// Transport failure (fetch rejects on DNS, socket, TLS...).
+		throw new DeployError("network", (error as Error).message, {
+			code: "E_TRANSPORT",
+			details: { url: maskToken(url) },
+		});
+	}
+}
+
+function finalizeTransportError(error: unknown, maxAttempts: number): unknown {
+	if (error instanceof DeployError && error.code === "E_TRANSPORT") {
+		return new DeployError(
+			"network",
+			`Request failed after ${maxAttempts} attempts: ${error.message}`,
+			{ code: "E_NETWORK", details: error.details },
+		);
+	}
+	return error;
+}
+
+/**
+ * GET with one retry budget: transport errors and retriable statuses
+ * back off with jitter, bounded by `maxAttempts` (default 3) for the
+ * whole operation — never per layer.
+ */
 export async function httpGet(
 	url: string,
 	options: HttpOptions,
 ): Promise<{ status: number; text: string }> {
-	const maxAttempts = options.maxAttempts ?? 3;
-	const fetchImpl = options.fetchImpl ?? fetch;
-	const method = "GET";
-
-	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-		if (options.signal?.aborted) {
-			throw aborted();
-		}
-		try {
-			options.onEvent?.({ kind: "request", method, url: maskToken(url) });
-			const response = await fetchImpl(url, {
-				method,
-				headers: { accept: "application/json, text/plain, */*" },
-				signal: options.signal,
-				redirect: "follow",
-			});
-			const text = await response.text();
-			options.onEvent?.({
-				kind: "response",
-				status: response.status,
-				body: bodyPreview(text),
-			});
-			if (response.ok) {
-				return { status: response.status, text };
-			}
-			if (RETRIABLE_STATUS.has(response.status) && attempt < maxAttempts) {
-				options.onEvent?.({
-					kind: "retry",
-					attempt,
-					maxAttempts,
-					error: `HTTP ${response.status}`,
-				});
-				await backoffDelay(attempt, options);
-				continue;
-			}
-			throw new DeployError(
-				"network",
-				`HTTP ${response.status} ${response.statusText}`.trim(),
-				{
-					code: `HTTP_${response.status}`,
-					details: { url: maskToken(url) },
-				},
-			);
-		} catch (error) {
-			if (isAbortError(error) || options.signal?.aborted) {
-				throw aborted();
-			}
-			if (error instanceof DeployError) {
-				throw error;
-			}
-			// Transport failure (fetch rejects on DNS, socket, TLS...).
-			if (attempt < maxAttempts) {
-				options.onEvent?.({
-					kind: "retry",
-					attempt,
-					maxAttempts,
-					error: (error as Error).message,
-				});
-				await backoffDelay(attempt, options);
-				continue;
-			}
-			throw new DeployError(
-				"network",
-				`Request failed after ${maxAttempts} attempts: ${(error as Error).message}`,
-				{
-					code: "E_NETWORK",
-					details: { url: maskToken(url) },
-				},
-			);
-		}
-	}
-	/* istanbul ignore next -- loop always returns or throws */
-	throw new DeployError("network", "unreachable");
+	return runWithRetry(() => httpOnce(url, options), {
+		maxAttempts: options.maxAttempts,
+		backoffBaseMs: options.backoffBaseMs,
+		sleep: options.sleep,
+		signal: options.signal,
+		shouldRetry: isRetriableTransport,
+		onRetry: info => options.onEvent?.({ kind: "retry", ...info }),
+		finalizeError: finalizeTransportError,
+	});
 }
 
 /** Parses a response body, rejecting HTML error pages with a clear message. */
@@ -234,7 +244,8 @@ function vkErrorMessage(error: Record<string, unknown>): string {
 
 /**
  * Calls a VK API method: `GET {apiHost}{method}?...&v&access_token&cli_version`.
- * Retries transport errors and VK error code 6 ("too many requests per second").
+ * One retry budget covers transport errors and VK error code 6 ("too many
+ * requests per second") for the whole call.
  */
 export async function callApi(
 	method: string,
@@ -248,47 +259,66 @@ export async function callApi(
 		cli_version: CLI_VERSION,
 	});
 	const url = `${joinUrl(options.apiHost, method)}?${query}`;
-	const maxAttempts = options.maxAttempts ?? 3;
-	const sleep = options.sleep ?? defaultSleep;
 
-	for (let attempt = 1; ; attempt++) {
-		const { text } = await httpGet(url, options);
-		const json = parseJsonBody(text, url);
+	return runWithRetry(
+		async () => {
+			const { text } = await httpOnce(url, options);
+			const json = parseJsonBody(text, url);
 
-		if (isRecord(json) && isRecord(json["error"])) {
-			const error = json["error"];
-			const code = Number(error["error_code"] ?? 0);
+			if (isRecord(json) && isRecord(json["error"])) {
+				const error = json["error"];
+				const code = Number(error["error_code"] ?? 0);
 
-			if (code === 6 && attempt < maxAttempts) {
-				options.onEvent?.({
-					kind: "retry",
-					attempt,
-					maxAttempts,
-					error: "VK error 6 (rate limit)",
+				if (code === 6) {
+					// Retriable marker — finalized as a VK api error once the
+					// budget runs out.
+					throw new DeployError("network", "VK error 6 (rate limit)", {
+						code: VK_RATE_LIMIT_RETRY,
+						details: { error },
+					});
+				}
+				if (code === 5) {
+					throw new DeployError(
+						"api",
+						`VK authorization failed (${vkErrorMessage(error)}). The token is missing, expired, or invalid — run "vkma-deploy login" or set VKMA_ACCESS_TOKEN.`,
+						{ code: 5, details: error },
+					);
+				}
+				throw new DeployError("api", `VK API error ${vkErrorMessage(error)}`, {
+					code,
+					details: error,
 				});
-				await sleep((options.backoffBaseMs ?? 500) * 2 ** (attempt - 1) + 350);
-				continue;
 			}
-			if (code === 5) {
-				throw new DeployError(
-					"api",
-					`VK authorization failed (${vkErrorMessage(error)}). The token is missing, expired, or invalid — run "vkma-deploy login" or set VKMA_ACCESS_TOKEN.`,
-					{ code: 5, details: error },
-				);
+
+			if (isRecord(json) && "response" in json) {
+				const response = json["response"];
+				return isRecord(response) ? response : {};
 			}
-			throw new DeployError("api", `VK API error ${vkErrorMessage(error)}`, {
-				code,
-				details: error,
+			throw new DeployError("api", `Unexpected VK API payload from ${method}`, {
+				code: "E_BAD_PAYLOAD",
 			});
-		}
-
-		if (isRecord(json) && "response" in json) {
-			const response = json["response"];
-			return isRecord(response) ? response : {};
-		}
-
-		throw new DeployError("api", `Unexpected VK API payload from ${method}`, {
-			code: "E_BAD_PAYLOAD",
-		});
-	}
+		},
+		{
+			maxAttempts: options.maxAttempts,
+			backoffBaseMs: options.backoffBaseMs,
+			sleep: options.sleep,
+			signal: options.signal,
+			shouldRetry: error =>
+				isRetriableTransport(error) ||
+				(error instanceof DeployError && error.code === VK_RATE_LIMIT_RETRY),
+			onRetry: info => options.onEvent?.({ kind: "retry", ...info }),
+			finalizeError: (error, maxAttempts) => {
+				if (error instanceof DeployError && error.code === VK_RATE_LIMIT_RETRY) {
+					const vkError =
+						(error.details as { error?: Record<string, unknown> } | undefined)?.error ??
+						{};
+					return new DeployError("api", `VK API error ${vkErrorMessage(vkError)}`, {
+						code: 6,
+						details: vkError,
+					});
+				}
+				return finalizeTransportError(error, maxAttempts);
+			},
+		},
+	);
 }

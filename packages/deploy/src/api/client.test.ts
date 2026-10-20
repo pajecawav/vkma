@@ -73,6 +73,37 @@ describe("callApi", () => {
 		expect(spy.calls.length).toBe(2);
 	});
 
+	it("caps the retry budget per operation — one budget, not budget²", async () => {
+		// Interleaved transport flakiness and rate limiting used to hit the
+		// inner httpGet budget once per outer callApi attempt (5 requests
+		// for 3 attempts); a single budget must cap the operation at 3.
+		let call = 0;
+		const spy = createFetchSpy(() => {
+			call += 1;
+			if (call === 1 || call === 3) {
+				throw new TypeError("fetch failed");
+			}
+			return { body: { error: { error_code: 6, error_msg: "rate limited" } } };
+		});
+		await expect(callApi("m", {}, { ...BASE, fetchImpl: spy.fetchImpl })).rejects.toSatisfy(
+			(error: unknown) => (error as DeployError).kind === "network",
+		);
+		expect(spy.calls.length).toBe(3);
+	});
+
+	it("surfaces persistent VK error 6 as an api error after the budget", async () => {
+		const spy = createFetchSpy(() => ({
+			body: { error: { error_code: 6, error_msg: "Too many requests per second" } },
+		}));
+		await expect(callApi("m", {}, { ...BASE, fetchImpl: spy.fetchImpl })).rejects.toSatisfy(
+			(error: unknown) => {
+				const e = error as DeployError;
+				return e.kind === "api" && e.code === 6;
+			},
+		);
+		expect(spy.calls.length).toBe(3);
+	});
+
 	it("retries transport failures with backoff", async () => {
 		let failures = 0;
 		const spy = createFetchSpy(() => {

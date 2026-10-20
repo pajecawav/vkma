@@ -12,7 +12,7 @@
  */
 
 import { DeployError } from "../errors.ts";
-import { httpGet, joinUrl, parseJsonBody, type HttpOptions } from "./client.ts";
+import { httpGet, httpOnce, joinUrl, parseJsonBody, type HttpOptions } from "./client.ts";
 
 export interface LoginOptions extends HttpOptions {
 	readonly appId: number;
@@ -105,7 +105,8 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 		let status = 0;
 		let text = "";
 		try {
-			const result = await httpGet(tokenUrl, { ...options, maxAttempts: 1 });
+			// Single-shot by design: the poll loop is its own retry.
+			const result = await httpOnce(tokenUrl, options);
 			status = result.status;
 			text = result.text;
 		} catch (error) {

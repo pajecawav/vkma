@@ -8,7 +8,14 @@
 
 import { randomBytes } from "node:crypto";
 import { DeployError } from "../errors.ts";
-import { parseJsonBody, bodyPreview, type FetchLike, type HttpOptions } from "./client.ts";
+import {
+	parseJsonBody,
+	bodyPreview,
+	isRetriableTransport,
+	type FetchLike,
+	type HttpOptions,
+} from "./client.ts";
+import { runWithRetry } from "./retry.ts";
 
 export interface UploadOptions extends HttpOptions {
 	/** Called at most every `progressIntervalMs` (plus the final call). */
@@ -84,91 +91,77 @@ export async function uploadBundle(
 	archive: Uint8Array,
 	options: UploadOptions = {},
 ): Promise<Record<string, unknown>> {
-	const maxAttempts = options.maxAttempts ?? 3;
 	const fetchImpl: FetchLike = options.fetchImpl ?? fetch;
-	const sleep =
-		options.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
 	const progressInterval = options.progressIntervalMs ?? DEFAULT_PROGRESS_INTERVAL_MS;
 
-	let lastError: unknown;
-	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-		if (options.signal?.aborted) {
-			throw new DeployError("aborted", "Upload aborted", { code: "E_ABORTED" });
-		}
-		try {
+	return runWithRetry(
+		async () => {
 			const boundary = `----vkmaDeploy${randomBytes(12).toString("hex")}`;
 			// "build.zip" matches upstream's zip-a-folder output name exactly
 			// (their default bundleFile) — one less wire difference.
 			const body = buildMultipartBody("file", "build.zip", archive, boundary);
 			options.onEvent?.({ kind: "request", method: "POST", url: uploadUrl });
 
-			const response = await fetchImpl(uploadUrl, {
-				method: "POST",
-				headers: {
-					"content-type": `multipart/form-data; boundary=${boundary}`,
-					"content-length": String(body.length),
-				},
-				body: options.onProgress
-					? countingStream(body, options.onProgress, progressInterval)
-					: (body as BodyInit),
-				signal: options.signal,
-				// Required by undici when the body is a stream.
-				duplex: "half",
-			} as RequestInit);
+			try {
+				const response = await fetchImpl(uploadUrl, {
+					method: "POST",
+					headers: {
+						"content-type": `multipart/form-data; boundary=${boundary}`,
+						"content-length": String(body.length),
+					},
+					body: options.onProgress
+						? countingStream(body, options.onProgress, progressInterval)
+						: (body as BodyInit),
+					signal: options.signal,
+					// Required by undici when the body is a stream.
+					duplex: "half",
+				} as RequestInit);
 
-			const text = await response.text();
-			options.onEvent?.({
-				kind: "response",
-				status: response.status,
-				body: bodyPreview(text),
-			});
+				const text = await response.text();
+				options.onEvent?.({
+					kind: "response",
+					status: response.status,
+					body: bodyPreview(text),
+				});
 
-			if (response.ok) {
-				return parseJsonBody(text, uploadUrl) as Record<string, unknown>;
-			}
-			if ((response.status === 429 || response.status >= 500) && attempt < maxAttempts) {
-				options.onEvent?.({
-					kind: "retry",
-					attempt,
-					maxAttempts,
-					error: `HTTP ${response.status}`,
+				if (response.ok) {
+					return parseJsonBody(text, uploadUrl) as Record<string, unknown>;
+				}
+				throw new DeployError(
+					"network",
+					`Upload failed: HTTP ${response.status} ${response.statusText}`.trim(),
+					{
+						code: `HTTP_${response.status}`,
+					},
+				);
+			} catch (error) {
+				if (isAbortError(error) || options.signal?.aborted) {
+					throw new DeployError("aborted", "Upload aborted", { code: "E_ABORTED" });
+				}
+				if (error instanceof DeployError) {
+					throw error;
+				}
+				throw new DeployError("network", (error as Error).message, {
+					code: "E_TRANSPORT",
+					details: { url: uploadUrl },
 				});
-				await sleep((options.backoffBaseMs ?? 500) * 2 ** (attempt - 1));
-				continue;
 			}
-			throw new DeployError(
-				"network",
-				`Upload failed: HTTP ${response.status} ${response.statusText}`.trim(),
-				{
-					code: `HTTP_${response.status}`,
-				},
-			);
-		} catch (error) {
-			if (isAbortError(error) || options.signal?.aborted) {
-				throw new DeployError("aborted", "Upload aborted", { code: "E_ABORTED" });
-			}
-			if (error instanceof DeployError) {
-				throw error;
-			}
-			if (attempt < maxAttempts) {
-				options.onEvent?.({
-					kind: "retry",
-					attempt,
-					maxAttempts,
-					error: (error as Error).message,
-				});
-				await sleep((options.backoffBaseMs ?? 500) * 2 ** (attempt - 1));
-				continue;
-			}
-			lastError = error;
-			break;
-		}
-	}
-	throw new DeployError(
-		"network",
-		`Upload failed after ${maxAttempts} attempts: ${(lastError as Error)?.message ?? "unknown error"}`,
+		},
 		{
-			code: "E_NETWORK",
+			maxAttempts: options.maxAttempts,
+			backoffBaseMs: options.backoffBaseMs,
+			sleep: options.sleep,
+			signal: options.signal,
+			shouldRetry: isRetriableTransport,
+			onRetry: info => options.onEvent?.({ kind: "retry", ...info }),
+			finalizeError: (error, maxAttempts) =>
+				error instanceof DeployError && error.code === "E_TRANSPORT"
+					? new DeployError(
+							"network",
+							`Upload failed after ${maxAttempts} attempts: ${error.message}`,
+							{ code: "E_NETWORK", details: { url: uploadUrl } },
+						)
+					: error,
 		},
 	);
 }
