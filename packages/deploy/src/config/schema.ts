@@ -52,28 +52,29 @@ export const DeployConfigSchema = Type.Object(
 					"Path to a prebuilt .zip archive. Skips zipping. Mutually exclusive with staticPath.",
 			}),
 		),
-		/** Entry files per platform.
-		 * @remarks Only configured platforms are checked in preflight and
-		 * sent as `endpoint_*` params (upstream parity); the rest use VK
-		 * server defaults. No defaults are injected. */
+		/** Entry files per platform; at least one is required.
+		 * @remarks VK does not process hosting tasks that carry no
+		 * `endpoint_*` parameters: the task is created but the queue never
+		 * delivers events (verified live). Only configured platforms are
+		 * preflight-checked and sent; no defaults are injected. */
 		endpoints: Type.Optional(
-			Type.Partial(
-				Type.Object(
-					{
-						/** Entry file for the mobile app (iOS & Android). */
-						mobile: Type.String({
+			Type.Object(
+				{
+					/** Entry file for the mobile app (iOS & Android). */
+					mobile: Type.Optional(
+						Type.String({
 							description: "Entry file for the mobile app (iOS & Android).",
 						}),
-						/** Entry file for m.vk.ru. */
-						mvk: Type.String({ description: "Entry file for m.vk.ru." }),
-						/** Entry file for vk.ru. */
-						web: Type.String({ description: "Entry file for vk.ru." }),
-					},
-					{ additionalProperties: false },
-				),
+					),
+					/** Entry file for m.vk.ru. */
+					mvk: Type.Optional(Type.String({ description: "Entry file for m.vk.ru." })),
+					/** Entry file for vk.ru. */
+					web: Type.Optional(Type.String({ description: "Entry file for vk.ru." })),
+				},
 				{
+					additionalProperties: false,
 					description:
-						"Entry files per platform. Only configured platforms are checked in preflight and sent as endpoint_* params (upstream parity); the rest use VK server defaults.",
+						"Entry files per platform; at least one is required (VK does not process hosting tasks without endpoint_* parameters — the queue never delivers events). Only configured platforms are checked in preflight and sent; no defaults are injected.",
 				},
 			),
 		),

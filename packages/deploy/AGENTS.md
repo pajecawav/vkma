@@ -65,8 +65,10 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 - infinite long-poll hang (upstream #119) → `queueTimeoutSec` deadline
 - single-environment deploys terminating without server skip events
 - missing `static_path` → zipped `./undefined`; missing _configured_
-  endpoint file → preflight errors (unconfigured endpoints are valid:
-  nothing is checked or sent, matching upstream)
+  endpoint file → preflight errors; an empty `endpoints` block is a
+  config error — VK never processes tasks without `endpoint_*` params
+  (live-verified: the queue stays silent forever), so at least one
+  platform is required
 - declining the confirmation-code prompt (empty answer/Ctrl+C) aborts with
   130; declining the test-group prompt proceeds without a group; prompted
   values must not clobber

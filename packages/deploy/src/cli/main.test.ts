@@ -122,7 +122,12 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", accessToken: "super-secret-token" }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				accessToken: "super-secret-token",
+			}),
 		);
 		const code = await main(["config"], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(0);
@@ -137,7 +142,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 7, staticPath: "./build" }),
+			JSON.stringify({ appId: 7, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const code = await main(["config", "--json"], {
 			stdout,
@@ -155,7 +160,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 7, staticPath: "./build" }),
+			JSON.stringify({ appId: 7, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const ttyOut: string[] = [];
 		const code = await main(["config", "--json"], {
@@ -195,7 +200,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(() => ({ body: {} }));
 		const code = await main(["--dry-run"], {
@@ -215,7 +220,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -282,7 +287,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(() => ({
 			body: { error: { error_code: 15, error_msg: "nope" } },
@@ -304,7 +309,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const code = await main([], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(1);
@@ -315,7 +320,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -375,7 +380,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -416,7 +421,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -468,7 +473,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		let polls = 0;
 		const spy = createFetchSpy(async (url: string) => {
@@ -552,7 +557,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -579,7 +584,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const input = new PassThrough();
@@ -606,7 +611,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const input = new PassThrough();
@@ -632,7 +637,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		// TTY stdin but no input ever written: if the prompt fired here, the
@@ -654,7 +659,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const code = await main(["--yes"], {
@@ -674,7 +679,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const code = await main(["--dry-run"], {
@@ -695,7 +700,7 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build" }),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const code = await main(["--json"], {

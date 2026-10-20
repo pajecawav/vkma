@@ -27,6 +27,7 @@
 		},
 		"endpoints": {
 			"additionalProperties": false,
+			"description": "Entry files per platform; at least one is required (VK does not process hosting tasks without endpoint_* parameters — the queue never delivers events). Only configured platforms are checked in preflight and sent; no defaults are injected.",
 			"type": "object",
 			"properties": {
 				"mobile": {
@@ -41,8 +42,7 @@
 					"description": "Entry file for vk.ru.",
 					"type": "string"
 				}
-			},
-			"description": "Entry files per platform. Only configured platforms are checked in preflight and sent as endpoint_* params (upstream parity); the rest use VK server defaults."
+			}
 		},
 		"environment": {
 			"description": "Which hosting environment to deploy to. Default: \"both\".",

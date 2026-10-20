@@ -51,7 +51,7 @@ describe("resolveConfig", () => {
 		const { config, meta } = await resolveConfig({
 			cwd: root,
 			env: { ...CLEAN_ENV, VKMA_APP_ID: "123", VKMA_ACCESS_TOKEN: "tok-123456789" },
-			overrides: { staticPath: "./build" },
+			overrides: { staticPath: "./build", endpoints: { web: "index.html" } },
 		});
 		expect(config.appId).toBe(123);
 		expect(config.accessToken).toBe("tok-123456789");
@@ -71,12 +71,38 @@ describe("resolveConfig", () => {
 		).rejects.toThrow(/staticPath is required/);
 	});
 
+	it("requires an endpoints block with at least one platform", async () => {
+		await write(
+			root,
+			"vkma-deploy.config.json",
+			JSON.stringify({ appId: 1, staticPath: "./build" }),
+		);
+		await expect(resolveConfig({ cwd: root, env: CLEAN_ENV })).rejects.toThrow(
+			/at least one platform/,
+		);
+	});
+
+	it("rejects an empty endpoints block", async () => {
+		await write(
+			root,
+			"vkma-deploy.config.json",
+			JSON.stringify({ appId: 1, staticPath: "./build", endpoints: {} }),
+		);
+		await expect(resolveConfig({ cwd: root, env: CLEAN_ENV })).rejects.toThrow(
+			/at least one platform/,
+		);
+	});
+
 	it("rejects both staticPath and bundle", async () => {
 		await expect(
 			resolveConfig({
 				cwd: root,
 				env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
-				overrides: { staticPath: "./build", bundle: "./b.zip" },
+				overrides: {
+					staticPath: "./build",
+					endpoints: { web: "index.html" },
+					bundle: "./b.zip",
+				},
 			}),
 		).rejects.toThrow(/mutually exclusive/);
 	});
@@ -89,14 +115,15 @@ describe("resolveConfig", () => {
 				$schema: "https://example.com/x.json",
 				appId: 42,
 				staticPath: "./build",
+				endpoints: { web: "index.html" },
 			}),
 		);
 		const { config, meta } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBe(42);
 		expect(config.staticPath).toBe("./build");
-		// Upstream parity: unconfigured endpoints stay empty — no defaults are
-		// injected, so no endpoint_* params are sent and nothing is checked.
-		expect(config.endpoints).toEqual({});
+		// Configured platforms pass through unchanged; nothing is injected
+		// for the others (only configured ones are preflight-checked/sent).
+		expect(config.endpoints).toEqual({ web: "index.html" });
 		expect(config.environment).toBe("both");
 		expect(config.updateProd).toBe(true);
 		expect(config.apiVersion).toBe("5.199");
@@ -109,7 +136,12 @@ describe("resolveConfig", () => {
 		await write(
 			root,
 			"vkma-deploy.config.json",
-			JSON.stringify({ appId: 1, staticPath: "./build", apiVersion: "5.131" }),
+			JSON.stringify({
+				appId: 1,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				apiVersion: "5.131",
+			}),
 		);
 		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.apiVersion).toBe("5.131");
@@ -119,7 +151,7 @@ describe("resolveConfig", () => {
 		await write(
 			root,
 			"vkma-deploy.config.json",
-			JSON.stringify({ appId: 1, staticPath: "./build/" }),
+			JSON.stringify({ appId: 1, staticPath: "./build/", endpoints: { web: "index.html" } }),
 		);
 		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.staticPath).toBe("./build");
@@ -134,7 +166,7 @@ describe("resolveConfig", () => {
 			"vkma-deploy.config.ts",
 			`
 				export interface Shape { appId: number; staticPath: string }
-				const config: Shape = { appId: 77, staticPath: "./dist" };
+				const config: Shape = { appId: 77, staticPath: "./dist", endpoints: { web: "index.html" } };
 				export default config;
 			`,
 		);
@@ -147,7 +179,7 @@ describe("resolveConfig", () => {
 		await write(
 			root,
 			"vkma-deploy.config.mts",
-			`export default () => ({ appId: 8, staticPath: "./out" });`,
+			`export default () => ({ appId: 8, staticPath: "./out", endpoints: { web: "index.html" } });`,
 		);
 		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBe(8);
@@ -210,7 +242,12 @@ describe("resolveConfig", () => {
 		await write(
 			root,
 			"vkma-deploy.config.json",
-			JSON.stringify({ appId: 1, staticPath: "./a", environment: "dev" }),
+			JSON.stringify({
+				appId: 1,
+				staticPath: "./a",
+				endpoints: { web: "index.html" },
+				environment: "dev",
+			}),
 		);
 		const env = {
 			...CLEAN_ENV,
@@ -221,7 +258,7 @@ describe("resolveConfig", () => {
 		const { config, meta } = await resolveConfig({
 			cwd: root,
 			env,
-			overrides: { staticPath: "./z" },
+			overrides: { staticPath: "./z", endpoints: { web: "index.html" } },
 		});
 		expect(config.appId).toBe(2);
 		expect(config.environment).toBe("production");
@@ -242,7 +279,7 @@ describe("resolveConfig", () => {
 		const { config, meta } = await resolveConfig({
 			cwd: root,
 			env,
-			overrides: { bundle: "./b.zip" },
+			overrides: { bundle: "./b.zip", endpoints: { web: "index.html" } },
 		});
 		expect(config.appId).toBe(5);
 		expect(config.accessToken).toBe("legacy-token-123");
@@ -297,6 +334,7 @@ describe("resolveConfig", () => {
 				overrides: {
 					appId: 1,
 					staticPath: "./b",
+					endpoints: { web: "index.html" },
 					testGroupName: "qa",
 					environment: "production",
 				},

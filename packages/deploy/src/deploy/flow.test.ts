@@ -46,7 +46,7 @@ beforeEach(async () => {
 	await fs.writeFile(path.join(root, "build", "assets", "app.js"), "export default 1");
 	await fs.writeFile(
 		path.join(root, "vkma-deploy.config.json"),
-		JSON.stringify({ appId: 42, staticPath: "./build" }),
+		JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
 	);
 
 	spy = createFetchSpy(
@@ -159,11 +159,12 @@ describe("deploy()", () => {
 		const serverUrl = spy.calls[0]?.url ?? "";
 		expect(serverUrl).toContain("app_id=42");
 		expect(serverUrl).toContain("environment=3");
-		// Upstream parity: no update flags / endpoints in the config -> none
-		// sent; the server applies its own defaults.
+		// Upstream parity: update flags absent from the config -> not sent;
+		// configured endpoints are sent as endpoint_* params.
 		expect(serverUrl).not.toContain("update_prod");
 		expect(serverUrl).not.toContain("update_dev");
-		expect(serverUrl).not.toContain("endpoint_");
+		expect(serverUrl).toContain("endpoint_web=index.html");
+		expect(serverUrl).not.toContain("endpoint_mvk");
 		expect(serverUrl).toContain("v=5.199");
 		expect(serverUrl).toContain("cli_version=2");
 
@@ -224,14 +225,22 @@ describe("deploy()", () => {
 	it("honors apiVersion 5.131 pinned for upstream parity", async () => {
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", apiVersion: "5.131" }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				apiVersion: "5.131",
+			}),
 		);
 		await deploy(undefined, baseOptions());
 		expect(spy.calls[0]?.url).toContain("v=5.131");
 	});
 
 	it("accepts an inline config object instead of discovery", async () => {
-		await deploy({ appId: 42, staticPath: "./build" }, baseOptions());
+		await deploy(
+			{ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } },
+			baseOptions(),
+		);
 		expect(spy.calls.length).toBeGreaterThan(0);
 	});
 
@@ -308,7 +317,7 @@ describe("deploy()", () => {
 		await fs.writeFile(path.join(root, "prebuilt.zip"), "PK-zip-content");
 		await deploy(undefined, {
 			...baseOptions(),
-			overrides: { appId: 42, bundle: "./prebuilt.zip" },
+			overrides: { appId: 42, bundle: "./prebuilt.zip", endpoints: { web: "index.html" } },
 		});
 		const uploadBody = new TextDecoder().decode(spy.calls[1]?.bodyBytes ?? new Uint8Array());
 		expect(uploadBody).toContain("PK-zip-content");
@@ -349,7 +358,12 @@ describe("deploy()", () => {
 		await fs.rm(path.join(root, "vkma-deploy.config.json"));
 		await fs.writeFile(
 			path.join(root, "vk-hosting-config.json"),
-			JSON.stringify({ app_id: 42, static_path: "./build", update_dev: 0 }),
+			JSON.stringify({
+				app_id: 42,
+				static_path: "./build",
+				endpoints: { web: "index.html" },
+				update_dev: 0,
+			}),
 		);
 		await deploy(undefined, baseOptions());
 		const serverUrl = spy.calls[0]?.url ?? "";

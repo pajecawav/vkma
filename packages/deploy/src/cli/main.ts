@@ -422,12 +422,9 @@ function renderDeployPlan(
 			: config.environment === "dev"
 				? "dev"
 				: "production + dev";
-	const endpoints =
-		Object.keys(config.endpoints).length > 0
-			? Object.entries(config.endpoints)
-					.map(([platform, endpoint]) => `${platform}=${endpoint}`)
-					.join(", ")
-			: "server defaults";
+	const endpoints = Object.entries(config.endpoints)
+		.map(([platform, endpoint]) => `${platform}=${endpoint}`)
+		.join(", ");
 	const plan = {
 		appId: config.appId,
 		configPath: meta.configPath ?? null,
@@ -490,7 +487,7 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 			logger.step(
 				event.endpointFiles.length > 0
 					? `Preflight passed (${event.endpointFiles.length} endpoint files checked)`
-					: "Preflight passed (no endpoint checks — server defaults apply)",
+					: "Preflight passed (no endpoint files to check)",
 			);
 			break;
 		case "zip:done":

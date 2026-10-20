@@ -187,6 +187,13 @@ function validateCrossFields(config: ResolvedConfig, file: LoadedConfigFile | un
 			message: `staticPath is required when bundle is not set${legacyHint}: e.g. "./build"`,
 		});
 	}
+	if (Object.keys(config.endpoints).length === 0) {
+		issues.push({
+			path: "endpoints",
+			message:
+				'at least one platform is required, e.g. { "endpoints": { "web": "index.html" } } — VK does not process hosting tasks without endpoint_* parameters, so the deploy would hang forever',
+		});
+	}
 	if (config.testGroupName !== undefined && config.environment === "production") {
 		issues.push({
 			path: "testGroupName",
