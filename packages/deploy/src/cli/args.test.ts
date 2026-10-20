@@ -33,6 +33,12 @@ describe("parseArgv", () => {
 		expect(bad.errors[0]).toContain("timeout");
 	});
 
+	it("parses --proxy with inline and separate values", () => {
+		expect(parseArgv(["--proxy", "http://p:1"]).values.proxy).toBe("http://p:1");
+		expect(parseArgv(["--proxy=https://p:2"]).values.proxy).toBe("https://p:2");
+		expect(parseArgv(["--proxy"]).errors[0]).toContain("requires a value");
+	});
+
 	it("rejects value flags without a value", () => {
 		const parsed = parseArgv(["--env"]);
 		expect(parsed.errors[0]).toContain("requires a value");

@@ -12,6 +12,7 @@ const FLAGS = [
 	"--config",
 	"--timeout",
 	"--test-group",
+	"--proxy",
 	"--dry-run",
 	"--interactive",
 	"--yes",

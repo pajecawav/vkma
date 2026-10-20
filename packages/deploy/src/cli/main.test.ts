@@ -769,4 +769,57 @@ describe("main()", () => {
 		expect(code).toBe(0);
 		expect(spy.calls[0]?.url).toContain("mini_app_id=777");
 	});
+
+	it("activates the native proxy when the config has a proxy field", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				proxy: "http://proxy.corp:8080",
+			}),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const proxyCalls: Record<string, string>[] = [];
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+			setGlobalProxyFromEnv: envLike => proxyCalls.push(envLike ?? {}),
+		});
+		expect(code).toBe(0);
+		expect(proxyCalls).toEqual([
+			{ HTTP_PROXY: "http://proxy.corp:8080", HTTPS_PROXY: "http://proxy.corp:8080" },
+		]);
+		expect(out.join("")).toContain("Using proxy http://proxy.corp:8080 (from config proxy)");
+	});
+
+	it("leaves routing alone when no proxy source is configured", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const proxyCalls: Record<string, string>[] = [];
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "token-1234567890" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+			setGlobalProxyFromEnv: envLike => proxyCalls.push(envLike ?? {}),
+		});
+		expect(code).toBe(0);
+		expect(proxyCalls).toEqual([]);
+		expect(out.join("")).not.toContain("Using proxy");
+	});
 });

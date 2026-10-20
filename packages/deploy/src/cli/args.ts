@@ -15,7 +15,7 @@ const COMMANDS: readonly Command[] = [
 	"version",
 ];
 
-const VALUE_FLAGS = new Set(["--env", "--config", "--timeout", "--test-group"]);
+const VALUE_FLAGS = new Set(["--env", "--config", "--timeout", "--test-group", "--proxy"]);
 const BOOLEAN_FLAGS = new Set([
 	"--dry-run",
 	"--interactive",
@@ -47,6 +47,7 @@ export interface ParsedArgs {
 		readonly config?: string;
 		readonly timeout?: number;
 		readonly testGroup?: string;
+		readonly proxy?: string;
 	};
 	readonly booleans: {
 		readonly dryRun: boolean;
@@ -72,6 +73,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let config: string | undefined;
 	let timeout: number | undefined;
 	let testGroup: string | undefined;
+	let proxy: string | undefined;
 	let dryRun = false;
 	let interactive = false;
 	let yes = false;
@@ -135,6 +137,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 					break;
 				case "--test-group":
 					testGroup = value;
+					break;
+				case "--proxy":
+					proxy = value;
 					break;
 				case "--timeout": {
 					const parsed = Number.parseInt(value, 10);
@@ -205,7 +210,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	return {
 		command: command ?? "deploy",
 		shell,
-		values: { env, config, timeout, testGroup },
+		values: { env, config, timeout, testGroup, proxy },
 		booleans: {
 			dryRun,
 			interactive,

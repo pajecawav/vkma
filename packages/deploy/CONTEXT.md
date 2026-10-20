@@ -38,6 +38,16 @@ responses) live in `details`, never inside message templates. The single
 deliberate exemption is `rawOut`: the OAuth confirm URL, whose one-time
 `code=` parameter the user must see unmasked.
 
+## Proxy routing
+
+CLI-only transport concern: one effective HTTP(S) proxy URL resolved with
+the package layering (`--proxy` flag > `HTTP(S)_PROXY` env > `proxy` config
+field) and activated through Node's native `http.setGlobalProxyFromEnv`
+before the first network call. `NO_PROXY` passes through from the
+environment. Credentials embedded in the proxy URL are masked in output and
+registered with the redactor. The library treats `config.proxy` as inert
+data — its seam for transport control is `fetchImpl`.
+
 ## Related vocabulary
 
 See the architecture review vocabulary (module, interface, depth, seam,

@@ -115,6 +115,18 @@ export const DeployConfigSchema = Type.Object(
 					"VK access token. Prefer VKMA_ACCESS_TOKEN or `vkma-deploy login` over committing it.",
 			}),
 		),
+		/** HTTP(S) proxy URL for all CLI network traffic.
+		 * @remarks Precedence: `--proxy` flag > `HTTP(S)_PROXY` env > this
+		 * field. Requires Node >= 22.21 / 24 (native env-proxy support);
+		 * older runtimes warn and continue directly. `NO_PROXY` from the
+		 * environment is always honored. Socks is not supported. */
+		proxy: Type.Optional(
+			Type.String({
+				pattern: "^https?://",
+				description:
+					'HTTP(S) proxy URL for all CLI network traffic, e.g. "http://proxy.corp:8080". Precedence: --proxy flag > HTTP(S)_PROXY env > this field. Socks is not supported.',
+			}),
+		),
 		/** VK API base URL.
 		 * @default "https://api.vk.ru/method/" */
 		apiHost: Type.Optional(
@@ -184,6 +196,8 @@ export interface ResolvedConfig {
 	readonly updateDev: boolean;
 	readonly testGroupName?: string;
 	readonly accessToken?: string;
+	/** HTTP(S) proxy URL; activated by the CLI, inert data for the library. */
+	readonly proxy?: string;
 	readonly apiHost: string;
 	readonly oauthHost: string;
 	readonly apiVersion: string;

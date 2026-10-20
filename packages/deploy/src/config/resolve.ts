@@ -107,6 +107,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 		updateDev: (merged["updateDev"] as boolean | undefined) ?? CONFIG_DEFAULTS.updateDev,
 		testGroupName: merged["testGroupName"] as string | undefined,
 		accessToken: merged["accessToken"] as string | undefined,
+		proxy: merged["proxy"] as string | undefined,
 		apiHost: (merged["apiHost"] as string | undefined) ?? CONFIG_DEFAULTS.apiHost,
 		oauthHost: (merged["oauthHost"] as string | undefined) ?? CONFIG_DEFAULTS.oauthHost,
 		apiVersion: (merged["apiVersion"] as string | undefined) ?? CONFIG_DEFAULTS.apiVersion,

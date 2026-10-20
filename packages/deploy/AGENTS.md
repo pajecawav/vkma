@@ -79,8 +79,11 @@ mention upstream internals — that knowledge lives here.
   only when explicitly configured (`'update_prod' in cfg` upstream
   semantics, tracked via `meta.sources`); unconfigured endpoint platforms
   are neither preflight-checked nor sent as `endpoint_*` params.
-- Proxy support (`proxy_url`) is intentionally not implemented; the
-  documented workaround is `NODE_USE_ENV_PROXY=1` on Node 24+.
+- Proxy support: the CLI routes through `--proxy` flag /
+  `HTTP(S)_PROXY` env / `proxy` config field via Node's native
+  `http.setGlobalProxyFromEnv` (Node >= 22.21 / 24; older runtimes warn and
+  continue). The legacy upstream `proxy_url` field stays unsupported
+  (deliberate); the library never routes — consumers inject `fetchImpl`.
 
 ### Fixed bugs & intentional differences (regression-test them)
 

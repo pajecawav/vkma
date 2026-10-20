@@ -78,6 +78,11 @@
 			"description": "VK access token. Prefer VKMA_ACCESS_TOKEN or `vkma-deploy login` over committing it.",
 			"type": "string"
 		},
+		"proxy": {
+			"pattern": "^https?://",
+			"description": "HTTP(S) proxy URL for all CLI network traffic, e.g. \"http://proxy.corp:8080\". Precedence: --proxy flag > HTTP(S)_PROXY env > this field. Socks is not supported.",
+			"type": "string"
+		},
 		"apiHost": {
 			"default": "https://api.vk.ru/method/",
 			"description": "VK API base URL.",

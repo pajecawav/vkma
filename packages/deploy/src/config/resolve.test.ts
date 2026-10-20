@@ -88,10 +88,12 @@ describe("resolveConfig", () => {
 				appId: 42,
 				staticPath: "./build",
 				endpoints: { web: "index.html" },
+				proxy: "http://proxy.corp:8080",
 			}),
 		);
 		const { config, meta } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBe(42);
+		expect(config.proxy).toBe("http://proxy.corp:8080");
 		expect(config.staticPath).toBe("./build");
 		// Configured platforms pass through unchanged; nothing is injected
 		// for the others (only configured ones are preflight-checked/sent).
@@ -296,6 +298,20 @@ describe("resolveConfig", () => {
 		await expect(
 			resolveConfig({ cwd: root, env: CLEAN_ENV, configPath: path.join(root, "nope.json") }),
 		).rejects.toThrow(/Config file not found/);
+	});
+
+	it("rejects proxy URLs that are not http(s) at the schema level", async () => {
+		await expect(
+			resolveConfig({
+				cwd: root,
+				env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+				overrides: {
+					staticPath: "./build",
+					endpoints: { web: "index.html" },
+					proxy: "socks5://proxy:1080",
+				},
+			}),
+		).rejects.toThrow(/proxy/);
 	});
 
 	it("rejects testGroupName with production environment", async () => {

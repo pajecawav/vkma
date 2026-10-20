@@ -6,6 +6,7 @@
  *   0 ok · 1 config/user · 2 network/timeout · 3 VK API · 130 aborted (SIGINT)
  */
 
+import http from "node:http";
 import pkg from "../../package.json";
 import type { FetchLike } from "../api/client.ts";
 import { loginDeviceFlow } from "../api/oauth.ts";
@@ -32,6 +33,7 @@ import { parseArgv, type ParsedArgs } from "./args.ts";
 import { completionScript, COMPLETION_SHELLS } from "./completions.ts";
 import { openUrl } from "./opener.ts";
 import { confirm, text } from "./prompt.ts";
+import { nativeSetGlobalProxyFromEnv, setupProxy } from "./proxy.ts";
 
 const VERSION = pkg.version;
 
@@ -48,6 +50,9 @@ export interface MainOptions {
 	readonly sleep?: (ms: number) => Promise<void>;
 	/** Browser opener injection point for tests; default opens a real tab. */
 	readonly openUrl?: (url: string) => void;
+	/** Proxy activation injection point (tests); defaults to Node's native
+	 * `http.setGlobalProxyFromEnv` when the runtime provides it. */
+	readonly setGlobalProxyFromEnv?: (envLike?: Record<string, string>) => unknown;
 }
 
 const HELP = `vkma-deploy — deploy VK Mini Apps hosting (${VERSION})
@@ -64,6 +69,9 @@ Flags:
   --config <path>                  Explicit config file (skips discovery)
   --timeout <sec>                  Hosting queue deadline (default: 600)
   --test-group <name>              Deploy into a test group
+  --proxy <url>                    Route traffic through an HTTP(S) proxy
+                                   (precedence: --proxy > HTTP(S)_PROXY env > config;
+                                   NO_PROXY honored; needs Node 22.21+/24+)
   --update-prod / --no-update-prod Switch production URLs (default: update)
   --update-dev / --no-update-dev   Switch dev URLs (default: update)
   --dry-run                        Validate, zip, and stop before any network
@@ -191,6 +199,14 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 	});
 	logger.setCiUrls(meta.ciUrls);
 
+	// Route all CLI traffic through the configured proxy (flag > env >
+	// config) before any network call happens.
+	setupProxy(
+		{ flagProxy: parsed.values.proxy, configProxy: config.proxy, env },
+		logger,
+		context.setGlobalProxyFromEnv ?? nativeSetGlobalProxyFromEnv()?.bind(http),
+	);
+
 	// Defense in depth: register every token this run may print so the
 	// redactor's exact-value layer is live, not just the regex layer.
 	if (config.accessToken !== undefined && config.accessToken !== "") {
@@ -309,6 +325,12 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 		configPath: parsed.values.config,
 		env,
 	});
+	// Login talks to the OAuth endpoints — proxy routing applies here too.
+	setupProxy(
+		{ flagProxy: parsed.values.proxy, configProxy: config.proxy, env },
+		logger,
+		context.setGlobalProxyFromEnv ?? nativeSetGlobalProxyFromEnv()?.bind(http),
+	);
 
 	let appId = config.appId;
 	if (!Number.isInteger(appId) || appId < 1) {

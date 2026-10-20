@@ -192,10 +192,30 @@ is never printed. On first run the store also reads the token saved by the
 official tool (`~/.config/configstore/@vkontakte/vk-miniapps-deploy.json`),
 so migrating requires no re-login.
 
+## Proxies
+
+All CLI network traffic (VK API, upload, OAuth) can be routed through an
+HTTP(S) proxy. Three sources, first match wins:
+
+1. `--proxy <url>` flag, e.g. `vkma-deploy deploy --proxy http://proxy.corp:8080`
+2. the standard `HTTP_PROXY` / `HTTPS_PROXY` environment variables
+   (lowercase works too and wins when both are set, matching Node)
+3. a `proxy` field in the config file: `{ "proxy": "http://proxy.corp:8080" }`
+
+`NO_PROXY` from the environment is always honored. Both `http://` and
+`https://` proxy URLs are accepted (credentials in the URL are masked in
+output); socks is not. Requires Node >= 22.21 / 24 (native env-proxy
+support) — on older runtimes the CLI warns and continues directly.
+
+The proxy is activated by the CLI only. Library consumers inject their own
+`fetchImpl` to route traffic.
+
 ## Limitations
 
-- Proxy support is not implemented yet; set `NODE_USE_ENV_PROXY=1` on
-  Node 24+ as a workaround.
+- Socks proxies are not supported (Node's native env-proxy layer is
+  HTTP(S)-only).
+- The legacy upstream `proxy_url` config field is not supported — use the
+  `proxy` field or the environment variables above.
 
 ## License
 
