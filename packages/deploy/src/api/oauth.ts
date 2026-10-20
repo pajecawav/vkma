@@ -53,13 +53,12 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 	if (!isRecord(authJson) || typeof authJson["auth_code"] !== "string") {
 		const error =
 			isRecord(authJson) && isRecord(authJson["error"]) ? authJson["error"] : authJson;
-		throw new DeployError(
-			"api",
-			`OAuth failed to issue an auth code: ${JSON.stringify(error)}`,
-			{
-				code: "E_AUTH_CODE",
-			},
-		);
+		// Raw server payloads belong in details (redacted at print time),
+		// never in the message — messages flow into terminals and --json.
+		throw new DeployError("api", "OAuth failed to issue an auth code", {
+			code: "E_AUTH_CODE",
+			details: { response: error },
+		});
 	}
 	const authCode = authJson["auth_code"];
 	const deviceId = authJson["device_id"];
@@ -93,10 +92,13 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 		if (Date.now() >= deadline) {
 			throw new DeployError(
 				"network",
-				`Login timed out — did you confirm access in the browser? (${confirmUrl})${
+				`Login timed out — did you confirm access in the browser?${
 					lastPollError === undefined ? "" : ` Last poll error: ${lastPollError}`
 				}`,
-				{ code: "E_LOGIN_TIMEOUT" },
+				// The confirm URL carries a single-use code= parameter that
+				// the redactor would mask inside any message; it was already
+				// surfaced via onAuthUrl and survives verbatim in details.
+				{ code: "E_LOGIN_TIMEOUT", details: { confirmUrl } },
 			);
 		}
 
@@ -135,8 +137,9 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 				};
 			}
 			const error = isRecord(json) && isRecord(json["error"]) ? json["error"] : json;
-			throw new DeployError("api", `OAuth failed: ${JSON.stringify(error)}`, {
+			throw new DeployError("api", "OAuth failed to issue an access token", {
 				code: "E_AUTH_TOKEN",
+				details: { response: error },
 			});
 		}
 

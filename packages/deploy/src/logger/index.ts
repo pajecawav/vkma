@@ -112,16 +112,32 @@ export class CliLogger {
 		this.stderr.write(`${text}\n`);
 	}
 
+	/**
+	 * Writes text verbatim, bypassing redaction — for values the user must
+	 * see in full, e.g. the single-use OAuth confirm URL (its `code=`
+	 * parameter would otherwise be masked by the redactor). Every other
+	 * write goes through `emit()`/`fail()` and is redacted.
+	 */
+	public rawOut(text: string): void {
+		const resume = this.pauseSpinner();
+		this.writeOut(text);
+		resume();
+	}
+
 	public emit(record: LogRecord): void {
 		if (LEVEL_WEIGHT[record.level] < LEVEL_WEIGHT[this.level]) {
 			return;
 		}
+		// Messages go through the redactor exactly like data does: server
+		// payloads and token echoes must never survive into any output
+		// mode (AGENTS.md invariant #3).
+		const message = this.redactor.redactString(record.message);
 		if (this.mode === "json") {
 			const line = {
 				time: new Date().toISOString(),
 				level: record.level,
 				event: record.event,
-				message: record.message,
+				message,
 				...(record.data === undefined ? {} : { data: this.redactor.redact(record.data) }),
 			};
 			this.writeOut(JSON.stringify(line));
@@ -129,7 +145,7 @@ export class CliLogger {
 		}
 		if (this.mode === "quiet") {
 			if (record.level === "error") {
-				this.writeErr(this.paint(record.message, "red"));
+				this.writeErr(this.paint(message, "red"));
 			}
 			return;
 		}
@@ -139,12 +155,12 @@ export class CliLogger {
 		const resume = this.pauseSpinner();
 		const colored =
 			record.level === "error"
-				? this.paint(record.message, "red")
+				? this.paint(message, "red")
 				: record.level === "warn"
-					? this.paint(record.message, "yellow")
+					? this.paint(message, "yellow")
 					: record.level === "debug"
-						? this.paint(record.message, "dim")
-						: record.message;
+						? this.paint(message, "dim")
+						: message;
 		if (record.level === "error" || record.level === "warn") {
 			this.writeErr(colored);
 		} else {
@@ -356,7 +372,7 @@ export class CliLogger {
 				: error instanceof Error
 					? error.message
 					: String(error);
-		this.writeErr(this.paint(`✖ ${hint}`, "red"));
+		this.writeErr(this.paint(`✖ ${this.redactor.redactString(hint)}`, "red"));
 		if (verbose && error instanceof Error && error.stack) {
 			this.writeErr(this.paint(error.stack.split("\n").slice(1).join("\n"), "dim"));
 		}

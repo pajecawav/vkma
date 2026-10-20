@@ -47,6 +47,41 @@ describe("loginDeviceFlow", () => {
 		);
 	});
 
+	it("keeps raw server payloads out of the error message (redaction boundary)", async () => {
+		const spy = createFetchSpy(() => ({
+			body: { error: { error_code: 1, error_msg: "nope", echo: "tok-echoed-by-server" } },
+		}));
+		const error = (await loginDeviceFlow({ ...BASE, fetchImpl: spy.fetchImpl }).catch(
+			(e: unknown) => e,
+		)) as DeployError;
+		expect(error.code).toBe("E_AUTH_CODE");
+		expect(error.message).not.toContain("error_msg");
+		expect(error.message).not.toContain("tok-echoed-by-server");
+		// The payload survives for --verbose diagnostics via details, where
+		// the logger's redactor (exact-value + structural) applies.
+		expect(JSON.stringify(error.details)).toContain("tok-echoed-by-server");
+	});
+
+	it("moves the confirm URL out of the timeout message into details", async () => {
+		const spy = createFetchSpy(
+			route([
+				["get_auth_code", () => ({ body: { auth_code: "A", device_id: "D" } })],
+				["code_auth_token", () => ({ status: 403, body: {} })],
+			]),
+		);
+		const error = (await loginDeviceFlow({
+			...BASE,
+			fetchImpl: spy.fetchImpl,
+			timeoutMs: 10,
+		}).catch((e: unknown) => e)) as DeployError;
+		expect(error.code).toBe("E_LOGIN_TIMEOUT");
+		// Messages pass through the redactor, which masks code= parameters —
+		// the URL the user needs must not be mangled inside the message.
+		expect(error.message).not.toContain("code_auth");
+		const details = error.details as { confirmUrl?: string };
+		expect(details.confirmUrl).toContain("code_auth?stage=check&code=A&revoke=1");
+	});
+
 	it("times out with a helpful message instead of looping forever", async () => {
 		const spy = createFetchSpy(
 			route([

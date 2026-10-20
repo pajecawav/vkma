@@ -37,18 +37,27 @@ export function createRedactor(): Redactor {
 		return result;
 	}
 
-	function redact<T>(value: T): T {
+	function redact<T>(value: T, seen: WeakSet<object>): T {
 		if (typeof value === "string") {
 			return redactString(value) as T;
 		}
+		if (value instanceof Date) {
+			// Dates must survive redaction as ISO strings — flattening them
+			// to {} silently destroyed error diagnostics.
+			return value.toISOString() as T;
+		}
 		if (Array.isArray(value)) {
-			return value.map(item => redact(item)) as T;
+			return value.map(item => redact(item, seen)) as T;
 		}
 		if (value !== null && typeof value === "object") {
+			if (seen.has(value as object)) {
+				return "[Circular]" as T;
+			}
+			seen.add(value as object);
 			const source = value as Record<string, unknown>;
 			const out: Record<string, unknown> = {};
 			for (const key of Object.keys(source)) {
-				out[key] = redact(source[key]);
+				out[key] = redact(source[key], seen);
 			}
 			return out as T;
 		}
@@ -62,6 +71,6 @@ export function createRedactor(): Redactor {
 			}
 		},
 		redactString,
-		redact,
+		redact: <T>(value: T): T => redact(value, new WeakSet()),
 	};
 }

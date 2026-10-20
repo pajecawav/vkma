@@ -103,6 +103,41 @@ describe("CliLogger", () => {
 		expect(err.join("")).toContain("kaboom");
 	});
 
+	it("redacts registered secrets in message text, not only in data (json)", () => {
+		const { logger, out } = makeLogger({ mode: "json" });
+		logger.addSecret("tok-message-secret");
+		logger.info("failed with tok-message-secret inside");
+		const line = out[0] ?? "";
+		expect(line).not.toContain("tok-message-secret");
+	});
+
+	it("redacts registered secrets in message text (pretty)", () => {
+		const { logger, out } = makeLogger();
+		logger.addSecret("tok-message-secret");
+		logger.info("failed with tok-message-secret inside");
+		expect(out.join("")).not.toContain("tok-message-secret");
+	});
+
+	it("masks access_token query params in message text", () => {
+		const { logger, out } = makeLogger();
+		logger.info("GET https://x/method?access_token=abc&v=5.199");
+		expect(out.join("")).toContain("access_token=***");
+	});
+
+	it("redacts secrets in fail() messages too", () => {
+		const { logger, err } = makeLogger();
+		logger.addSecret("tok-message-secret");
+		logger.fail(new Error("boom: tok-message-secret"), false);
+		expect(err.join("")).not.toContain("tok-message-secret");
+	});
+
+	it("rawOut bypasses redaction for values the user must see in full", () => {
+		const { logger, out } = makeLogger();
+		logger.addSecret("AC123");
+		logger.rawOut("Open this URL:\n  https://oauth.vk.ru/code_auth?code=AC123&revoke=1");
+		expect(out.join("")).toContain("code=AC123");
+	});
+
 	it("suppresses progress output for non-interactive pretty mode", () => {
 		const { logger, out } = makeLogger();
 		logger.progress(50, 100);

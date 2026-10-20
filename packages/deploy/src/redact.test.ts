@@ -41,4 +41,18 @@ describe("createRedactor", () => {
 		expect(out.token).toBe("***");
 		expect(input.token).toBe("secret-value");
 	});
+
+	it("keeps Date values as ISO strings instead of flattening them to {}", () => {
+		const redactor = createRedactor();
+		const out = redactor.redact({ issuedAt: new Date("2026-01-02T03:04:05.678Z") });
+		expect(out.issuedAt).toBe("2026-01-02T03:04:05.678Z");
+	});
+
+	it("survives cyclic structures instead of overflowing the stack", () => {
+		const redactor = createRedactor();
+		const input: Record<string, unknown> = { token: "x" };
+		input["self"] = input;
+		const out = redactor.redact(input) as Record<string, unknown>;
+		expect(out["self"]).toBe("[Circular]");
+	});
 });

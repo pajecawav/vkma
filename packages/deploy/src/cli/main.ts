@@ -319,7 +319,9 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 		fetchImpl: context.fetchImpl,
 		sleep: context.sleep,
 		onAuthUrl: url =>
-			logger.info(
+			// rawOut: the confirm URL's single-use code= parameter must stay
+			// readable; emit() would mask it via the redactor.
+			logger.rawOut(
 				`Open this URL to authorize vkma-deploy (browser should open automatically):\n  ${url}`,
 			),
 		// The browser opens only in interactive runs; CI/tests/pipe stdin
