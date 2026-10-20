@@ -19,8 +19,9 @@
 		"lint:package": "pnpm -r --if-present --workspace-concurrency=1 lint:package",
 		"lint:tsc": "tsc -b --noEmit",
 		"test": "pnpm -r --if-present test",
-		"changeset": "changeset",
-		"version": "changeset version",
+		"changeset:version": "pnpm build && pnpm lint && changeset version",
+		"changeset:tag": "changeset git-tag",
+		"changeset:publish": "pnpm build && pnpm lint && changeset publish",
 		"prepare": "pt prepare"
 	},
 	"devDependencies": {
