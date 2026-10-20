@@ -9,7 +9,7 @@
 import fs from "node:fs/promises";
 import { callApi, type FetchLike, type HttpOptions, type RequestEvent } from "../api/client.ts";
 import { uploadBundle } from "../api/upload.ts";
-import { resolveConfig } from "../config/resolve.ts";
+import { resolveConfig, assertDeployReadiness } from "../config/resolve.ts";
 import type {
 	DeployConfigInput,
 	ResolveResult,
@@ -170,6 +170,11 @@ export async function deployResolved(
 	const startedAt = Date.now();
 	const { config, meta } = resolved;
 	options.onEvent?.({ type: "config:resolved", config, meta });
+
+	// Deploy-only completeness: login and `config` resolve without it, so
+	// it is enforced here at the mouth of the deploy flow (the wire
+	// invariant — VK ignores tasks without endpoint_* params — lives on).
+	assertDeployReadiness(config, { legacy: meta.legacy });
 
 	const env = options.env ?? process.env;
 	const preflightResult = await preflight(config, cwd);

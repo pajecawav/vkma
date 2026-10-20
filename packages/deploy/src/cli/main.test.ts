@@ -730,6 +730,11 @@ describe("main()", () => {
 	it("login without appId exits 1 with guidance", async () => {
 		const code = await main(["login"], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(1);
-		expect(err.join("")).toContain("appId");
+		const text = err.join("");
+		expect(text).toContain("appId");
+		// Login must not demand deploy completeness — only appId matters here.
+		expect(text).not.toMatch(/staticPath is required/);
+		expect(text).not.toMatch(/at least one platform/);
+		expect(text).toMatch(/no config file found/);
 	});
 });

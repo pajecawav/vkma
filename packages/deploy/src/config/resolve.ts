@@ -116,7 +116,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 			(merged["queueTimeoutSec"] as number | undefined) ?? CONFIG_DEFAULTS.queueTimeoutSec,
 	};
 
-	validateCrossFields(config, file);
+	validateCrossFields(config, file, cwd);
 
 	return {
 		config,
@@ -164,16 +164,46 @@ function dedupeIssues(issues: ConfigIssue[]): ConfigIssue[] {
 	});
 }
 
-function validateCrossFields(config: ResolvedConfig, file: LoadedConfigFile | undefined): void {
+function validateCrossFields(
+	config: ResolvedConfig,
+	file: LoadedConfigFile | undefined,
+	cwd: string,
+): void {
 	const issues: ConfigIssue[] = [];
-	const legacyHint = file?.legacy === true ? " (upstream: static_path)" : "";
 
 	if (!config.appId || config.appId < 1) {
 		issues.push({
 			path: "appId",
-			message: `appId is required: set it in a config file${file ? ` (${file.path})` : ""}, or via env VKMA_APP_ID / MINI_APPS_APP_ID`,
+			message: file
+				? `appId is required: set it in the config file (${file.path}), or via env VKMA_APP_ID / MINI_APPS_APP_ID`
+				: `appId is required: no config file found (looked up from ${cwd}) — create vkma-deploy.config.json, e.g. { "appId": 123, "staticPath": "./build", "endpoints": { "web": "index.html" } }, or set env VKMA_APP_ID / MINI_APPS_APP_ID`,
 		});
 	}
+	if (config.testGroupName !== undefined && config.environment === "production") {
+		issues.push({
+			path: "testGroupName",
+			message:
+				'test groups only exist for the dev environment; use environment "dev" or "both"',
+		});
+	}
+	if (issues.length > 0) {
+		throw new ConfigValidationError(issues);
+	}
+}
+
+/**
+ * Deploy-completeness checks that only the deploy path needs. Resolution
+ * itself (used by `login` and `config`) must not demand a deployable
+ * bundle — that contract belongs to the deploy flow, so it is enforced
+ * here and called from `deployResolved`.
+ */
+export function assertDeployReadiness(
+	config: ResolvedConfig,
+	hints: { legacy?: boolean } = {},
+): void {
+	const issues: ConfigIssue[] = [];
+	const legacyHint = hints.legacy === true ? " (upstream: static_path)" : "";
+
 	if (config.staticPath !== undefined && config.bundle !== undefined) {
 		issues.push({
 			path: "staticPath / bundle",
@@ -192,13 +222,6 @@ function validateCrossFields(config: ResolvedConfig, file: LoadedConfigFile | un
 			path: "endpoints",
 			message:
 				'at least one platform is required, e.g. { "endpoints": { "web": "index.html" } } — VK does not process hosting tasks without endpoint_* parameters, so the deploy would hang forever',
-		});
-	}
-	if (config.testGroupName !== undefined && config.environment === "production") {
-		issues.push({
-			path: "testGroupName",
-			message:
-				'test groups only exist for the dev environment; use environment "dev" or "both"',
 		});
 	}
 	if (issues.length > 0) {

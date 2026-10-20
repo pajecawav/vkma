@@ -3,7 +3,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ConfigValidationError, DeployError } from "../errors.ts";
 import { makeTempDir } from "../test-utils.ts";
-import { resolveConfig, findConfigFile } from "./resolve.ts";
+import { assertDeployReadiness, resolveConfig, findConfigFile } from "./resolve.ts";
 
 const CLEAN_ENV = {
 	HOME: "/tmp/opencode/vkma-fake-home",
@@ -60,52 +60,25 @@ describe("resolveConfig", () => {
 		expect(meta.configPath).toBeUndefined();
 	});
 
-	it("requires appId", async () => {
-		await expect(
-			resolveConfig({ cwd: root, env: CLEAN_ENV, overrides: { bundle: "./b.zip" } }),
-		).rejects.toBeInstanceOf(ConfigValidationError);
+	it("requires appId with guidance when no config file exists", async () => {
+		const promise = resolveConfig({
+			cwd: root,
+			env: CLEAN_ENV,
+			overrides: { bundle: "./b.zip" },
+		});
+		await expect(promise).rejects.toBeInstanceOf(ConfigValidationError);
+		await expect(promise).rejects.toThrow(/no config file found/);
+		await expect(promise).rejects.toThrow(/vkma-deploy\.config\.json/);
 	});
 
-	it("requires staticPath or bundle", async () => {
-		await expect(
-			resolveConfig({ cwd: root, env: { ...CLEAN_ENV, VKMA_APP_ID: "1" } }),
-		).rejects.toThrow(/staticPath is required/);
-	});
-
-	it("requires an endpoints block with at least one platform", async () => {
-		await write(
-			root,
-			"vkma-deploy.config.json",
-			JSON.stringify({ appId: 1, staticPath: "./build" }),
-		);
-		await expect(resolveConfig({ cwd: root, env: CLEAN_ENV })).rejects.toThrow(
-			/at least one platform/,
-		);
-	});
-
-	it("rejects an empty endpoints block", async () => {
-		await write(
-			root,
-			"vkma-deploy.config.json",
-			JSON.stringify({ appId: 1, staticPath: "./build", endpoints: {} }),
-		);
-		await expect(resolveConfig({ cwd: root, env: CLEAN_ENV })).rejects.toThrow(
-			/at least one platform/,
-		);
-	});
-
-	it("rejects both staticPath and bundle", async () => {
-		await expect(
-			resolveConfig({
-				cwd: root,
-				env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
-				overrides: {
-					staticPath: "./build",
-					endpoints: { web: "index.html" },
-					bundle: "./b.zip",
-				},
-			}),
-		).rejects.toThrow(/mutually exclusive/);
+	it("resolves without deploy completeness (staticPath/endpoints are deploy-level)", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+		});
+		expect(config.appId).toBe(1);
+		expect(config.staticPath).toBeUndefined();
+		expect(config.endpoints).toEqual({});
 	});
 
 	it("loads our json config and applies defaults", async () => {
@@ -341,5 +314,72 @@ describe("resolveConfig", () => {
 				},
 			}),
 		).rejects.toThrow(/test group/i);
+	});
+});
+
+describe("assertDeployReadiness", () => {
+	it("accepts a config with staticPath and endpoints", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+			overrides: { staticPath: "./build", endpoints: { web: "index.html" } },
+		});
+		expect(() => assertDeployReadiness(config)).not.toThrow();
+	});
+
+	it("accepts a bundle-only config", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+			overrides: { bundle: "./b.zip", endpoints: { web: "index.html" } },
+		});
+		expect(() => assertDeployReadiness(config)).not.toThrow();
+	});
+
+	it("requires staticPath or bundle", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+		});
+		expect(() => assertDeployReadiness(config)).toThrow(/staticPath is required/);
+	});
+
+	it("requires an endpoints block with at least one platform", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+			overrides: { staticPath: "./build" },
+		});
+		expect(() => assertDeployReadiness(config)).toThrow(/at least one platform/);
+	});
+
+	it("rejects an empty endpoints block", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+			overrides: { staticPath: "./build", endpoints: {} },
+		});
+		expect(() => assertDeployReadiness(config)).toThrow(/at least one platform/);
+	});
+
+	it("rejects both staticPath and bundle", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+			overrides: {
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				bundle: "./b.zip",
+			},
+		});
+		expect(() => assertDeployReadiness(config)).toThrow(/mutually exclusive/);
+	});
+
+	it("hints at the legacy field name for legacy configs", async () => {
+		const { config } = await resolveConfig({
+			cwd: root,
+			env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+		});
+		expect(() => assertDeployReadiness(config, { legacy: true })).toThrow(/static_path/);
 	});
 });

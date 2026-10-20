@@ -301,32 +301,15 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number> {
 	const { logger, env, cwd } = context;
 	const stdin = context.stdin ?? { isTTY: false };
+	// Resolution does not demand deploy completeness (login works on a
+	// fresh project); a missing appId fails with actionable guidance
+	// naming the config template or the env variable.
 	const { config } = await resolveConfig({
 		cwd,
 		configPath: parsed.values.config,
 		env,
 	});
-
-	let appId = config.appId;
-	if (!Number.isInteger(appId) || appId < 1) {
-		if (parsed.booleans.interactive && stdin.isTTY === true) {
-			const answer = await text("App ID to authorize:", {
-				signal: context.signal,
-				stdin,
-				input: context.input,
-			});
-			appId = Number.parseInt(answer, 10);
-		}
-		if (!Number.isInteger(appId) || appId < 1) {
-			throw new DeployError(
-				"user",
-				"appId is required for login: set it in the config or VKMA_APP_ID, or run with --interactive.",
-				{
-					code: "E_NO_APP_ID",
-				},
-			);
-		}
-	}
+	const appId = config.appId;
 
 	const result = await loginDeviceFlow({
 		appId,
