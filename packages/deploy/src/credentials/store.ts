@@ -7,6 +7,7 @@
  * read-only — after `vkma-deploy login` everything is written to our file.
  */
 
+import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -60,8 +61,9 @@ async function readJsonFile(filePath: string): Promise<Record<string, unknown> |
 }
 
 /**
- * Loads credentials: our file first, then the upstream vault.
- * Expired tokens (when the expiry is known) are reported as missing.
+ * Loads credentials: our file first, then the upstream vault. Expired
+ * tokens (when the expiry is known) fall through to the upstream vault —
+ * a stale vkma token must not shadow a still-working upstream one.
  */
 export async function loadCredentials(
 	env: Record<string, string | undefined> = process.env,
@@ -70,10 +72,10 @@ export async function loadCredentials(
 	const token = ours?.["accessToken"];
 	if (typeof token === "string" && token.length > 0) {
 		const expiresAt = typeof ours?.["expiresAt"] === "number" ? ours["expiresAt"] : undefined;
-		if (expiresAt !== undefined && expiresAt <= Date.now()) {
-			return undefined;
+		if (expiresAt === undefined || expiresAt > Date.now()) {
+			return { accessToken: token, expiresAt, source: "vkma" };
 		}
-		return { accessToken: token, expiresAt, source: "vkma" };
+		// Expired: keep looking instead of reporting "no token at all".
 	}
 
 	const upstream = await readJsonFile(upstreamVaultPath(env));
@@ -101,7 +103,17 @@ export async function saveCredentials(
 				: undefined,
 		savedAt: Date.now(),
 	};
-	await fs.writeFile(filePath, `${JSON.stringify(payload, null, "\t")}\n`, { mode: 0o600 });
+	// Atomic write: a crash mid-save must never leave a torn (empty or
+	// partial) credentials file behind — write a 0600 temp sibling and
+	// rename over the target.
+	const tempPath = `${filePath}.tmp-${randomBytes(6).toString("hex")}`;
+	await fs.writeFile(tempPath, `${JSON.stringify(payload, null, "\t")}\n`, { mode: 0o600 });
+	try {
+		await fs.rename(tempPath, filePath);
+	} catch (error) {
+		await fs.rm(tempPath, { force: true }).catch(() => undefined);
+		throw error;
+	}
 	// mkdir/writeFile mode is best-effort on some platforms; enforce explicitly.
 	await fs.chmod(filePath, 0o600).catch(() => undefined);
 	return filePath;

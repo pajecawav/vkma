@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { saveCredentials } from "../credentials/store.ts";
 import { createFetchSpy, instantSleep, makeTempDir, route } from "../test-utils.ts";
 import { completionScript } from "./completions.ts";
 import { main } from "./main.ts";
@@ -194,6 +195,25 @@ describe("main()", () => {
 		const code = await main(["logout"], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(0);
 		expect(out.join("")).toContain("No stored credentials");
+	});
+
+	it("logout warns when the upstream vault still holds a usable token", async () => {
+		await saveCredentials({ accessToken: "ours-1234567890" }, env());
+		const vault = path.join(
+			root,
+			"home",
+			".config",
+			"configstore",
+			"@vkontakte",
+			"vk-miniapps-deploy.json",
+		);
+		await fs.mkdir(path.dirname(vault), { recursive: true });
+		await fs.writeFile(vault, JSON.stringify({ access_token: "theirs" }), "utf8");
+		const code = await main(["logout"], { stdout, stderr, stdin, env: env(), cwd: root });
+		expect(code).toBe(0);
+		expect(out.join("")).toContain("Removed");
+		// Warnings render on stderr.
+		expect(err.join("")).toContain("upstream");
 	});
 
 	it("deploy --dry-run works without a token and emits no network", async () => {

@@ -104,7 +104,9 @@ async function loadTypeScriptConfig(filePath: string): Promise<DeployConfigInput
 		path.dirname(filePath),
 		`.vkma-deploy.config.tmp-${randomBytes(6).toString("hex")}.mjs`,
 	);
-	await fs.writeFile(tempPath, stripped, "utf8");
+	// 0600: the stripped config is a world-readable copy of everything in
+	// the file — including an inlined access token, if the user put one there.
+	await fs.writeFile(tempPath, stripped, { encoding: "utf8", mode: 0o600 });
 	try {
 		const module = await importModule(tempPath);
 		return unwrapDefault(module, filePath);

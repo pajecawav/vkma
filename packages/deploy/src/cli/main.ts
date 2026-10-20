@@ -396,6 +396,15 @@ async function runLogout(context: {
 	} else {
 		context.logger.info(`No stored credentials at ${credentialsPath(context.env)}`);
 	}
+	// Read-only fallback is a public promise, so logout must not touch the
+	// upstream vault — but silently still deploying with it after "logging
+	// out" would be a trust trap, so say it out loud.
+	const remaining = await loadCredentials(context.env);
+	if (remaining?.source === "upstream-configstore") {
+		context.logger.warn(
+			"The upstream tool's token is still installed and remains usable as a fallback. Delete the upstream configstore vault to log out completely.",
+		);
+	}
 	return 0;
 }
 

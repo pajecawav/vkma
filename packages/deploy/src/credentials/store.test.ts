@@ -42,7 +42,13 @@ describe("credentials store", () => {
 		expect(loaded?.expiresAt).toBeGreaterThan(Date.now());
 	});
 
-	it("treats expired tokens as missing (fixes upstream epoch confusion)", async () => {
+	it("saves atomically — no temp siblings left behind", async () => {
+		const filePath = await saveCredentials({ accessToken: "atomic-token" }, env);
+		const siblings = await fs.readdir(path.dirname(filePath));
+		expect(siblings).toEqual(["credentials.json"]);
+	});
+
+	it("treats expired tokens as missing when no upstream vault exists", async () => {
 		const filePath = credentialsPath(env);
 		await fs.mkdir(path.dirname(filePath), { recursive: true });
 		await fs.writeFile(
@@ -51,6 +57,29 @@ describe("credentials store", () => {
 			"utf8",
 		);
 		expect(await loadCredentials(env)).toBeUndefined();
+	});
+
+	it("falls back to the upstream vault when our token is expired", async () => {
+		const filePath = credentialsPath(env);
+		await fs.mkdir(path.dirname(filePath), { recursive: true });
+		await fs.writeFile(
+			filePath,
+			JSON.stringify({ accessToken: "expired", expiresAt: Date.now() - 1000, savedAt: 0 }),
+			"utf8",
+		);
+		const vault = path.join(
+			home,
+			".config",
+			"configstore",
+			"@vkontakte",
+			"vk-miniapps-deploy.json",
+		);
+		await fs.mkdir(path.dirname(vault), { recursive: true });
+		await fs.writeFile(vault, JSON.stringify({ access_token: "still-valid" }), "utf8");
+		expect(await loadCredentials(env)).toEqual({
+			accessToken: "still-valid",
+			source: "upstream-configstore",
+		});
 	});
 
 	it("falls back to the upstream configstore vault read-only", async () => {
