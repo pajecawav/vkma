@@ -13,6 +13,9 @@ import path from "node:path";
 import { zip, type AsyncZippable } from "fflate";
 import { DeployError } from "./errors.ts";
 
+/** Fixed archive timestamp (DOS epoch, 1980-01-01 UTC) for determinism. */
+const ZIP_MTIME = new Date("1980-01-01T00:00:00Z");
+
 export interface ZipOptions {
 	/** Called for every file added to the archive. */
 	readonly onEntry?: (relativePath: string, bytes: number) => void;
@@ -97,10 +100,15 @@ export async function zipDirectory(dir: string, options: ZipOptions = {}): Promi
 	}
 
 	const archive = await new Promise<Uint8Array>((resolve, reject) => {
-		zip(zippable, { level: 6 }, (error, data) => {
+		// Fixed mtime (DOS epoch, UTC): identical trees produce byte-identical
+		// archives regardless of wall-clock time or timezone — content-hash
+		// comparisons and retry diffing stay meaningful.
+		zip(zippable, { level: 6, mtime: ZIP_MTIME }, (error, data) => {
 			if (error) {
 				reject(
-					new DeployError("network", `Failed to create zip archive: ${String(error)}`, {
+					// Local compression failure is a config-class problem, not
+					// a network one (exit 1, not 2).
+					new DeployError("config", `Failed to create zip archive: ${String(error)}`, {
 						cause: error,
 					}),
 				);

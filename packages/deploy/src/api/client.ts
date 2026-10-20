@@ -129,6 +129,8 @@ function maskSecrets(text: string): string {
 /** Max response body length embedded into verbose "response" events. */
 export const BODY_PREVIEW_LIMIT = 1024;
 
+const TEXT_ENCODER = new TextEncoder();
+
 /**
  * Truncated response body preview for verbose diagnostics. Secrets are
  * masked over the full text before truncation, so a token straddling the
@@ -136,9 +138,15 @@ export const BODY_PREVIEW_LIMIT = 1024;
  */
 export function bodyPreview(text: string): string {
 	const masked = maskSecrets(text);
-	return masked.length > BODY_PREVIEW_LIMIT
-		? `${masked.slice(0, BODY_PREVIEW_LIMIT)}… (${masked.length} bytes)`
-		: masked;
+	if (masked.length > BODY_PREVIEW_LIMIT) {
+		// Never cut an astral character in half (lone surrogates break
+		// JSON.stringify and terminal decoding), and report real UTF-8
+		// bytes — VK error messages are frequently Cyrillic (2-3 bytes
+		// per character, not 1 per code unit).
+		const cut = masked.slice(0, BODY_PREVIEW_LIMIT).replace(/[\uD800-\uDBFF]$/, "");
+		return `${cut}… (${TEXT_ENCODER.encode(masked).length} bytes)`;
+	}
+	return masked;
 }
 
 /**
@@ -151,27 +159,22 @@ export async function httpOnce(
 ): Promise<{ status: number; text: string }> {
 	const fetchImpl = options.fetchImpl ?? fetch;
 	const method = "GET";
+	// User callbacks run outside the transport try: a buggy onEvent must
+	// surface as itself, not be retried and misattributed as a network error.
+	options.onEvent?.({ kind: "request", method, url: maskToken(url) });
+	let response: Response;
+	let text: string;
 	try {
-		options.onEvent?.({ kind: "request", method, url: maskToken(url) });
-		const response = await fetchImpl(url, {
+		response = await fetchImpl(url, {
 			method,
 			headers: { accept: "application/json, text/plain, */*" },
 			signal: options.signal,
-			redirect: "follow",
+			// Never follow redirects: the query string carries the access
+			// token, and a 3xx (misconfigured apiHost, compromised endpoint)
+			// must not forward it to another origin.
+			redirect: "error",
 		});
-		const text = await response.text();
-		options.onEvent?.({
-			kind: "response",
-			status: response.status,
-			body: bodyPreview(text),
-		});
-		if (response.ok) {
-			return { status: response.status, text };
-		}
-		throw new DeployError("network", `HTTP ${response.status} ${response.statusText}`.trim(), {
-			code: `HTTP_${response.status}`,
-			details: { url: maskToken(url) },
-		});
+		text = await response.text();
 	} catch (error) {
 		if (isAbortError(error) || options.signal?.aborted) {
 			throw aborted();
@@ -185,6 +188,18 @@ export async function httpOnce(
 			details: { url: maskToken(url) },
 		});
 	}
+	options.onEvent?.({
+		kind: "response",
+		status: response.status,
+		body: bodyPreview(text),
+	});
+	if (response.ok) {
+		return { status: response.status, text };
+	}
+	throw new DeployError("network", `HTTP ${response.status} ${response.statusText}`.trim(), {
+		code: `HTTP_${response.status}`,
+		details: { url: maskToken(url) },
+	});
 }
 
 function finalizeTransportError(error: unknown, maxAttempts: number): unknown {
@@ -220,7 +235,9 @@ export async function httpGet(
 
 /** Parses a response body, rejecting HTML error pages with a clear message. */
 export function parseJsonBody(text: string, url: string): unknown {
-	const trimmed = text.trim();
+	// Strip a UTF-8 BOM first: it defeats both the HTML sniff (trim()
+	// does not remove \uFEFF) and JSON.parse, masking real errors.
+	const trimmed = text.replace(/^\uFEFF/, "").trim();
 	if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
 		throw new DeployError(
 			"network",

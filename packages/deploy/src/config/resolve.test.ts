@@ -94,6 +94,8 @@ describe("resolveConfig", () => {
 		const { config, meta } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBe(42);
 		expect(config.proxy).toBe("http://proxy.corp:8080");
+		// $schema is editor metadata: it must not haunt meta.sources.
+		expect((meta.sources as Record<string, string | undefined>)["$schema"]).toBeUndefined();
 		expect(config.staticPath).toBe("./build");
 		// Configured platforms pass through unchanged; nothing is injected
 		// for the others (only configured ones are preflight-checked/sent).

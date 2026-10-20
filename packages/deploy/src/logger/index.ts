@@ -291,9 +291,15 @@ export class CliLogger {
 		const now = Date.now();
 		let speedText = "";
 		if (this.progressMark !== undefined) {
-			const seconds = (now - this.progressMark.time) / 1000;
-			if (seconds > 0.2) {
-				speedText = ` ${formatBytes((sent - this.progressMark.sent) / seconds)}/s`;
+			if (sent < this.progressMark.sent) {
+				// An upload retry restarted from zero — speed math must not
+				// go negative against the previous attempt's mark.
+				this.progressMark = undefined;
+			} else {
+				const seconds = (now - this.progressMark.time) / 1000;
+				if (seconds > 0.2) {
+					speedText = ` ${formatBytes((sent - this.progressMark.sent) / seconds)}/s`;
+				}
 			}
 		}
 		this.progressMark = { time: now, sent };

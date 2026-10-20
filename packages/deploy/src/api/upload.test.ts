@@ -16,6 +16,7 @@ describe("uploadBundle", () => {
 		});
 
 		expect(result).toEqual({ ticket: "t-1" });
+		expect(spy.calls[0]?.init?.redirect).toBe("error");
 		const call = spy.calls[0];
 		expect(call?.init?.method).toBe("POST");
 		const headers = (call?.init?.headers ?? {}) as Record<string, string>;

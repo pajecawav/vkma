@@ -78,4 +78,13 @@ describe("zipDirectory", () => {
 			(error: unknown) => error instanceof DeployError && error.kind === "config",
 		);
 	});
+
+	it("produces byte-identical archives for identical trees (fixed mtime)", async () => {
+		const tree = path.join(dir, "same");
+		await fs.mkdir(tree, { recursive: true });
+		await fs.writeFile(path.join(tree, "index.html"), "same content");
+		const first = await zipDirectory(tree);
+		const second = await zipDirectory(tree);
+		expect(Buffer.compare(first.archive, second.archive)).toBe(0);
+	});
 });

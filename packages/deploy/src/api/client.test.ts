@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DeployError } from "../errors.ts";
 import { createFetchSpy, sequence, instantSleep, type MockResponseSpec } from "../test-utils.ts";
-import { callApi, httpGet } from "./client.ts";
+import { callApi, httpGet, parseJsonBody } from "./client.ts";
 
 const BASE = {
 	accessToken: "token-1234567890",
@@ -217,6 +217,60 @@ describe("callApi", () => {
 		await expect(
 			callApi("m", {}, { ...BASE, fetchImpl: spy.fetchImpl, signal: controller.signal }),
 		).rejects.toSatisfy((error: unknown) => (error as DeployError).kind === "aborted");
+	});
+	it("never follows redirects (the query string carries the token)", async () => {
+		const spy = createFetchSpy(() => vkOk({}));
+		await callApi("m", {}, { ...BASE, fetchImpl: spy.fetchImpl });
+		expect(spy.calls[0]?.init?.redirect).toBe("error");
+	});
+
+	it("propagates onEvent callback errors instead of retrying them as network", async () => {
+		let calls = 0;
+		const spy = createFetchSpy(() => {
+			calls += 1;
+			return vkOk({});
+		});
+		const boom = new TypeError("user callback bug");
+		await expect(
+			callApi(
+				"m",
+				{},
+				{
+					...BASE,
+					fetchImpl: spy.fetchImpl,
+					onEvent: event => {
+						if (event.kind === "response") {
+							throw boom;
+						}
+					},
+				},
+			),
+		).rejects.toBe(boom);
+		expect(calls).toBe(1);
+	});
+
+	it("strips a BOM before HTML detection and JSON parsing", () => {
+		expect(parseJsonBody('﻿{"ok":1}', "https://x/")).toEqual({ ok: 1 });
+		try {
+			parseJsonBody("﻿<!DOCTYPE html><html></html>", "https://x/");
+			expect.unreachable("BOM-prefixed HTML must be detected");
+		} catch (error) {
+			expect((error as DeployError).code).toBe("E_HTML_RESPONSE");
+		}
+	});
+
+	it("reports UTF-8 byte counts (not UTF-16 code units) in body previews", async () => {
+		const bodies: string[] = [];
+		const spy = createFetchSpy(() => ({ body: { padding: "я".repeat(2000) } }));
+		await httpGet("https://x/", {
+			fetchImpl: spy.fetchImpl,
+			onEvent: event => {
+				if (event.kind === "response" && event.body !== undefined) {
+					bodies.push(event.body);
+				}
+			},
+		});
+		expect(bodies[0]).toMatch(/\(4014 bytes\)/);
 	});
 });
 

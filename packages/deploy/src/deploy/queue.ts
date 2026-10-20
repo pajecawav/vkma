@@ -112,7 +112,7 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 	const queueTimeoutError = (): DeployError =>
 		new DeployError(
 			"network",
-			`Timed out waiting for the hosting queue after ${Math.round(options.timeoutMs / 1000)}s (upstream hangs forever here — issue #119). Increase with --timeout <sec> or VKMA_TIMEOUT.`,
+			`Timed out waiting for the hosting queue after ${Math.round(options.timeoutMs / 1000)}s. Increase with --timeout <sec> or VKMA_TIMEOUT.`,
 			{ code: "E_QUEUE_TIMEOUT" },
 		);
 

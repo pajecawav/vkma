@@ -70,8 +70,14 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 
 	// Merge layers: file, then env, then CLI overrides. Later layers win.
 	const merged: Record<string, unknown> = { ...file?.config };
+	// `$schema` is editor metadata, not config — strip it before the
+	// provenance loop so it never haunts meta.sources.
+	delete merged["$schema"];
 	if (file) {
 		for (const key of Object.keys(file.config)) {
+			if (key === "$schema") {
+				continue;
+			}
 			sources[key as keyof ResolvedConfig] = "config";
 		}
 	}
@@ -87,9 +93,6 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 			sources[key as keyof ResolvedConfig] = "override";
 		}
 	}
-
-	// `$schema` is editor metadata, not config.
-	delete merged["$schema"];
 
 	const issues = collectSchemaIssues(merged);
 	if (issues.length > 0) {

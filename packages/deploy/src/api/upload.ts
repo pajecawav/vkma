@@ -100,10 +100,13 @@ export async function uploadBundle(
 			// "build.zip" matches upstream's zip-a-folder output name exactly
 			// (their default bundleFile) — one less wire difference.
 			const body = buildMultipartBody("file", "build.zip", archive, boundary);
+			// User callbacks run outside the transport try (see httpOnce).
 			options.onEvent?.({ kind: "request", method: "POST", url: uploadUrl });
 
+			let response: Response;
+			let text: string;
 			try {
-				const response = await fetchImpl(uploadUrl, {
+				response = await fetchImpl(uploadUrl, {
 					method: "POST",
 					headers: {
 						"content-type": `multipart/form-data; boundary=${boundary}`,
@@ -115,25 +118,11 @@ export async function uploadBundle(
 					signal: options.signal,
 					// Required by undici when the body is a stream.
 					duplex: "half",
+					// The upload URL comes from the VK API over HTTPS; a 3xx
+					// must not walk the bundle (and any query secrets) elsewhere.
+					redirect: "error",
 				} as RequestInit);
-
-				const text = await response.text();
-				options.onEvent?.({
-					kind: "response",
-					status: response.status,
-					body: bodyPreview(text),
-				});
-
-				if (response.ok) {
-					return parseJsonBody(text, uploadUrl) as Record<string, unknown>;
-				}
-				throw new DeployError(
-					"network",
-					`Upload failed: HTTP ${response.status} ${response.statusText}`.trim(),
-					{
-						code: `HTTP_${response.status}`,
-					},
-				);
+				text = await response.text();
 			} catch (error) {
 				if (isAbortError(error) || options.signal?.aborted) {
 					throw new DeployError("aborted", "Upload aborted", { code: "E_ABORTED" });
@@ -146,6 +135,22 @@ export async function uploadBundle(
 					details: { url: uploadUrl },
 				});
 			}
+			options.onEvent?.({
+				kind: "response",
+				status: response.status,
+				body: bodyPreview(text),
+			});
+
+			if (response.ok) {
+				return parseJsonBody(text, uploadUrl) as Record<string, unknown>;
+			}
+			throw new DeployError(
+				"network",
+				`Upload failed: HTTP ${response.status} ${response.statusText}`.trim(),
+				{
+					code: `HTTP_${response.status}`,
+				},
+			);
 		},
 		{
 			maxAttempts: options.maxAttempts,

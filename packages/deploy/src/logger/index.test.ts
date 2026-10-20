@@ -144,6 +144,21 @@ describe("CliLogger", () => {
 		expect(out).toEqual([]);
 	});
 
+	it("never shows negative speed after an upload retry restarts from zero", () => {
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		logger.progress(900, 1000);
+		logger.progress(10, 1000);
+		expect(out.join("")).not.toMatch(/ -[\d.]+/);
+	});
+
 	it("prints on a fresh line while the spinner is running and resumes it", () => {
 		const out: string[] = [];
 		const err: string[] = [];
