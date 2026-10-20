@@ -1,13 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { makeTempDir } from "../test-utils.ts";
 import { credentialsPath, clearCredentials, loadCredentials, saveCredentials } from "./store.ts";
 
 let home: string;
 let env: Record<string, string | undefined>;
 
 beforeEach(async () => {
-	home = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-creds-"));
+	home = await makeTempDir("vkma-creds-");
 	env = { XDG_CONFIG_HOME: path.join(home, ".config"), HOME: home, PATH: process.env["PATH"] };
 });
 

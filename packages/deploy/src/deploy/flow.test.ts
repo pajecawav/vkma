@@ -3,7 +3,7 @@ import path from "node:path";
 import { unzipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DeployError } from "../errors.ts";
-import { createFetchSpy, instantSleep, route, type FetchSpy } from "../test-utils.ts";
+import { createFetchSpy, instantSleep, makeTempDir, route, type FetchSpy } from "../test-utils.ts";
 import { deploy, type DeployEvent, type DeployOptions } from "./flow.ts";
 
 function encodeAscii(text: string): Uint8Array {
@@ -39,7 +39,7 @@ let events: DeployEvent[];
 let spy: FetchSpy;
 
 beforeEach(async () => {
-	root = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-flow-"));
+	root = await makeTempDir("vkma-flow-");
 	events = [];
 	await fs.mkdir(path.join(root, "build", "assets"), { recursive: true });
 	await fs.writeFile(path.join(root, "build", "index.html"), "<html>app</html>");

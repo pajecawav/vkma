@@ -2,7 +2,15 @@
  * Test-only fetch mocks. Consumes stream bodies so upload progress fires.
  */
 
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import type { FetchLike } from "./api/client.ts";
+
+/** Creates a throwaway directory for a test under the OS temp dir. */
+export function makeTempDir(prefix: string): Promise<string> {
+	return mkdtemp(path.join(tmpdir(), prefix));
+}
 
 export interface MockResponseSpec {
 	readonly status?: number;

@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ConfigValidationError, DeployError } from "../errors.ts";
+import { makeTempDir } from "../test-utils.ts";
 import { resolveConfig, findConfigFile } from "./resolve.ts";
 
 const CLEAN_ENV = {
@@ -12,7 +13,7 @@ const CLEAN_ENV = {
 let root: string;
 
 beforeEach(async () => {
-	root = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-resolve-"));
+	root = await makeTempDir("vkma-resolve-");
 });
 
 afterEach(async () => {

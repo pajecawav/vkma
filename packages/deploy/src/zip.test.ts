@@ -3,12 +3,13 @@ import path from "node:path";
 import { unzipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DeployError } from "./errors.ts";
+import { makeTempDir } from "./test-utils.ts";
 import { zipDirectory } from "./zip.ts";
 
 let dir: string;
 
 beforeEach(async () => {
-	dir = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-zip-"));
+	dir = await makeTempDir("vkma-zip-");
 });
 
 afterEach(async () => {
@@ -51,7 +52,7 @@ describe("zipDirectory", () => {
 		await fs.writeFile(outside, "outside");
 		await fs.symlink(outside, path.join(dir, "linked.txt"));
 
-		const nestedOutside = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-zipdir-"));
+		const nestedOutside = await makeTempDir("vkma-zipdir-");
 		await fs.writeFile(path.join(nestedOutside, "x.txt"), "x");
 		await fs.symlink(nestedOutside, path.join(dir, "linked-dir"));
 

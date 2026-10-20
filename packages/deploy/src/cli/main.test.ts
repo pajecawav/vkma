@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createFetchSpy, instantSleep, route } from "../test-utils.ts";
+import { createFetchSpy, instantSleep, makeTempDir, route } from "../test-utils.ts";
 import { completionScript } from "./completions.ts";
 import { main } from "./main.ts";
 
@@ -14,7 +14,7 @@ const stderr = { write: (text: string) => err.push(text) };
 const stdin = { isTTY: false };
 
 beforeEach(async () => {
-	root = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-cli-"));
+	root = await makeTempDir("vkma-cli-");
 	out = [];
 	err = [];
 });

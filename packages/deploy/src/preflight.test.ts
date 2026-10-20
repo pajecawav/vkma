@@ -4,11 +4,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CONFIG_DEFAULTS, type ResolvedConfig } from "./config/schema.ts";
 import { DeployError } from "./errors.ts";
 import { endpointFilePath, preflight } from "./preflight.ts";
+import { makeTempDir } from "./test-utils.ts";
 
 let root: string;
 
 beforeEach(async () => {
-	root = await fs.mkdtemp(path.join("/tmp/opencode", "vkma-preflight-"));
+	root = await makeTempDir("vkma-preflight-");
 });
 
 afterEach(async () => {

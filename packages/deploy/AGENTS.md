@@ -107,4 +107,5 @@ mention upstream internals — that knowledge lives here.
 - Beware await-loops with injected `instantSleep` and instant mock
   responses: they can starve timers and OOM the worker (we hit this once).
   Give hanging-path mocks a real `setTimeout` delay.
-- Config-resolution tests use throwaway dirs under `/tmp/opencode`.
+- Tests create throwaway dirs via `makeTempDir` (`src/test-utils.ts`)
+  under the OS temp dir — never hardcode machine-specific scratch paths.
