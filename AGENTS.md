@@ -19,5 +19,6 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 
 - Shared dependency versions live in the `catalog:` section of `pnpm-workspace.yaml`.
 - Publishing: changesets (`pnpm changeset`, `pnpm version`). Apps stay private.
+- Changeset summaries stay one short line — the details belong in the commit message, not the changelog.
 - Inspector browser target: `BROWSER=firefox|chrome` (default chrome), two static manifests in `apps/inspector/src/`, `web-ext` to run/pack.
 - Node >= 22, dev machine version pinned in `.node-version`.
