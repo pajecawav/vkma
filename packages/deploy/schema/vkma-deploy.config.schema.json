@@ -31,14 +31,17 @@
 			"type": "object",
 			"properties": {
 				"mobile": {
+					"minLength": 1,
 					"description": "Entry file for the mobile app (iOS & Android).",
 					"type": "string"
 				},
 				"mvk": {
+					"minLength": 1,
 					"description": "Entry file for m.vk.ru.",
 					"type": "string"
 				},
 				"web": {
+					"minLength": 1,
 					"description": "Entry file for vk.ru.",
 					"type": "string"
 				}

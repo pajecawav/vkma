@@ -121,7 +121,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 
 		if (VALUE_FLAGS.has(resolved)) {
 			const value = inlineValue ?? argv[i + 1];
-			if (value === undefined || value.startsWith("-")) {
+			// Empty counts as missing: `--config=` silently falling back to
+			// discovery would deploy from a config the user never pointed at.
+			if (value === undefined || value === "" || value.startsWith("-")) {
 				errors.push(`Flag ${resolved} requires a value`);
 				continue;
 			}
@@ -143,7 +145,13 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 					break;
 				case "--timeout": {
 					const parsed = Number.parseInt(value, 10);
-					if (!Number.isInteger(parsed) || parsed < 1) {
+					// Round-trip: "--timeout 1e3" must fail instead of
+					// truncating to a 1-second deadline.
+					if (
+						!Number.isInteger(parsed) ||
+						parsed < 1 ||
+						String(parsed) !== value.trim()
+					) {
 						errors.push(
 							`--timeout expects a positive integer (seconds), got ${JSON.stringify(value)}`,
 						);

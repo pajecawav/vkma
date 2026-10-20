@@ -98,8 +98,10 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 
 	const config: ResolvedConfig = {
 		appId: merged["appId"] as number,
-		staticPath: normalizeMaybePath(merged["staticPath"] as string | undefined),
-		bundle: normalizeMaybePath(merged["bundle"] as string | undefined),
+		// Whitespace-only paths normalize to unset — an empty staticPath must
+		// never resolve to cwd and zip the whole project.
+		staticPath: normalizeMaybePath(merged["staticPath"] as string | undefined) || undefined,
+		bundle: normalizeMaybePath(merged["bundle"] as string | undefined) || undefined,
 		endpoints: (merged["endpoints"] as Partial<Record<"mobile" | "mvk" | "web", string>>) ?? {},
 		environment:
 			(merged["environment"] as ResolvedConfig["environment"]) ?? CONFIG_DEFAULTS.environment,

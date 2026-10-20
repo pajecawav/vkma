@@ -100,7 +100,13 @@ export function readEnv(env: Record<string, string | undefined>): EnvParseResult
 	const timeoutRaw = firstDefined(env, ENV_NAMES.queueTimeout);
 	if (timeoutRaw !== undefined) {
 		const timeout = Number.parseInt(timeoutRaw.value, 10);
-		if (!Number.isInteger(timeout) || timeout < 1) {
+		// Round-trip like appId: "1e3"/"600s" must not silently truncate to
+		// 1/600 — a user asking for 1000 seconds got a 1-second deadline.
+		if (
+			!Number.isInteger(timeout) ||
+			timeout < 1 ||
+			String(timeout) !== timeoutRaw.value.trim()
+		) {
 			issues.push({
 				path: `env ${timeoutRaw.name}`,
 				message: `expected a positive integer (seconds), got ${JSON.stringify(timeoutRaw.value)}`,

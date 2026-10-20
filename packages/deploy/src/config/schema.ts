@@ -63,13 +63,18 @@ export const DeployConfigSchema = Type.Object(
 					/** Entry file for the mobile app (iOS & Android). */
 					mobile: Type.Optional(
 						Type.String({
+							minLength: 1,
 							description: "Entry file for the mobile app (iOS & Android).",
 						}),
 					),
 					/** Entry file for m.vk.ru. */
-					mvk: Type.Optional(Type.String({ description: "Entry file for m.vk.ru." })),
+					mvk: Type.Optional(
+						Type.String({ minLength: 1, description: "Entry file for m.vk.ru." }),
+					),
 					/** Entry file for vk.ru. */
-					web: Type.Optional(Type.String({ description: "Entry file for vk.ru." })),
+					web: Type.Optional(
+						Type.String({ minLength: 1, description: "Entry file for vk.ru." }),
+					),
 				},
 				{
 					additionalProperties: false,

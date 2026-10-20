@@ -39,6 +39,17 @@ describe("parseArgv", () => {
 		expect(parseArgv(["--proxy"]).errors[0]).toContain("requires a value");
 	});
 
+	it("validates --timeout with a round-trip (no silent truncation)", () => {
+		expect(parseArgv(["--timeout", "1e3"]).errors.length).toBe(1);
+		expect(parseArgv(["--timeout", "30s"]).errors.length).toBe(1);
+		expect(parseArgv(["--timeout", " 30 "]).values.timeout).toBe(30);
+	});
+
+	it("rejects empty values for value flags (--config= is not discovery)", () => {
+		expect(parseArgv(["--config="]).errors[0]).toContain("requires a value");
+		expect(parseArgv(["--config", ""]).errors[0]).toContain("requires a value");
+	});
+
 	it("rejects value flags without a value", () => {
 		const parsed = parseArgv(["--env"]);
 		expect(parsed.errors[0]).toContain("requires a value");

@@ -332,6 +332,24 @@ describe("resolveConfig", () => {
 });
 
 describe("assertDeployReadiness", () => {
+	it("treats whitespace-only staticPath/bundle as missing (never zips cwd)", async () => {
+		await write(root, "vkma-deploy.config.json", JSON.stringify({ staticPath: " " }));
+		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
+		expect(config.staticPath).toBeUndefined();
+		expect(() => assertDeployReadiness(config, { hasConfigFile: true })).toThrow(
+			/staticPath is required/,
+		);
+	});
+
+	it("rejects empty endpoint paths at the schema level", async () => {
+		await expect(
+			resolveConfig({
+				cwd: root,
+				env: { ...CLEAN_ENV, VKMA_APP_ID: "1" },
+				overrides: { staticPath: "./build", endpoints: { web: "" } },
+			}),
+		).rejects.toThrow(/web/);
+	});
 	it("requires appId with template guidance when no config file was found", async () => {
 		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBeUndefined();
