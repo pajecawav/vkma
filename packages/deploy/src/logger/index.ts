@@ -36,6 +36,11 @@ export interface CliLoggerOptions {
 const LEVEL_WEIGHT: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
 
+/** Restores a visible cursor after the spinner hid it. Exported for the
+ * binary entry, where a forced exit (second SIGINT) must not leave the
+ * terminal cursor-less. */
+export const SHOW_CURSOR = "\x1b[?25h";
+
 export function formatBytes(bytes: number): string {
 	if (bytes < 1024) {
 		return `${bytes} B`;
@@ -250,7 +255,7 @@ export class CliLogger {
 		}
 		this.clearLine();
 		if (this.interactive) {
-			this.stdout.write("\x1b[?25h"); // show cursor
+			this.stdout.write(SHOW_CURSOR); // show cursor
 		}
 	}
 
