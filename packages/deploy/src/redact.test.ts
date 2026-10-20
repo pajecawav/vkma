@@ -52,7 +52,7 @@ describe("createRedactor", () => {
 		const redactor = createRedactor();
 		const input: Record<string, unknown> = { token: "x" };
 		input["self"] = input;
-		const out = redactor.redact(input) as Record<string, unknown>;
+		const out = redactor.redact(input);
 		expect(out["self"]).toBe("[Circular]");
 	});
 });

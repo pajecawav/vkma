@@ -50,10 +50,10 @@ export function createRedactor(): Redactor {
 			return value.map(item => redact(item, seen)) as T;
 		}
 		if (value !== null && typeof value === "object") {
-			if (seen.has(value as object)) {
+			if (seen.has(value)) {
 				return "[Circular]" as T;
 			}
-			seen.add(value as object);
+			seen.add(value);
 			const source = value as Record<string, unknown>;
 			const out: Record<string, unknown> = {};
 			for (const key of Object.keys(source)) {
