@@ -87,7 +87,22 @@ describe("CliLogger", () => {
 		const { logger, out } = makeLogger();
 		logger.urlsBlock("production", { iframe_secure_url: "https://app" });
 		expect(out.join("")).toContain("URLs changed for production:");
-		expect(out.join("")).toContain("vk.ru:\thttps://app");
+		expect(out.join("")).toContain("vk.ru:  https://app");
+	});
+
+	it("aligns URL columns across differently sized platform labels", () => {
+		const { logger, out } = makeLogger();
+		logger.urlsBlock("dev", {
+			iframe_secure_url: "https://a",
+			vk_app_dev_url: "https://b",
+			vk_mini_app_mvk_dev_url: "https://c",
+		});
+		const lines = out.filter(line => line.includes("https://"));
+		const columns = lines.map(line => line.indexOf("https://"));
+		expect(columns.every(column => column === columns[0])).toBe(true);
+		expect(lines[0]?.trimEnd()).toBe("vk.ru:          https://a");
+		expect(lines[1]?.trimEnd()).toBe("iOS & Android:  https://b");
+		expect(lines[2]?.trimEnd()).toBe("m.vk.ru:        https://c");
 	});
 
 	it("renders raw URL keys in CI_URLS mode", () => {
@@ -95,6 +110,31 @@ describe("CliLogger", () => {
 		logger.setCiUrls(true);
 		logger.urlsBlock("dev", { vk_app_dev_url: "https://dev" });
 		expect(out.join("")).toContain("vk_app_dev_url=https://dev");
+	});
+
+	it("actionRequired renders bold with air around it (pretty)", () => {
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: true,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		logger.actionRequired("Confirm the deploy on your phone");
+		const text = out.join("");
+		expect(text).toContain("\x1b[1mConfirm the deploy on your phone\x1b[0m");
+		// Air: a blank line before and after.
+		expect(text.startsWith("\n")).toBe(true);
+	});
+
+	it("actionRequired emits a structured event in json mode", () => {
+		const { logger, out } = makeLogger({ mode: "json" });
+		logger.actionRequired("Confirm the deploy on your phone");
+		const record = JSON.parse(out[0] ?? "{}") as { event: string; message: string };
+		expect(record.event).toBe("action_required");
+		expect(record.message).toBe("Confirm the deploy on your phone");
 	});
 
 	it("reports failures with the error message", () => {

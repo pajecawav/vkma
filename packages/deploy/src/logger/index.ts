@@ -338,14 +338,45 @@ export class CliLogger {
 		// the header line.
 		const resume = this.pauseSpinner();
 		this.info(this.paint(`URLs changed for ${environment}:`, "green"));
-		for (const [key, url] of Object.entries(urls)) {
-			if (this.ciUrls) {
+		if (this.ciUrls) {
+			for (const [key, url] of Object.entries(urls)) {
 				this.writeOut(`${key}=${url}`);
-			} else {
+			}
+		} else {
+			// Space-pad labels to the widest one so all URLs start in the
+			// same column (tab stops misaligned short labels like "vk.ru:").
+			const labeled = Object.entries(urls).map(([key, url]) => {
 				const label = PLATFORM_LABELS[key as keyof typeof PLATFORM_LABELS];
-				this.writeOut(`${label !== undefined ? `${label}:` : key}\t${url}`);
+				return { label: label !== undefined ? `${label}:` : key, url };
+			});
+			const width = Math.max(...labeled.map(({ label }) => label.length));
+			for (const { label, url } of labeled) {
+				this.writeOut(`${label.padEnd(width)}  ${url}`);
 			}
 		}
+		resume();
+	}
+
+	/**
+	 * A mid-run action the user must take (e.g. "confirm the push on your
+	 * phone") — bold with air around it, so it cannot drown in the queue
+	 * output. JSON mode emits a structured `action_required` event.
+	 */
+	public actionRequired(message: string): void {
+		if (this.mode === "json") {
+			this.emit({ level: "info", event: "action_required", message });
+			return;
+		}
+		if (this.mode === "quiet") {
+			// Quiet still needs this one: without the confirmation the deploy
+			// stalls, and silence would hide why.
+			this.writeErr(this.redactor.redactString(message));
+			return;
+		}
+		const resume = this.pauseSpinner();
+		this.writeOut("");
+		this.writeOut(this.paint(this.redactor.redactString(message), "bold"));
+		this.writeOut("");
 		resume();
 	}
 

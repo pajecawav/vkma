@@ -299,7 +299,7 @@ describe("main()", () => {
 		expect(code).toBe(0);
 		const text = out.join("");
 		expect(text).toContain("Access token: environment variable");
-		expect(text).toContain("vk.ru:\thttps://app");
+		expect(text).toContain("vk.ru:  https://app");
 		expect(text).toContain("version 9");
 	});
 

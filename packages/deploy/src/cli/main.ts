@@ -487,7 +487,7 @@ function renderDeployPlan(
 			`  target:     ${target}  (environment: ${config.environment})`,
 			`  URL switch: prod ${config.updateProd ? "yes" : "no"} · dev ${config.updateDev ? "yes" : "no"}`,
 			`  test group: ${config.testGroupName ?? "—"}`,
-			`  bundle:     ${config.bundle ?? config.staticPath ?? "—"}  ·  endpoints: ${endpoints}`,
+			`  bundle:     ${config.bundle ?? config.staticPath ?? "—"} · endpoints: ${endpoints}`,
 		].join("\n"),
 	);
 	if (
@@ -617,7 +617,7 @@ function renderQueueEvent(logger: CliLogger, event: QueueEvent): void {
 			break;
 		case 203:
 			pauseQueueSpinner(logger, () =>
-				logger.info("Confirm the deploy on your phone (push notification sent)"),
+				logger.actionRequired("Confirm the deploy on your phone (push notification sent)"),
 			);
 			break;
 		case 204:
