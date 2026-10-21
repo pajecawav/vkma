@@ -1,7 +1,6 @@
 packages:
     - apps/*
     - packages/*
-    - packages/devtools/*
 
 catalog:
     "@types/node": ^26.6.5

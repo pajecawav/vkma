@@ -4,7 +4,7 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 
 ## Structure
 
-- `packages/bridge`, `packages/deploy`, `packages/devtools/{core,react}` — publishable libraries (tsdown: ESM + dts)
+- `packages/bridge`, `packages/deploy`, `packages/devtools` — publishable libraries (tsdown: ESM + dts)
 - `apps/web` — docs & demos site (bare Astro, no React yet)
 - `apps/inspector` — browser extension (rsbuild + Solid, MV3 for chrome & firefox)
 

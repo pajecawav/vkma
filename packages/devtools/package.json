@@ -1,7 +1,7 @@
 {
-	"name": "@vkma.dev/devtools-react",
+	"name": "@vkma.dev/devtools",
 	"version": "0.0.0",
-	"description": "React bindings for @vkma.dev/devtools-core",
+	"description": "Devtools for VK Mini Apps",
 	"type": "module",
 	"license": "MIT",
 	"publishConfig": {
@@ -17,10 +17,17 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
+		},
+		"./react": {
+			"types": "./dist/react.d.ts",
+			"import": "./dist/react.js"
 		}
 	},
 	"files": [
-		"dist"
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx"
 	],
 	"scripts": {
 		"build": "tsdown",
@@ -32,8 +39,10 @@
 	"peerDependencies": {
 		"react": "^18.0.0 || ^19.0.0"
 	},
-	"dependencies": {
-		"@vkma.dev/devtools-core": "workspace:*"
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@types/react": "catalog:",
