@@ -41,7 +41,11 @@ export function App() {
 				<Rail section={section} sections={sections} onSelect={setSection} />
 				{gate ??
 					(section === "timeline" ? (
-						<Timeline events={connection.events} clients={connection.clients} />
+						<Timeline
+							events={connection.events}
+							clients={connection.clients}
+							hideClient={Boolean(embeddedClientId)}
+						/>
 					) : section === "execute" ? (
 						<Execute
 							clients={connection.clients}

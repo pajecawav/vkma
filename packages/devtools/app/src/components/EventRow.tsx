@@ -100,13 +100,22 @@ function KindChip({ kind, title }: { kind: "request" | "response" | "event"; tit
 interface RowProps {
 	event: WireEvent;
 	clients: ClientInfo[];
+	/** Embedded mode: every row belongs to the panel's own client. */
+	hideClient?: boolean;
 	/** Response-only: timestamp of the paired request. */
 	requestTs?: number;
 	animate: boolean;
 	indent?: boolean;
 }
 
-const EventRow = memo(function Row({ event, clients, requestTs, animate, indent }: RowProps) {
+const EventRow = memo(function Row({
+	event,
+	clients,
+	hideClient,
+	requestTs,
+	animate,
+	indent,
+}: RowProps) {
 	const [open, setOpen] = useState(false);
 	const kind: "request" | "response" | "event" =
 		event.kind === "send" ? "request" : event.kind === "response" ? "response" : "event";
@@ -129,7 +138,7 @@ const EventRow = memo(function Row({ event, clients, requestTs, animate, indent 
 				>
 					{formatTime(event.ts)}
 				</time>
-				<ClientBadge clientId={event.clientId} clients={clients} />
+				{!hideClient && <ClientBadge clientId={event.clientId} clients={clients} />}
 				<KindChip
 					kind={kind}
 					title={
@@ -174,6 +183,7 @@ export interface RequestGroupProps {
 	request: WireEvent;
 	response?: WireEvent;
 	clients: ClientInfo[];
+	hideClient?: boolean;
 	animate: boolean;
 }
 
@@ -182,15 +192,17 @@ export const RequestGroup = memo(function RequestGroup({
 	request,
 	response,
 	clients,
+	hideClient,
 	animate,
 }: RequestGroupProps) {
 	return (
 		<div className={animate ? "row-in" : undefined}>
-			<EventRow event={request} clients={clients} animate={false} />
+			<EventRow event={request} clients={clients} hideClient={hideClient} animate={false} />
 			{response && (
 				<EventRow
 					event={response}
 					clients={clients}
+					hideClient={hideClient}
 					requestTs={request.ts}
 					animate={false}
 					indent

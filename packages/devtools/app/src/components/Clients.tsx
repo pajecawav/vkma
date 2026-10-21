@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ClientInfo } from "../../../src/shared/protocol.ts";
+import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
 import { ChevronIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
 
@@ -49,7 +50,14 @@ function ClientCard({ client }: { client: ClientInfo }) {
 				<span className="flex min-w-0 flex-col gap-0.5">
 					<span className="flex items-center gap-2 text-sm font-medium">
 						{platformLabel(client.platform)}
-						<span className="font-mono text-[11px] font-normal text-neutral-400">
+						<span
+							className={`inline-flex items-center gap-1 font-mono text-[11px] font-normal ${clientColor(client.clientId).text}`}
+							title={client.clientId}
+						>
+							<span
+								className={`size-1.5 rounded-[2px] ${clientColor(client.clientId).dot}`}
+								aria-hidden="true"
+							/>
 							{shortId(client.clientId)}
 						</span>
 						{!client.bridge && (

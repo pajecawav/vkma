@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
+import { platformLabel, shortId } from "../lib/format.ts";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
 
@@ -70,9 +71,20 @@ function buildGroups(events: WireEvent[], filter: EventFilter): Group[] {
 	return groups;
 }
 
-export function Timeline({ events, clients }: { events: WireEvent[]; clients: ClientInfo[] }) {
+export function Timeline({
+	events,
+	clients,
+	hideClient = false,
+}: {
+	events: WireEvent[];
+	clients: ClientInfo[];
+	/** Embedded mode: rows always belong to this panel's client. */
+	hideClient?: boolean;
+}) {
 	const [query, setQuery] = useState("");
 	const [filter, setFilter] = useState<EventFilter>("all");
+	/** `"all"` or a scoped clientId. */
+	const [clientFilter, setClientFilter] = useState<string>("all");
 	const [paused, setPaused] = useState(false);
 	const [anchorSeq, setAnchorSeq] = useState<number | null>(null);
 	const [clearSeq, setClearSeq] = useState(0);
@@ -95,12 +107,15 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 			paused && anchorSeq !== null ? base.filter(event => event.seq <= anchorSeq) : base;
 		const needle = query.trim().toLowerCase();
 		return frozen.filter(event => {
+			if (clientFilter !== "all" && event.clientId !== clientFilter) {
+				return false;
+			}
 			if (needle !== "" && !event.name.toLowerCase().includes(needle)) {
 				return false;
 			}
 			return true;
 		});
-	}, [events, clearSeq, paused, anchorSeq, query]);
+	}, [events, clearSeq, paused, anchorSeq, query, clientFilter]);
 
 	const groups = useMemo(() => buildGroups(visible, filter), [visible, filter]);
 
@@ -130,6 +145,22 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 					placeholder="Filter by event name…"
 					className="h-7 w-40 min-w-0 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 sm:w-56 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500"
 				/>
+				{!hideClient && clients.length > 1 && (
+					<select
+						value={clientFilter}
+						onChange={event => setClientFilter(event.target.value)}
+						aria-label="Client"
+						title="Show events of one client"
+						className="h-7 max-w-44 rounded-md border border-neutral-200 bg-white px-1.5 text-xs text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
+					>
+						<option value="all">All clients</option>
+						{clients.map(client => (
+							<option key={client.clientId} value={client.clientId}>
+								{platformLabel(client.platform)} · {shortId(client.clientId)}
+							</option>
+						))}
+					</select>
+				)}
 				<div
 					className="flex h-7 items-center rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800"
 					role="tablist"
@@ -217,6 +248,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 									request={group.head}
 									response={group.response}
 									clients={clients}
+									hideClient={hideClient}
 									animate={
 										initialMaxSeq.current !== null &&
 										group.head.seq > initialMaxSeq.current
@@ -226,6 +258,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 								<EventRow
 									event={group.head}
 									clients={clients}
+									hideClient={hideClient}
 									animate={
 										initialMaxSeq.current !== null &&
 										group.head.seq > initialMaxSeq.current
