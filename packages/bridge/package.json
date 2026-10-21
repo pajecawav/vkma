@@ -20,7 +20,10 @@
 		}
 	},
 	"files": [
-		"dist"
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx"
 	],
 	"scripts": {
 		"build": "tsdown",
@@ -28,6 +31,9 @@
 		"lint:package": "publint",
 		"test": "vitest run",
 		"test:watch": "vitest watch"
+	},
+	"dependencies": {
+		"@vkontakte/vk-bridge": "catalog:"
 	},
 	"devDependencies": {
 		"publint": "catalog:",
