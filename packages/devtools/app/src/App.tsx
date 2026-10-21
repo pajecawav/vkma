@@ -39,23 +39,37 @@ export function App() {
 			/>
 			<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
 				<Rail section={section} sections={sections} onSelect={setSection} />
-				{gate ??
-					(section === "timeline" ? (
-						<Timeline
-							events={connection.events}
-							clients={connection.clients}
-							hideClient={Boolean(embeddedClientId)}
-						/>
-					) : section === "execute" ? (
-						<Execute
-							clients={connection.clients}
-							events={connection.events}
-							execute={connection.execute}
-							fixedClientId={embeddedClientId}
-						/>
-					) : (
-						<Clients clients={connection.clients} />
-					))}
+				{gate ?? (
+					<>
+						{/* Sections stay mounted so in-progress state (typed params,
+						    pending execute, filters, expanded rows) survives tab
+						    switches — inactive ones are display-none. */}
+						<div
+							className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "timeline" ? "" : "hidden"}`}
+						>
+							<Timeline
+								events={connection.events}
+								clients={connection.clients}
+								hideClient={Boolean(embeddedClientId)}
+							/>
+						</div>
+						<div
+							className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "execute" ? "" : "hidden"}`}
+						>
+							<Execute
+								clients={connection.clients}
+								events={connection.events}
+								execute={connection.execute}
+								fixedClientId={embeddedClientId}
+							/>
+						</div>
+						<div
+							className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "clients" ? "" : "hidden"}`}
+						>
+							<Clients clients={connection.clients} />
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	);

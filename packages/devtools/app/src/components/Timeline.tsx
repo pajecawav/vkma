@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
 import { platformLabel, shortId } from "../lib/format.ts";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
-import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
+import { ChevronIcon, PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
 
 type EventFilter = "all" | "requests" | "events";
 
@@ -146,20 +146,28 @@ export function Timeline({
 					className="h-7 w-40 min-w-0 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 sm:w-56 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500"
 				/>
 				{!hideClient && clients.length > 1 && (
-					<select
-						value={clientFilter}
-						onChange={event => setClientFilter(event.target.value)}
-						aria-label="Client"
-						title="Show events of one client"
-						className="h-7 max-w-44 rounded-md border border-neutral-200 bg-white px-1.5 text-xs text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
-					>
-						<option value="all">All clients</option>
-						{clients.map(client => (
-							<option key={client.clientId} value={client.clientId}>
-								{platformLabel(client.platform)} · {shortId(client.clientId)}
-							</option>
-						))}
-					</select>
+					<div className="relative">
+						<select
+							value={clientFilter}
+							onChange={event => setClientFilter(event.target.value)}
+							aria-label="Client"
+							title="Show events of one client"
+							className="h-7 max-w-44 cursor-pointer appearance-none rounded-md border border-neutral-200 bg-white pl-1.5 pr-6 text-xs text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
+						>
+							<option value="all">All clients</option>
+							{clients.map(client => (
+								<option key={client.clientId} value={client.clientId}>
+									{platformLabel(client.platform)} · {shortId(client.clientId)}
+								</option>
+							))}
+						</select>
+						<span
+							className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-neutral-400"
+							aria-hidden="true"
+						>
+							<ChevronIcon width={11} height={11} className="rotate-90" />
+						</span>
+					</div>
 				)}
 				<div
 					className="flex h-7 items-center rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800"
