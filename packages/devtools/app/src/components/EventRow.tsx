@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
+import { JsonTree } from "./JsonTree.tsx";
 
 const CLIENT_SHADES = [
 	"bg-neutral-400 dark:bg-neutral-500",
@@ -36,18 +37,45 @@ function ClientBadge({
 
 function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
+
+	const copy = (event: React.MouseEvent) => {
+		event.stopPropagation();
+		const done = () => {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 1200);
+		};
+		// Inside the FAB iframe the async clipboard API can be unavailable
+		// (unfocused document / missing permission policy) — fall back to a
+		// hidden textarea + execCommand, which works in same-origin frames.
+		const fallback = () => {
+			const area = document.createElement("textarea");
+			area.value = text;
+			area.style.position = "fixed";
+			area.style.opacity = "0";
+			document.body.append(area);
+			area.select();
+			try {
+				document.execCommand("copy");
+				done();
+			} catch {
+				// give up quietly; the user can still select the raw JSON
+			} finally {
+				area.remove();
+			}
+		};
+		if (navigator.clipboard?.writeText) {
+			void navigator.clipboard.writeText(text).then(done, fallback);
+		} else {
+			fallback();
+		}
+	};
+
 	return (
 		<button
 			type="button"
 			className="grid size-6 shrink-0 place-items-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
 			title="Copy JSON"
-			onClick={event => {
-				event.stopPropagation();
-				void navigator.clipboard?.writeText(text).then(() => {
-					setCopied(true);
-					setTimeout(() => setCopied(false), 1200);
-				});
-			}}
+			onClick={copy}
 		>
 			{copied ? <CheckIcon width={13} height={13} /> : <CopyIcon width={13} height={13} />}
 		</button>
@@ -139,7 +167,7 @@ const EventRow = memo(function Row({
 					}
 				/>
 				<span
-					className={`shrink-0 font-mono text-[13px] ${isError ? "text-red-600 dark:text-red-400" : "text-neutral-800 dark:text-neutral-200"}`}
+					className={`min-w-0 truncate font-mono text-[13px] ${isError ? "text-red-600 dark:text-red-400" : "text-neutral-800 dark:text-neutral-200"}`}
 				>
 					{event.name}
 				</span>
@@ -159,9 +187,9 @@ const EventRow = memo(function Row({
 			{open && (
 				<div className="flex items-start gap-1 px-3 pb-2 pl-9">
 					<CopyButton text={JSON.stringify(event.payload ?? null, null, "\t")} />
-					<pre className="scroll-area max-h-64 w-full min-w-0 overflow-auto rounded-md border border-neutral-200 bg-white p-2.5 text-left font-mono text-[11px] leading-relaxed text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-						{JSON.stringify(event.payload ?? null, null, "\t")}
-					</pre>
+					<div className="scroll-area max-h-64 w-full min-w-0 overflow-auto rounded-md border border-neutral-200 bg-white px-2 py-1 text-left dark:border-neutral-800 dark:bg-neutral-900">
+						<JsonTree value={event.payload} />
+					</div>
 				</div>
 			)}
 		</div>

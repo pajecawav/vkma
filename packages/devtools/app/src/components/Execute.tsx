@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { ClientInfo, ExecResult, WireEvent } from "../../../src/shared/protocol.ts";
 import { platformLabel, shortId } from "../lib/format.ts";
 import { CheckIcon, CrossIcon } from "./icons.tsx";
+import { JsonTree } from "./JsonTree.tsx";
 
 type Pending = { state: "pending" } | { state: "done"; result: ExecResult };
 
@@ -90,7 +91,7 @@ export function Execute({
 
 	return (
 		<section
-			className="scroll-area min-h-0 flex-1 overflow-y-auto p-4 sm:p-6"
+			className="scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"
 			aria-label="Execute"
 		>
 			<div className="mx-auto flex max-w-xl flex-col gap-4">
@@ -174,7 +175,7 @@ export function Execute({
 								const panel = resultPanel(pending.result);
 								return (
 									<div
-										className={`rounded-lg border p-3 ${
+										className={`flex min-h-40 flex-col rounded-lg border p-3 ${
 											panel.tone === "ok"
 												? "border-emerald-600/30 bg-emerald-500/[0.06]"
 												: panel.tone === "error"
@@ -200,9 +201,9 @@ export function Execute({
 											)}
 											{panel.title}
 										</p>
-										<pre className="scroll-area mt-2 max-h-56 overflow-auto font-mono text-[11px] leading-relaxed text-neutral-700 dark:text-neutral-300">
-											{JSON.stringify(panel.payload ?? null, null, "\t")}
-										</pre>
+										<div className="scroll-area mt-2 max-h-[55vh] flex-1 overflow-auto font-mono text-[11px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+											<JsonTree value={panel.payload ?? null} />
+										</div>
 									</div>
 								);
 							})()}

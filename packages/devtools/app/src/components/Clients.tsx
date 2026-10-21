@@ -23,7 +23,7 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 					</dt>
 					<dd
 						className={`break-all font-mono text-[11px] text-neutral-600 dark:text-neutral-300 ${
-							SENSITIVE_PARAMS.has(key) ? "blur-sm select-none" : ""
+							SENSITIVE_PARAMS.has(key) ? "blur-sm" : ""
 						}`}
 						title={SENSITIVE_PARAMS.has(key) ? undefined : value}
 					>
@@ -95,7 +95,7 @@ function ClientCard({ client }: { client: ClientInfo }) {
 export function Clients({ clients }: { clients: ClientInfo[] }) {
 	return (
 		<section
-			className="scroll-area min-h-0 flex-1 overflow-y-auto p-4 sm:p-6"
+			className="scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"
 			aria-label="Clients"
 		>
 			<div className="mx-auto flex max-w-xl flex-col gap-2">

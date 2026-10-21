@@ -129,7 +129,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 	const empty = ordered.length === 0 && query === "" && buffered === 0;
 
 	return (
-		<section className="flex min-h-0 flex-1 flex-col" aria-label="Timeline">
+		<section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Timeline">
 			<div className="flex h-11 shrink-0 items-center gap-2 border-b border-neutral-200 px-3 dark:border-neutral-800">
 				<input
 					type="search"
@@ -200,7 +200,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 
 			<div
 				ref={listRef}
-				className="scroll-area relative min-h-0 flex-1 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800/60"
+				className="scroll-area relative min-h-0 flex-1 divide-y divide-neutral-100 overflow-y-auto overflow-x-hidden dark:divide-neutral-800/60"
 			>
 				{empty ? (
 					<div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 px-6 text-center">

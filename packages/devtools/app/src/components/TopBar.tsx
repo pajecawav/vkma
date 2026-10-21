@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ConnectionStatus } from "../lib/rpc.ts";
-import { MoonIcon, RefreshIcon, SunIcon } from "./icons.tsx";
+import { MoonIcon, RefreshIcon, SunIcon, VkmaLogoIcon } from "./icons.tsx";
 
 const STATUS_META: Record<ConnectionStatus, { label: string; dot: string; text: string }> = {
 	connecting: { label: "Connecting", dot: "bg-neutral-400", text: "text-neutral-500" },
@@ -42,22 +42,7 @@ export function TopBar({
 	return (
 		<header className="flex h-12 shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-4 dark:border-neutral-800 dark:bg-neutral-900">
 			<div className="flex items-center gap-2 select-none">
-				<svg
-					viewBox="0 0 24 24"
-					width="18"
-					height="18"
-					className="text-neutral-900 dark:text-neutral-100"
-					aria-hidden="true"
-				>
-					<path
-						d="M12 3.5 20.5 12 12 20.5 3.5 12Z"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinejoin="round"
-					/>
-					<circle cx="12" cy="12" r="2.4" fill="currentColor" />
-				</svg>
+				<VkmaLogoIcon className="text-neutral-900 dark:text-neutral-100" />
 				<span className="text-sm font-semibold tracking-tight">
 					vkma
 					<span className="ml-1.5 font-normal text-neutral-400">devtools</span>
