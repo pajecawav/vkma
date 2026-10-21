@@ -3,8 +3,26 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 // The app talks to what it believes is the real vk-bridge; the devtools
-// plugin's dev alias swaps it for @vkma.dev/bridge behind its back.
+// plugin's dev interception routes it through the @vkma.dev/bridge tap.
 void bridge.send("VKWebAppInit");
+
+// A fake VK client: vk-bridge posts `{ type: 'vk-connect', handler, params }`
+// to the parent frame and waits for `{ type: methodName, data }` back. In a
+// standalone tab the parent is this very window, so we echo the requests —
+// including the devtools' `request_id`, which resolves the send promises.
+window.addEventListener("message", event => {
+	const payload = event.data as {
+		type?: string;
+		handler?: string;
+		params?: Record<string, unknown>;
+	} | null;
+	if (event.source !== window || payload?.type !== "vk-connect") {
+		return;
+	}
+	if (payload.handler !== undefined && payload.params !== undefined) {
+		window.postMessage({ type: payload.handler, data: payload.params }, "*");
+	}
+});
 
 bridge.subscribe(event => {
 	console.log("[playground] bridge event:", event.detail.type, event.detail.data);
@@ -22,10 +40,8 @@ function App() {
 		// Simulates VK pushing an event into the app (no request involved).
 		window.postMessage(
 			{
-				detail: {
-					type: "VKWebAppUpdateConfig",
-					data: { appearance: Math.random() > 0.5 ? "light" : "dark" },
-				},
+				type: "VKWebAppUpdateConfig",
+				data: { appearance: Math.random() > 0.5 ? "light" : "dark" },
 			},
 			"*",
 		);
