@@ -61,14 +61,27 @@ test("ring buffer keeps the last 500 events", () => {
 	expect(snapshot.at(-1)?.seq).toBe(600);
 });
 
-test("pruneClients drops clients past the TTL", () => {
+test("clients past the heartbeat TTL flip offline but stay registered", () => {
 	const store = new DevtoolsStore();
 	store.touchClient(client({ clientId: "fresh", lastSeenAt: 10_000 }));
 	store.touchClient(client({ clientId: "stale", lastSeenAt: 0, connectedAt: 0 }));
 
-	const dropped = store.pruneClients(20_000);
-	expect(dropped.map(c => c.clientId)).toEqual(["stale"]);
-	expect(store.listClients().map(c => c.clientId)).toEqual(["fresh"]);
+	const stale = store.listClients(20_000).find(c => c.clientId === "stale");
+	const fresh = store.listClients(20_000).find(c => c.clientId === "fresh");
+	expect(stale?.online).toBe(false);
+	expect(fresh?.online).toBe(true);
+});
+
+test("the registry caps at 24 entries, dropping oldest offline first", () => {
+	const store = new DevtoolsStore();
+	for (let i = 0; i < 30; i++) {
+		store.touchClient(client({ clientId: `c${i}`, connectedAt: i, lastSeenAt: i }));
+	}
+
+	const list = store.listClients(1_000_000);
+	expect(list).toHaveLength(24);
+	expect(store.getClient("c0")).toBeUndefined();
+	expect(store.getClient("c6")).toBeDefined();
 });
 
 test("execute round-trip settles via report and rejects late arrivals", async () => {

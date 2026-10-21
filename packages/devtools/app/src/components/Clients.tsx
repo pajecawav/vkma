@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ClientInfo } from "../../../src/shared/protocol.ts";
+import type { ClientStatus } from "../../../src/shared/protocol.ts";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
 import { ChevronIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
@@ -36,10 +36,14 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 	);
 }
 
-function ClientCard({ client }: { client: ClientInfo }) {
+function ClientCard({ client }: { client: ClientStatus }) {
 	const [open, setOpen] = useState(false);
 	return (
-		<li className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+		<li
+			className={`rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900 ${
+				client.online ? "" : "opacity-55"
+			}`}
+		>
 			<button
 				type="button"
 				onClick={() => setOpen(value => !value)}
@@ -60,6 +64,11 @@ function ClientCard({ client }: { client: ClientInfo }) {
 							/>
 							{shortId(client.clientId)}
 						</span>
+						{!client.online && (
+							<span className="rounded-[4px] bg-neutral-200 px-1.5 py-0.5 text-[10px] font-medium leading-none text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
+								offline
+							</span>
+						)}
 						{!client.bridge && (
 							<WarningIcon width={13} height={13} className="text-amber-500" />
 						)}
@@ -100,7 +109,7 @@ function ClientCard({ client }: { client: ClientInfo }) {
 	);
 }
 
-export function Clients({ clients }: { clients: ClientInfo[] }) {
+export function Clients({ clients }: { clients: ClientStatus[] }) {
 	return (
 		<section
 			className="scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"

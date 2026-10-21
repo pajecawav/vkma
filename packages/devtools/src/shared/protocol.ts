@@ -38,6 +38,11 @@ export interface ClientInfo {
 	launchParams?: Record<string, string>;
 }
 
+export type ClientStatus = ClientInfo & {
+	/** Computed by the node side: heartbeat within the online TTL. */
+	online: boolean;
+};
+
 export type ExecResult =
 	| { status: "ok"; payload: unknown }
 	| { status: "error"; payload: unknown }
@@ -53,7 +58,7 @@ export interface ExecResultReport {
 
 export interface DevtoolsState {
 	events: WireEvent[];
-	clients: ClientInfo[];
+	clients: ClientStatus[];
 }
 
 export const VKMA_RPC = {
@@ -74,7 +79,7 @@ declare module "devframe" {
 		/** Node → every panel: live events batch. */
 		"vkma:on-events": (events: WireEvent[]) => void;
 		/** Node → every panel: the current client registry. */
-		"vkma:on-clients": (clients: ClientInfo[]) => void;
+		"vkma:on-clients": (clients: ClientStatus[]) => void;
 		/** Node → every panel: a client's page reloaded — drop its history. */
 		"vkma:on-session-reset": (payload: { clientId: string }) => void;
 		/** Node → every page script: an execute routed to its target. */

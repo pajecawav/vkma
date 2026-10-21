@@ -2,7 +2,7 @@ import { defineRpcFunction } from "devframe";
 import { connectDevframe } from "devframe/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-	ClientInfo,
+	ClientStatus,
 	DevtoolsState,
 	ExecResult,
 	WireEvent,
@@ -45,7 +45,7 @@ function mergeEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
 export interface VkmaConnection {
 	status: ConnectionStatus;
 	events: WireEvent[];
-	clients: ClientInfo[];
+	clients: ClientStatus[];
 	requestAuthCode: () => Promise<void>;
 	submitAuthCode: (code: string) => Promise<boolean>;
 	execute: (
@@ -59,7 +59,7 @@ export interface VkmaConnection {
 export function useVkma(embeddedClientId?: string): VkmaConnection {
 	const [status, setStatus] = useState<ConnectionStatus>("connecting");
 	const [events, setEvents] = useState<WireEvent[]>([]);
-	const [clients, setClients] = useState<ClientInfo[]>([]);
+	const [clients, setClients] = useState<ClientStatus[]>([]);
 	const scopedRef = useRef<ScopedClient | undefined>(undefined);
 	const rpcRef = useRef<RpcClient | undefined>(undefined);
 	const [nonce, setNonce] = useState(0);
@@ -100,7 +100,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 				defineRpcFunction({
 					name: "on-clients",
 					type: "event",
-					handler: (next: ClientInfo[]) => {
+					handler: (next: ClientStatus[]) => {
 						setClients(
 							embeddedClientId
 								? next.filter(client => client.clientId === embeddedClientId)
@@ -148,7 +148,6 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 					? state.clients.filter(client => client.clientId === embeddedClientId)
 					: state.clients,
 			);
-			setStatus(client.status);
 		});
 
 		return () => {

@@ -264,6 +264,18 @@ setInterval(() => {
 }, HEARTBEAT_MS);
 setInterval(flush, FLUSH_MS);
 
+// Chrome throttles timers in background tabs, so on focus say hello right
+// away instead of waiting for the next tick (the node flips the client
+// back online immediately).
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "visible") {
+		if (current !== undefined) {
+			current.rpc.callEvent(VKMA_RPC.hello, clientInfo());
+		}
+		flush();
+	}
+});
+
 void import("./fab.ts").then(({ mountFab }) => {
 	mountFab({ base, clientId });
 });

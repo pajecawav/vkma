@@ -29,14 +29,21 @@ export const vkmaDevframe = defineDevframe({
 			});
 		};
 
-		// Prune stale page scripts (heartbeat every 5s, TTL 15s). Lives for
-		// the process lifetime; unref'd so it never holds a server open.
-		const pruneTimer = setInterval(() => {
-			if (store.pruneClients().length > 0) {
+		// Broadcast when a client's online flag flips (heartbeat every 5s,
+		// online TTL 15s — a background tab's throttled heartbeat turns the
+		// client offline instead of deleting it). Never holds the process.
+		let onlineFingerprint = "";
+		const statusTimer = setInterval(() => {
+			const fingerprint = store
+				.listClients()
+				.map(client => `${client.clientId}:${client.online ? 1 : 0}`)
+				.join(",");
+			if (fingerprint !== onlineFingerprint) {
+				onlineFingerprint = fingerprint;
 				broadcastClients();
 			}
 		}, 5_000);
-		pruneTimer.unref?.();
+		statusTimer.unref?.();
 
 		ctx.rpc.register({
 			name: VKMA_RPC.hello,
@@ -87,7 +94,6 @@ export const vkmaDevframe = defineDevframe({
 			name: VKMA_RPC.state,
 			type: "query",
 			handler: (): DevtoolsState => {
-				store.pruneClients();
 				return {
 					events: store.snapshotEvents(),
 					clients: store.listClients(),

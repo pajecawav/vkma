@@ -1,7 +1,8 @@
-import type { ClientInfo, WireEvent } from "../shared/protocol.ts";
+import type { ClientInfo, ClientStatus, WireEvent } from "../shared/protocol.ts";
 
 const RING_LIMIT = 500;
-const CLIENT_TTL_MS = 15_000;
+const CLIENT_ONLINE_TTL_MS = 15_000;
+const REGISTRY_CAP = 24;
 const EXEC_TIMEOUT_MS = 20_000;
 
 interface PendingExec {
@@ -11,7 +12,8 @@ interface PendingExec {
 
 /**
  * Node-side state: a ring buffer of bridge events, the connected-client
- * registry (staleness-pruned), and pending execute round-trips.
+ * registry (heartbeat-stale clients turn offline, entries capped), and
+ * pending execute round-trips.
  */
 export class DevtoolsStore {
 	private events: WireEvent[] = [];
@@ -35,24 +37,46 @@ export class DevtoolsStore {
 		this.events = this.events.filter(event => event.clientId !== clientId);
 	}
 
-	/** @returns dropped clients, if any (caller broadcasts). */
-	public pruneClients(now = Date.now()): ClientInfo[] {
-		const dropped: ClientInfo[] = [];
-		for (const [clientId, info] of this.clients) {
-			if (now - info.lastSeenAt > CLIENT_TTL_MS) {
-				this.clients.delete(clientId);
-				dropped.push(info);
+	/**
+	 * Clients never leave the registry on a timer — a background tab's
+	 * heartbeat is throttled by Chrome and would flap them offline/online
+	 * as disappear/reappear. They are marked offline past the heartbeat TTL
+	 * instead, and only dropped when the registry outgrows its cap (oldest
+	 * offline first).
+	 */
+	public listClients(now = Date.now()): ClientStatus[] {
+		const statuses = [...this.clients.values()]
+			.map(info => ({
+				...info,
+				online: now - info.lastSeenAt <= CLIENT_ONLINE_TTL_MS,
+			}))
+			.toSorted((a, b) => {
+				if (a.online !== b.online) {
+					return a.online ? -1 : 1;
+				}
+				return a.connectedAt - b.connectedAt;
+			});
+		if (statuses.length > REGISTRY_CAP) {
+			const keepOnline = new Set(
+				statuses.filter(status => status.online).map(status => status.clientId),
+			);
+			let overflow = statuses.length - REGISTRY_CAP;
+			for (const status of statuses) {
+				if (overflow === 0) {
+					break;
+				}
+				if (!status.online && !keepOnline.has(status.clientId)) {
+					this.clients.delete(status.clientId);
+					overflow--;
+				}
 			}
+			return statuses.filter(status => this.clients.has(status.clientId));
 		}
-		return dropped;
+		return statuses;
 	}
 
 	public getClient(clientId: string): ClientInfo | undefined {
 		return this.clients.get(clientId);
-	}
-
-	public listClients(): ClientInfo[] {
-		return [...this.clients.values()].toSorted((a, b) => a.connectedAt - b.connectedAt);
 	}
 
 	/** Assigns global seq numbers; drops events from unknown clients. */
