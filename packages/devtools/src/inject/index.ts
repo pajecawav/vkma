@@ -265,5 +265,5 @@ setInterval(() => {
 setInterval(flush, FLUSH_MS);
 
 void import("./fab.ts").then(({ mountFab }) => {
-	mountFab({ base });
+	mountFab({ base, clientId });
 });

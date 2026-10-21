@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { clientColor } from "../lib/colors.ts";
 import type { ConnectionStatus } from "../lib/rpc.ts";
 import { MoonIcon, RefreshIcon, SunIcon, VkmaLogoIcon } from "./icons.tsx";
 
@@ -32,9 +33,11 @@ function useTheme(): [dark: boolean, toggle: () => void] {
 export function TopBar({
 	status,
 	onReconnect,
+	clientBadge,
 }: {
 	status: ConnectionStatus;
 	onReconnect: () => void;
+	clientBadge?: { clientId: string };
 }) {
 	const [dark, toggleTheme] = useTheme();
 	const meta = STATUS_META[status];
@@ -49,7 +52,23 @@ export function TopBar({
 				</span>
 			</div>
 
-			<div className="ml-auto flex items-center gap-1.5">
+			<div className="ml-auto flex items-center gap-3">
+				{clientBadge &&
+					(() => {
+						const color = clientColor(clientBadge.clientId);
+						return (
+							<span
+								className={`inline-flex items-center gap-1.5 rounded-md bg-neutral-100 px-2 py-1 font-mono text-[11px] leading-none ${color.text} dark:bg-neutral-800`}
+								title="This panel is scoped to this client"
+							>
+								<span
+									className={`size-1.5 rounded-[2px] ${color.dot}`}
+									aria-hidden="true"
+								/>
+								{clientBadge.clientId.slice(0, 8)}
+							</span>
+						);
+					})()}
 				<span className="flex items-center gap-2 text-xs" title={`RPC: ${meta.label}`}>
 					<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
 					<span className={meta.text}>{meta.label}</span>

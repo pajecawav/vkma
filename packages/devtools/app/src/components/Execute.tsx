@@ -31,6 +31,7 @@ export function Execute({
 	clients,
 	events,
 	execute,
+	fixedClientId,
 }: {
 	clients: ClientInfo[];
 	events: WireEvent[];
@@ -39,6 +40,8 @@ export function Execute({
 		name: string,
 		params: Record<string, unknown> | undefined,
 	) => Promise<ExecResult>;
+	/** Embedded mode: the panel is bound to this client only. */
+	fixedClientId?: string;
 }) {
 	const knownNames = useMemo(() => {
 		const names = new Set<string>();
@@ -51,11 +54,10 @@ export function Execute({
 	const latest = clients.length > 0 ? clients.at(-1) : undefined;
 	const latestClientId = latest?.clientId ?? "";
 	const [target, setTarget] = useState(latestClientId);
+	const activeTarget = fixedClientId ?? target;
 	const [name, setName] = useState("");
 	const [paramsText, setParamsText] = useState("{\n  \n}");
 	const [pending, setPending] = useState<Pending>();
-
-	const activeTarget = target === "" ? latestClientId : target;
 
 	const paramsError = useMemo(() => {
 		try {
@@ -102,21 +104,23 @@ export function Execute({
 					</p>
 				) : (
 					<>
-						<label className="flex flex-col gap-1.5">
-							<span className="text-xs font-medium text-neutral-500">Target</span>
-							<select
-								value={activeTarget}
-								onChange={event => setTarget(event.target.value)}
-								className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-sm dark:border-neutral-800 dark:bg-neutral-900"
-							>
-								{clients.map(client => (
-									<option key={client.clientId} value={client.clientId}>
-										{platformLabel(client.platform)} ·{" "}
-										{shortId(client.clientId)}
-									</option>
-								))}
-							</select>
-						</label>
+						{!fixedClientId && (
+							<label className="flex flex-col gap-1.5">
+								<span className="text-xs font-medium text-neutral-500">Target</span>
+								<select
+									value={activeTarget}
+									onChange={event => setTarget(event.target.value)}
+									className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-sm dark:border-neutral-800 dark:bg-neutral-900"
+								>
+									{clients.map(client => (
+										<option key={client.clientId} value={client.clientId}>
+											{platformLabel(client.platform)} ·{" "}
+											{shortId(client.clientId)}
+										</option>
+									))}
+								</select>
+							</label>
+						)}
 
 						<label className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-neutral-500">Event</span>

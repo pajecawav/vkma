@@ -113,14 +113,6 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 			? events.filter(event => event.seq > anchorSeq && event.seq > clearSeq).length
 			: 0;
 
-	const clientShade = useMemo(() => {
-		const shades = new Map<string, number>();
-		for (const client of clients) {
-			shades.set(client.clientId, shades.size);
-		}
-		return (clientId: string) => shades.get(clientId) ?? 0;
-	}, [clients]);
-
 	const initialMaxSeq = useRef<number | null>(null);
 	if (initialMaxSeq.current === null && events.length > 0) {
 		initialMaxSeq.current = maxSeq;
@@ -225,7 +217,6 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 									request={group.head}
 									response={group.response}
 									clients={clients}
-									clientShade={clientShade}
 									animate={
 										initialMaxSeq.current !== null &&
 										group.head.seq > initialMaxSeq.current
@@ -235,7 +226,6 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 								<EventRow
 									event={group.head}
 									clients={clients}
-									clientShade={clientShade}
 									animate={
 										initialMaxSeq.current !== null &&
 										group.head.seq > initialMaxSeq.current

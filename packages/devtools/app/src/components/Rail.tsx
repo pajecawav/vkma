@@ -3,17 +3,19 @@ import { ClientsIcon, ExecuteIcon, TimelineIcon } from "./icons.tsx";
 
 export type Section = "timeline" | "execute" | "clients";
 
-const SECTIONS: { id: Section; label: string; icon: ReactNode }[] = [
-	{ id: "timeline", label: "Timeline", icon: <TimelineIcon /> },
-	{ id: "execute", label: "Execute", icon: <ExecuteIcon /> },
-	{ id: "clients", label: "Clients", icon: <ClientsIcon /> },
-];
+const SECTIONS: Record<Section, { label: string; icon: ReactNode }> = {
+	timeline: { label: "Timeline", icon: <TimelineIcon /> },
+	execute: { label: "Execute", icon: <ExecuteIcon /> },
+	clients: { label: "Clients", icon: <ClientsIcon /> },
+};
 
 export function Rail({
 	section,
+	sections,
 	onSelect,
 }: {
 	section: Section;
+	sections: Section[];
 	onSelect: (section: Section) => void;
 }) {
 	return (
@@ -21,7 +23,8 @@ export function Rail({
 			aria-label="Sections"
 			className="flex shrink-0 gap-1 border-b border-neutral-200 bg-white px-2 py-1.5 dark:border-neutral-800 dark:bg-neutral-900 sm:w-44 sm:flex-col sm:gap-0.5 sm:border-r sm:border-b-0 sm:py-3"
 		>
-			{SECTIONS.map(({ id, label, icon }) => {
+			{sections.map(id => {
+				const { label, icon } = SECTIONS[id];
 				const active = section === id;
 				return (
 					<button

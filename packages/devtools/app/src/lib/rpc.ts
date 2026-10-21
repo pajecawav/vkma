@@ -39,7 +39,7 @@ export interface VkmaConnection {
 	reconnect: () => void;
 }
 
-export function useVkma(): VkmaConnection {
+export function useVkma(embeddedClientId?: string): VkmaConnection {
 	const [status, setStatus] = useState<ConnectionStatus>("connecting");
 	const [events, setEvents] = useState<WireEvent[]>([]);
 	const [clients, setClients] = useState<ClientInfo[]>([]);
@@ -69,7 +69,14 @@ export function useVkma(): VkmaConnection {
 					name: "on-events",
 					type: "event",
 					handler: (incoming: WireEvent[]) => {
-						setEvents(prev => [...prev, ...incoming].slice(-MAX_EVENTS));
+						setEvents(prev =>
+							[...prev, ...incoming]
+								.filter(
+									event =>
+										!embeddedClientId || event.clientId === embeddedClientId,
+								)
+								.slice(-MAX_EVENTS),
+						);
 					},
 				}) as never,
 			);
@@ -77,7 +84,13 @@ export function useVkma(): VkmaConnection {
 				defineRpcFunction({
 					name: "on-clients",
 					type: "event",
-					handler: (next: ClientInfo[]) => setClients(next),
+					handler: (next: ClientInfo[]) => {
+						setClients(
+							embeddedClientId
+								? next.filter(client => client.clientId === embeddedClientId)
+								: next,
+						);
+					},
 				}) as never,
 			);
 			scoped.rpc.register(
@@ -105,8 +118,16 @@ export function useVkma(): VkmaConnection {
 			if (disposed) {
 				return;
 			}
-			setEvents(state.events.slice(-MAX_EVENTS));
-			setClients(state.clients);
+			setEvents(
+				state.events
+					.filter(event => !embeddedClientId || event.clientId === embeddedClientId)
+					.slice(-MAX_EVENTS),
+			);
+			setClients(
+				embeddedClientId
+					? state.clients.filter(client => client.clientId === embeddedClientId)
+					: state.clients,
+			);
 			setStatus(client.status);
 		});
 
@@ -115,6 +136,7 @@ export function useVkma(): VkmaConnection {
 			scopedRef.current = undefined;
 			rpcRef.current = undefined;
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [nonce]);
 
 	const requestAuthCode = useCallback(async () => {

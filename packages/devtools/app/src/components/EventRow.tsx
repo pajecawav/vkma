@@ -1,33 +1,19 @@
 import { memo, useState } from "react";
 import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
+import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 
-const CLIENT_SHADES = [
-	"bg-neutral-400 dark:bg-neutral-500",
-	"bg-neutral-600 dark:bg-neutral-300",
-	"bg-neutral-800 dark:bg-neutral-100",
-	"bg-neutral-300 dark:bg-neutral-700",
-];
-
-function ClientBadge({
-	clientId,
-	clients,
-	shadeIndex,
-}: {
-	clientId: string;
-	clients: ClientInfo[];
-	shadeIndex: number;
-}) {
+function ClientBadge({ clientId, clients }: { clientId: string; clients: ClientInfo[] }) {
 	const client = clients.find(c => c.clientId === clientId);
 	return (
 		<span
-			className="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] leading-none text-neutral-400 dark:text-neutral-500"
+			className={`inline-flex shrink-0 items-center gap-1 font-mono text-[11px] leading-none ${clientColor(clientId).text}`}
 			title={client ? client.url : "client disconnected"}
 		>
 			<span
-				className={`size-1.5 rounded-[2px] ${CLIENT_SHADES[shadeIndex % CLIENT_SHADES.length]}`}
+				className={`size-1.5 rounded-[2px] ${clientColor(clientId).dot}`}
 				aria-hidden="true"
 			/>
 			{shortId(clientId)}
@@ -114,21 +100,13 @@ function KindChip({ kind, title }: { kind: "request" | "response" | "event"; tit
 interface RowProps {
 	event: WireEvent;
 	clients: ClientInfo[];
-	clientShade: (clientId: string) => number;
 	/** Response-only: timestamp of the paired request. */
 	requestTs?: number;
 	animate: boolean;
 	indent?: boolean;
 }
 
-const EventRow = memo(function Row({
-	event,
-	clients,
-	clientShade,
-	requestTs,
-	animate,
-	indent,
-}: RowProps) {
+const EventRow = memo(function Row({ event, clients, requestTs, animate, indent }: RowProps) {
 	const [open, setOpen] = useState(false);
 	const kind: "request" | "response" | "event" =
 		event.kind === "send" ? "request" : event.kind === "response" ? "response" : "event";
@@ -151,11 +129,7 @@ const EventRow = memo(function Row({
 				>
 					{formatTime(event.ts)}
 				</time>
-				<ClientBadge
-					clientId={event.clientId}
-					clients={clients}
-					shadeIndex={clientShade(event.clientId)}
-				/>
+				<ClientBadge clientId={event.clientId} clients={clients} />
 				<KindChip
 					kind={kind}
 					title={
@@ -200,7 +174,6 @@ export interface RequestGroupProps {
 	request: WireEvent;
 	response?: WireEvent;
 	clients: ClientInfo[];
-	clientShade: (clientId: string) => number;
 	animate: boolean;
 }
 
@@ -209,17 +182,15 @@ export const RequestGroup = memo(function RequestGroup({
 	request,
 	response,
 	clients,
-	clientShade,
 	animate,
 }: RequestGroupProps) {
 	return (
 		<div className={animate ? "row-in" : undefined}>
-			<EventRow event={request} clients={clients} clientShade={clientShade} animate={false} />
+			<EventRow event={request} clients={clients} animate={false} />
 			{response && (
 				<EventRow
 					event={response}
 					clients={clients}
-					clientShade={clientShade}
 					requestTs={request.ts}
 					animate={false}
 					indent
