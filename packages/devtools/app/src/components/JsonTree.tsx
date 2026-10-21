@@ -1,130 +1,232 @@
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import styles from "./JsonTree.module.css";
 
 /**
- * Minimal collapsible JSON tree, styled for the quiet-ledger world:
- * neutral tones only, hairline indents, monospace. No dependencies.
- * Nodes deeper than `defaultOpenDepth` start collapsed.
+ * Chrome-DevTools-style collapsible JSON tree (ported from the inspector's
+ * PayloadCollapsedPreview, adapted to the vkma themes): colored
+ * keys/strings/numbers, collapsed containers preview their first entries
+ * inline (`{ key : {…}, count : 11 }`), arrays get a length row, children
+ * render in 500-item chunks. Nodes are memoized — collapsed subtrees cost
+ * one cheap branch render on panel updates.
  */
 
-const DEFAULT_OPEN_DEPTH = 2;
+const CHUNK_SIZE = 500;
+const PREVIEW_ENTRIES = 5;
+const PREVIEW_STRING_LENGTH = 30;
 
-function Primitive({ value }: { value: unknown }) {
-	if (value === null || value === undefined) {
-		return <span className="italic text-neutral-400">null</span>;
+const EMPTY_ENTRIES: [string | number, unknown][] = [];
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isContainer = (value: unknown): value is Record<string, unknown> | unknown[] =>
+	typeof value === "object" && value !== null;
+
+const truncate = (value: string) =>
+	value.length > PREVIEW_STRING_LENGTH ? `${value.slice(0, PREVIEW_STRING_LENGTH)}…` : value;
+
+const childEntries = (value: unknown): [string | number, unknown][] => {
+	if (Array.isArray(value)) {
+		return value.map((item, index) => [index, item]);
+	}
+	if (isPlainObject(value)) {
+		return Object.entries(value);
+	}
+	return EMPTY_ENTRIES;
+};
+
+const formatPrimitive = (value: unknown): string => {
+	if (value === null) {
+		return "null";
+	}
+	if (value === undefined) {
+		return "undefined";
 	}
 	if (typeof value === "string") {
-		return <span className="text-neutral-600 dark:text-neutral-300">"{value}"</span>;
+		return `"${value}"`;
 	}
-	if (typeof value === "number" || typeof value === "boolean") {
-		return (
-			<span className="font-medium text-neutral-900 dark:text-neutral-100">
-				{String(value)}
-			</span>
-		);
+	if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+		return value.toString();
 	}
-	if (typeof value === "bigint" || typeof value === "symbol") {
-		return (
-			<span className="font-medium text-neutral-900 dark:text-neutral-100">
-				{value.toString()}
-			</span>
-		);
-	}
-	return <span className="text-neutral-500">{JSON.stringify(value) ?? "undefined"}</span>;
-}
+	return JSON.stringify(value);
+};
 
-function Branch({
-	name,
-	value,
-	depth,
-}: {
-	name?: string;
-	value: Record<string, unknown> | unknown[];
-	depth: number;
-}) {
-	const [open, setOpen] = useState(depth < DEFAULT_OPEN_DEPTH);
-	const entries: [string, unknown][] = Array.isArray(value)
-		? value.map((item, index) => [String(index), item])
-		: Object.entries(value);
-	const openBracket = Array.isArray(value) ? "[" : "{";
-	const closeBracket = Array.isArray(value) ? "]" : "}";
+const Mini = memo(function Mini({ value }: { value: unknown }) {
+	if (Array.isArray(value)) {
+		return <span className={styles.muted}>Array({value.length})</span>;
+	}
+	if (isPlainObject(value)) {
+		return <span className={styles.muted}>{"{…}"}</span>;
+	}
+	if (typeof value === "string") {
+		return <span className={styles.string}>"{truncate(value)}"</span>;
+	}
+	if (value === null || value === undefined) {
+		return <span className={styles.nullValue}>{value === null ? "null" : "undefined"}</span>;
+	}
+	return <span className={styles.number}>{formatPrimitive(value)}</span>;
+});
+
+const CollapsedPreview = memo(function CollapsedPreview({ value }: { value: unknown }) {
+	const isArray = Array.isArray(value);
+	const entries = isArray
+		? (value as unknown[])
+				.slice(0, PREVIEW_ENTRIES)
+				.map((item, index) => [index, item] as const)
+		: Object.entries(value as Record<string, unknown>).slice(0, PREVIEW_ENTRIES);
+	const total = isArray ? value.length : Object.keys(value as object).length;
+	const hasMore = total > entries.length;
 
 	return (
-		<div>
-			<button
-				type="button"
-				onClick={() => {
-					setOpen(state => !state);
-				}}
-				aria-expanded={open}
-				className="flex w-full cursor-pointer items-baseline gap-1.5 rounded px-1 text-left hover:bg-neutral-100/70 dark:hover:bg-neutral-800/50"
+		<span>
+			{isArray ? (
+				<>
+					<span className={styles.muted}>({total}) </span>
+					<span className={styles.brace}>[</span>
+				</>
+			) : (
+				<span className={styles.brace}>{"{"}</span>
+			)}
+			{entries.map(([key, child], index) => (
+				<span key={key}>
+					{index > 0 && ", "}
+					{isArray ? (
+						<span className={styles.muted}>{key}</span>
+					) : (
+						<span className={styles.key}>{key}</span>
+					)}
+					<span className={styles.colon}>:</span>
+					<Mini value={child} />
+				</span>
+			))}
+			{hasMore && <span className={styles.muted}>, …</span>}
+			{isArray ? (
+				<span className={styles.brace}>]</span>
+			) : (
+				<span className={styles.brace}>{"}"}</span>
+			)}
+		</span>
+	);
+});
+
+const PrimitiveValue = memo(function PrimitiveValue({ value }: { value: unknown }) {
+	return (
+		<span
+			className={[
+				typeof value === "string" && styles.string,
+				(typeof value === "number" || typeof value === "bigint") && styles.number,
+				typeof value === "boolean" && styles.boolean,
+				(value === null || value === undefined) && styles.nullValue,
+			]
+				.filter(Boolean)
+				.join(" ")}
+		>
+			{formatPrimitive(value)}
+		</span>
+	);
+});
+
+const Chevron = memo(function Chevron({ open }: { open: boolean }) {
+	return (
+		<span className={styles.arrow}>
+			<svg
+				viewBox="0 0 24 24"
+				width="12"
+				height="12"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				aria-hidden="true"
+				className={`${styles.arrowIcon} ${open ? styles.arrowOpen : ""}`}
 			>
-				<span
-					className={`shrink-0 text-[9px] text-neutral-400 transition-transform ${open ? "rotate-90" : ""}`}
-					aria-hidden="true"
-				>
-					▶
-				</span>
+				<path d="M9 5l7 7-7 7" />
+			</svg>
+		</span>
+	);
+});
+
+interface JsonNodeProps {
+	name?: string | number;
+	value: unknown;
+	root?: boolean;
+}
+
+const JsonNode = memo(function JsonNode({ name, value, root }: JsonNodeProps) {
+	const [expanded, setExpanded] = useState(root ?? false);
+	const [shownCount, setShownCount] = useState(CHUNK_SIZE);
+
+	const container = isContainer(value);
+	const entries = useMemo(
+		() => (container ? childEntries(value) : EMPTY_ENTRIES),
+		[container, value],
+	);
+	const visibleItems = entries.slice(0, shownCount);
+	const remaining = entries.length - shownCount;
+
+	return (
+		<div className={styles.node}>
+			<div
+				className={`${styles.row} ${container ? styles.rowBranch : ""}`}
+				onClick={() => {
+					if (container) {
+						setExpanded(state => !state);
+					}
+				}}
+			>
+				{container ? <Chevron open={expanded} /> : <span className={styles.arrow} />}
 				{name !== undefined && (
-					<span className="shrink-0 font-mono text-neutral-500">{name}:</span>
+					<>
+						<span className={styles.key}>{name}</span>
+						<span className={styles.colon}>:</span>
+					</>
 				)}
-				<span className="font-mono text-neutral-400">
-					{openBracket}
-					{entries.length === 0 ? closeBracket : ` ${entries.length} `}
-					{!open && entries.length > 0 ? closeBracket : ""}
-				</span>
-			</button>
-			{open && (
-				<div className="ml-2 border-l border-neutral-200 pl-3 dark:border-neutral-800">
-					{entries.map(([key, child]) => (
-						<Node key={key} name={key} value={child} depth={depth + 1} />
+				{container ? (
+					expanded ? (
+						<span className={styles.muted}>{Array.isArray(value) ? "[…]" : "{…}"}</span>
+					) : (
+						<CollapsedPreview value={value} />
+					)
+				) : (
+					<PrimitiveValue value={value} />
+				)}
+			</div>
+			{container && expanded && (
+				<div className={styles.children}>
+					{visibleItems.map(([key, child]) => (
+						<JsonNode key={key} name={key} value={child} />
 					))}
-					<div className="px-1 font-mono text-neutral-400">{closeBracket}</div>
+					{remaining > 0 && (
+						<button
+							type="button"
+							className={styles.more}
+							onClick={() => {
+								setShownCount(count => count + CHUNK_SIZE);
+							}}
+						>
+							show more {Math.min(CHUNK_SIZE, remaining)}
+						</button>
+					)}
+					{Array.isArray(value) && (
+						<div className={styles.row}>
+							<span className={styles.arrow} />
+							<span className={styles.muted}>length</span>
+							<span className={styles.colon}>:</span>
+							<span className={styles.number}>{value.length}</span>
+						</div>
+					)}
 				</div>
 			)}
 		</div>
 	);
-}
+});
 
-function Node({ name, value, depth }: { name?: string; value: unknown; depth: number }) {
-	if (value !== null && typeof value === "object") {
-		return (
-			<Branch
-				name={name}
-				value={value as Record<string, unknown> | unknown[]}
-				depth={depth}
-			/>
-		);
-	}
+export function JsonTree({ value }: { value: unknown }): ReactNode {
 	return (
-		<div className="flex items-baseline gap-1.5 px-1">
-			{name !== undefined && (
-				<span className="shrink-0 font-mono text-neutral-500">{name}:</span>
-			)}
-			<span className="break-all font-mono">
-				<Primitive value={value} />
-			</span>
-		</div>
-	);
-}
-
-export function JsonTree({ value }: { value: unknown }) {
-	if (value === undefined) {
-		return (
-			<div className="px-1 font-mono text-neutral-400">
-				<Primitive value={null} />
-			</div>
-		);
-	}
-	if (value !== null && typeof value !== "object") {
-		return (
-			<div className="px-1 font-mono">
-				<Primitive value={value} />
-			</div>
-		);
-	}
-	return (
-		<div className="py-0.5 font-mono text-[11px] leading-relaxed">
-			<Node value={value} depth={0} />
+		<div className={styles.tree}>
+			<JsonNode value={value} root />
 		</div>
 	);
 }

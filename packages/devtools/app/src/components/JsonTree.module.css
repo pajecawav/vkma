@@ -1,0 +1,127 @@
+/* Chrome-DevTools-style JSON tree, adapted to the vkma light/dark themes.
+   Class names are CSS-module scoped; dark flips via html.dark. */
+
+.tree {
+	--json-key-color: #881391;
+	--json-string-color: #a31515;
+	--json-number-color: #1c00cf;
+	--json-boolean-color: #1c00cf;
+	--json-null-color: #808080;
+	--json-muted-color: #5f6368;
+	--json-hover-background: rgb(0 0 0 / 0.06);
+
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	line-height: 1.7;
+}
+
+:global(html.dark) .tree {
+	--json-key-color: #89b4fa;
+	--json-string-color: #a6e3a1;
+	--json-number-color: #fab387;
+	--json-boolean-color: #fab387;
+	--json-null-color: #6c7086;
+	--json-muted-color: #6c7086;
+	--json-hover-background: rgb(255 255 255 / 0.06);
+}
+
+.row {
+	display: flex;
+	align-items: baseline;
+	white-space: nowrap;
+}
+
+.rowBranch {
+	cursor: default;
+	width: max-content;
+	padding-inline-end: 0.125rem;
+	border-radius: 0.25rem;
+}
+
+.rowBranch:hover {
+	background: var(--json-hover-background);
+}
+
+.arrow {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-self: center;
+	justify-content: center;
+	width: 1rem;
+	color: var(--json-muted-color);
+}
+
+.arrowIcon {
+	width: 0.75rem;
+	height: 0.75rem;
+	transition: transform 0.1s ease-in-out;
+}
+
+.arrowOpen {
+	transform: rotate(90deg);
+}
+
+.children {
+	padding-inline-start: 0.9rem;
+}
+
+.more {
+	margin-inline-start: 1rem;
+	padding: 0 0.25rem;
+	border: none;
+	background: var(--json-hover-background);
+	border-radius: 0.25rem;
+	color: var(--json-muted-color);
+	font: inherit;
+	cursor: pointer;
+	user-select: none;
+}
+
+.more:hover {
+	background: var(--json-key-color);
+	color: #fff;
+}
+
+.key {
+	color: var(--json-key-color);
+	margin-inline-end: 0.25rem;
+}
+
+.colon {
+	color: var(--json-muted-color);
+	margin-inline-end: 0.25rem;
+}
+
+.brace {
+	color: var(--json-muted-color);
+}
+
+.brace:first-child {
+	margin-inline-end: 0.25rem;
+}
+
+.brace:last-child {
+	margin-inline-start: 0.25rem;
+}
+
+.muted {
+	color: var(--json-muted-color);
+}
+
+.string {
+	color: var(--json-string-color);
+	overflow-wrap: anywhere;
+}
+
+.number {
+	color: var(--json-number-color);
+}
+
+.boolean {
+	color: var(--json-boolean-color);
+}
+
+.nullValue {
+	color: var(--json-null-color);
+	font-style: italic;
+}
