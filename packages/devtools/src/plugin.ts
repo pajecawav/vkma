@@ -61,6 +61,37 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): Plugin[] {
 			name: "vkma-devtools",
 			apply: "serve",
 			enforce: "pre",
+			configureServer(server) {
+				// `/__vkma` (no trailing slash) serves the panel HTML too, but its
+				// relative asset URLs then resolve against the parent directory —
+				// white screen. Redirect to the slashed base, query included.
+				const bare = base !== "/" ? base.replace(/\/+$/, "") : "";
+				if (bare !== "") {
+					server.middlewares.use((req, res, next) => {
+						const url = req.url ?? "";
+						const path = url.split("?")[0];
+						if (path !== bare) {
+							next();
+							return;
+						}
+						res.statusCode = 308;
+						res.setHeader("Location", `${base}${url.slice(path.length)}`);
+						res.end();
+					});
+				}
+
+				// unocss-style pointer to the panel: chain the host's printUrls.
+				const printUrls = server.printUrls.bind(server);
+				server.printUrls = () => {
+					printUrls();
+					for (const url of server.resolvedUrls?.local ?? []) {
+						// eslint-disable-next-line no-console
+						console.log(
+							`  \x1b[32m➜\x1b[0m  \x1b[1mvkma devtools\x1b[0m  \x1b[2m→\x1b[0m  \x1b[36m${url}${base.slice(1)}\x1b[0m`,
+						);
+					}
+				};
+			},
 			resolveId(source, importer) {
 				if (options.alias === false || source !== BRIDGE_PACKAGE) {
 					return;
