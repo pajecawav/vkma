@@ -22,9 +22,17 @@
 			"types": "./dist/zod.d.ts",
 			"import": "./dist/zod.js"
 		},
+		"./zod/*": {
+			"types": "./dist/generated/zod/*.d.ts",
+			"import": "./dist/generated/zod/*.js"
+		},
 		"./valibot": {
 			"types": "./dist/valibot.d.ts",
 			"import": "./dist/valibot.js"
+		},
+		"./valibot/*": {
+			"types": "./dist/generated/valibot/*.d.ts",
+			"import": "./dist/generated/valibot/*.js"
 		},
 		"./package.json": "./package.json"
 	},

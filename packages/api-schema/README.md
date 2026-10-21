@@ -39,6 +39,15 @@ import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot";
 BaseObjectSchema.parse({ id: 1, title: "app" });
 ```
 
+### Granular imports
+
+The barrels export everything, and in plain Node (no tree-shaking) importing one evaluates the whole package. When cold-start time matters, import a single section module instead — specifiers are extensionless:
+
+```ts
+import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot/base/objects";
+import { MessagesSendParamsSchema } from "@vkma.dev/api-schema/zod/messages/methods";
+```
+
 Naming follows [VKCOM/api-schema-typescript](https://github.com/VKCOM/api-schema-typescript): `apps_apps` → `AppsApp`, `apps.getCatalog` params → `AppsGetCatalogParams`, responses (with the `{ response: T }` wrapper unwrapped) → `AppsGetCatalogResponse` / `AppsGetCatalogExtendedResponse`. Object properties keep the schema's snake_case. Definitions with `enum` + `enumNames` also get a `…EnumNames` constant (`AdsAdApprovedEnumNames`).
 
 ## Versioning
