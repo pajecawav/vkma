@@ -38,7 +38,12 @@ type Stem = (typeof STEMS)[number];
 /** `exportSuffix` passed to json2code for the validator targets. */
 const EXPORT_SUFFIX = "Schema";
 /** json2code options shared by every target; see the header comment. */
-const GENERATE_OPTIONS = { rootExports: "auto" } as const;
+const GENERATE_OPTIONS = {
+	rootExports: "auto",
+	/** valibot: structural type alias + `v.GenericSchema` annotation — keeps
+	 * generated `.d.ts` tiny instead of materializing `SchemaWithPipe<…>`. */
+	genericAnnotations: true,
+} as const;
 
 async function main(): Promise<void> {
 	let apiVersion: string | undefined;
