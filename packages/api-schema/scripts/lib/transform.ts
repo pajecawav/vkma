@@ -46,15 +46,19 @@ interface VkMethod {
 export function transformMethodsDoc(raw: VkSchemaDocument): {
 	doc: VkSchemaDocument;
 	version?: string;
+	/** Dotted method names documented by this file (`ads.getAccounts`). */
+	methods: readonly string[];
 } {
 	const version = typeof raw.version === "string" ? raw.version : undefined;
 	const methods = Array.isArray(raw.methods) ? (raw.methods as VkMethod[]) : [];
 	const definitions: Record<string, unknown> = {};
+	const names: string[] = [];
 
 	for (const method of methods) {
 		if (typeof method?.name !== "string") {
 			continue;
 		}
+		names.push(method.name);
 		const parameters = Array.isArray(method.parameters)
 			? (method.parameters as VkParameter[])
 			: [];
@@ -81,6 +85,7 @@ export function transformMethodsDoc(raw: VkSchemaDocument): {
 			definitions,
 		},
 		version,
+		methods: names,
 	};
 }
 
@@ -131,6 +136,28 @@ export function collectEnumNames(defName: string, schema: unknown): EnumNamesEnt
 		return null;
 	}
 	return { defName, values, names: names.map(String) };
+}
+
+/**
+ * Attribute a `<method>(_variant)*_response` definition prefix to the method
+ * it documents: the LONGEST matching method prefix at a word boundary wins.
+ * Returns the underscored method name, or `null` for orphans — the VK schema
+ * documents a few responses for methods it never declares
+ * (`base_getUploadServer_response`, `apps_image_upload_response`).
+ */
+export function attributeResponseDef(
+	prefix: string,
+	methodNames: ReadonlySet<string>,
+): string | null {
+	let best: string | null = null;
+	for (const name of methodNames) {
+		if (prefix === name || prefix.startsWith(`${name}_`)) {
+			if (best === null || name.length > best.length) {
+				best = name;
+			}
+		}
+	}
+	return best;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

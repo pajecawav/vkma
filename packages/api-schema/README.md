@@ -48,6 +48,24 @@ import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot/base/objects";
 import { MessagesSendParamsSchema } from "@vkma.dev/api-schema/zod/messages/methods";
 ```
 
+### Method map
+
+`MethodMap` (root) types every documented method by its dotted name; `MethodSchemas` (zod/valibot) is the runtime counterpart. `params` is always present, `response` only where the VK schema documents one; methods with several response variants (extended etc.) get a union of them.
+
+```ts
+import type { MethodMap } from "@vkma.dev/api-schema";
+import { MethodSchemas } from "@vkma.dev/api-schema/zod";
+
+type Call = <M extends keyof MethodMap>(
+    method: M,
+    params: MethodMap[M]["params"],
+) => Promise<MethodMap[M]["response"]>;
+
+MethodSchemas["ads.getAccounts"].params.parse({});
+```
+
+The runtime `response` slot holds the base variant (`<method>_response`); extended variants (`…_extended_response` and friends) stay available as their own exports. A handful of responses documented in the VK schema for methods it never declares are not part of the map.
+
 Naming follows [VKCOM/api-schema-typescript](https://github.com/VKCOM/api-schema-typescript): `apps_apps` → `AppsApp`, `apps.getCatalog` params → `AppsGetCatalogParams`, responses (with the `{ response: T }` wrapper unwrapped) → `AppsGetCatalogResponse` / `AppsGetCatalogExtendedResponse`. Object properties keep the schema's snake_case. Definitions with `enum` + `enumNames` also get a `…EnumNames` constant (`AdsAdApprovedEnumNames`).
 
 ## Versioning

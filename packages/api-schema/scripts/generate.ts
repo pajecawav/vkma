@@ -18,9 +18,17 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { generate } from "@pajecawav/json2code";
-import { buildBarrel, renderEnumNamesModule, renderVersionModule } from "./lib/emit.ts";
+import {
+	buildBarrel,
+	EXPORT_SUFFIX,
+	renderEnumNamesModule,
+	renderMethodMapModule,
+	renderVersionModule,
+	type MethodMapEntry,
+} from "./lib/emit.ts";
 import { pascal } from "./lib/naming.ts";
 import {
+	attributeResponseDef,
 	collectEnumNames,
 	transformMethodsDoc,
 	transformResponsesDoc,
@@ -35,8 +43,6 @@ const outDir = path.join(pkgRoot, "src", "generated");
 
 const STEMS = ["methods", "objects", "responses"] as const;
 type Stem = (typeof STEMS)[number];
-/** `exportSuffix` passed to json2code for the validator targets. */
-const EXPORT_SUFFIX = "Schema";
 /** json2code options shared by every target; see the header comment. */
 const GENERATE_OPTIONS = {
 	rootExports: "auto",
@@ -49,6 +55,10 @@ async function main(): Promise<void> {
 	let apiVersion: string | undefined;
 	const enumEntries = new Map<string, EnumNamesEntry>();
 	let transformedFiles = 0;
+	const methodEntries = new Map<string, MethodMapEntry>();
+	const responsesByMethod = new Map<string, string[]>();
+	const methodNamesBySection = new Map<string, ReadonlySet<string>>();
+	let orphanResponseDefs = 0;
 
 	// Fail fast on an uninitialized/missing submodule, before any output dir is wiped.
 	const sections = await listSections();
@@ -73,12 +83,43 @@ async function main(): Promise<void> {
 				const result = transformMethodsDoc(raw);
 				doc = result.doc;
 				apiVersion ??= result.version;
+				const undNames = new Set<string>();
+				for (const dotted of result.methods) {
+					const und = dotted.replaceAll(".", "_");
+					undNames.add(und);
+					methodEntries.set(und, {
+						dotted,
+						section,
+						paramsDef: `${und}_params`,
+						responses: [],
+					});
+				}
+				methodNamesBySection.set(section, undNames);
 			} else if (stem === "responses") {
 				doc = transformResponsesDoc(raw);
 			} else {
 				doc = raw;
 			}
 			const definitions = (doc.definitions ?? {}) as Record<string, unknown>;
+			if (stem === "responses") {
+				const undNames = methodNamesBySection.get(section) ?? new Set<string>();
+				for (const defName of Object.keys(definitions)) {
+					if (!defName.endsWith("_response")) {
+						continue;
+					}
+					const attributed = attributeResponseDef(
+						defName.slice(0, -"_response".length),
+						undNames,
+					);
+					if (attributed === null) {
+						orphanResponseDefs++;
+						continue;
+					}
+					const responses = responsesByMethod.get(attributed) ?? [];
+					responses.push(defName);
+					responsesByMethod.set(attributed, responses);
+				}
+			}
 			for (const [defName, def] of Object.entries(definitions)) {
 				const entry = collectEnumNames(defName, def);
 				if (entry) {
@@ -115,13 +156,33 @@ async function main(): Promise<void> {
 		path.join(outDir, "typescript", "enum-names.ts"),
 		renderEnumNamesModule(entries),
 	);
+	const methodMapEntries: MethodMapEntry[] = [...methodEntries.entries()]
+		.map(([und, entry]) => ({
+			dotted: entry.dotted,
+			section: entry.section,
+			paramsDef: entry.paramsDef,
+			responses: (responsesByMethod.get(und) ?? []).sort((a, b) => a.localeCompare(b)),
+		}))
+		.sort((a, b) => a.dotted.localeCompare(b.dotted));
+	await writeFile(
+		path.join(outDir, "typescript", "method-map.ts"),
+		renderMethodMapModule(methodMapEntries, "typescript"),
+	);
+	await writeFile(
+		path.join(outDir, "zod", "method-map.ts"),
+		renderMethodMapModule(methodMapEntries, "zod"),
+	);
+	await writeFile(
+		path.join(outDir, "valibot", "method-map.ts"),
+		renderMethodMapModule(methodMapEntries, "valibot"),
+	);
 	const enumNamesExports = entries.map(entry => `${pascal(entry.defName)}EnumNames`);
 	await writeFile(
 		path.join(outDir, "typescript", "index.ts"),
 		await buildBarrel(
 			path.join(outDir, "typescript"),
 			"",
-			{ version: true, enumNames: enumNamesExports },
+			{ version: true, enumNames: enumNamesExports, methodMap: true },
 			true,
 		),
 	);
@@ -130,7 +191,7 @@ async function main(): Promise<void> {
 		await buildBarrel(
 			path.join(outDir, "zod"),
 			"Schema",
-			{ version: false, enumNames: [] },
+			{ version: false, enumNames: [], methodMap: true },
 			false,
 		),
 	);
@@ -139,14 +200,16 @@ async function main(): Promise<void> {
 		await buildBarrel(
 			path.join(outDir, "valibot"),
 			"Schema",
-			{ version: false, enumNames: [] },
+			{ version: false, enumNames: [], methodMap: true },
 			false,
 		),
 	);
 
+	const withResponse = methodMapEntries.filter(entry => entry.responses.length > 0).length;
 	const summary = [
 		`sections: ${sections.length}`,
 		`transformed docs: ${transformedFiles}`,
+		`methods: ${methodMapEntries.length}, with response: ${withResponse}, orphan response defs: ${orphanResponseDefs}`,
 		`EnumNames constants: ${entries.length}`,
 		`API_VERSION: ${apiVersion}`,
 	];
