@@ -25,6 +25,23 @@ type ScopedClient = ReturnType<typeof scopeVkma>;
 
 const MAX_EVENTS = 500;
 
+/**
+ * seq is globally unique (assigned by the node side), so it dedupes the
+ * snapshot+subscribe race and double deliveries in one place.
+ */
+function mergeEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
+	const seen = new Set(prev.map(event => event.seq));
+	const fresh = incoming.filter(event => !seen.has(event.seq));
+	// eslint-disable-next-line no-console
+	console.log("[vkma] mergeEvents", {
+		prev: prev.length,
+		incoming: incoming.length,
+		fresh: fresh.length,
+		incomingSeqs: incoming.map(e => e.seq),
+	});
+	return [...prev, ...fresh].slice(-MAX_EVENTS);
+}
+
 export interface VkmaConnection {
 	status: ConnectionStatus;
 	events: WireEvent[];
@@ -69,14 +86,13 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 					name: "on-events",
 					type: "event",
 					handler: (incoming: WireEvent[]) => {
-						setEvents(prev =>
-							[...prev, ...incoming]
-								.filter(
-									event =>
-										!embeddedClientId || event.clientId === embeddedClientId,
-								)
-								.slice(-MAX_EVENTS),
-						);
+						setEvents(prev => {
+							const merged = mergeEvents(prev, incoming);
+							const scoped = embeddedClientId
+								? merged.filter(event => event.clientId === embeddedClientId)
+								: merged;
+							return scoped.slice(-MAX_EVENTS);
+						});
 					},
 				}) as never,
 			);
@@ -118,11 +134,15 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 			if (disposed) {
 				return;
 			}
-			setEvents(
-				state.events
-					.filter(event => !embeddedClientId || event.clientId === embeddedClientId)
-					.slice(-MAX_EVENTS),
-			);
+			setEvents(prev => {
+				// dedupe against anything that arrived via on-events while the
+				// snapshot was in flight
+				const merged = mergeEvents(prev, state.events);
+				const scoped = embeddedClientId
+					? merged.filter(event => event.clientId === embeddedClientId)
+					: merged;
+				return scoped.slice(-MAX_EVENTS);
+			});
 			setClients(
 				embeddedClientId
 					? state.clients.filter(client => client.clientId === embeddedClientId)

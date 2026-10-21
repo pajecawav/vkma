@@ -123,7 +123,7 @@ const EventRow = memo(function Row({
 	const isOkResponse = event.kind === "response" && event.ok === true;
 
 	return (
-		<div className={`${indent ? "pl-9" : ""} ${animate ? "row-in" : ""}`}>
+		<div data-seq={event.seq} className={`${indent ? "pl-9" : ""} ${animate ? "row-in" : ""}`}>
 			<button
 				type="button"
 				onClick={() => {
