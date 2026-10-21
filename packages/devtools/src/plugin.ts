@@ -3,7 +3,7 @@ import {
 	devframeVitePlugin,
 	type DevframeViteBridgeOptions,
 } from "@devframes/vite/single";
-import type { Plugin, UserConfig } from "vite";
+import type { Plugin } from "vite";
 import { vkmaDevframe } from "./node/definition.ts";
 
 export interface VkmaDevtoolsOptions {
@@ -30,37 +30,19 @@ export interface VkmaDevtoolsOptions {
 const BRIDGE_PACKAGE = "@vkontakte/vk-bridge";
 const TAP_PACKAGE = "@vkma.dev/bridge";
 
-function upsertAlias(userConfig: UserConfig): void {
-	userConfig.resolve ??= {};
-	const current = userConfig.resolve.alias;
-	if (current === undefined) {
-		userConfig.resolve.alias = [{ find: BRIDGE_PACKAGE, replacement: TAP_PACKAGE }];
-		return;
-	}
-	if (Array.isArray(current)) {
-		const hasOverride = current.some(
-			entry =>
-				typeof entry === "object" &&
-				typeof entry.find === "string" &&
-				entry.find === BRIDGE_PACKAGE,
-		);
-		if (!hasOverride) {
-			current.push({ find: BRIDGE_PACKAGE, replacement: TAP_PACKAGE });
-		}
-		return;
-	}
-	// record form: { [find]: replacement }
-	const record = current as Record<string, string>;
-	if (!(BRIDGE_PACKAGE in record)) {
-		record[BRIDGE_PACKAGE] = TAP_PACKAGE;
-	}
-}
+/**
+ * Importers that must see the REAL @vkontakte/vk-bridge: our own tap
+ * package (its wrapper imports the original — aliasing that import would
+ * create a self-cycle and a TDZ crash), in whatever layout pnpm places it.
+ */
+const TAP_IMPORTERS =
+	/(?:\/packages\/bridge\/(?:src|dist)\/|@vkma\.dev\+bridge|node_modules\/@vkma\.dev\/bridge\/)/;
 
 /**
  * The vkma devtools Vite plugin. One line in `vite.config` gives the mini
  * app: the `/__vkma/` panel (SPA + RPC/WebSocket bridge on Vite's own port),
- * the `@vkontakte/vk-bridge → @vkma.dev/bridge` dev alias, and the FAB +
- * collector script injected into the app page.
+ * the `@vkontakte/vk-bridge → @vkma.dev/bridge` dev interception, and the
+ * FAB + collector script injected into the app page.
  */
 export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): Plugin[] {
 	const base = options.base ?? "/__vkma/";
@@ -79,16 +61,27 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): Plugin[] {
 			name: "vkma-devtools",
 			apply: "serve",
 			enforce: "pre",
-			config(userConfig) {
-				if (options.alias !== false) {
-					upsertAlias(userConfig);
+			resolveId(source, importer) {
+				if (options.alias === false || source !== BRIDGE_PACKAGE) {
+					return;
 				}
+				// Our own tap package imports the original package — let that
+				// resolve normally, or the "alias" becomes a self-cycle.
+				if (importer !== undefined && TAP_IMPORTERS.test(importer)) {
+					return;
+				}
+				// Everything else in the app graph gets the tap.
+				return this.resolve(TAP_PACKAGE, importer, { skipSelf: true });
 			},
 			transformIndexHtml() {
+				// A plain (non-module) script so Vite's dev HTML pipeline never
+				// rewrites or inlines the src; it appends the real module tag at
+				// runtime, after the app's own module scripts.
+				const src = JSON.stringify(`${base}inject.js`);
 				return [
 					{
 						tag: "script",
-						attrs: { type: "module", src: `${base}inject.js` },
+						children: `globalThis.__VKMA_DEVTOOLS_BASE__=${JSON.stringify(base)};(function(){var s=document.createElement("script");s.type="module";s.src=${src};document.body.appendChild(s);})();`,
 						injectTo: "body",
 					},
 				];

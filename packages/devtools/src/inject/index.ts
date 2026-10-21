@@ -27,11 +27,38 @@ interface BridgeHandle {
 	send: (name: string, params?: Record<string, unknown>) => Promise<unknown>;
 }
 
-const bridgeGlobal = (globalThis as typeof globalThis & { __vkmaDevtoolsBridge?: BridgeHandle })
-	.__vkmaDevtoolsBridge;
+/**
+ * The bridge module initializes `globalThis.__vkmaDevtoolsBridge` at import
+ * time, but this script is dynamically inserted and may execute BEFORE the
+ * app's module graph — so the handle can legitimately appear later. The
+ * tap's replay buffer covers anything sent before we subscribe.
+ */
+async function waitForBridge(timeoutMs = 10_000): Promise<BridgeHandle | undefined> {
+	const started = Date.now();
+	for (;;) {
+		const handle = (
+			globalThis as typeof globalThis & {
+				__vkmaDevtoolsBridge?: BridgeHandle;
+			}
+		).__vkmaDevtoolsBridge;
+		if (handle !== undefined) {
+			return handle;
+		}
+		if (Date.now() - started > timeoutMs) {
+			return undefined;
+		}
+		await new Promise(resolve => setTimeout(resolve, 50));
+	}
+}
 
-/** The panel base, derived from this script's own URL (`<base>inject.js`). */
-const base = new URL(".", import.meta.url).href;
+/**
+ * The panel base. The Vite plugin sets `globalThis.__VKMA_DEVTOOLS_BASE__`
+ * right before loading this module — deriving it from `import.meta.url` is
+ * unreliable in dev pipelines that inline modules as data: URLs.
+ */
+const base =
+	(globalThis as typeof globalThis & { __VKMA_DEVTOOLS_BASE__?: string })
+		.__VKMA_DEVTOOLS_BASE__ ?? "/__vkma/";
 
 const CLIENT_ID_KEY = "vkma:clientId";
 const HEARTBEAT_MS = 5_000;
@@ -83,6 +110,7 @@ function detectPlatform(): ClientInfo["platform"] {
 }
 
 const platform = detectPlatform();
+let bridgeGlobal: BridgeHandle | undefined;
 
 function clientInfo(): ClientInfo {
 	const now = Date.now();
@@ -189,24 +217,36 @@ function scheduleReconnect(): void {
 	}
 	reconnectTimer = setTimeout(() => {
 		reconnectTimer = undefined;
-		connect().catch(() => scheduleReconnect());
+		connect().catch((error: unknown) => {
+			console.warn("[vkma] collector reconnect failed:", error);
+			scheduleReconnect();
+		});
 	}, reconnectDelay);
 	reconnectDelay = Math.min(reconnectDelay * 2, 10_000);
 }
 
-if (bridgeGlobal) {
-	// The tap replays its buffer to the first subscriber, so events emitted
-	// before this script loaded (module evaluation order) are not lost.
-	bridgeGlobal.tap.subscribe(event => {
-		queue.push(event);
-	});
-} else {
-	console.info(
-		"[vkma] bridge not detected — import @vkma.dev/bridge instead of @vkontakte/vk-bridge to capture events",
-	);
+async function main(): Promise<void> {
+	bridgeGlobal = await waitForBridge();
+
+	if (bridgeGlobal) {
+		// The tap replays its buffer to the first subscriber, so events the
+		// app emitted before this script executed are not lost.
+		bridgeGlobal.tap.subscribe(event => {
+			queue.push(event);
+		});
+	} else {
+		console.info(
+			"[vkma] bridge not detected — import @vkma.dev/bridge instead of @vkontakte/vk-bridge to capture events",
+		);
+	}
+
+	await connect();
 }
 
-connect().catch(() => scheduleReconnect());
+void main().catch((error: unknown) => {
+	console.warn("[vkma] collector failed:", error);
+	scheduleReconnect();
+});
 
 // Heartbeat + batched flush share one tick each.
 setInterval(() => {

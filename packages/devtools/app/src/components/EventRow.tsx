@@ -21,7 +21,7 @@ function ClientBadge({
 }) {
 	const client = clients.find(c => c.clientId === clientId);
 	return (
-		<span className="inline-flex items-center gap-1 text-[10px] leading-none text-neutral-400">
+		<span className="inline-flex items-center gap-1 text-[10px] leading-none text-neutral-500 dark:text-neutral-400">
 			<span
 				className={`size-1.5 rounded-[2px] ${CLIENT_SHADES[shadeIndex % CLIENT_SHADES.length]}`}
 				aria-hidden="true"
@@ -86,7 +86,7 @@ export const EventRow = memo(function EventRow({
 				>
 					<span className={`flex items-center gap-2 ${isOut ? "flex-row-reverse" : ""}`}>
 						<time
-							className="font-mono text-[10px] tabular-nums text-neutral-400"
+							className="font-mono text-[10px] tabular-nums text-neutral-500 dark:text-neutral-400"
 							dateTime={new Date(event.ts).toISOString()}
 						>
 							{formatTime(event.ts)}
@@ -97,7 +97,7 @@ export const EventRow = memo(function EventRow({
 							shadeIndex={clientShade(event.clientId)}
 						/>
 						{event.kind === "response" && pairedSendTs !== undefined && (
-							<span className="font-mono text-[10px] tabular-nums text-neutral-400">
+							<span className="font-mono text-[10px] tabular-nums text-neutral-500 dark:text-neutral-400">
 								↳ {formatDuration(pairedSendTs, event.ts)}
 							</span>
 						)}
@@ -142,7 +142,7 @@ export const EventRow = memo(function EventRow({
 						)}
 					</span>
 					{!open && (
-						<span className="mt-0.5 block truncate font-mono text-[10px] text-neutral-400">
+						<span className="mt-0.5 block truncate font-mono text-[10px] text-neutral-500 dark:text-neutral-400">
 							{formatPayloadPreview(event.payload)}
 						</span>
 					)}
