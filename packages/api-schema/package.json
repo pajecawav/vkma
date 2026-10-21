@@ -8,7 +8,7 @@
 		"access": "public"
 	},
 	"engines": {
-		"node": ">=22"
+		"node": ">=22.18.0"
 	},
 	"sideEffects": false,
 	"main": "./dist/index.js",
@@ -34,10 +34,10 @@
 	"scripts": {
 		"generate": "node scripts/generate.ts",
 		"build": "pnpm generate && tsdown",
-		"dev": "tsdown --watch",
+		"dev": "pnpm generate && tsdown --watch",
 		"lint:package": "publint",
-		"test": "vitest run",
-		"test:watch": "vitest watch"
+		"test": "pnpm generate && vitest run",
+		"test:watch": "pnpm generate && vitest watch"
 	},
 	"peerDependencies": {
 		"valibot": ">=1.0.0 <2",
