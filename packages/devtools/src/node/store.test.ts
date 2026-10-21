@@ -4,6 +4,7 @@ import { DevtoolsStore } from "./store.ts";
 
 const client = (overrides: Partial<ClientInfo> = {}): ClientInfo => ({
 	clientId: "c1",
+	sessionId: "s1",
 	connectedAt: 1_000,
 	lastSeenAt: 1_000,
 	ua: "test",
@@ -32,6 +33,19 @@ test("pushEvents stamps seq and clientId for known clients only", () => {
 	}
 
 	expect(store.pushEvents("unknown", [event(3)])).toEqual([]);
+});
+
+test("a new session for a known client purges its previous history", () => {
+	const store = new DevtoolsStore();
+	store.touchClient(client({ sessionId: "s1" }));
+	store.pushEvents("c1", [event(1), event(2)]);
+
+	// same page reloads: fresh sessionId, same clientId
+	store.touchClient(client({ sessionId: "s2", connectedAt: 2_000, lastSeenAt: 2_000 }));
+	store.purgeEvents("c1");
+
+	expect(store.snapshotEvents()).toEqual([]);
+	expect(store.getClient("c1")?.sessionId).toBe("s2");
 });
 
 test("ring buffer keeps the last 500 events", () => {

@@ -90,6 +90,9 @@ function collectLaunchParams(): Record<string, string> {
 }
 
 const clientId = getOrCreateClientId();
+/** Fresh on every page load — the node side wipes this client's history
+ * when it sees a new session for a known client. */
+const sessionId = globalThis.crypto?.randomUUID?.() ?? `s-${Date.now().toString(36)}`;
 const launchParams = collectLaunchParams();
 
 function detectPlatform(): ClientInfo["platform"] {
@@ -116,6 +119,7 @@ function clientInfo(): ClientInfo {
 	const now = Date.now();
 	return {
 		clientId,
+		sessionId,
 		connectedAt: now,
 		lastSeenAt: now,
 		ua: navigator.userAgent,

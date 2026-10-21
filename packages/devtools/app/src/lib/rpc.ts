@@ -80,6 +80,18 @@ export function useVkma(): VkmaConnection {
 					handler: (next: ClientInfo[]) => setClients(next),
 				}) as never,
 			);
+			scoped.rpc.register(
+				defineRpcFunction({
+					name: "on-session-reset",
+					type: "event",
+					// A client's page reloaded — its previous history is dead.
+					handler: (payload: { clientId: string }) => {
+						setEvents(prev =>
+							prev.filter(event => event.clientId !== payload.clientId),
+						);
+					},
+				}) as never,
+			);
 
 			client.events.on("connection:status", (next: string) => {
 				setStatus(next as ConnectionStatus);

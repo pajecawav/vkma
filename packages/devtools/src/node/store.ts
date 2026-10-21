@@ -30,6 +30,11 @@ export class DevtoolsStore {
 		return true;
 	}
 
+	/** A page reload: the client's previous session history is dead. */
+	public purgeEvents(clientId: string): void {
+		this.events = this.events.filter(event => event.clientId !== clientId);
+	}
+
 	/** @returns dropped clients, if any (caller broadcasts). */
 	public pruneClients(now = Date.now()): ClientInfo[] {
 		const dropped: ClientInfo[] = [];

@@ -22,7 +22,7 @@ function ClientBadge({
 	const client = clients.find(c => c.clientId === clientId);
 	return (
 		<span
-			className="inline-flex shrink-0 items-center gap-1 font-mono text-[10px] leading-none text-neutral-400 dark:text-neutral-500"
+			className="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] leading-none text-neutral-400 dark:text-neutral-500"
 			title={client ? client.url : "client disconnected"}
 		>
 			<span
@@ -139,12 +139,12 @@ const EventRow = memo(function Row({
 					}
 				/>
 				<span
-					className={`shrink-0 font-mono text-xs ${isError ? "text-red-600 dark:text-red-400" : "text-neutral-800 dark:text-neutral-200"}`}
+					className={`shrink-0 font-mono text-[13px] ${isError ? "text-red-600 dark:text-red-400" : "text-neutral-800 dark:text-neutral-200"}`}
 				>
 					{event.name}
 				</span>
 				{requestTs !== undefined && (
-					<span className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-400 dark:text-neutral-500">
+					<span className="shrink-0 font-mono text-[11px] tabular-nums text-neutral-400 dark:text-neutral-500">
 						{formatDuration(requestTs, event.ts)}
 					</span>
 				)}
@@ -152,7 +152,7 @@ const EventRow = memo(function Row({
 					<CheckIcon width={12} height={12} className="shrink-0 text-emerald-500" />
 				)}
 				{isError && <CrossIcon width={12} height={12} className="shrink-0 text-red-500" />}
-				<span className="min-w-0 flex-1 truncate font-mono text-[10px] text-neutral-500 dark:text-neutral-400">
+				<span className="min-w-0 flex-1 truncate font-mono text-[11px] text-neutral-500 dark:text-neutral-400">
 					{formatPayloadPreview(event.payload)}
 				</span>
 			</button>

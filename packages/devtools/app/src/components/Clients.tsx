@@ -3,8 +3,10 @@ import type { ClientInfo } from "../../../src/shared/protocol.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
 import { ChevronIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
 
+const SENSITIVE_PARAMS = new Set(["sign", "access_token", "auth_key", "sid"]);
+
 function LaunchParams({ params }: { params: Record<string, string> }) {
-	const entries = Object.entries(params);
+	const entries = Object.entries(params).toSorted(([a], [b]) => a.localeCompare(b));
 	if (entries.length === 0) {
 		return (
 			<p className="px-9 py-2 text-xs text-neutral-400">
@@ -20,8 +22,10 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 						{key}
 					</dt>
 					<dd
-						className="truncate font-mono text-[11px] text-neutral-600 dark:text-neutral-300"
-						title={value}
+						className={`break-all font-mono text-[11px] text-neutral-600 dark:text-neutral-300 ${
+							SENSITIVE_PARAMS.has(key) ? "blur-sm select-none" : ""
+						}`}
+						title={SENSITIVE_PARAMS.has(key) ? undefined : value}
 					>
 						{value}
 					</dd>

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
@@ -77,7 +77,6 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 	const [anchorSeq, setAnchorSeq] = useState<number | null>(null);
 	const [clearSeq, setClearSeq] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
-	const pinnedRef = useRef(true);
 
 	const maxSeq = events.length > 0 ? (events.at(-1)?.seq ?? 0) : 0;
 
@@ -105,6 +104,10 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 
 	const groups = useMemo(() => buildGroups(visible, filter), [visible, filter]);
 
+	// Newest first: the ledger opens on the latest traffic. The scroll
+	// container starts at the top, so no follow-the-bottom logic is needed.
+	const ordered = useMemo(() => [...groups].reverse(), [groups]);
+
 	const buffered =
 		paused && anchorSeq !== null
 			? events.filter(event => event.seq > anchorSeq && event.seq > clearSeq).length
@@ -123,15 +126,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 		initialMaxSeq.current = maxSeq;
 	}
 
-	// Follow the newest row while the user is pinned to the bottom.
-	useLayoutEffect(() => {
-		const list = listRef.current;
-		if (list && pinnedRef.current && !paused) {
-			list.scrollTop = list.scrollHeight;
-		}
-	});
-
-	const empty = groups.length === 0 && query === "" && buffered === 0;
+	const empty = ordered.length === 0 && query === "" && buffered === 0;
 
 	return (
 		<section className="flex min-h-0 flex-1 flex-col" aria-label="Timeline">
@@ -205,10 +200,6 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 
 			<div
 				ref={listRef}
-				onScroll={event => {
-					const list = event.currentTarget;
-					pinnedRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
-				}}
 				className="scroll-area relative min-h-0 flex-1 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800/60"
 			>
 				{empty ? (
@@ -227,7 +218,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 						No events match the filter.
 					</p>
 				) : (
-					groups.map(group => (
+					ordered.map(group => (
 						<div key={`${group.head.clientId}:${group.head.id}`} className="py-0.5">
 							{group.head.kind === "send" ? (
 								<RequestGroup

@@ -42,7 +42,22 @@ export const vkmaDevframe = defineDevframe({
 			name: VKMA_RPC.hello,
 			type: "event",
 			handler: (info: ClientInfo) => {
-				if (store.touchClient(info)) {
+				const previous = store.getClient(info.clientId);
+				const sessionChanged =
+					previous !== undefined && previous.sessionId !== info.sessionId;
+				const changed = store.touchClient(info);
+				if (sessionChanged) {
+					// The page reloaded: its previous session's history is dead
+					// on every surface.
+					store.purgeEvents(info.clientId);
+					void ctx.rpc.broadcast({
+						method: VKMA_RPC.onSessionReset,
+						args: [{ clientId: info.clientId }],
+						optional: true,
+						event: true,
+					});
+				}
+				if (changed) {
 					broadcastClients();
 				}
 			},

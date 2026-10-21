@@ -24,6 +24,8 @@ export interface WireEvent {
 
 export interface ClientInfo {
 	clientId: string;
+	/** Fresh per page load: a reload starts a new session and wipes history. */
+	sessionId: string;
 	connectedAt: number;
 	lastSeenAt: number;
 	ua: string;
@@ -64,6 +66,7 @@ export const VKMA_RPC = {
 	clientExecute: "vkma:client-execute",
 	onEvents: "vkma:on-events",
 	onClients: "vkma:on-clients",
+	onSessionReset: "vkma:on-session-reset",
 } as const;
 
 declare module "devframe" {
@@ -72,6 +75,8 @@ declare module "devframe" {
 		"vkma:on-events": (events: WireEvent[]) => void;
 		/** Node → every panel: the current client registry. */
 		"vkma:on-clients": (clients: ClientInfo[]) => void;
+		/** Node → every panel: a client's page reloaded — drop its history. */
+		"vkma:on-session-reset": (payload: { clientId: string }) => void;
 		/** Node → every page script: an execute routed to its target. */
 		"vkma:client-execute": (payload: {
 			execId: number;
