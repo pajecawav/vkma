@@ -6,7 +6,7 @@ import { defineConfig } from "tsdown";
  * sources (also shipped in the tarball — see `files` in package.json).
  */
 export default defineConfig({
-	entry: ["src/index.ts", "src/react.tsx"],
+	entry: ["src/index.ts"],
 	root: "src",
 	format: "esm",
 	unbundle: true,

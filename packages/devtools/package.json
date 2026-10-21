@@ -1,7 +1,7 @@
 {
 	"name": "@vkma.dev/devtools",
 	"version": "0.0.0",
-	"description": "Devtools for VK Mini Apps",
+	"description": "Devtools for VK Mini Apps: /__vkma panel, bridge event timeline, execute",
 	"type": "module",
 	"license": "MIT",
 	"publishConfig": {
@@ -17,40 +17,50 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
-		},
-		"./react": {
-			"types": "./dist/react.d.ts",
-			"import": "./dist/react.js"
 		}
 	},
 	"files": [
 		"dist",
+		"dist-client",
 		"src",
 		"!src/**/*.test.ts",
 		"!src/**/*.test.tsx"
 	],
 	"scripts": {
-		"build": "tsdown",
-		"dev": "tsdown --watch",
+		"build": "run-s build:client build:inject build:lib",
+		"build:lib": "tsdown",
+		"build:client": "vite build --config app/vite.config.ts",
+		"build:inject": "vite build --config vite.inject.config.ts",
+		"dev": "run-p dev:lib dev:client dev:inject",
+		"dev:lib": "tsdown --watch",
+		"dev:client": "vite build --config app/vite.config.ts --watch",
+		"dev:inject": "vite build --config vite.inject.config.ts --watch",
 		"lint:package": "publint",
 		"test": "vitest run",
 		"test:watch": "vitest watch"
 	},
 	"peerDependencies": {
-		"react": "^18.0.0 || ^19.0.0"
-	},
-	"peerDependenciesMeta": {
-		"react": {
-			"optional": true
-		}
+		"@devframes/vite": "^1.2.6",
+		"@vkma.dev/bridge": ">=0.0.0",
+		"devframe": "^1.2.6",
+		"vite": "^7.0.0 || ^8.0.0"
 	},
 	"devDependencies": {
+		"@devframes/vite": "catalog:",
+		"@tailwindcss/vite": "catalog:",
+		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
+		"@vkma.dev/bridge": "workspace:*",
+		"devframe": "catalog:",
+		"npm-run-all2": "catalog:",
 		"publint": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
+		"tailwindcss": "catalog:",
 		"tsdown": "catalog:",
+		"vite": "catalog:",
 		"vitest": "catalog:"
 	}
 }

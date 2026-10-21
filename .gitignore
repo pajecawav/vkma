@@ -5,3 +5,4 @@ dist
 coverage
 .astro
 web-ext-artifacts
+dist-client
