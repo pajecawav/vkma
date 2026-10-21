@@ -32,13 +32,16 @@ One line gives the mini app:
 
 ## What you get
 
-- **Timeline** — the bridge dialogue: outgoing sends on the right, incoming
-  events and paired responses (with durations) on the left, filterable by
-  direction and name. Payload JSON copies with one click.
+- **Timeline** — a ledger of the bridge traffic: each send opens a request
+  group with its paired response nested beneath it (round-trip duration,
+  ok/error mark); unsolicited VK events stand alone. Filterable by type
+  and name; payloads expand into a collapsible JSON tree with copy.
 - **Execute** — send any bridge event into a chosen connected client from
   the panel; the round-trip result lands right there.
 - **Clients** — every connected page script (desktop tab, phone on LAN,
   iframe, standalone) with UA, platform, launch params.
+- **Embedded scope** — the FAB panel shows only its own page's traffic
+  (colored client badge in the header); a page reload resets its history.
 
 ## Remote (phone on LAN / tunnel)
 

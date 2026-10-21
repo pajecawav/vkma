@@ -54,17 +54,28 @@ event, matching the wire.
 
 ## Components
 
-- **TopBar** — wordmark (authored diamond SVG), connection status dot +
-  label, theme toggle.
+- **TopBar** — wordmark (authored VK Mini Apps logo SVG), connection
+  status dot + label, theme toggle; embedded panels show a colored client
+  badge left of the status.
 - **Rail** — icon+label nav (Timeline / Execute / Clients); left column
   ≥640px, segmented top bar below (the panel lives in small overlays).
+  Embedded panels drop the Clients entry.
 - **Timeline** — filter row (search, All/Requests/Events segmented
-  control, pause, clear) over the ledger: request groups with nested
-  responses, standalone event rows, payload expands inline with copy.
-- **Execute** — target select, event datalist input, JSON params with
-  live validation, result panel (tonal emerald/red/amber at 6% opacity).
-- **Clients** — expandable registry cards: platform icon, short id, url,
-  launch params grid, bridge-missing warning.
+  control, client switcher once more than one client is connected, pause,
+  clear) over the ledger: request groups with nested responses,
+  standalone event rows, payload expands into a JsonTree with copy.
+- **Execute** — target select (hidden in embedded mode), event datalist
+  input, JSON params with live validation, result panel (tonal
+  emerald/red/amber at 6% opacity) with a collapsible JsonTree that grows
+  on large screens.
+- **JsonTree** — Chrome-DevTools-style collapsible viewer on CSS modules:
+  colored keys/strings/numbers/booleans/null (DevTools light palette,
+  Catppuccin dark), collapsed containers preview their first entries
+  inline (`{ key : {…}, count : 42 }`), arrays get a length row, children
+  chunk by 500 with "show more". All nodes memoized.
+- **Clients** — expandable registry cards: platform icon, colored short
+  id, url, launch params grid (sensitive params blurred:
+  sign/access_token/auth_key/sid), bridge-missing warning.
 
 ## Icons
 

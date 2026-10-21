@@ -32,10 +32,12 @@ A devframe-based devtools page (`/__vkma`, like `/__unocss` for UnoCSS) embedded
 ## Capabilities and Constraints
 
 - Capture: outgoing `send` (via `@vkma/bridge.onSend`), incoming events (`bridge.subscribe`), launch params from the URL.
-- Unified timeline with direction/name filters; source badges per connected client; execute with target selector (default: last active).
+- Ledger-style unified timeline (request groups with nested responses, standalone event rows) with type/name filters; colored client badges; execute with target selector in standalone, fixed target in embedded panels.
+- Embedded mode: a panel opened on a mini app page (?client= from the FAB) shows only that client's traffic, hides the Clients tab and pins execute to it.
+- A mini app reload starts a new session — the node side purges that client's history on every surface.
 - Auth always on (devframe interactive OTP); `allowedOrigins` widened by the plugin for LAN/tunnel.
 - v0.1 ships as a Vite plugin only; other bundlers use manual alias/import later. React is an optional peer dependency of the package.
-- Undecided: ring buffer size N; FAB visual details.
+- Decided: ring buffer keeps the last 500 events per node; FAB is a shadow-DOM button + overlay iframe.
 
 ## Brand Commitments
 
@@ -54,5 +56,5 @@ A devframe-based devtools page (`/__vkma`, like `/__unocss` for UnoCSS) embedded
 
 1. One source of truth: all events flow through the node side; every surface renders the same data.
 2. Zero-friction local: install the plugin, open `/__vkma` — no accounts, no config.
-3. The tool recedes: neutral palette, platform type; meaning (in/out, error, client) carries the color.
+3. The tool recedes: neutral palette, platform type; meaning (request/response/event, error, client) carries the color.
 4. Remote is first-class, not a bolt-on: a phone is just another client with a badge.
