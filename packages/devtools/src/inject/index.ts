@@ -230,8 +230,12 @@ async function main(): Promise<void> {
 
 	if (bridgeGlobal) {
 		// The tap replays its buffer to the first subscriber, so events the
-		// app emitted before this script executed are not lost.
+		// app emitted before this script executed are not lost. `vk-connect`
+		// is vk-bridge's own transport chatter, not VK semantics — skip it.
 		bridgeGlobal.tap.subscribe(event => {
+			if (event.name === "vk-connect") {
+				return;
+			}
 			queue.push(event);
 		});
 	} else {

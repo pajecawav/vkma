@@ -1,6 +1,6 @@
 ---
 name: "@vkma.dev/devtools"
-description: The Dialogue Axis — a quiet gray/black/white devtools instrument where the bridge conversation itself is the interface.
+description: A quiet gray/black/white devtools instrument where the bridge traffic reads as requests, responses and events.
 colors:
     page: "oklch(98.5% 0 0) / dark: oklch(14.5% 0 0)"
     surface: "#ffffff / dark: oklch(21% 0 0)"
@@ -18,7 +18,7 @@ rounded:
     control: "0.375rem"
     card: "0.5rem"
 spacing:
-    row: "py-1.5 dense timeline rows (~32px)"
+    row: "28px timeline rows, responses indented 36px"
     control: "28px controls, 32px inputs"
 ---
 
@@ -26,17 +26,18 @@ spacing:
 
 ## Overview
 
-**Creative North Star: "The Dialogue Axis"**
+**Creative North Star: "The Quiet Ledger"**
 
 The panel is a quiet instrument in the @pajecawav/ui lineage ("The Quiet
 Instrument"): pure neutral ramp, near-black ink as the only primary, the
 platform typeface, and color appearing exactly when meaning appears —
 emerald for a resolved response, red for an error, amber for a trust
-problem. What makes it itself is the timeline's center hairline: outgoing
-sends speak from the right of the axis, incoming events and paired
-responses answer from the left, so the app↔VK conversation reads as a
-dialogue, not a log. The axis collapses to direction chips under 640px
-(the FAB overlay on a phone keeps full function).
+problem. The timeline is a ledger of transactions: each app request is a
+28px row (`→` chip, mono method, inline payload preview) with its response
+nested beneath it (`↩` chip, round-trip duration, ok/error mark);
+unsolicited VK events stand alone (`◇` chip). There is no left/right
+dialogue and no in/out vocabulary — the model is request / response /
+event, matching the wire.
 
 ## Key Characteristics
 
@@ -44,8 +45,8 @@ dialogue, not a log. The axis collapses to direction chips under 640px
 - One control grid: 28px buttons, 32px inputs, 6px control radius.
 - Monospace is for data (names, payloads, timestamps with tabular
   numerals), never costume.
-- Metadata (timestamps, client badges) at 10px neutral-500/400 — sized
-  for scanning, contrasted for AA.
+- Metadata (timestamps, client badges, durations) at 10px neutral-500/400
+  — sized for scanning, contrasted for AA.
 - Light and dark are both composed; `prefers-color-scheme` default with
   a persisted toggle; theme set pre-paint (no flash).
 - One authored motion: rows surface from 4px below (160ms, ease-out),
@@ -56,10 +57,10 @@ dialogue, not a log. The axis collapses to direction chips under 640px
 - **TopBar** — wordmark (authored diamond SVG), connection status dot +
   label, theme toggle.
 - **Rail** — icon+label nav (Timeline / Execute / Clients); left column
-  ≥640px, bottom bar below.
-- **Timeline** — filter row (search, All/In/Out segmented control, pause,
-  clear) over the dialogue axis; rows carry time, client badge, paired
-  duration (`↳ 42ms`), ok/error marks; payload expands inline with copy.
+  ≥640px, segmented top bar below (the panel lives in small overlays).
+- **Timeline** — filter row (search, All/Requests/Events segmented
+  control, pause, clear) over the ledger: request groups with nested
+  responses, standalone event rows, payload expands inline with copy.
 - **Execute** — target select, event datalist input, JSON params with
   live validation, result panel (tonal emerald/red/amber at 6% opacity).
 - **Clients** — expandable registry cards: platform icon, short id, url,
@@ -68,5 +69,5 @@ dialogue, not a log. The axis collapses to direction chips under 640px
 ## Icons
 
 Authored set, one stroke weight (1.75), round caps, 24-box at 16px —
-diamond wordmark, direction arrows, platform glyphs, sun/moon, transport
-controls. No unicode stand-ins.
+diamond wordmark, request arrow, response return arrow, event diamond,
+platform glyphs, sun/moon, transport controls. No unicode stand-ins.

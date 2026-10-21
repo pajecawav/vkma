@@ -1,19 +1,78 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
-import { EventRow } from "./EventRow.tsx";
+import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
 
-type DirectionFilter = "all" | "in" | "out";
+type EventFilter = "all" | "requests" | "events";
 
-const DIRECTION_TABS: { id: DirectionFilter; label: string }[] = [
+const FILTER_TABS: { id: EventFilter; label: string }[] = [
 	{ id: "all", label: "All" },
-	{ id: "in", label: "In" },
-	{ id: "out", label: "Out" },
+	{ id: "requests", label: "Requests" },
+	{ id: "events", label: "Events" },
 ];
+
+interface Group {
+	/** The leading row: a request, or a standalone event. */
+	head: WireEvent;
+	/** The paired response, when one arrived. */
+	response?: WireEvent;
+}
+
+/**
+ * Streams flat tap events into display units: a send opens a request group
+ * that the next matching response (same client, same tap id) joins;
+ * anything else stands alone as an event row.
+ */
+function buildGroups(events: WireEvent[], filter: EventFilter): Group[] {
+	const pendingResponses = new Map<string, WireEvent>();
+	const groups: Group[] = [];
+
+	for (const event of events) {
+		if (event.kind === "send") {
+			groups.push({ head: event });
+			pendingResponses.set(`${event.clientId}:${event.id}`, event);
+			continue;
+		}
+		if (event.kind === "response") {
+			const key = `${event.clientId}:${event.reqId}`;
+			const request = pendingResponses.get(key);
+			if (request !== undefined) {
+				// attach to the request's group: groups are pushed in order and
+				// the request created the most recent unmatched group with this
+				// client, so scan back (rarely more than a few).
+				for (let i = groups.length - 1; i >= 0; i--) {
+					const group = groups[i];
+					if (
+						group !== undefined &&
+						group.head.id === request.id &&
+						group.head.clientId === request.clientId
+					) {
+						group.response = event;
+						break;
+					}
+				}
+				pendingResponses.delete(key);
+				continue;
+			}
+			// unpaired response: show it as its own row
+			groups.push({ head: event });
+			continue;
+		}
+		groups.push({ head: event });
+	}
+
+	if (filter === "requests") {
+		return groups.filter(group => group.head.kind === "send");
+	}
+	if (filter === "events") {
+		return groups.filter(group => group.head.kind === "event");
+	}
+	return groups;
+}
 
 export function Timeline({ events, clients }: { events: WireEvent[]; clients: ClientInfo[] }) {
 	const [query, setQuery] = useState("");
-	const [direction, setDirection] = useState<DirectionFilter>("all");
+	const [filter, setFilter] = useState<EventFilter>("all");
 	const [paused, setPaused] = useState(false);
 	const [anchorSeq, setAnchorSeq] = useState<number | null>(null);
 	const [clearSeq, setClearSeq] = useState(0);
@@ -37,31 +96,19 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 			paused && anchorSeq !== null ? base.filter(event => event.seq <= anchorSeq) : base;
 		const needle = query.trim().toLowerCase();
 		return frozen.filter(event => {
-			if (direction !== "all" && event.direction !== direction) {
-				return false;
-			}
 			if (needle !== "" && !event.name.toLowerCase().includes(needle)) {
 				return false;
 			}
 			return true;
 		});
-	}, [events, clearSeq, paused, anchorSeq, query, direction]);
+	}, [events, clearSeq, paused, anchorSeq, query]);
+
+	const groups = useMemo(() => buildGroups(visible, filter), [visible, filter]);
 
 	const buffered =
 		paused && anchorSeq !== null
 			? events.filter(event => event.seq > anchorSeq && event.seq > clearSeq).length
 			: 0;
-
-	// Map for send→response pairing (duration display).
-	const pairMap = useMemo(() => {
-		const map = new Map<string, number>();
-		for (const event of events) {
-			if (event.kind === "send") {
-				map.set(`${event.clientId}:${event.id}`, event.ts);
-			}
-		}
-		return map;
-	}, [events]);
 
 	const clientShade = useMemo(() => {
 		const shades = new Map<string, number>();
@@ -84,7 +131,7 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 		}
 	});
 
-	const empty = visible.length === 0 && query === "" && direction === "all" && buffered === 0;
+	const empty = groups.length === 0 && query === "" && buffered === 0;
 
 	return (
 		<section className="flex min-h-0 flex-1 flex-col" aria-label="Timeline">
@@ -99,17 +146,17 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 				<div
 					className="flex h-7 items-center rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800"
 					role="tablist"
-					aria-label="Direction"
+					aria-label="Event type"
 				>
-					{DIRECTION_TABS.map(tab => (
+					{FILTER_TABS.map(tab => (
 						<button
 							key={tab.id}
 							type="button"
 							role="tab"
-							aria-selected={direction === tab.id}
-							onClick={() => setDirection(tab.id)}
+							aria-selected={filter === tab.id}
+							onClick={() => setFilter(tab.id)}
 							className={`h-6 rounded-[4px] px-2.5 text-xs font-medium ${
-								direction === tab.id
+								filter === tab.id
 									? "bg-neutral-800 text-white dark:bg-neutral-100 dark:text-neutral-900"
 									: "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
 							}`}
@@ -164,47 +211,48 @@ export function Timeline({ events, clients }: { events: WireEvent[]; clients: Cl
 				}}
 				className="scroll-area relative min-h-0 flex-1 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800/60"
 			>
-				{/* the dialogue axis: one hairline the timeline speaks across */}
-				<div
-					aria-hidden="true"
-					className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-neutral-200 sm:block dark:bg-neutral-800"
-				/>
 				{empty ? (
 					<div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 px-6 text-center">
 						<p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
 							Waiting for bridge traffic
 						</p>
 						<p className="max-w-64 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-							Open your mini app — every send and event lands here. Nothing yet? Make
-							sure the app imports <code className="font-mono">@vkma.dev/bridge</code>
-							.
+							Open your mini app — every request and event lands here. Nothing yet?
+							Make sure the app imports{" "}
+							<code className="font-mono">@vkma.dev/bridge</code>.
 						</p>
 					</div>
+				) : groups.length === 0 ? (
+					<p className="px-4 py-8 text-center text-xs text-neutral-500 dark:text-neutral-400">
+						No events match the filter.
+					</p>
 				) : (
-					<>
-						{visible.map(event => (
-							<EventRow
-								key={event.seq}
-								event={event}
-								clients={clients}
-								clientShade={clientShade}
-								pairedSendTs={
-									event.reqId !== undefined
-										? pairMap.get(`${event.clientId}:${event.reqId}`)
-										: undefined
-								}
-								animate={
-									initialMaxSeq.current !== null &&
-									event.seq > initialMaxSeq.current
-								}
-							/>
-						))}
-						{visible.length === 0 && (
-							<p className="px-4 py-8 text-center text-xs text-neutral-400">
-								No events match the filter.
-							</p>
-						)}
-					</>
+					groups.map(group => (
+						<div key={`${group.head.clientId}:${group.head.id}`} className="py-0.5">
+							{group.head.kind === "send" ? (
+								<RequestGroup
+									request={group.head}
+									response={group.response}
+									clients={clients}
+									clientShade={clientShade}
+									animate={
+										initialMaxSeq.current !== null &&
+										group.head.seq > initialMaxSeq.current
+									}
+								/>
+							) : (
+								<EventRow
+									event={group.head}
+									clients={clients}
+									clientShade={clientShade}
+									animate={
+										initialMaxSeq.current !== null &&
+										group.head.seq > initialMaxSeq.current
+									}
+								/>
+							)}
+						</div>
+					))
 				)}
 			</div>
 		</section>

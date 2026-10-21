@@ -31,7 +31,7 @@ export function Rail({
 						aria-current={active ? "page" : undefined}
 						className={`flex flex-1 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium sm:justify-start sm:flex-none sm:text-sm ${
 							active
-								? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
+								? "bg-neutral-200/80 text-neutral-900 dark:bg-neutral-700/60 dark:text-white"
 								: "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800/60 dark:hover:text-neutral-100"
 						}`}
 					>
