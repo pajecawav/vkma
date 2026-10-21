@@ -1,0 +1,21 @@
+{
+	"name": "@vkma.dev/playground-mini-app",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build"
+	},
+	"devDependencies": {
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
+		"@vkontakte/vk-bridge": "catalog:",
+		"@vkma.dev/bridge": "workspace:*",
+		"@vkma.dev/devtools": "workspace:*",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"vite": "catalog:"
+	}
+}
