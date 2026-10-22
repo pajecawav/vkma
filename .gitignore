@@ -6,3 +6,5 @@ coverage
 .astro
 web-ext-artifacts
 dist-client
+# research artifacts (devframe capabilities etc.) — local notes, not shipped
+docs/research/
