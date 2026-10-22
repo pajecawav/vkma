@@ -12,6 +12,7 @@ catalog:
     "@vkontakte/vk-bridge": ^3.0.2
     "@devframes/agentic": ^1.2.6
     "@devframes/vite": ^1.2.6
+    "@vitejs/devtools-kit": ^0.8.0
     cross-env: ^10.1.0
     devframe: ^1.2.6
     lucide-react: ^1.57.0

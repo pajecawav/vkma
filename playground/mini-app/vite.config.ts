@@ -6,7 +6,15 @@ import { defineConfig } from "vite";
  * A fake mini app for manual e2e checks: it deliberately imports the
  * ORIGINAL @vkontakte/vk-bridge everywhere so the plugin's dev alias is
  * what routes it through the tap.
+ *
+ * `VKMA_HUB=1 pnpm dev` runs the panel as a Vite DevTools dock instead
+ * of standalone (needs @vitejs/devtools, kept in devDependencies).
  */
 export default defineConfig({
-	plugins: [react(), vkmaDevtools()],
+	plugins: [
+		react(),
+		...(process.env.VKMA_HUB === "1"
+			? [(await import("@vitejs/devtools")).DevTools(), vkmaDevtools({ hub: true })]
+			: [vkmaDevtools()]),
+	],
 });

@@ -42,8 +42,14 @@
 	"peerDependencies": {
 		"@devframes/vite": "^1.2.6",
 		"@vkma.dev/bridge": ">=0.0.0",
+		"@vitejs/devtools-kit": ">=0.8.0",
 		"devframe": "^1.2.6",
 		"vite": "^7.0.0 || ^8.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@vitejs/devtools-kit": {
+			"optional": true
+		}
 	},
 	"dependencies": {
 		"@devframes/agentic": "catalog:"
@@ -54,6 +60,7 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@vitejs/devtools-kit": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
 		"@vkma.dev/bridge": "workspace:*",
 		"devframe": "catalog:",

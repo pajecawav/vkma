@@ -10,10 +10,11 @@
 	"devDependencies": {
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@vitejs/devtools": "^0.8.0",
 		"@vitejs/plugin-react": "catalog:",
-		"@vkontakte/vk-bridge": "catalog:",
 		"@vkma.dev/bridge": "workspace:*",
 		"@vkma.dev/devtools": "workspace:*",
+		"@vkontakte/vk-bridge": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
 		"vite": "catalog:"

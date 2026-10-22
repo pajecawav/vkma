@@ -42,6 +42,11 @@ One line gives the mini app:
   iframe, standalone) with UA, platform, launch params.
 - **Embedded scope** — the FAB panel shows only its own page's traffic
   (colored client badge in the header); a page reload resets its history.
+- **MCP for coding agents** — the same timeline and execute are exposed as
+  MCP tools (`vkma:mcp-state`, `vkma:mcp-execute`) at `/__vkma/__mcp`
+  (Streamable-HTTP), so agents like OpenCode or Claude Code can read the
+  bridge traffic and drive `execute` programmatically. Event payloads are
+  JSON-sanitized on this surface.
 
 ## Remote (phone on LAN / tunnel)
 
@@ -50,8 +55,30 @@ the OTP printed in the dev server terminal (or the one-click link it
 prints). The WebSocket origin check is open by default — the OTP gate is
 the trust boundary; pass `allowedOrigins` to lock it down.
 
+## Vite DevTools dock (hub mode)
+
+With [`@vitejs/devtools`](https://devtools.vite.dev/) installed, mount the
+panel as one of its docks instead of standalone:
+
+```ts
+import { DevTools } from "@vitejs/devtools";
+import { vkmaDevtools } from "@vkma.dev/devtools";
+
+export default {
+    plugins: [DevTools(), vkmaDevtools({ hub: true })],
+};
+```
+
+The hub then owns the panel mount and the RPC bridge (one WebSocket and one
+auth gate shared with every other dock); our plugin keeps the bridge
+interception and the FAB/collector injection. The MCP tools aggregate into
+the hub's endpoint (`/__devtools/__mcp`). Without `hub: true` nothing
+changes — the standalone `/__vkma/` + FAB setup runs exactly as before,
+with or without Vite DevTools present.
+
 ## Non-Vite bundlers
 
-Import `@vkma.dev/bridge` instead of `@vkontakte/vk-bridge` (or alias it
-yourself) and serve the panel yourself via `initDevframe` — see
-`vkmaDevframe` export.
+**Any other bundler / server** — import `@vkma.dev/bridge` instead of
+`@vkontakte/vk-bridge` (or alias it yourself, skipping imports from inside
+the tap package) and mount the panel yourself via `initDevframe` — see
+the `vkmaDevframe` export.
