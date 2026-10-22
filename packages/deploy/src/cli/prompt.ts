@@ -1,9 +1,12 @@
 /**
  * Minimal readline prompts (confirm / text).
  *
- * Prompts exist only behind --interactive (or for the event-205 confirmation
- * code, which cannot be known in advance). Without a TTY they throw a `user`
- * DeployError instead of hanging — CI pipelines never get stuck.
+ * Prompts exist only behind --interactive — with three exceptions, all
+ * TTY-only confirmation prompts: the update-flag confirms (answers feed
+ * the wire params via the "prompt" config source), the pre-deploy
+ * confirmation, and the event-205 confirmation code (which cannot be
+ * known in advance). Without a TTY they throw a `user` DeployError
+ * instead of hanging — CI pipelines never get stuck.
  *
  * One readline interface is shared per input stream: sequential prompts
  * (pre-deploy confirm, then the 205 code) on a freshly created interface
@@ -14,12 +17,17 @@
 
 import readline from "node:readline/promises";
 import { DeployError } from "../errors.ts";
+import { paint, type ColorName } from "../logger/color.ts";
 
 export interface PromptOptions {
 	readonly signal?: AbortSignal;
 	readonly stdin?: { isTTY?: boolean };
 	readonly input?: NodeJS.ReadableStream;
 	readonly output?: { write(text: string): void };
+	/** Paints the whole question (including the Y/n hint) in this color.
+	 * Passed only when colors are enabled at all — the caller owns the
+	 * TTY / NO_COLOR / --no-color decision, never this module. */
+	readonly questionColor?: ColorName;
 }
 
 function requireTty(options: PromptOptions): void {
@@ -36,13 +44,32 @@ function requireTty(options: PromptOptions): void {
 const sharedInterfaces = new WeakMap<object, readline.Interface>();
 const createdInterfaces: readline.Interface[] = [];
 
+/**
+ * readline needs an EventEmitter-ish output (`on`), but callers may pass
+ * a plain `{ write }` double (MainOptions.stdout test mocks). Those get a
+ * minimal adapter; `isTTY` is deliberately not forwarded so readline
+ * stays in non-terminal mode and only ever calls `write`.
+ */
+function writableFor(output: { write(text: string): void }): NodeJS.WritableStream {
+	const stream = output as NodeJS.WritableStream;
+	if (typeof stream.on === "function") {
+		return stream;
+	}
+	const adapter = {
+		write: (text: string) => output.write(text),
+		on: () => adapter,
+		off: () => adapter,
+	};
+	return adapter as unknown as NodeJS.WritableStream;
+}
+
 function interfaceFor(options: PromptOptions): readline.Interface {
 	const input: object = options.input ?? process.stdin;
 	let rl = sharedInterfaces.get(input);
 	if (rl === undefined) {
 		rl = readline.createInterface({
 			input: input as NodeJS.ReadableStream,
-			output: (options.output ?? process.stdout) as NodeJS.WritableStream,
+			output: writableFor(options.output ?? process.stdout),
 		});
 		sharedInterfaces.set(input, rl);
 		createdInterfaces.push(rl);
@@ -88,7 +115,10 @@ export async function confirm(
 	requireTty(options);
 	const rl = interfaceFor(options);
 	const hint = defaultValue ? "Y/n" : "y/N";
-	const answer = (await ask(rl, `${question} (${hint}) `, options.signal)).trim().toLowerCase();
+	const plain = `${question} (${hint}) `;
+	const query =
+		options.questionColor === undefined ? plain : paint(plain, options.questionColor, true);
+	const answer = (await ask(rl, query, options.signal)).trim().toLowerCase();
 	if (answer === "") {
 		return defaultValue;
 	}

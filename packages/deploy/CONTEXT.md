@@ -48,6 +48,18 @@ environment. Credentials embedded in the proxy URL are masked in output and
 registered with the redactor. The library treats `config.proxy` as inert
 data — its seam for transport control is `fetchImpl`.
 
+## Update-flag triage
+
+`updateProd`/`updateDev` are tri-state through resolution: **set** (config
+file, legacy snake_case, or CLI flag), **confirmed** (a TTY answer,
+recorded as the `"prompt"` source so it reaches the wire params), or
+**unset**. Unset values are a CLI deploy-time concern, not a resolution
+one: a TTY run asks, `--yes`/`--dry-run` keep the VK server default
+(upstream `noprompt` parity), and any other non-interactive run fails with
+`E_UPDATE_FLAG_REQUIRED` — the server default never decides URL switching
+silently. The library itself never prompts and treats unset exactly as
+upstream did: the param is simply not sent.
+
 ## Related vocabulary
 
 See the architecture review vocabulary (module, interface, depth, seam,

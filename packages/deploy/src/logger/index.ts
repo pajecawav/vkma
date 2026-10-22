@@ -13,6 +13,7 @@ import { PLATFORM_LABELS } from "../constants.ts";
 import type { DeployResult } from "../deploy/flow.ts";
 import type { DeployError } from "../errors.ts";
 import type { Redactor } from "../redact.ts";
+import { paint as paintText, type ColorName } from "./color.ts";
 
 export type LoggerMode = "pretty" | "json" | "quiet";
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -55,18 +56,6 @@ export function formatBytes(bytes: number): string {
 	return `${value.toFixed(1)} ${units[unit]}`;
 }
 
-const COLORS = {
-	reset: 0,
-	bold: 1,
-	dim: 2,
-	red: 31,
-	green: 32,
-	yellow: 33,
-	cyan: 36,
-} as const;
-
-type ColorName = keyof typeof COLORS;
-
 export class CliLogger {
 	private readonly mode: LoggerMode;
 	private readonly colorEnabled: boolean;
@@ -106,7 +95,7 @@ export class CliLogger {
 	}
 
 	private paint(text: string, color: ColorName): string {
-		return this.colorEnabled ? `\x1b[${COLORS[color]}m${text}\x1b[0m` : text;
+		return paintText(text, color, this.colorEnabled);
 	}
 
 	private writeOut(text: string): void {

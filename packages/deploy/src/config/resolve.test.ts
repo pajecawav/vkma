@@ -101,7 +101,10 @@ describe("resolveConfig", () => {
 		// for the others (only configured ones are preflight-checked/sent).
 		expect(config.endpoints).toEqual({ web: "index.html" });
 		expect(config.environment).toBe("both");
-		expect(config.updateProd).toBe(true);
+		// Update flags have no default: unset stays undefined (the CLI
+		// triage prompts or fails; the wire omits the params).
+		expect(config.updateProd).toBeUndefined();
+		expect(config.updateDev).toBeUndefined();
 		expect(config.apiVersion).toBe("5.199");
 		expect(meta.configPath).toBeDefined();
 		expect(meta.legacy).toBe(false);

@@ -134,7 +134,7 @@ export function mapLegacyConfig(raw: unknown): LegacyMapping {
 
 	if (has("noprompt")) {
 		warnings.push(
-			'Legacy field "noprompt" is ignored: vkma-deploy never prompts unless --interactive is passed.',
+			'Legacy field "noprompt" is ignored: pass --yes for the equivalent never-prompt behavior (unset update flags then keep the VK server default).',
 		);
 	}
 

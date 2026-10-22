@@ -68,8 +68,8 @@ JSON configs get editor autocomplete via `$schema`:
 | `bundle`          | string                               | —                           | Prebuilt `.zip`; skips zipping (legacy: `bundleFile`)                                                                    |
 | `endpoints`       | `{mobile?, mvk?, web?}`, ≥1 required | — (required)                | Entry files per platform; only configured ones are checked & sent. VK never processes a task with no `endpoint_*` params |
 | `environment`     | `"dev"\|"production"\|"both"`        | `"both"`                    | What to deploy (legacy env var values work too)                                                                          |
-| `updateProd`      | boolean                              | `true`                      | Switch production URLs (independent of `updateDev`)                                                                      |
-| `updateDev`       | boolean                              | `true`                      | Switch dev URLs                                                                                                          |
+| `updateProd`      | boolean                              | unset (prompted/required)   | Switch production URLs (independent of `updateDev`)                                                                      |
+| `updateDev`       | boolean                              | unset (prompted/required)   | Switch dev URLs                                                                                                          |
 | `testGroupName`   | string                               | —                           | Deploy into a named test group (dev only)                                                                                |
 | `accessToken`     | string                               | —                           | Prefer env var or `vkma-deploy login` over committing                                                                    |
 | `apiHost`         | string                               | `https://api.vk.ru/method/` |                                                                                                                          |
@@ -140,14 +140,54 @@ the machine. The prompt is skipped (the plan is still logged) for `--yes`/`-y`,
 `--dry-run`, the `CI` environment variable, non-TTY stdin, and
 `--json`/`--quiet` modes.
 
+### URL-switch policy (`--update-prod` / `--update-dev`)
+
+Whether the deploy switches production/dev URLs is always explicit — VK's
+server default never decides it silently:
+
+- **Set** via `--update-prod`/`--no-update-prod`, `--update-dev`/
+  `--no-update-dev`, or `updateProd`/`updateDev` in the config (legacy:
+  `update_prod`/`update_dev`) — used as given, no questions asked.
+- **Unset on a TTY** — the CLI asks, right before the deploy plan:
+
+    ```
+    Update production URLs? (Y/n)
+    Update dev URLs? (Y/n)
+    Deploy? (Y/n)
+    ```
+
+    `Enter` accepts the shown default (yes), `n` pins the flag to "do not
+    switch" — declining an update prompt does **not** cancel the deploy;
+    only answering `n` to `Deploy?` does (exit `130`). Ctrl+C aborts with
+    `130`. Only flags relevant to the target environment are asked
+    (`--env dev` never asks about production).
+
+- **Unset in a non-interactive run** (non-TTY stdin, `CI` env var, or
+  `--json`/`--quiet`) — the deploy fails fast with exit `1` telling you
+  exactly which flag to pass. This includes `--yes`: automation must pin
+  its URL policy. Migrating from upstream CI configs: add the flags (or
+  the config fields) once.
+- **Unset with `--yes` or `--dry-run` on a TTY** — the flags stay unset
+  and VK's server default applies (the deploy plan says
+  `server default`); this mirrors upstream's `noprompt`.
+
+Unlike the upstream CLI, prompted answers never overwrite values that a
+flag, env var, or config file already provided, and declining both update
+prompts still deploys (the version is uploaded without switching URLs).
+
 ### CI
 
 ```yaml
 - run: pnpm build
-- run: npx vkma-deploy
+- run: npx vkma-deploy --update-prod --no-update-dev
   env:
       VKMA_ACCESS_TOKEN: ${{ secrets.VK_TOKEN }}
 ```
+
+Non-interactive runs require an explicit URL-switch policy: pass
+`--update-prod`/`--no-update-prod` and `--update-dev`/`--no-update-dev`
+(or set `updateProd`/`updateDev` in the config) — without them the deploy
+fails with exit `1` instead of leaving the decision to VK's server default.
 
 Add `--json` for machine-readable, newline-delimited event records on stdout.
 

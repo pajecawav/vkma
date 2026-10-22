@@ -240,7 +240,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -301,13 +307,23 @@ describe("main()", () => {
 		expect(text).toContain("Access token: environment variable");
 		expect(text).toContain("vk.ru:  https://app");
 		expect(text).toContain("version 9");
+		// Explicit update flags from the config reach the wire (this run is
+		// non-interactive, so unset flags would fail instead).
+		expect(spy.calls[0]?.url).toContain("update_prod=1");
+		expect(spy.calls[0]?.url).toContain("update_dev=1");
 	});
 
 	it("deploy maps API errors to exit code 3", async () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(() => ({
 			body: { error: { error_code: 15, error_msg: "nope" } },
@@ -329,7 +345,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const code = await main([], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(1);
@@ -340,7 +362,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -441,7 +469,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -495,7 +529,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(
 			route([
@@ -579,7 +619,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		let polls = 0;
 		const spy = createFetchSpy(async (url: string) => {
@@ -691,7 +737,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const input = new PassThrough();
@@ -718,7 +770,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const input = new PassThrough();
@@ -744,7 +802,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		// TTY stdin but no input ever written: if the prompt fired here, the
@@ -807,7 +871,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: false,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const code = await main(["--json"], {
@@ -832,6 +902,276 @@ describe("main()", () => {
 			);
 		const plan = records.find(record => record.message === "deploy plan");
 		expect(plan?.data?.plan?.appId).toBe(42);
+	});
+
+	it("non-interactive runs without update flags fail fast (E_UPDATE_FLAG_REQUIRED)", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		// Piped stdin: nothing can be asked.
+		const piped = await main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: false },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		// A CI runner with a pseudo-TTY must fail the same way — even with
+		// --yes: automation has to pin its URL-switch policy explicitly.
+		const ci = await main(["--yes"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", CI: "1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(piped).toBe(1);
+		expect(ci).toBe(1);
+		expect(err.join("")).toContain("--update-prod");
+		expect(err.join("")).toContain("update_prod");
+		expect(spy.calls.length).toBe(0);
+	});
+
+	it("unset update flags are prompted on a TTY; Enter=yes reaches the wire", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		// Three answers: update-prod (Y default), update-dev (Y default),
+		// then the pre-deploy confirm. Deferred lines — readline eats
+		// pre-buffered input eagerly (see the event-205 test).
+		input.write("\n");
+		setTimeout(() => input.write("\n"), 30);
+		setTimeout(() => input.write("\n"), 60);
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls[0]?.url).toContain("update_prod=1");
+		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		// The plan reports where each answer came from.
+		expect(out.join("")).toContain("URL switch: prod yes (prompt) · dev yes (prompt)");
+	});
+
+	it("declining the update-prod prompt deploys with update_prod=0 (not a cancel)", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("n\n"); // prod: no
+		setTimeout(() => input.write("\n"), 30); // dev: Y default
+		setTimeout(() => input.write("\n"), 60); // Deploy? Y
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls.length).toBeGreaterThan(0);
+		expect(spy.calls[0]?.url).toContain("update_prod=0");
+		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(out.join("")).toContain("URL switch: prod no (prompt) · dev yes (prompt)");
+	});
+
+	it("declining both update prompts still deploys and warns that no URLs switch", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("n\n");
+		setTimeout(() => input.write("n\n"), 30);
+		setTimeout(() => input.write("\n"), 60);
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls[0]?.url).toContain("update_prod=0");
+		expect(spy.calls[0]?.url).toContain("update_dev=0");
+		expect(err.join("")).toContain("no URLs will switch");
+	});
+
+	it("explicit update flags are never prompted, even on a TTY", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main(["--no-update-prod", "--update-dev"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		// Only one answer exists — the pre-deploy confirm. If the update
+		// prompts fired too, the run would hang on a missing answer.
+		input.write("\n");
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls[0]?.url).toContain("update_prod=0");
+		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(out.join("")).toContain("URL switch: prod no (override) · dev yes (override)");
+	});
+
+	it("--env dev skips the update-prod question (environment-aware prompts)", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const input = new PassThrough();
+		const pending = main(["--env", "dev"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		// Two answers only: update-dev (Y default) and the confirm.
+		input.write("\n");
+		setTimeout(() => input.write("\n"), 30);
+		const code = await pending;
+		expect(code).toBe(0);
+		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(spy.calls[0]?.url).not.toContain("update_prod");
+	});
+
+	it("--yes on a TTY keeps the VK server default for unset update flags", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const code = await main(["--yes"], {
+			stdout,
+			stderr,
+			stdin: { isTTY: true },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		// Upstream `noprompt` parity: unset flags are simply not sent.
+		expect(spy.calls[0]?.url).not.toContain("update_prod");
+		expect(spy.calls[0]?.url).not.toContain("update_dev");
+		expect(out.join("")).toContain("URL switch: prod server default · dev server default");
+	});
+
+	it("the production update prompt is painted yellow on a color TTY", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const ttyOut: string[] = [];
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout: { write: (text: string) => ttyOut.push(text), isTTY: true },
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("\n");
+		setTimeout(() => input.write("\n"), 30);
+		setTimeout(() => input.write("\n"), 60);
+		const code = await pending;
+		expect(code).toBe(0);
+		const text = ttyOut.join("");
+		// Caution color on the production question (hint included)…
+		expect(text).toContain("\x1b[33mUpdate production URLs? (Y/n)");
+		// …and only there: the safe dev question and Deploy? stay neutral.
+		expect(text).toContain("Update dev URLs? (Y/n)");
+		expect(text).not.toContain("\x1b[33mUpdate dev URLs?");
+		expect(text).not.toContain("\x1b[33mDeploy?");
+		// The plan mirrors the semantics: a switching prod is yellow, dev
+		// is not.
+		expect(text).toContain("\x1b[33myes (prompt)");
+		expect(text).not.toContain("dev \x1b[33m");
+	});
+
+	it("NO_COLOR keeps the prompts and the plan color-free", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const ttyOut: string[] = [];
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout: { write: (text: string) => ttyOut.push(text), isTTY: true },
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", NO_COLOR: "1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("\n");
+		setTimeout(() => input.write("\n"), 30);
+		setTimeout(() => input.write("\n"), 60);
+		const code = await pending;
+		expect(code).toBe(0);
+		const text = ttyOut.join("");
+		expect(text).toContain("Update production URLs? (Y/n)");
+		// No yellow (caution) and no dim (server default) anywhere.
+		expect(text).not.toContain("\x1b[33m");
+		expect(text).not.toContain("\x1b[2m");
 	});
 
 	it("login without appId exits 1 with guidance", async () => {
@@ -885,6 +1225,8 @@ describe("main()", () => {
 				appId: 42,
 				staticPath: "./build",
 				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
 				proxy: "http://proxy.corp:8080",
 			}),
 		);
@@ -911,7 +1253,13 @@ describe("main()", () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
-			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const proxyCalls: Record<string, string>[] = [];
