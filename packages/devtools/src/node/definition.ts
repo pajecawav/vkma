@@ -10,7 +10,7 @@ import {
 } from "../shared/protocol.ts";
 import { sanitizeEvent, toMcpJson } from "./serialize.ts";
 import { DevtoolsStore } from "./store.ts";
-import { EmbeddedSubscriptions, groupByClient } from "./subscriptions.ts";
+import { EmbeddedSubscriptions } from "./subscriptions.ts";
 
 /**
  * The vkma devframe node side: event ring buffer, client registry and
@@ -30,8 +30,49 @@ export const vkmaDevframe = defineDevframe({
 		const store = new DevtoolsStore();
 		// Embedded panels (the FAB's `?client=` iframe) subscribe to one
 		// client id; the node then delivers them only their own traffic via
-		// targeted broadcasts instead of the full feed.
+		// targeted broadcasts and per-client streams instead of the full feed.
 		const embedded = new EmbeddedSubscriptions();
+		// NOTE: we register on the raw ctx.rpc rather than ctx.scope('vkma'):
+		// scoped broadcasts carry no `filter`, and the embedded panel scoping
+		// is built on broadcast filters. Wire names stay `vkma:*` in VKMA_RPC.
+
+		// The timeline rides a devframe streaming channel: one evergreen
+		// `live` stream carries every event (a late standalone panel replays
+		// the last RING_LIMIT chunks on connect), and lazily-created
+		// `client:<id>` streams carry a single client's traffic for embedded
+		// panels, seeded with that client's history on subscribe. An
+		// unsubscribed sink keeps buffering: losing every subscriber aborts
+		// the sink's signal but not the stream itself.
+		const timeline = ctx.rpc.streaming.create<WireEvent>("vkma:timeline", {
+			replayWindow: 500,
+		});
+		const live = timeline.start({ id: "live" });
+
+		/** Write one stamped event to the live stream and the per-client
+		 * stream if one exists (created lazily by `ensureClientStream`). */
+		const pushToStreams = (event: WireEvent) => {
+			live.write(event);
+			timeline.get(`client:${event.clientId}`)?.write(event);
+		};
+
+		/** Lazily create the `client:<id>` stream and seed it with the
+		 * client's buffered history so late embedded panels replay via
+		 * the channel's replay window, not a custom snapshot path. */
+		const ensureClientStream = (clientId: string) => {
+			const id = `client:${clientId}`;
+			const existing = timeline.get(id);
+			if (existing) {
+				return existing;
+			}
+			const sink = timeline.start({ id });
+			for (const event of store.snapshotEvents()) {
+				if (event.clientId !== clientId) {
+					continue;
+				}
+				sink.write(event);
+			}
+			return sink;
+		};
 
 		const broadcastClients = () => {
 			const clients = store.listClients();
@@ -50,29 +91,6 @@ export const vkmaDevframe = defineDevframe({
 				}
 				void ctx.rpc.broadcast({
 					method: VKMA_RPC.onClients,
-					args: [scoped],
-					optional: true,
-					event: true,
-					filter: client => client.$meta === meta,
-				});
-			}
-		};
-
-		const broadcastEvents = (stamped: WireEvent[]) => {
-			void ctx.rpc.broadcast({
-				method: VKMA_RPC.onEvents,
-				args: [stamped],
-				optional: true,
-				event: true,
-				filter: client => !embedded.has(client.$meta),
-			});
-			for (const [meta, clientId] of embedded.scoped()) {
-				const scoped = groupByClient(stamped).get(clientId);
-				if (scoped === undefined) {
-					continue;
-				}
-				void ctx.rpc.broadcast({
-					method: VKMA_RPC.onEvents,
 					args: [scoped],
 					optional: true,
 					event: true,
@@ -147,22 +165,28 @@ export const vkmaDevframe = defineDevframe({
 				events: Omit<import("../shared/protocol.ts").WireEvent, "seq" | "clientId">[];
 			}) => {
 				const stamped = store.pushEvents(payload.clientId, payload.events);
-				if (stamped.length === 0) {
-					return;
+				for (const event of stamped) {
+					pushToStreams(event);
 				}
-				broadcastEvents(stamped);
 			},
 		});
 
 		ctx.rpc.register({
 			name: VKMA_RPC.subscribe,
 			type: "query",
+			// Embedded mode: the panel pins itself to one client and receives
+			// its back a lazily-built `client:<id>` stream, seeded with the
+			// client's buffered history; the channel's replay window replays
+			// missed chunks to reconnecting readers, so the panel consumes
+			// one timeline spine and drops no snapshot race.
 			handler: (payload: { clientId: string }) => {
 				const session = ctx.rpc.getCurrentRpcSession();
 				if (session === undefined) {
 					return;
 				}
 				embedded.bind(session.meta, payload.clientId);
+				const sink = ensureClientStream(payload.clientId);
+				return { streamId: sink.id };
 			},
 		});
 

@@ -62,6 +62,14 @@ export interface DevtoolsState {
 	clients: ClientStatus[];
 }
 
+/**
+ * Wire names, `vkma`-namespaced by hand on the node side (the panel and
+ * the inject collector strip the prefix and talk through
+ * `client.scope("vkma")`, which re-prefixes them) — the augment below
+ * mirrors the browser-registered ids. Broadcasts stay on the RAW node rpc
+ * because scoped broadcasts carry no `filter`, which the embedded panel
+ * scoping is built on.
+ */
 export const VKMA_RPC = {
 	hello: "vkma:hello",
 	events: "vkma:events",
@@ -72,7 +80,6 @@ export const VKMA_RPC = {
 	execResult: "vkma:exec-result",
 	/** client-side (browser-registered) functions */
 	clientExecute: "vkma:client-execute",
-	onEvents: "vkma:on-events",
 	onClients: "vkma:on-clients",
 	onSessionReset: "vkma:on-session-reset",
 	/**
@@ -86,8 +93,6 @@ export const VKMA_RPC = {
 
 declare module "devframe" {
 	interface DevframeRpcClientFunctions {
-		/** Node → every panel: live events batch. */
-		"vkma:on-events": (events: WireEvent[]) => void;
 		/** Node → every panel: the current client registry. */
 		"vkma:on-clients": (clients: ClientStatus[]) => void;
 		/** Node → every panel: a client's page reloaded — drop its history. */

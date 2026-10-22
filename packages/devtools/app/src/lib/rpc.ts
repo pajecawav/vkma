@@ -26,20 +26,16 @@ type ScopedClient = ReturnType<typeof scopeVkma>;
 const MAX_EVENTS = 500;
 
 /**
- * seq is globally unique (assigned by the node side), so it dedupes the
- * snapshot+subscribe race and double deliveries in one place.
+ * Absorb timeline chunks: the reader delivers the replay buffer after the
+ * first live chunks can already have arrived, so dedupe by the globally
+ * unique seq (assigned by the node side) and keep chronological order.
  */
-function mergeEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
-	const seen = new Set(prev.map(event => event.seq));
-	const fresh = incoming.filter(event => !seen.has(event.seq));
-	// eslint-disable-next-line no-console
-	console.log("[vkma] mergeEvents", {
-		prev: prev.length,
-		incoming: incoming.length,
-		fresh: fresh.length,
-		incomingSeqs: incoming.map(e => e.seq),
-	});
-	return [...prev, ...fresh].slice(-MAX_EVENTS);
+function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
+	const merged = new Map(prev.map(event => [event.seq, event]));
+	for (const event of incoming) {
+		merged.set(event.seq, event);
+	}
+	return [...merged.values()].sort((a, b) => a.seq - b.seq).slice(-MAX_EVENTS);
 }
 
 export interface VkmaConnection {
@@ -79,11 +75,12 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		// reconnect on its own. Tracked so cleanup closes it: without
 		// close() every reconnect() would leak the previous WebSocket.
 		let liveClient: RpcClient | undefined;
+
 		void connectDevframe({
 			// Above the node side's 20s exec timeout so a slow execute
 			// resolves with { status: "timeout" } instead of rejecting.
 			callTimeout: 30_000,
-		}).then(async client => {
+		}).then(client => {
 			if (disposed) {
 				client.close?.();
 				return;
@@ -93,21 +90,6 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 			const scoped = scopeVkma(client);
 			scopedRef.current = scoped;
 
-			scoped.rpc.register(
-				defineRpcFunction({
-					name: "on-events",
-					type: "event",
-					handler: (incoming: WireEvent[]) => {
-						setEvents(prev => {
-							const merged = mergeEvents(prev, incoming);
-							const scoped = embeddedClientId
-								? merged.filter(event => event.clientId === embeddedClientId)
-								: merged;
-							return scoped.slice(-MAX_EVENTS);
-						});
-					},
-				}) as never,
-			);
 			scoped.rpc.register(
 				defineRpcFunction({
 					name: "on-clients",
@@ -134,9 +116,55 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 				}) as never,
 			);
 
+			// The timeline streams ('connected' only happens once trust is
+			// in, so subscription failures on the unauthorized path are
+			// irrelevant — startReader is idempotent and re-invoked by the
+			// status listener when the panel completes the OTP flow).
+			let readerStarted = false;
+			const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<unknown>;
+			const startReader = async () => {
+				if (readerStarted || disposed) {
+					return;
+				}
+				readerStarted = true;
+				const streamId = embeddedClientId
+					? (
+							(await call("subscribe", {
+								clientId: embeddedClientId,
+							})) as { streamId: string }
+						).streamId
+					: "live";
+				const reader = scoped.rpc.streaming.subscribe<WireEvent>("timeline", streamId);
+				void (async () => {
+					for await (const event of reader) {
+						if (disposed) {
+							return;
+						}
+						setEvents(prev => absorbEvents(prev, [event]));
+					}
+				})().catch(() => {
+					// transport dropped — the devframe client does not reconnect
+					// on its own, the panel shows the gate and reconnect() makes
+					// a fresh client (and reader)
+				});
+				const state = (await call("state")) as DevtoolsState;
+				if (disposed) {
+					return;
+				}
+				setClients(
+					embeddedClientId
+						? state.clients.filter(client => client.clientId === embeddedClientId)
+						: state.clients,
+				);
+			};
+
+			if (client.status === "connected") {
+				void startReader();
+			}
 			client.events.on("connection:status", (next: string) => {
 				if (next === "connected") {
 					setLastError(undefined);
+					void startReader();
 				}
 				setStatus(next as ConnectionStatus);
 			});
@@ -147,32 +175,6 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 			client.events.on("rpc:error", (error: Error, method: string) => {
 				setLastError(`${method}: ${error.message}`);
 			});
-
-			const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<unknown>;
-			// Embedded mode: scope this RPC session server-side first, so even
-			// the snapshot only ever carries this client's traffic. The local
-			// filters below stay as a net against the subscribe race.
-			if (embeddedClientId) {
-				await call("subscribe", { clientId: embeddedClientId });
-			}
-			const state = (await call("state")) as DevtoolsState;
-			if (disposed) {
-				return;
-			}
-			setEvents(prev => {
-				// dedupe against anything that arrived via on-events while the
-				// snapshot was in flight
-				const merged = mergeEvents(prev, state.events);
-				const scoped = embeddedClientId
-					? merged.filter(event => event.clientId === embeddedClientId)
-					: merged;
-				return scoped.slice(-MAX_EVENTS);
-			});
-			setClients(
-				embeddedClientId
-					? state.clients.filter(client => client.clientId === embeddedClientId)
-					: state.clients,
-			);
 		});
 
 		return () => {
