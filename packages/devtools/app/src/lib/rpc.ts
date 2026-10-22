@@ -126,11 +126,14 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 				setStatus(next as ConnectionStatus);
 			});
 
-			const call = scoped.rpc.call as (
-				name: string,
-				...args: unknown[]
-			) => Promise<DevtoolsState>;
-			const state = await call("state");
+			const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<unknown>;
+			// Embedded mode: scope this RPC session server-side first, so even
+			// the snapshot only ever carries this client's traffic. The local
+			// filters below stay as a net against the subscribe race.
+			if (embeddedClientId) {
+				await call("subscribe", { clientId: embeddedClientId });
+			}
+			const state = (await call("state")) as DevtoolsState;
 			if (disposed) {
 				return;
 			}
