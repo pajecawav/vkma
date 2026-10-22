@@ -1,8 +1,7 @@
-import {
-	devframeViteBridge,
-	devframeVitePlugin,
-	type DevframeViteBridgeOptions,
-} from "@devframes/vite/single";
+import { join, resolve } from "node:path";
+import { devframeViteBridge, type DevframeViteBridgeOptions } from "@devframes/vite/single";
+import { resolveStaticAssetsSource } from "devframe/utils/remote-assets";
+import { serveStaticNodeMiddleware } from "devframe/utils/serve-static";
 import type { Plugin, PluginOption } from "vite";
 import { vkmaDevframe } from "./node/definition.ts";
 import { injectSnippet } from "./shared/inject-snippet.ts";
@@ -55,9 +54,10 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): PluginOption[] 
 
 	return [
 		// Static first: serve-static passes unknown paths through to the
-		// bridge's terminal router (which answers `__connection.json`, `__ws`
-		// and would otherwise 404 before the SPA files are reached).
-		devframeVitePlugin(vkmaDevframe, { base }),
+		// bridge's terminal router (which answers `__connection.json`, `__ws`,
+		// `__mcp` and `__sse` — without a SPA fallback of its own, so the
+		// reserved routes are never eaten).
+		vkmaStaticPlugin(base),
 		devframeViteBridge(vkmaDevframe, {
 			base,
 			allowedOrigins: options.allowedOrigins ?? false,
@@ -65,6 +65,41 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): PluginOption[] 
 		}),
 		vkmaCorePlugin(base, options),
 	];
+}
+
+/**
+ * Serve the panel's built SPA at `base` — devframeVitePlugin's copy with
+ * ONE deliberate difference: `single: false`, no SPA fallback. The
+ * fallback answered index.html to every extensionless GET under the base,
+ * which ate the bridge's own reserved routes (`__mcp`, `__sse`) before the
+ * bridge's terminal router ever saw them: a browser GET on
+ * `/__vkma/__mcp` opened the panel instead of the MCP stream. The panel
+ * has no client-side router, so it doesn't need the fallback anyway
+ * (directory hits resolve via the index candidates, bare `/__vkma` is our
+ * 308 redirect).
+ */
+function vkmaStaticPlugin(base: string): Plugin {
+	return {
+		name: "vkma-devtools:static",
+		apply: "serve",
+		configureServer(server) {
+			const distDir = vkmaDevframe.clientAssets;
+			if (!distDir) {
+				return;
+			}
+			const source = resolveStaticAssetsSource(
+				distDir,
+				join(process.cwd(), "node_modules", `.${vkmaDevframe.id}`, "devframe"),
+				vkmaDevframe.importMetaUrl,
+			);
+			server.middlewares.use(
+				base,
+				serveStaticNodeMiddleware(typeof source === "string" ? resolve(source) : source, {
+					single: false,
+				}),
+			);
+		},
+	};
 }
 
 /**
