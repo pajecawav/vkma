@@ -1,38 +1,35 @@
-import {
-	AlignLeft,
-	ArrowLeft,
-	ArrowRight,
-	Check,
-	ChevronRight,
-	Copy,
-	Diamond,
-	Globe,
-	Monitor,
-	Moon,
-	PanelsTopLeft,
-	Pause,
-	Play,
-	RotateCw,
-	Smartphone,
-	Sun,
-	Trash2,
-	TriangleAlert,
-	X,
-	type LucideIcon,
-	type LucideProps,
-} from "lucide-react";
+import type { LucideProps } from "lucide-react";
+import { Globe, Monitor, PanelsTopLeft, Smartphone } from "lucide-react";
 
 /**
- * Lucide icons tuned to the panel's visual system: 16px default and the
- * house stroke weight 1.75 (lucide's own default is 2). Call sites may
- * still override anything via props. VkmaLogoIcon stays hand-made — it is
- * the brand mark, not a lucide shape.
+ * Lucide icons under the panel's house defaults — 16px, stroke 1.75 — set
+ * once in `LucideProvider` (App.tsx), so these are direct re-exports. The
+ * only two exceptions: VkmaLogoIcon is the brand mark (hand-made, not a
+ * lucide shape), and PlatformIcon maps a platform string to a shape.
  */
-function lucideIcon(Icon: LucideIcon) {
-	return ({ ...props }: LucideProps) => (
-		<Icon size={16} strokeWidth={1.75} aria-hidden="true" {...props} />
-	);
-}
+export {
+	AlignLeft as TimelineIcon,
+	ArrowLeft as ArrowInIcon,
+	ArrowRight as ArrowOutIcon,
+	ArrowRight as ExecuteIcon,
+	Check as CheckIcon,
+	ChevronRight as ChevronIcon,
+	Copy as CopyIcon,
+	Diamond as DiamondIcon,
+	Globe as GlobeIcon,
+	Monitor as ClientsIcon,
+	Monitor as MonitorIcon,
+	Moon as MoonIcon,
+	PanelsTopLeft as FrameIcon,
+	Pause as PauseIcon,
+	Play as PlayIcon,
+	RotateCw as RefreshIcon,
+	Smartphone as PhoneIcon,
+	Sun as SunIcon,
+	Trash2 as TrashIcon,
+	TriangleAlert as WarningIcon,
+	X as CrossIcon,
+} from "lucide-react";
 
 export const VkmaLogoIcon = (props: LucideProps) => (
 	<svg
@@ -48,40 +45,18 @@ export const VkmaLogoIcon = (props: LucideProps) => (
 	</svg>
 );
 
-export const DiamondIcon = lucideIcon(Diamond);
-export const TimelineIcon = lucideIcon(AlignLeft);
-export const ExecuteIcon = lucideIcon(ArrowRight);
-export const ClientsIcon = lucideIcon(Monitor);
-export const SunIcon = lucideIcon(Sun);
-export const MoonIcon = lucideIcon(Moon);
-export const PauseIcon = lucideIcon(Pause);
-export const PlayIcon = lucideIcon(Play);
-export const TrashIcon = lucideIcon(Trash2);
-export const CopyIcon = lucideIcon(Copy);
-export const CheckIcon = lucideIcon(Check);
-export const CrossIcon = lucideIcon(X);
-export const RefreshIcon = lucideIcon(RotateCw);
-export const ChevronIcon = lucideIcon(ChevronRight);
-export const ArrowOutIcon = lucideIcon(ArrowRight);
-export const ArrowInIcon = lucideIcon(ArrowLeft);
-export const PhoneIcon = lucideIcon(Smartphone);
-export const MonitorIcon = lucideIcon(Monitor);
-export const FrameIcon = lucideIcon(PanelsTopLeft);
-export const GlobeIcon = lucideIcon(Globe);
-export const WarningIcon = lucideIcon(TriangleAlert);
-
 export function PlatformIcon({ platform, ...props }: LucideProps & { platform: string }) {
 	if (platform === "mobile-web") {
-		return <PhoneIcon {...props} />;
+		return <Smartphone {...props} />;
 	}
 	if (platform === "iframe") {
-		return <FrameIcon {...props} />;
+		return <PanelsTopLeft {...props} />;
 	}
 	if (platform === "standalone") {
-		return <GlobeIcon {...props} />;
+		return <Globe {...props} />;
 	}
 	if (platform === "android" || platform === "ios") {
-		return <PhoneIcon {...props} />;
+		return <Smartphone {...props} />;
 	}
-	return <MonitorIcon {...props} />;
+	return <Monitor {...props} />;
 }
