@@ -47,6 +47,7 @@ export type ExecResult =
 	| { status: "ok"; payload: unknown }
 	| { status: "error"; payload: unknown }
 	| { status: "no-client"; clientId: string }
+	| { status: "forbidden"; clientId: string }
 	| { status: "timeout" };
 
 export interface ExecResultReport {
@@ -65,6 +66,8 @@ export const VKMA_RPC = {
 	hello: "vkma:hello",
 	events: "vkma:events",
 	state: "vkma:state",
+	/** Panel → node: scope this RPC session to a single client id. */
+	subscribe: "vkma:subscribe",
 	execute: "vkma:execute",
 	execResult: "vkma:exec-result",
 	/** client-side (browser-registered) functions */

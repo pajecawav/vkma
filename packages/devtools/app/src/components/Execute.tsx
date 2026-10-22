@@ -24,6 +24,12 @@ function resultPanel(result: ExecResult) {
 				title: "No such client",
 				payload: `${shortId(result.clientId)} is not connected anymore.`,
 			};
+		case "forbidden":
+			return {
+				tone: "warn" as const,
+				title: "Outside this panel's scope",
+				payload: `${shortId(result.clientId)} is not this embedded panel's client.`,
+			};
 	}
 }
 
