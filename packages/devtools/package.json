@@ -57,6 +57,12 @@
 		},
 		"@vitejs/devtools-kit": {
 			"optional": true
+		},
+		"@devframes/vite": {
+			"optional": true
+		},
+		"vite": {
+			"optional": true
 		}
 	},
 	"dependencies": {

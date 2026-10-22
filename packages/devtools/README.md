@@ -7,8 +7,15 @@ events), a connected-clients registry and an execute bridge.
 ## Setup
 
 ```sh
+# Vite:
 pnpm add -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
+# Rsbuild (no vite needed):
+pnpm add -D @vkma.dev/devtools @vkma.dev/bridge devframe
 ```
+
+Only the adapter you use is a hard dependency: `vite` and `@devframes/vite`
+are optional peers (Vite mode), `@rsbuild/core` likewise (Rsbuild mode) —
+a Rsbuild app installs the devtools without pulling Vite, and vice versa.
 
 ```ts
 // vite.config.ts

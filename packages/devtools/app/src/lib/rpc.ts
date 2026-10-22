@@ -35,7 +35,7 @@ function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
 	for (const event of incoming) {
 		merged.set(event.seq, event);
 	}
-	return [...merged.values()].sort((a, b) => a.seq - b.seq).slice(-MAX_EVENTS);
+	return [...merged.values()].toSorted((a, b) => a.seq - b.seq).slice(-MAX_EVENTS);
 }
 
 export interface VkmaConnection {
