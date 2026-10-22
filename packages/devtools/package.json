@@ -54,6 +54,7 @@
 		"@vitejs/plugin-react": "catalog:",
 		"@vkma.dev/bridge": "workspace:*",
 		"devframe": "catalog:",
+		"lucide-react": "catalog:",
 		"npm-run-all2": "catalog:",
 		"publint": "catalog:",
 		"react": "catalog:",
