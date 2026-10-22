@@ -78,6 +78,25 @@ with or without Vite DevTools present.
 
 ## Non-Vite bundlers
 
+**Rsbuild / rspack** — first-class via the `@vkma.dev/devtools/rsbuild`
+subpath:
+
+```ts
+import { defineConfig } from "@rsbuild/core";
+import { pluginReact } from "@rsbuild/plugin-react";
+import { vkmaDevtoolsRsbuild } from "@vkma.dev/devtools/rsbuild";
+
+export default defineConfig({
+    plugins: [pluginReact(), vkmaDevtoolsRsbuild()],
+});
+```
+
+Same one-liner as Vite: the `/__vkma/` panel (RPC bridge rides a
+side-car WebSocket — Rsbuild never hands over HTTP upgrades), the
+`@vkontakte/vk-bridge → @vkma.dev/bridge` interception (issuer-aware, the
+tap itself keeps the original), the FAB + collector injection. Requires
+`@rsbuild/core` >= 1.0. See `playground/mini-app-rsbuild`.
+
 **Any other bundler / server** — import `@vkma.dev/bridge` instead of
 `@vkontakte/vk-bridge` (or alias it yourself, skipping imports from inside
 the tap package) and mount the panel yourself via `initDevframe` — see

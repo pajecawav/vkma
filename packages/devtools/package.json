@@ -17,6 +17,10 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
+		},
+		"./rsbuild": {
+			"types": "./dist/rsbuild/index.d.ts",
+			"import": "./dist/rsbuild/index.js"
 		}
 	},
 	"files": [
@@ -41,12 +45,16 @@
 	},
 	"peerDependencies": {
 		"@devframes/vite": "^1.2.6",
+		"@rsbuild/core": ">=1.0.0",
 		"@vkma.dev/bridge": ">=0.0.0",
 		"@vitejs/devtools-kit": ">=0.8.0",
 		"devframe": "^1.2.6",
 		"vite": "^7.0.0 || ^8.0.0"
 	},
 	"peerDependenciesMeta": {
+		"@rsbuild/core": {
+			"optional": true
+		},
 		"@vitejs/devtools-kit": {
 			"optional": true
 		}
@@ -56,6 +64,7 @@
 	},
 	"devDependencies": {
 		"@devframes/vite": "catalog:",
+		"@rsbuild/core": "catalog:",
 		"@tailwindcss/vite": "catalog:",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",

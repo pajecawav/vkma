@@ -13,6 +13,8 @@ catalog:
     "@devframes/agentic": ^1.2.6
     "@devframes/vite": ^1.2.6
     "@vitejs/devtools-kit": ^0.8.0
+    "@rsbuild/core": ^2.2.14
+    "@rsbuild/plugin-react": ^2.1.1
     cross-env: ^10.1.0
     devframe: ^1.2.6
     lucide-react: ^1.57.0
