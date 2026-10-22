@@ -9,5 +9,5 @@ import { vkmaDevtoolsRsbuild } from "@vkma.dev/devtools/rsbuild";
  * the tap. Manual e2e target for the rsbuild adapter.
  */
 export default defineConfig({
-	plugins: [pluginReact(), vkmaDevtoolsRsbuild()],
+	plugins: [pluginReact(), vkmaDevtoolsRsbuild({ mcp: process.env.VKMA_MCP === "1" })],
 });

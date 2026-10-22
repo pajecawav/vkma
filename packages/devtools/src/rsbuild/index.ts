@@ -1,6 +1,7 @@
 import type { RsbuildPlugin } from "@rsbuild/core";
 import { rspack } from "@rsbuild/core";
 import { initDevframe, type DevframeInstance } from "devframe/initiate";
+import type { McpSetting } from "devframe/types";
 import { vkmaDevframe } from "../node/definition.ts";
 import { injectSnippet } from "../shared/inject-snippet.ts";
 import { TAP_IMPORTERS } from "../shared/tap-importers.ts";
@@ -15,6 +16,15 @@ export interface VkmaRsbuildOptions {
 	 * Default `true`. Applies to the rspack bundler chain only.
 	 */
 	alias?: boolean;
+	/**
+	 * Expose the MCP tools (`vkma:mcp-state`, `vkma:mcp-execute`) at
+	 * `<base>__mcp` (Streamable-HTTP) for coding agents and MCP Inspector.
+	 * Off by default — the route's only built-in protection is the Origin
+	 * check, so turn it on deliberately: pass `true`, or a full
+	 * `McpRouteOptions` (bearer `authorization` token, extra `origins`) to
+	 * harden a tunnel/LAN setup. Default `false`.
+	 */
+	mcp?: McpSetting;
 	/**
 	 * WebSocket origin check forwarded to the bridge. Default `false`
 	 * (any origin may connect; the interactive OTP auth gate is the trust
@@ -33,6 +43,7 @@ const INSTANCE_KEY = "__vkmaDevtoolsInstance__";
 function getDevframeInstance(
 	base: string,
 	allowedOrigins: false | readonly string[],
+	mcp: McpSetting | undefined,
 ): DevframeInstance {
 	const store = globalThis as typeof globalThis & {
 		[INSTANCE_KEY]?: DevframeInstance;
@@ -47,6 +58,8 @@ function getDevframeInstance(
 		// client discovers it via `<base>__connection.json`.
 		ws: { sidecar: true },
 		allowedOrigins,
+		// MCP off unless asked for — the option owns the route decision
+		mcp: mcp ?? false,
 	});
 	store[INSTANCE_KEY] = instance;
 	return instance;
@@ -116,7 +129,11 @@ export function vkmaDevtoolsRsbuild(options: VkmaRsbuildOptions = {}): RsbuildPl
 						if (ctx.action !== "dev") {
 							return;
 						}
-						const instance = getDevframeInstance(base, options.allowedOrigins ?? false);
+						const instance = getDevframeInstance(
+							base,
+							options.allowedOrigins ?? false,
+							options.mcp,
+						);
 						// `/__vkma` (no trailing slash) would resolve the panel's
 						// relative asset URLs against the parent directory —
 						// white screen. Redirect to the slashed base, query included.

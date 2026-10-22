@@ -49,11 +49,14 @@ One line gives the mini app:
   iframe, standalone) with UA, platform, launch params.
 - **Embedded scope** — the FAB panel shows only its own page's traffic
   (colored client badge in the header); a page reload resets its history.
-- **MCP for coding agents** — the same timeline and execute are exposed as
-  MCP tools (`vkma:mcp-state`, `vkma:mcp-execute`) at `/__vkma/__mcp`
-  (Streamable-HTTP), so agents like OpenCode or Claude Code can read the
-  bridge traffic and drive `execute` programmatically. Event payloads are
-  JSON-sanitized on this surface.
+- **MCP for coding agents** — off by default; turn on with
+  `vkmaDevtools({ mcp: true })` (or a full `McpRouteOptions` — bearer
+  `authorization` token, extra `origins` — for tunnel/LAN setups). The
+  same timeline and execute are exposed as MCP tools (`vkma:mcp-state`,
+  `vkma:mcp-execute`) at `/__vkma/__mcp` (Streamable-HTTP), so agents
+  like OpenCode or Claude Code can read the bridge traffic and drive
+  `execute` programmatically. Event payloads are JSON-sanitized on this
+  surface. In hub mode the hub owns its own aggregate MCP endpoint.
 
 ## Remote (phone on LAN / tunnel)
 

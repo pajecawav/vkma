@@ -1,5 +1,6 @@
 import { join, resolve } from "node:path";
 import { devframeViteBridge, type DevframeViteBridgeOptions } from "@devframes/vite/single";
+import type { McpSetting } from "devframe/types";
 import { resolveStaticAssetsSource } from "devframe/utils/remote-assets";
 import { serveStaticNodeMiddleware } from "devframe/utils/serve-static";
 import type { Plugin, PluginOption } from "vite";
@@ -26,6 +27,16 @@ export interface VkmaDevtoolsOptions {
 	 */
 	hub?: boolean;
 	/**
+	 * Expose the MCP tools (`vkma:mcp-state`, `vkma:mcp-execute`) at
+	 * `<base>__mcp` (Streamable-HTTP) for coding agents and MCP Inspector.
+	 * Off by default — the route's only built-in protection is the Origin
+	 * check, so turn it on deliberately: pass `true`, or a full
+	 * `McpRouteOptions` (bearer `authorization` token, extra `origins`) to
+	 * harden a tunnel/LAN setup. Ignored with `hub: true` — the hub owns
+	 * its own aggregate MCP endpoint. Default `false`.
+	 */
+	mcp?: McpSetting;
+	/**
 	 * WebSocket origin check forwarded to the bridge. Default `false`
 	 * (any origin may connect, the interactive OTP auth gate stays the
 	 * trust boundary) — needed for `vite --host`, tunnels and phones on
@@ -33,7 +44,7 @@ export interface VkmaDevtoolsOptions {
 	 */
 	allowedOrigins?: DevframeViteBridgeOptions["allowedOrigins"];
 	/** Extra options forwarded verbatim to the RPC bridge. */
-	bridge?: Omit<DevframeViteBridgeOptions, "base" | "allowedOrigins">;
+	bridge?: Omit<DevframeViteBridgeOptions, "base" | "allowedOrigins" | "mcp">;
 }
 
 const BRIDGE_PACKAGE = "@vkontakte/vk-bridge";
@@ -62,6 +73,8 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): PluginOption[] 
 			base,
 			allowedOrigins: options.allowedOrigins ?? false,
 			...options.bridge,
+			// MCP off unless asked for — the option owns the route decision
+			mcp: options.mcp ?? false,
 		}),
 		vkmaCorePlugin(base, options),
 	];

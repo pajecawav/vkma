@@ -8,13 +8,14 @@ import { defineConfig } from "vite";
  * what routes it through the tap.
  *
  * `VKMA_HUB=1 pnpm dev` runs the panel as a Vite DevTools dock instead
- * of standalone (needs @vitejs/devtools, kept in devDependencies).
+ * of standalone (needs @vitejs/devtools, kept in devDependencies);
+ * `VKMA_MCP=1` turns the coding-agent MCP route on.
  */
 export default defineConfig({
 	plugins: [
 		react(),
 		...(process.env.VKMA_HUB === "1"
 			? [(await import("@vitejs/devtools")).DevTools(), vkmaDevtools({ hub: true })]
-			: [vkmaDevtools()]),
+			: [vkmaDevtools({ mcp: process.env.VKMA_MCP === "1" })]),
 	],
 });
