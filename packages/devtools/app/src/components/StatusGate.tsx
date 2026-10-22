@@ -102,6 +102,11 @@ export function StatusGate({ connection }: { connection: VkmaConnection }) {
 				<p className="mt-2 max-w-72 text-center text-xs leading-relaxed text-neutral-500">
 					The dev server link dropped — it may be restarting. Reconnect when it is back.
 				</p>
+				{connection.lastError && (
+					<p className="mt-3 max-w-80 break-words rounded-md bg-neutral-100 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-500 dark:bg-neutral-800/60">
+						{connection.lastError}
+					</p>
+				)}
 				<button
 					type="button"
 					onClick={connection.reconnect}

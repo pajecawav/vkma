@@ -46,6 +46,8 @@ export interface VkmaConnection {
 	status: ConnectionStatus;
 	events: WireEvent[];
 	clients: ClientStatus[];
+	/** Last connection-level or RPC error message, reset on a healthy status. */
+	lastError?: string;
 	requestAuthCode: () => Promise<void>;
 	submitAuthCode: (code: string) => Promise<boolean>;
 	execute: (
@@ -60,23 +62,33 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 	const [status, setStatus] = useState<ConnectionStatus>("connecting");
 	const [events, setEvents] = useState<WireEvent[]>([]);
 	const [clients, setClients] = useState<ClientStatus[]>([]);
+	const [lastError, setLastError] = useState<string | undefined>(undefined);
 	const scopedRef = useRef<ScopedClient | undefined>(undefined);
 	const rpcRef = useRef<RpcClient | undefined>(undefined);
 	const [nonce, setNonce] = useState(0);
 
 	const reconnect = useCallback(() => {
 		setStatus("connecting");
+		setLastError(undefined);
 		setNonce(n => n + 1);
 	}, []);
 
 	useEffect(() => {
 		let disposed = false;
 		// A fresh client per effect run — the devframe client does not
-		// reconnect on its own.
-		void connectDevframe().then(async client => {
+		// reconnect on its own. Tracked so cleanup closes it: without
+		// close() every reconnect() would leak the previous WebSocket.
+		let liveClient: RpcClient | undefined;
+		void connectDevframe({
+			// Above the node side's 20s exec timeout so a slow execute
+			// resolves with { status: "timeout" } instead of rejecting.
+			callTimeout: 30_000,
+		}).then(async client => {
 			if (disposed) {
+				client.close?.();
 				return;
 			}
+			liveClient = client;
 			rpcRef.current = client;
 			const scoped = scopeVkma(client);
 			scopedRef.current = scoped;
@@ -123,7 +135,17 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 			);
 
 			client.events.on("connection:status", (next: string) => {
+				if (next === "connected") {
+					setLastError(undefined);
+				}
 				setStatus(next as ConnectionStatus);
+			});
+
+			client.events.on("connection:error", (error: Error) => {
+				setLastError(error.message);
+			});
+			client.events.on("rpc:error", (error: Error, method: string) => {
+				setLastError(`${method}: ${error.message}`);
 			});
 
 			const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<unknown>;
@@ -157,6 +179,9 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 			disposed = true;
 			scopedRef.current = undefined;
 			rpcRef.current = undefined;
+			// The devframe client never reconnects on its own — without an
+			// explicit close every reconnect() leaks the previous WebSocket.
+			liveClient?.close?.();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [nonce]);
@@ -186,6 +211,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		status,
 		events,
 		clients,
+		lastError,
 		requestAuthCode,
 		submitAuthCode,
 		execute,
