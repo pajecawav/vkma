@@ -33,7 +33,7 @@ A devframe-based devtools page (`/__vkma`, like `/__unocss` for UnoCSS) embedded
 
 - Capture: outgoing `send` (via `@vkma/bridge.onSend`), incoming events (`bridge.subscribe`), launch params from the URL.
 - Ledger-style unified timeline (request groups with nested responses, standalone event rows) with type/name filters; colored client badges; execute with target selector in standalone, fixed target in embedded panels.
-- Embedded mode: a panel opened on a mini app page (?client= from the FAB) shows only that client's traffic, hides the Clients tab and pins execute to it.
+- Embedded mode: a panel opened on a mini app page (?client= from the FAB) shows only that client's traffic, hides the Clients tab and pins execute to it. Scoping happens on the dev server: the panel session subscribes to its client id and the node routes it only that client's events — other clients' traffic never reaches the panel at all.
 - A mini app reload starts a new session — the node side purges that client's history on every surface.
 - Auth always on (devframe interactive OTP); `allowedOrigins` widened by the plugin for LAN/tunnel.
 - v0.1 ships as a Vite plugin only; other bundlers use manual alias/import later. React is an optional peer dependency of the package.

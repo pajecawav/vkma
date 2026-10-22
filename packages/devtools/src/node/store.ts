@@ -28,7 +28,16 @@ export class DevtoolsStore {
 		if (existing && existing.lastSeenAt === info.lastSeenAt) {
 			return false;
 		}
-		this.clients.set(info.clientId, { ...info });
+		this.clients.set(info.clientId, {
+			...info,
+			// connectedAt anchors the registry order and the "connected N
+			// ago" label — within one session it is first-seen, whatever the
+			// collector stamps on its heartbeats.
+			connectedAt:
+				existing !== undefined && existing.sessionId === info.sessionId
+					? existing.connectedAt
+					: info.connectedAt,
+		});
 		return true;
 	}
 

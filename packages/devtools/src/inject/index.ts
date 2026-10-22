@@ -61,21 +61,39 @@ const base =
 		.__VKMA_DEVTOOLS_BASE__ ?? "/__vkma/";
 
 const CLIENT_ID_KEY = "vkma:clientId";
+const CLIENT_ID_CHANNEL = "vkma:client-ids";
 const HEARTBEAT_MS = 5_000;
 const FLUSH_MS = 250;
+const CLAIM_WINDOW_MS = 180;
+/** Heartbeats between client-id re-assertions (6 × 5s). */
+const REASSERT_EVERY = 6;
+
+function mintId(prefix: string): string {
+	return (
+		globalThis.crypto?.randomUUID?.() ??
+		`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+	);
+}
+
+function storeClientId(id: string): void {
+	try {
+		sessionStorage.setItem(CLIENT_ID_KEY, id);
+	} catch {
+		// storage denied — the id just lives for this page load
+	}
+}
 
 function getOrCreateClientId(): string {
-	const fallback = () => `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 	try {
 		const existing = sessionStorage.getItem(CLIENT_ID_KEY);
 		if (existing) {
 			return existing;
 		}
-		const id = globalThis.crypto?.randomUUID?.() ?? fallback();
-		sessionStorage.setItem(CLIENT_ID_KEY, id);
+		const id = mintId("c");
+		storeClientId(id);
 		return id;
 	} catch {
-		return fallback();
+		return mintId("c");
 	}
 }
 
@@ -89,11 +107,84 @@ function collectLaunchParams(): Record<string, string> {
 	return params;
 }
 
-const clientId = getOrCreateClientId();
+let clientId = getOrCreateClientId();
 /** Fresh on every page load — the node side wipes this client's history
  * when it sees a new session for a known client. */
-const sessionId = globalThis.crypto?.randomUUID?.() ?? `s-${Date.now().toString(36)}`;
+const sessionId = mintId("s");
 const launchParams = collectLaunchParams();
+
+interface IdMessage {
+	type: "claim" | "taken";
+	id: string;
+	token: string;
+}
+
+let reassertIds: (() => void) | undefined;
+let retintFab: (() => void) | undefined;
+
+/**
+ * sessionStorage survives reloads but is copied by "Duplicate Tab"
+ * (middle-click on the reload button, among others) — two live tabs then
+ * share one client id, interleaving their traffic into a single card and
+ * wiping its history every heartbeat (their sessionIds alternate). This
+ * BroadcastChannel handshake resolves that: a tab may keep its id only
+ * while it is the one live tab holding it. The claimant yields — an
+ * incumbent answers `taken` and the claiming tab mints a fresh id — so a
+ * plain reload (nobody else holds the id) keeps its id. Tabs re-assert
+ * their claim periodically, which also settles a duplicate whose twin was
+ * timer-frozen at claim time.
+ */
+function watchClientIds(): (() => void) | undefined {
+	if (typeof BroadcastChannel === "undefined") {
+		return undefined;
+	}
+	const channel = new BroadcastChannel(CLIENT_ID_CHANNEL);
+	const token = mintId("t");
+
+	const regenerate = () => {
+		clientId = mintId("c");
+		storeClientId(clientId);
+		// the glyph color is derived from the id — re-tint it too
+		retintFab?.();
+		// re-register right away so the next flush is not dropped as
+		// traffic from an unknown client
+		if (current !== undefined) {
+			current.rpc.callEvent(VKMA_RPC.hello, clientInfo());
+		}
+	};
+
+	const claim = () => {
+		channel.postMessage({ type: "claim", id: clientId, token });
+	};
+
+	channel.onmessage = (event: MessageEvent<IdMessage | undefined>) => {
+		const message = event.data;
+		if (!message) {
+			return;
+		}
+		if (message.type === "claim") {
+			// BroadcastChannel never echoes to its own poster, so a claim
+			// carrying my token cannot happen — and a claim of my id by
+			// another tab means the claimant yields, I keep it.
+			if (message.token !== token && message.id === clientId) {
+				channel.postMessage({ type: "taken", id: message.id, token: message.token });
+			}
+			return;
+		}
+		if (
+			message.type === "taken" &&
+			message.token === token && // addressed to my claim
+			message.id === clientId
+		) {
+			// my claim lost — mint a fresh id and verify that one is unclaimed
+			regenerate();
+			claim();
+		}
+	};
+
+	claim();
+	return claim;
+}
 
 function detectPlatform(): ClientInfo["platform"] {
 	const inFrame = window.self !== window.top;
@@ -115,12 +206,16 @@ function detectPlatform(): ClientInfo["platform"] {
 const platform = detectPlatform();
 let bridgeGlobal: BridgeHandle | undefined;
 
+/** When this page load connected — stable across heartbeats, the node side
+ * sorts the registry (and shows "connected N ago") by it. */
+const connectedAt = Date.now();
+
 function clientInfo(): ClientInfo {
 	const now = Date.now();
 	return {
 		clientId,
 		sessionId,
-		connectedAt: now,
+		connectedAt,
 		lastSeenAt: now,
 		ua: navigator.userAgent,
 		url: window.location.href,
@@ -230,7 +325,16 @@ function scheduleReconnect(): void {
 }
 
 async function main(): Promise<void> {
-	bridgeGlobal = await waitForBridge();
+	reassertIds = watchClientIds();
+	const [handle] = await Promise.all([
+		waitForBridge(),
+		// give the claim handshake its window before the first hello, so a
+		// duplicated tab registers under its fresh id right away
+		reassertIds !== undefined
+			? new Promise<void>(resolve => setTimeout(resolve, CLAIM_WINDOW_MS))
+			: Promise.resolve(),
+	]);
+	bridgeGlobal = handle;
 
 	if (bridgeGlobal) {
 		// The tap replays its buffer to the first subscriber, so events the
@@ -257,7 +361,13 @@ void main().catch((error: unknown) => {
 });
 
 // Heartbeat + batched flush share one tick each.
+let heartbeatTicks = 0;
 setInterval(() => {
+	heartbeatTicks++;
+	if (reassertIds !== undefined && heartbeatTicks % REASSERT_EVERY === 0) {
+		// a frozen twin may have answered nothing at claim time — re-check
+		reassertIds();
+	}
 	if (current !== undefined) {
 		current.rpc.callEvent(VKMA_RPC.hello, clientInfo());
 	}
@@ -277,5 +387,5 @@ document.addEventListener("visibilitychange", () => {
 });
 
 void import("./fab.ts").then(({ mountFab }) => {
-	mountFab({ base, clientId });
+	retintFab = mountFab({ base, getClientId: () => clientId });
 });

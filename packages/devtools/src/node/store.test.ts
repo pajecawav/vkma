@@ -72,6 +72,18 @@ test("clients past the heartbeat TTL flip offline but stay registered", () => {
 	expect(fresh?.online).toBe(true);
 });
 
+test("heartbeats keep connectedAt stable, a new session re-anchors it", () => {
+	const store = new DevtoolsStore();
+	store.touchClient(client({ connectedAt: 1_000 }));
+	// a collector bug that stamps fresh connectedAt per heartbeat must not
+	// churn the registry order
+	store.touchClient(client({ connectedAt: 9_000, lastSeenAt: 9_000 }));
+	expect(store.getClient("c1")?.connectedAt).toBe(1_000);
+	// a genuine page reload (new sessionId) starts a new connection
+	store.touchClient(client({ sessionId: "s2", connectedAt: 9_000, lastSeenAt: 10_000 }));
+	expect(store.getClient("c1")?.connectedAt).toBe(9_000);
+});
+
 test("the registry caps at 24 entries, dropping oldest offline first", () => {
 	const store = new DevtoolsStore();
 	for (let i = 0; i < 30; i++) {

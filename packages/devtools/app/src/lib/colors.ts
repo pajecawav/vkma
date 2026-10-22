@@ -1,9 +1,10 @@
 /**
- * Deterministic, curated client colors: a hash of the clientId picks one of
- * eight muted tones that read on both light and dark surfaces. Same client
- * → same color everywhere (timeline badges, header badge), stable across
- * reloads and registry changes.
+ * Panel-side view of the shared client palette: the djb2 hash lives in
+ * `src/shared/colors.ts` (the FAB needs raw hex for its shadow DOM), here
+ * indexes map to Tailwind classes. Keep the class lists in sync with the
+ * shared palette's tone order.
  */
+import { clientColorIndex } from "../../../src/shared/colors.ts";
 
 interface ClientColor {
 	/** Colored square in badges. */
@@ -12,7 +13,7 @@ interface ClientColor {
 	text: string;
 }
 
-const CLIENT_PALETTE: readonly ClientColor[] = [
+const CLIENT_CLASSES: readonly ClientColor[] = [
 	{ dot: "bg-rose-500", text: "text-rose-700 dark:text-rose-300" },
 	{ dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 	{ dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
@@ -24,9 +25,5 @@ const CLIENT_PALETTE: readonly ClientColor[] = [
 ];
 
 export function clientColor(clientId: string): ClientColor {
-	let hash = 5381;
-	for (let index = 0; index < clientId.length; index++) {
-		hash = ((hash << 5) + hash + clientId.charCodeAt(index)) >>> 0;
-	}
-	return CLIENT_PALETTE[hash % CLIENT_PALETTE.length] ?? CLIENT_PALETTE[0]!;
+	return CLIENT_CLASSES[clientColorIndex(clientId)] ?? CLIENT_CLASSES[0]!;
 }

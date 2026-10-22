@@ -10,7 +10,10 @@ export class EmbeddedSubscriptions {
 
 	/** Upserts the binding; evicts the oldest binding when outgrowing the cap. */
 	public bind(meta: unknown, clientId: string, cap = 32): void {
-		if (!this.subs.has(meta) && this.subs.size >= cap) {
+		// delete-then-set: Map keeps a re-set key at its old position, which
+		// would let a just-refreshed binding be evicted as the oldest.
+		this.subs.delete(meta);
+		if (this.subs.size >= cap) {
 			const oldest = this.subs.keys().next();
 			if (!oldest.done) {
 				this.subs.delete(oldest.value);
