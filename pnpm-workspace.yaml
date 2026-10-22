@@ -10,6 +10,7 @@ catalog:
     "@tailwindcss/vite": ^4.3.3
     "@vitejs/plugin-react": ^6.1.2
     "@vkontakte/vk-bridge": ^3.0.2
+    "@devframes/agentic": ^1.2.6
     "@devframes/vite": ^1.2.6
     cross-env: ^10.1.0
     devframe: ^1.2.6

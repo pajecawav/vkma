@@ -45,6 +45,9 @@
 		"devframe": "^1.2.6",
 		"vite": "^7.0.0 || ^8.0.0"
 	},
+	"dependencies": {
+		"@devframes/agentic": "catalog:"
+	},
 	"devDependencies": {
 		"@devframes/vite": "catalog:",
 		"@tailwindcss/vite": "catalog:",

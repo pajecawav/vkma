@@ -75,6 +75,13 @@ export const VKMA_RPC = {
 	onEvents: "vkma:on-events",
 	onClients: "vkma:on-clients",
 	onSessionReset: "vkma:on-session-reset",
+	/**
+	 * Agent-facing (MCP) mirrors of `state`/`execute`: same data, but every
+	 * app-provided payload sanitized to plain JSON (`jsonSerializable` is
+	 * required for agent-exposed functions).
+	 */
+	mcpState: "vkma:mcp-state",
+	mcpExecute: "vkma:mcp-execute",
 } as const;
 
 declare module "devframe" {

@@ -1,11 +1,14 @@
 import { fileURLToPath } from "node:url";
 import { defineDevframe } from "devframe";
+import { s } from "devframe/utils/simple-schema";
 import {
 	VKMA_RPC,
 	type ClientInfo,
 	type DevtoolsState,
+	type ExecResult,
 	type WireEvent,
 } from "../shared/protocol.ts";
+import { sanitizeEvent, toMcpJson } from "./serialize.ts";
 import { DevtoolsStore } from "./store.ts";
 import { EmbeddedSubscriptions, groupByClient } from "./subscriptions.ts";
 
@@ -196,29 +199,89 @@ export const vkmaDevframe = defineDevframe({
 		ctx.rpc.register({
 			name: VKMA_RPC.execute,
 			type: "action",
+			handler: runExecute,
+		});
+
+		// Agent/MCP surface. `jsonSerializable: true` (required for
+		// agent-exposed functions) means every app-provided payload is
+		// sanitized to plain JSON first — the panel RPCs above keep the
+		// structured-clone wire for Maps/Sets/cycles.
+		ctx.rpc.register({
+			name: VKMA_RPC.mcpState,
+			type: "query",
+			jsonSerializable: true,
+			agent: {
+				description:
+					"Read the VK Bridge devtools state: connected mini app clients (platform, URL, online) and the recent bridge event timeline (last 500 events, newest last). Event payloads are JSON-sanitized.",
+				safety: "read",
+			},
+			handler: (): DevtoolsState => {
+				const events = store.snapshotEvents().map(sanitizeEvent);
+				const clients = store.listClients();
+				const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
+				if (scope === undefined) {
+					return { events, clients };
+				}
+				return {
+					events: events.filter(event => event.clientId === scope),
+					clients: clients.filter(client => client.clientId === scope),
+				};
+			},
+		});
+
+		ctx.rpc.register({
+			name: VKMA_RPC.mcpExecute,
+			type: "action",
+			jsonSerializable: true,
+			agent: {
+				description:
+					"Execute a VK Bridge method (e.g. VKWebAppGetUserInfo) on a connected mini app client and await its result. Client ids come from vkma:mcp-state. Mutates the running app's bridge state, not files.",
+				safety: "action",
+				examples: [
+					{
+						args: [{ clientId: "c3f…", name: "VKWebAppGetUserInfo" }],
+						description: "Fetch the current user on the given client",
+					},
+				],
+			},
 			handler: async (payload: {
 				clientId: string;
 				name: string;
 				params?: Record<string, unknown>;
-			}) => {
-				const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
-				if (scope !== undefined && scope !== payload.clientId) {
-					// an embedded session may only execute against its own client
-					return { status: "forbidden", clientId: payload.clientId } as const;
-				}
-				if (!store.getClient(payload.clientId)) {
-					return { status: "no-client", clientId: payload.clientId } as const;
-				}
-				const { execId, promise } = store.beginExec();
-				await ctx.rpc.broadcast({
-					method: VKMA_RPC.clientExecute,
-					args: [{ execId, ...payload }],
-					optional: true,
-					event: true,
-				});
-				return promise;
-			},
+			}) => toMcpJson(await runExecute(payload)),
+			args: [
+				// `params` stays undocumented-by-schema on purpose (no `any()`
+				// in simple-schema); it passes through as an extra key, and the
+				// agent description + examples cover it.
+				s.object({
+					clientId: s.describe(s.string(), "Target client id from vkma:mcp-state"),
+					name: s.describe(s.string(), "VK Bridge method name, e.g. VKWebAppGetUserInfo"),
+				}),
+			],
 		});
+
+		async function runExecute(payload: {
+			clientId: string;
+			name: string;
+			params?: Record<string, unknown>;
+		}): Promise<ExecResult> {
+			const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
+			if (scope !== undefined && scope !== payload.clientId) {
+				// an embedded session may only execute against its own client
+				return { status: "forbidden", clientId: payload.clientId } as const;
+			}
+			if (!store.getClient(payload.clientId)) {
+				return { status: "no-client", clientId: payload.clientId } as const;
+			}
+			const { execId, promise } = store.beginExec();
+			await ctx.rpc.broadcast({
+				method: VKMA_RPC.clientExecute,
+				args: [{ execId, ...payload }],
+				optional: true,
+				event: true,
+			});
+			return promise;
+		}
 	},
 });
 
