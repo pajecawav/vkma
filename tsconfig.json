@@ -4,7 +4,6 @@
 		{ "path": "./tsconfig.node.json" },
 		{ "path": "./packages/bridge" },
 		{ "path": "./packages/deploy" },
-		{ "path": "./packages/devtools/core" },
-		{ "path": "./packages/devtools/react" }
+		{ "path": "./packages/devtools" }
 	]
 }

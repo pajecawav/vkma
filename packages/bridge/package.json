@@ -32,6 +32,9 @@
 		"test": "vitest run",
 		"test:watch": "vitest watch"
 	},
+	"dependencies": {
+		"@vkontakte/vk-bridge": "catalog:"
+	},
 	"devDependencies": {
 		"publint": "catalog:",
 		"tsdown": "catalog:",
