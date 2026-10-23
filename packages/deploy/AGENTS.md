@@ -51,9 +51,16 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    3 VK API · 130 aborted. Mapped via `DeployError.kind`.
 5. **Prompts are opt-in** (`--interactive`, TTY only) and fill only values
    that are not already set (precedence: flag > env > config > prompt).
-   Two exceptions, both TTY-only and auto-skipped for `--yes`/`--dry-run`,
-   the `CI` env var, and `--json`/`--quiet` modes: the event-205
-   confirmation code and the pre-deploy confirmation.
+   Three exceptions, all TTY-only confirmation prompts, auto-skipped for
+   `--yes`/`--dry-run`, the `CI` env var, and `--json`/`--quiet` modes:
+   the event-205 confirmation code, the pre-deploy confirmation, and the
+   update-flag confirms (`Update production/dev URLs?`). Update-flag
+   answers are the only prompted values recorded in `meta.sources` (as
+   `"prompt"`) so they reach the wire params; they never clobber explicit
+   values. An unset update flag in a non-interactive run without
+   `--dry-run` is a hard user error (`E_UPDATE_FLAG_REQUIRED`), never a
+   silent VK server default; `--yes`/`--dry-run` keep the server default
+   (upstream `noprompt` parity).
 6. **Runtime deps are exactly two**: `@sinclair/typebox` (schema +
    validation) and `fflate` (zip). Everything else is hand-rolled on
    Node stdlib. Adding a dependency requires an explicit user decision.
@@ -77,8 +84,14 @@ mention upstream internals — that knowledge lives here.
   is cosmetic, kept only for byte-exact parity needs.
 - Wire semantics mirrored exactly: `update_prod`/`update_dev` are sent
   only when explicitly configured (`'update_prod' in cfg` upstream
-  semantics, tracked via `meta.sources`); unconfigured endpoint platforms
-  are neither preflight-checked nor sent as `endpoint_*` params.
+  semantics, tracked via `meta.sources`) or TTY-confirmed (recorded as
+  the `"prompt"` source); unconfigured endpoint platforms are neither
+  preflight-checked nor sent as `endpoint_*` params. The CLI requires an
+  explicit URL-switch decision: unset flags are confirmed on a TTY and
+  fail with `E_UPDATE_FLAG_REQUIRED` in non-interactive runs (unlike the
+  upstream bin wrapper, which prompts unconditionally, clobbers config
+  values with the answers, and silently exits 0 when everything is
+  declined).
 - Proxy support: the CLI routes through `--proxy` flag /
   `HTTP(S)_PROXY` env / `proxy` config field via Node's native
   `http.setGlobalProxyFromEnv` (Node >= 22.21 / 24; older runtimes warn and
@@ -95,7 +108,11 @@ mention upstream internals — that knowledge lives here.
   (live-verified: the queue stays silent forever), so at least one
   platform is required
 - `updateProd`/`updateDev` are independent booleans (upstream #118:
-  production-only URL updates were impossible)
+  production-only URL updates were impossible); they are tri-state in
+  resolution (set / prompt-confirmed / unset) and optional on
+  `ResolvedConfig` — undefined means "no layer provided it", which the
+  CLI turns into a prompt (TTY), a hard error (non-interactive), or the
+  VK server default (`--yes`/`--dry-run`)
 - declining the confirmation-code prompt (empty answer/Ctrl+C) aborts with
   130; declining the test-group prompt proceeds without a group; prompted
   values must not clobber config

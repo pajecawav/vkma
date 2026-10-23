@@ -91,17 +91,23 @@ export const DeployConfigSchema = Type.Object(
 			}),
 		),
 		/** Switch production URLs to the new version.
-		 * @default true
-		 * @remarks Independent from `updateDev` (fixes upstream #118). */
+		 * @remarks Independent from `updateDev` (fixes upstream #118). When
+		 * unset: the CLI asks on a TTY, non-interactive runs fail fast
+		 * (pass --update-prod/--no-update-prod), and --yes/--dry-run keep
+		 * the VK server default. */
 		updateProd: Type.Optional(
 			Type.Boolean({
-				description: "Switch production URLs to the new version. Default: true.",
+				description:
+					"Switch production URLs to the new version. When unset: the CLI asks on a TTY, non-interactive runs require --update-prod/--no-update-prod (or this field), and --yes/--dry-run keep the VK server default.",
 			}),
 		),
 		/** Switch dev URLs to the new version.
-		 * @default true */
+		 * @remarks Same unset rules as `updateProd`. */
 		updateDev: Type.Optional(
-			Type.Boolean({ description: "Switch dev URLs to the new version. Default: true." }),
+			Type.Boolean({
+				description:
+					"Switch dev URLs to the new version. When unset: the CLI asks on a TTY, non-interactive runs require --update-dev/--no-update-dev (or this field), and --yes/--dry-run keep the VK server default.",
+			}),
 		),
 		/** Deploy into a named test group instead of the common dev environment. */
 		testGroupName: Type.Optional(
@@ -197,8 +203,10 @@ export interface ResolvedConfig {
 	readonly bundle?: string;
 	readonly endpoints: Readonly<Partial<Record<"mobile" | "mvk" | "web", string>>>;
 	readonly environment: "dev" | "production" | "both";
-	readonly updateProd: boolean;
-	readonly updateDev: boolean;
+	/** undefined = unset: prompted on a TTY, required in non-interactive
+	 * runs, or the VK server default under --yes/--dry-run (CLI rules). */
+	readonly updateProd?: boolean;
+	readonly updateDev?: boolean;
 	readonly testGroupName?: string;
 	readonly accessToken?: string;
 	/** HTTP(S) proxy URL; activated by the CLI, inert data for the library. */
@@ -210,8 +218,10 @@ export interface ResolvedConfig {
 	readonly queueTimeoutSec: number;
 }
 
-/** Where each non-default value came from, reported by `vkma-deploy config`. */
-export type ConfigSource = "config" | "env" | "override";
+/** Where each non-default value came from, reported by `vkma-deploy config`.
+ * `"prompt"` values exist only inside a deploy run: they are TTY answers
+ * for unset update flags and do reach the wire params. */
+export type ConfigSource = "config" | "env" | "override" | "prompt";
 
 export interface ResolveResult {
 	readonly config: ResolvedConfig;
@@ -238,8 +248,6 @@ export const CONFIG_DEFAULTS = {
 	oauthClientId: OAUTH_CLIENT_ID,
 	queueTimeoutSec: DEFAULT_QUEUE_TIMEOUT_SEC,
 	environment: "both" as const,
-	updateProd: true,
-	updateDev: true,
 } as const;
 
 /** Field names that hold secrets and must be redacted in `vkma-deploy config` output. */

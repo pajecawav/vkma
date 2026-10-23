@@ -12,7 +12,7 @@ import type { FetchLike } from "../api/client.ts";
 import { loginDeviceFlow } from "../api/oauth.ts";
 import { normalizeEnvironment } from "../config/env.ts";
 import { resolveConfig } from "../config/resolve.ts";
-import type { ResolvedConfig, ResolvedConfigMeta } from "../config/schema.ts";
+import type { ConfigSource, ResolvedConfig, ResolvedConfigMeta } from "../config/schema.ts";
 import {
 	credentialsPath,
 	clearCredentials,
@@ -27,6 +27,7 @@ import {
 } from "../deploy/flow.ts";
 import type { QueueEvent } from "../deploy/queue.ts";
 import { DeployError, isDeployError } from "../errors.ts";
+import { paint } from "../logger/color.ts";
 import { CliLogger, formatBytes, type LoggerMode } from "../logger/index.ts";
 import { createRedactor } from "../redact.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
@@ -40,7 +41,7 @@ const VERSION = pkg.version;
 export interface MainOptions {
 	readonly env?: Record<string, string | undefined>;
 	readonly cwd?: string;
-	readonly stdout?: { write(text: string): void; isTTY?: boolean };
+	readonly stdout?: { write(text: string): void; isTTY?: boolean; columns?: number };
 	readonly stderr?: { write(text: string): void };
 	readonly stdin?: { isTTY?: boolean };
 	/** Prompt input stream injection (tests); defaults to process.stdin. */
@@ -72,12 +73,18 @@ Flags:
   --proxy <url>                    Route traffic through an HTTP(S) proxy
                                    (precedence: --proxy > HTTP(S)_PROXY env > config;
                                    NO_PROXY honored; needs Node 22.21+/24+)
-  --update-prod / --no-update-prod Switch production URLs (default: update)
-  --update-dev / --no-update-dev   Switch dev URLs (default: update)
+  --update-prod / --no-update-prod Switch production URLs; when unset: asked
+                                    on a TTY, required in non-interactive runs,
+                                    VK server default with --yes/--dry-run
+  --update-dev / --no-update-dev   Switch dev URLs (same unset rules as above)
   --dry-run                        Validate, zip, and stop before any network
   --interactive                    Fill missing values with prompts (TTY only)
-  --yes, -y                        Skip the pre-deploy confirmation
-                                   (also skipped for CI, non-TTY, --json/--quiet, --dry-run)
+  --yes, -y                        Skip the pre-deploy confirmation and the
+                                   update-flag prompts (unset flags keep the
+                                   VK server default; non-interactive runs
+                                   still require explicit update flags).
+                                   Prompts are also skipped for CI, non-TTY,
+                                   --json/--quiet, --dry-run
   --json                           Machine-readable newline-delimited events
   --verbose, -v                    Debug output incl. HTTP requests (redacted)
   --quiet, -q                      Errors only
@@ -148,13 +155,21 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 	try {
 		switch (parsed.command) {
 			case "login":
-				return await runLogin(parsed, { ...options, env, cwd, stdin, logger, mode });
+				return await runLogin(parsed, { ...options, env, cwd, stdin, logger, mode, color });
 			case "logout":
 				return await runLogout({ env, logger });
 			case "config":
-				return await runConfig(parsed, { ...options, env, cwd, logger, mode });
+				return await runConfig(parsed, { ...options, env, cwd, logger, mode, color });
 			default:
-				return await runDeploy(parsed, { ...options, env, cwd, stdin, logger, mode });
+				return await runDeploy(parsed, {
+					...options,
+					env,
+					cwd,
+					stdin,
+					logger,
+					mode,
+					color,
+				});
 		}
 	} catch (error) {
 		logger.fail(error, parsed.booleans.verbose);
@@ -169,10 +184,12 @@ interface RunContext extends MainOptions {
 	readonly cwd: string;
 	readonly logger: CliLogger;
 	readonly mode: LoggerMode;
+	/** Colors resolved once in main() (TTY + pretty + NO_COLOR/--no-color). */
+	readonly color: boolean;
 }
 
 async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<number> {
-	const { logger, env, cwd } = context;
+	const { logger, env, cwd, color } = context;
 	const stdin = context.stdin ?? { isTTY: false };
 	const overrides: Record<string, unknown> = {};
 	if (parsed.values.env !== undefined) {
@@ -225,16 +242,81 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 			signal: context.signal,
 			stdin,
 			input: context.input,
+			output: context.stdout,
 		});
 		if (wantsGroup) {
 			const name = await text("Test group name:", {
 				signal: context.signal,
 				stdin,
 				input: context.input,
+				output: context.stdout,
 			});
 			if (name !== "") {
 				effectiveConfig = { ...config, testGroupName: name };
 			}
+		}
+	}
+
+	// Update-flag triage: explicit (config/env/flag) > TTY confirm > error.
+	// Upstream's bin wrapper asks these questions unconditionally and then
+	// clobbers explicit config values with the answers; here prompts fire
+	// only for flags no layer provided, each answer is recorded as the
+	// "prompt" source so it reaches the wire params, --yes/--dry-run keep
+	// the VK server default, and non-interactive runs fail fast instead of
+	// deploying on silently inherited server defaults.
+	const prodUndecided = config.environment !== "dev" && meta.sources["updateProd"] === undefined;
+	const devUndecided =
+		config.environment !== "production" && meta.sources["updateDev"] === undefined;
+	let effectiveMeta = meta;
+	if (prodUndecided || devUndecided) {
+		const interactiveRun =
+			stdin.isTTY === true && context.mode === "pretty" && env["CI"] === undefined;
+		if (!interactiveRun && !parsed.booleans.dryRun) {
+			const hints = [
+				prodUndecided ? "--update-prod or --no-update-prod" : undefined,
+				devUndecided ? "--update-dev or --no-update-dev" : undefined,
+			].filter((hint): hint is string => hint !== undefined);
+			throw new DeployError(
+				"user",
+				`URL-switch policy is not set and this run is not interactive: pass ${hints.join(" and ")} (or set updateProd/updateDev in the config; legacy: update_prod/update_dev) — VK's server default must not decide whether live URLs switch`,
+				{ code: "E_UPDATE_FLAG_REQUIRED" },
+			);
+		}
+		// --yes/--dry-run keep the flags unset: prompts stay silent and the
+		// plan reports the VK server default (upstream `noprompt` parity).
+		if (interactiveRun && !parsed.booleans.yes && !parsed.booleans.dryRun) {
+			const sources = { ...meta.sources };
+			if (prodUndecided) {
+				// Declining means "do not switch URLs" (update_prod=0), not
+				// "cancel" — only the final Deploy? prompt cancels the run.
+				// Yellow: the same caution color the logger uses for the
+				// "production URLs will switch" warning — one semantic, and
+				// the safe dev question stays neutral for contrast.
+				effectiveConfig = {
+					...effectiveConfig,
+					updateProd: await confirm("Update production URLs?", true, {
+						signal: context.signal,
+						stdin,
+						input: context.input,
+						output: context.stdout,
+						questionColor: color ? "yellow" : undefined,
+					}),
+				};
+				sources["updateProd"] = "prompt";
+			}
+			if (devUndecided) {
+				effectiveConfig = {
+					...effectiveConfig,
+					updateDev: await confirm("Update dev URLs?", true, {
+						signal: context.signal,
+						stdin,
+						input: context.input,
+						output: context.stdout,
+					}),
+				};
+				sources["updateDev"] = "prompt";
+			}
+			effectiveMeta = { ...meta, sources };
 		}
 	}
 
@@ -259,6 +341,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 						signal: context.signal,
 						stdin,
 						input: context.input,
+						output: context.stdout,
 					});
 					if (code === "") {
 						// An empty answer means the user refuses to continue —
@@ -273,7 +356,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 				}
 			: undefined;
 
-	renderDeployPlan(logger, context.mode, effectiveConfig, meta);
+	renderDeployPlan(logger, context.mode, effectiveConfig, effectiveMeta, color);
 
 	// Pre-deploy confirmation: interactive humans get a last look at where
 	// the deploy goes before anything leaves the machine. Auto-skipped for
@@ -290,6 +373,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 			signal: context.signal,
 			stdin,
 			input: context.input,
+			output: context.stdout,
 		});
 		if (!proceed) {
 			// A cancel, not an error: nothing was uploaded (exit 130).
@@ -312,7 +396,11 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 
 	// The config is already resolved above; deployResolved skips the second
 	// discovery + TS temp-file pass that deploy() would perform.
-	const result = await deployResolved({ config: effectiveConfig, meta }, deployOptions, cwd);
+	const result = await deployResolved(
+		{ config: effectiveConfig, meta: effectiveMeta },
+		deployOptions,
+		cwd,
+	);
 	if (parsed.booleans.dryRun) {
 		logger.info("Dry run: no upload was performed.", { result });
 	}
@@ -344,6 +432,7 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 				signal: context.signal,
 				stdin,
 				input: context.input,
+				output: context.stdout,
 			});
 			appId = Number.parseInt(answer, 10);
 		}
@@ -442,9 +531,29 @@ async function runConfig(parsed: ParsedArgs, context: RunContext): Promise<numbe
 	for (const [key, value] of Object.entries(safeConfig)) {
 		const source = meta.sources[key as keyof ResolvedConfig];
 		const suffix = source === undefined ? "" : `  (${source})`;
-		logger.info(`  ${key} = ${JSON.stringify(value)}${suffix}`);
+		logger.info(
+			`  ${key} = ${value === undefined ? "(unset)" : JSON.stringify(value)}${suffix}`,
+		);
 	}
 	return 0;
+}
+
+/**
+ * One URL-switch cell of the deploy plan: the value plus where it came
+ * from, or the server default when no layer provided it. Color mirrors
+ * the logger's semantics: a switching production target is a caution
+ * (yellow), an undecided one is secondary info (dim).
+ */
+function urlSwitchLabel(
+	value: boolean | undefined,
+	source: ConfigSource | undefined,
+	options: { color: boolean; caution: boolean },
+): string {
+	if (value === undefined) {
+		return paint("server default", "dim", options.color);
+	}
+	const label = `${value ? "yes" : "no"}${source === undefined ? "" : ` (${source})`}`;
+	return options.caution && value ? paint(label, "yellow", options.color) : label;
 }
 
 /**
@@ -456,6 +565,7 @@ function renderDeployPlan(
 	mode: LoggerMode,
 	config: ResolvedConfig,
 	meta: ResolvedConfigMeta,
+	color: boolean,
 ): void {
 	const target =
 		config.environment === "production"
@@ -470,8 +580,8 @@ function renderDeployPlan(
 		appId: config.appId,
 		configPath: meta.configPath ?? null,
 		environment: config.environment,
-		updateProd: config.updateProd,
-		updateDev: config.updateDev,
+		updateProd: config.updateProd ?? null,
+		updateDev: config.updateDev ?? null,
 		testGroupName: config.testGroupName ?? null,
 		bundle: config.bundle ?? config.staticPath ?? null,
 		endpoints: config.endpoints,
@@ -485,16 +595,25 @@ function renderDeployPlan(
 			"Deploy plan:",
 			`  app:        ${String(config.appId)}${meta.configPath === undefined ? "" : `  (${meta.configPath})`}`,
 			`  target:     ${target}  (environment: ${config.environment})`,
-			`  URL switch: prod ${config.updateProd ? "yes" : "no"} · dev ${config.updateDev ? "yes" : "no"}`,
+			`  URL switch: prod ${urlSwitchLabel(config.updateProd, meta.sources["updateProd"], { color, caution: true })} · dev ${urlSwitchLabel(config.updateDev, meta.sources["updateDev"], { color, caution: false })}`,
 			`  test group: ${config.testGroupName ?? "—"}`,
 			`  bundle:     ${config.bundle ?? config.staticPath ?? "—"} · endpoints: ${endpoints}`,
 		].join("\n"),
 	);
 	if (
-		config.updateProd &&
+		config.updateProd === true &&
 		(config.environment === "production" || config.environment === "both")
 	) {
 		logger.warn("production URLs will switch to the new version");
+	}
+	// Only warn when every relevant switch is an explicit no — unset flags
+	// may still switch URLs via the VK server default.
+	const relevantSwitches = [
+		config.environment !== "dev" ? config.updateProd : undefined,
+		config.environment !== "production" ? config.updateDev : undefined,
+	].filter((value): value is boolean => value !== undefined);
+	if (relevantSwitches.length > 0 && relevantSwitches.every(value => !value)) {
+		logger.warn("no URLs will switch to the new version — the upload alone creates it");
 	}
 }
 
@@ -545,6 +664,12 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 		case "upload:done":
 			logger.spinnerStop();
 			logger.step("Bundle uploaded");
+			// The hosting backend keeps processing the uploaded archive
+			// before createGoHostingTask returns (tens of seconds for
+			// large bundles) — without a spinner here the CLI looks hung.
+			// The finished 100% bar stays on screen; the spinner runs on
+			// its own line. task:created swaps this text, not a new line.
+			logger.spinnerStart("Hosting is processing the upload…");
 			break;
 		case "task:created":
 			logger.info(`Hosting task created (version ${String(event.version)})`);

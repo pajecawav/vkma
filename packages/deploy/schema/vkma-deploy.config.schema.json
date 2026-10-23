@@ -65,11 +65,11 @@
 			]
 		},
 		"updateProd": {
-			"description": "Switch production URLs to the new version. Default: true.",
+			"description": "Switch production URLs to the new version. When unset: the CLI asks on a TTY, non-interactive runs require --update-prod/--no-update-prod (or this field), and --yes/--dry-run keep the VK server default.",
 			"type": "boolean"
 		},
 		"updateDev": {
-			"description": "Switch dev URLs to the new version. Default: true.",
+			"description": "Switch dev URLs to the new version. When unset: the CLI asks on a TTY, non-interactive runs require --update-dev/--no-update-dev (or this field), and --yes/--dry-run keep the VK server default.",
 			"type": "boolean"
 		},
 		"testGroupName": {

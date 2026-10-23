@@ -108,8 +108,11 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 		endpoints: (merged["endpoints"] as Partial<Record<"mobile" | "mvk" | "web", string>>) ?? {},
 		environment:
 			(merged["environment"] as ResolvedConfig["environment"]) ?? CONFIG_DEFAULTS.environment,
-		updateProd: (merged["updateProd"] as boolean | undefined) ?? CONFIG_DEFAULTS.updateProd,
-		updateDev: (merged["updateDev"] as boolean | undefined) ?? CONFIG_DEFAULTS.updateDev,
+		// Update flags stay undefined when no layer provided them: the
+		// wire contract sends them only when set (upstream `'update_prod'
+		// in cfg` semantics), and the CLI triage decides unset values.
+		updateProd: merged["updateProd"] as boolean | undefined,
+		updateDev: merged["updateDev"] as boolean | undefined,
 		testGroupName: merged["testGroupName"] as string | undefined,
 		accessToken: merged["accessToken"] as string | undefined,
 		proxy: merged["proxy"] as string | undefined,

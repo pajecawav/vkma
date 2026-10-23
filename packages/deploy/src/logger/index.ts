@@ -13,6 +13,7 @@ import { PLATFORM_LABELS } from "../constants.ts";
 import type { DeployResult } from "../deploy/flow.ts";
 import type { DeployError } from "../errors.ts";
 import type { Redactor } from "../redact.ts";
+import { paint as paintText, type ColorName } from "./color.ts";
 
 export type LoggerMode = "pretty" | "json" | "quiet";
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -29,7 +30,7 @@ export interface CliLoggerOptions {
 	readonly color: boolean;
 	readonly level: LogLevel;
 	readonly redactor: Redactor;
-	readonly stdout: { write(text: string): void; isTTY?: boolean };
+	readonly stdout: { write(text: string): void; isTTY?: boolean; columns?: number };
 	readonly stderr: { write(text: string): void };
 }
 
@@ -55,24 +56,12 @@ export function formatBytes(bytes: number): string {
 	return `${value.toFixed(1)} ${units[unit]}`;
 }
 
-const COLORS = {
-	reset: 0,
-	bold: 1,
-	dim: 2,
-	red: 31,
-	green: 32,
-	yellow: 33,
-	cyan: 36,
-} as const;
-
-type ColorName = keyof typeof COLORS;
-
 export class CliLogger {
 	private readonly mode: LoggerMode;
 	private readonly colorEnabled: boolean;
 	private readonly level: LogLevel;
 	private readonly redactor: Redactor;
-	private readonly stdout: { write(text: string): void; isTTY?: boolean };
+	private readonly stdout: { write(text: string): void; isTTY?: boolean; columns?: number };
 	private readonly stderr: { write(text: string): void };
 	private ciUrls = false;
 
@@ -80,6 +69,8 @@ export class CliLogger {
 	private spinnerFrame = 0;
 	private spinnerText = "";
 	private progressMark: { time: number; sent: number } | undefined;
+	/** Last computed upload speed, drawn until recomputed (~every 300 ms). */
+	private speedText = "";
 
 	public constructor(options: CliLoggerOptions) {
 		this.mode = options.mode;
@@ -106,7 +97,7 @@ export class CliLogger {
 	}
 
 	private paint(text: string, color: ColorName): string {
-		return this.colorEnabled ? `\x1b[${COLORS[color]}m${text}\x1b[0m` : text;
+		return paintText(text, color, this.colorEnabled);
 	}
 
 	private writeOut(text: string): void {
@@ -216,6 +207,13 @@ export class CliLogger {
 			this.info(text);
 			return;
 		}
+		// An already-spinning line just swaps its text (phase-to-phase
+		// reloads, e.g. "Uploading" -> "Processing" -> "Waiting"): starting
+		// a second interval here would print every frame twice.
+		if (this.spinnerTimer !== undefined) {
+			this.spinnerText = text;
+			return;
+		}
 		this.spinnerText = text;
 		this.stdout.write("\x1b[?25l"); // hide cursor
 		this.startSpinnerTimer();
@@ -289,30 +287,55 @@ export class CliLogger {
 			this.spinnerStop();
 		}
 		const now = Date.now();
+		// Speed is sticky: recomputed at most every ~300 ms against a rate
+		// mark, but drawn in every frame afterwards. Recomputing per frame
+		// (with per-chunk marks) would blink — most frames are < 200 ms
+		// apart and would render no speed at all. Upstream parity until
+		// this fix: the speed only *appeared* stuck to the screen because
+		// frames drew over each other without an erase.
 		let speedText = "";
-		if (this.progressMark !== undefined) {
-			if (sent < this.progressMark.sent) {
-				// An upload retry restarted from zero — speed math must not
-				// go negative against the previous attempt's mark.
-				this.progressMark = undefined;
-			} else {
-				const seconds = (now - this.progressMark.time) / 1000;
-				if (seconds > 0.2) {
-					speedText = ` ${formatBytes((sent - this.progressMark.sent) / seconds)}/s`;
-				}
-			}
+		if (this.progressMark !== undefined && sent < this.progressMark.sent) {
+			// An upload retry restarted from zero — speed math must not
+			// go negative against the previous attempt's mark.
+			this.progressMark = undefined;
+			this.speedText = "";
 		}
-		this.progressMark = { time: now, sent };
+		if (this.progressMark === undefined) {
+			this.progressMark = { time: now, sent };
+		} else if (now - this.progressMark.time >= 300) {
+			const seconds = (now - this.progressMark.time) / 1000;
+			this.speedText = ` ${formatBytes((sent - this.progressMark.sent) / seconds)}/s`;
+			this.progressMark = { time: now, sent };
+		}
+		speedText = this.speedText;
 		const ratio = total > 0 ? sent / total : 0;
-		const width = 24;
-		const filled = Math.round(ratio * width);
-		const bar = `${"#".repeat(filled)}${"-".repeat(width - filled)}`;
 		const percent = Math.floor(ratio * 100);
-		const line = `\r${this.paint("⠿", "cyan")} Uploading [${bar}] ${percent}% ${formatBytes(sent)}/${formatBytes(total)}${speedText}   `;
-		this.stdout.write(line);
+		const sizes = `${formatBytes(sent)}/${formatBytes(total)}`;
+		// Erase before drawing: the previous frame may have been longer
+		// (a retry drops the speed text, a unit boundary "999.9 KB" ->
+		// "1.0 MB" shrinks the sizes) and its tail would glue onto the
+		// new frame — "1.7 MB/s   /s" was a real report.
+		//
+		// Narrow terminals: a frame wider than `columns` wraps, and \r
+		// can only redraw the last screen line — earlier wrapped lines
+		// would linger as ghosts. Shrink the bar to keep one line.
+		const columns = this.stdout.columns ?? 80;
+		const build = (barWidth: number): string => {
+			const filled = Math.round(ratio * barWidth);
+			const bar = `${"#".repeat(filled)}${"-".repeat(barWidth - filled)}`;
+			return `⠿ Uploading [${bar}] ${percent}% ${sizes}${speedText}   `;
+		};
+		let frame = build(24);
+		if (frame.length > columns && columns > 0) {
+			// Keep the width math on the plain text: painted glyphs must
+			// not inflate the length (ANSI escapes are zero-width).
+			frame = build(Math.max(4, 24 - (frame.length - columns)));
+		}
+		this.stdout.write(`\r\x1b[2K${this.paint(frame.slice(0, 1), "cyan")}${frame.slice(1)}`);
 		if (sent >= total) {
 			this.stdout.write("\n");
 			this.progressMark = undefined;
+			this.speedText = "";
 		}
 	}
 

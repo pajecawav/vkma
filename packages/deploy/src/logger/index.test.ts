@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createRedactor } from "../redact.ts";
 import { CliLogger, formatBytes } from "./index.ts";
 
@@ -178,6 +178,36 @@ describe("CliLogger", () => {
 		expect(out.join("")).toContain("code=AC123");
 	});
 
+	it("spinnerStart on a spinning line swaps the text instead of stacking timers", () => {
+		vi.useFakeTimers();
+		try {
+			const out: string[] = [];
+			const logger = new CliLogger({
+				mode: "pretty",
+				color: false,
+				level: "info",
+				redactor: createRedactor(),
+				stdout: { write: text => out.push(text), isTTY: true },
+				stderr: { write: () => {} },
+			});
+			logger.spinnerStart("First phase");
+			logger.spinnerStart("Second phase");
+			// One interval, one frame per 80 ms tick — a second timer would
+			// print two frames per tick and leak after spinnerStop.
+			const frames = () => out.filter(text => text.startsWith("\r"));
+			vi.advanceTimersByTime(80);
+			expect(frames().length).toBe(1);
+			expect(frames().join("")).toContain("Second phase");
+			vi.advanceTimersByTime(80 * 5);
+			expect(frames().length).toBe(6);
+			expect(logger.spinnerActive).toBe(true);
+			logger.spinnerStop();
+			expect(logger.spinnerActive).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("suppresses progress output for non-interactive pretty mode", () => {
 		const { logger, out } = makeLogger();
 		logger.progress(50, 100);
@@ -197,6 +227,100 @@ describe("CliLogger", () => {
 		logger.progress(900, 1000);
 		logger.progress(10, 1000);
 		expect(out.join("")).not.toMatch(/ -[\d.]+/);
+	});
+
+	it("erases each progress frame so shorter frames leave no ghost tail", () => {
+		// A retry drops the speed text and a unit boundary ("999.9 KB" ->
+		// "1.0 MB") shrinks the sizes — both make a frame shorter than its
+		// predecessor, and without an erase sequence the tail would glue
+		// onto the new frame ("1.7 MB/s   /s" was a real report).
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		logger.progress(900 * 1024 * 1024, 999 * 1024 * 1024);
+		logger.progress(999.9 * 1024, 999 * 1024 * 1024);
+		logger.progress(1024, 999 * 1024 * 1024);
+		// The final newline of a finished bar is not a frame.
+		const frames = out.filter(text => text !== "\n");
+		expect(frames.length).toBeGreaterThan(0);
+		for (const frame of frames) {
+			expect(frame.startsWith("\r\x1b[2K")).toBe(true);
+		}
+	});
+
+	it("shrinks the progress bar to fit a narrow terminal in one line", () => {
+		// A frame wider than the terminal wraps, and \r can only redraw
+		// the last screen line — earlier wrapped lines would linger as
+		// progress-history ghosts.
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true, columns: 60 },
+			stderr: { write: () => {} },
+		});
+		logger.progress(400 * 1024 * 1024, 999 * 1024 * 1024);
+		expect(out.join("")).toContain("Uploading [");
+		// Visible width (the leading erase sequence is not screen width).
+		const erase = "\r\x1b[2K";
+		const first = out[0] ?? "";
+		const visible = first.startsWith(erase) ? first.slice(erase.length) : first;
+		expect(visible.length).toBeLessThanOrEqual(60);
+		// The bar is genuinely shrunk, not just the trailing spaces cut.
+		expect(visible).toMatch(/\[[#]{4,}[-]{4,}\]/);
+	});
+
+	it("keeps the speed text visible between rate recomputations", async () => {
+		// The rate mark recomputes at most every 300 ms; frames in between
+		// are far more frequent (per-chunk events) and must still draw the
+		// last computed speed instead of blinking it away.
+		const MB = 1024 * 1024;
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+		logger.progress(0, 10 * MB); // no mark yet — no speed
+		await sleep(350);
+		logger.progress(2 * MB, 10 * MB); // window passed — speed computed and drawn
+		const speedFrames = out.slice(-1);
+		expect(speedFrames.join("")).toMatch(/[\d.]+ [KMG]?B\/s/);
+		// Two fast frames (< 300 ms apart): the sticky speed stays drawn.
+		logger.progress(3 * MB, 10 * MB);
+		logger.progress(4 * MB, 10 * MB);
+		const recent = out.slice(-2).join("");
+		expect(recent).toMatch(/[\d.]+ [KMG]?B\/s/);
+	});
+
+	it("shows no speed for instant progress bursts below the rate window", async () => {
+		// Per-chunk frames arriving within the 300 ms window must not
+		// invent a speed out of a single-mark sample.
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		logger.progress(1, 1000);
+		logger.progress(2, 1000);
+		logger.progress(3, 1000);
+		expect(out.join("")).not.toContain("/s");
 	});
 
 	it("prints on a fresh line while the spinner is running and resumes it", () => {
