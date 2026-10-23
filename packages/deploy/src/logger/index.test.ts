@@ -248,6 +248,51 @@ describe("CliLogger", () => {
 		expect(visible).toMatch(/\[[#]{4,}[-]{4,}\]/);
 	});
 
+	it("keeps the speed text visible between rate recomputations", async () => {
+		// The rate mark recomputes at most every 300 ms; frames in between
+		// are far more frequent (per-chunk events) and must still draw the
+		// last computed speed instead of blinking it away.
+		const MB = 1024 * 1024;
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+		logger.progress(0, 10 * MB); // no mark yet — no speed
+		await sleep(350);
+		logger.progress(2 * MB, 10 * MB); // window passed — speed computed and drawn
+		const speedFrames = out.slice(-1);
+		expect(speedFrames.join("")).toMatch(/[\d.]+ [KMG]?B\/s/);
+		// Two fast frames (< 300 ms apart): the sticky speed stays drawn.
+		logger.progress(3 * MB, 10 * MB);
+		logger.progress(4 * MB, 10 * MB);
+		const recent = out.slice(-2).join("");
+		expect(recent).toMatch(/[\d.]+ [KMG]?B\/s/);
+	});
+
+	it("shows no speed for instant progress bursts below the rate window", async () => {
+		// Per-chunk frames arriving within the 300 ms window must not
+		// invent a speed out of a single-mark sample.
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		logger.progress(1, 1000);
+		logger.progress(2, 1000);
+		logger.progress(3, 1000);
+		expect(out.join("")).not.toContain("/s");
+	});
+
 	it("prints on a fresh line while the spinner is running and resumes it", () => {
 		const out: string[] = [];
 		const err: string[] = [];

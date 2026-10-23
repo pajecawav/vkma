@@ -69,6 +69,8 @@ export class CliLogger {
 	private spinnerFrame = 0;
 	private spinnerText = "";
 	private progressMark: { time: number; sent: number } | undefined;
+	/** Last computed upload speed, drawn until recomputed (~every 300 ms). */
+	private speedText = "";
 
 	public constructor(options: CliLoggerOptions) {
 		this.mode = options.mode;
@@ -278,20 +280,27 @@ export class CliLogger {
 			this.spinnerStop();
 		}
 		const now = Date.now();
+		// Speed is sticky: recomputed at most every ~300 ms against a rate
+		// mark, but drawn in every frame afterwards. Recomputing per frame
+		// (with per-chunk marks) would blink — most frames are < 200 ms
+		// apart and would render no speed at all. Upstream parity until
+		// this fix: the speed only *appeared* stuck to the screen because
+		// frames drew over each other without an erase.
 		let speedText = "";
-		if (this.progressMark !== undefined) {
-			if (sent < this.progressMark.sent) {
-				// An upload retry restarted from zero — speed math must not
-				// go negative against the previous attempt's mark.
-				this.progressMark = undefined;
-			} else {
-				const seconds = (now - this.progressMark.time) / 1000;
-				if (seconds > 0.2) {
-					speedText = ` ${formatBytes((sent - this.progressMark.sent) / seconds)}/s`;
-				}
-			}
+		if (this.progressMark !== undefined && sent < this.progressMark.sent) {
+			// An upload retry restarted from zero — speed math must not
+			// go negative against the previous attempt's mark.
+			this.progressMark = undefined;
+			this.speedText = "";
 		}
-		this.progressMark = { time: now, sent };
+		if (this.progressMark === undefined) {
+			this.progressMark = { time: now, sent };
+		} else if (now - this.progressMark.time >= 300) {
+			const seconds = (now - this.progressMark.time) / 1000;
+			this.speedText = ` ${formatBytes((sent - this.progressMark.sent) / seconds)}/s`;
+			this.progressMark = { time: now, sent };
+		}
+		speedText = this.speedText;
 		const ratio = total > 0 ? sent / total : 0;
 		const percent = Math.floor(ratio * 100);
 		const sizes = `${formatBytes(sent)}/${formatBytes(total)}`;
@@ -319,6 +328,7 @@ export class CliLogger {
 		if (sent >= total) {
 			this.stdout.write("\n");
 			this.progressMark = undefined;
+			this.speedText = "";
 		}
 	}
 
