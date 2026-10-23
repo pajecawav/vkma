@@ -1,5 +1,17 @@
 # @vkma.dev/deploy
 
+## 0.2.0
+
+### Minor Changes
+
+- ccd1343: Require an explicit URL-switch policy: unset `--update-prod`/`--update-dev` are confirmed on a TTY and fail with `E_UPDATE_FLAG_REQUIRED` in non-interactive runs.
+
+### Patch Changes
+
+- ec8213b: fix(deploy): retry VK error 22 on createGoHostingTask (upstream #3 "invalid upload_response" flake)
+- b2fd314: fix(deploy): align URL columns, bold the push-confirmation line, tighten the plan separator
+- 814051e: Fix upload progress artifacts: erase each frame and shrink the bar to the terminal width so stale speed text never glues on and narrow terminals no longer show ghost frames.
+
 ## 0.1.1
 
 ### Patch Changes
