@@ -207,6 +207,13 @@ export class CliLogger {
 			this.info(text);
 			return;
 		}
+		// An already-spinning line just swaps its text (phase-to-phase
+		// reloads, e.g. "Uploading" -> "Processing" -> "Waiting"): starting
+		// a second interval here would print every frame twice.
+		if (this.spinnerTimer !== undefined) {
+			this.spinnerText = text;
+			return;
+		}
 		this.spinnerText = text;
 		this.stdout.write("\x1b[?25l"); // hide cursor
 		this.startSpinnerTimer();

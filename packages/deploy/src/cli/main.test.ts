@@ -307,6 +307,10 @@ describe("main()", () => {
 		expect(text).toContain("Access token: environment variable");
 		expect(text).toContain("vk.ru:  https://app");
 		expect(text).toContain("version 9");
+		// Between upload:done and the (slow) createGoHostingTask response a
+		// phase spinner runs; in non-interactive mode it logs as info.
+		expect(text).toContain("Hosting is processing the upload…");
+		expect(text).toContain("Waiting for hosting queue");
 		// Explicit update flags from the config reach the wire (this run is
 		// non-interactive, so unset flags would fail instead).
 		expect(spy.calls[0]?.url).toContain("update_prod=1");

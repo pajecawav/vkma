@@ -664,6 +664,12 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 		case "upload:done":
 			logger.spinnerStop();
 			logger.step("Bundle uploaded");
+			// The hosting backend keeps processing the uploaded archive
+			// before createGoHostingTask returns (tens of seconds for
+			// large bundles) — without a spinner here the CLI looks hung.
+			// The finished 100% bar stays on screen; the spinner runs on
+			// its own line. task:created swaps this text, not a new line.
+			logger.spinnerStart("Hosting is processing the upload…");
 			break;
 		case "task:created":
 			logger.info(`Hosting task created (version ${String(event.version)})`);

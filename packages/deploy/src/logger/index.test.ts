@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createRedactor } from "../redact.ts";
 import { CliLogger, formatBytes } from "./index.ts";
 
@@ -176,6 +176,36 @@ describe("CliLogger", () => {
 		logger.addSecret("AC123");
 		logger.rawOut("Open this URL:\n  https://oauth.vk.ru/code_auth?code=AC123&revoke=1");
 		expect(out.join("")).toContain("code=AC123");
+	});
+
+	it("spinnerStart on a spinning line swaps the text instead of stacking timers", () => {
+		vi.useFakeTimers();
+		try {
+			const out: string[] = [];
+			const logger = new CliLogger({
+				mode: "pretty",
+				color: false,
+				level: "info",
+				redactor: createRedactor(),
+				stdout: { write: text => out.push(text), isTTY: true },
+				stderr: { write: () => {} },
+			});
+			logger.spinnerStart("First phase");
+			logger.spinnerStart("Second phase");
+			// One interval, one frame per 80 ms tick — a second timer would
+			// print two frames per tick and leak after spinnerStop.
+			const frames = () => out.filter(text => text.startsWith("\r"));
+			vi.advanceTimersByTime(80);
+			expect(frames().length).toBe(1);
+			expect(frames().join("")).toContain("Second phase");
+			vi.advanceTimersByTime(80 * 5);
+			expect(frames().length).toBe(6);
+			expect(logger.spinnerActive).toBe(true);
+			logger.spinnerStop();
+			expect(logger.spinnerActive).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("suppresses progress output for non-interactive pretty mode", () => {
