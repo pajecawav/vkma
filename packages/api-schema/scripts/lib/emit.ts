@@ -122,13 +122,13 @@ export function renderMethodMapModule(
 	} else if (target === "valibot") {
 		lines.push(`import * as v from "valibot";`);
 	}
-	for (const [file, names] of [...imports].sort((a, b) => byLocale(a[0], b[0]))) {
+	for (const [file, names] of [...imports].toSorted((a, b) => byLocale(a[0], b[0]))) {
 		const keyword = typeOnly ? "import type" : "import";
-		lines.push(`${keyword} { ${[...names].sort(byLocale).join(", ")} } from "${file}";`);
+		lines.push(`${keyword} { ${[...names].toSorted(byLocale).join(", ")} } from "${file}";`);
 	}
 	lines.push("");
 
-	const sorted = [...entries].sort((a, b) => byLocale(a.dotted, b.dotted));
+	const sorted = [...entries].toSorted((a, b) => byLocale(a.dotted, b.dotted));
 	if (typeOnly) {
 		lines.push("/** Typed lookup of every documented VK API method. */");
 		lines.push("export interface MethodMap {");
@@ -200,7 +200,7 @@ export async function buildBarrel(
 	const sections = (await readdir(targetDir, { withFileTypes: true }))
 		.filter(e => e.isDirectory())
 		.map(e => e.name)
-		.sort(byLocale);
+		.toSorted(byLocale);
 
 	for (const section of sections) {
 		for (const stem of ["methods", "objects", "responses"]) {
@@ -232,7 +232,7 @@ export async function buildBarrel(
 	if (extras.enumNames.length > 0) {
 		lines.push(
 			`export {`,
-			...[...new Set(extras.enumNames)].sort(byLocale).map(n => `\t${n},`),
+			...[...new Set(extras.enumNames)].toSorted(byLocale).map(n => `\t${n},`),
 			`} from "./enum-names.js";`,
 			"",
 		);
@@ -257,5 +257,5 @@ export async function buildBarrel(
 			names.add(name);
 		}
 	}
-	return [...names].sort(byLocale);
+	return [...names].toSorted(byLocale);
 }

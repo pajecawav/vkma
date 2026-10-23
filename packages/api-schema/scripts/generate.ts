@@ -150,7 +150,9 @@ async function main(): Promise<void> {
 		options: { ...GENERATE_OPTIONS, exportSuffix: EXPORT_SUFFIX },
 	});
 
-	const entries = [...enumEntries.values()].sort((a, b) => a.defName.localeCompare(b.defName));
+	const entries = [...enumEntries.values()].toSorted((a, b) =>
+		a.defName.localeCompare(b.defName),
+	);
 	await writeFile(path.join(outDir, "typescript", "version.ts"), renderVersionModule(apiVersion));
 	await writeFile(
 		path.join(outDir, "typescript", "enum-names.ts"),
@@ -161,9 +163,9 @@ async function main(): Promise<void> {
 			dotted: entry.dotted,
 			section: entry.section,
 			paramsDef: entry.paramsDef,
-			responses: (responsesByMethod.get(und) ?? []).sort((a, b) => a.localeCompare(b)),
+			responses: (responsesByMethod.get(und) ?? []).toSorted((a, b) => a.localeCompare(b)),
 		}))
-		.sort((a, b) => a.dotted.localeCompare(b.dotted));
+		.toSorted((a, b) => a.dotted.localeCompare(b.dotted));
 	await writeFile(
 		path.join(outDir, "typescript", "method-map.ts"),
 		renderMethodMapModule(methodMapEntries, "typescript"),
@@ -233,7 +235,7 @@ async function listSections(): Promise<string[]> {
 	return entries
 		.filter(entry => entry.isDirectory())
 		.map(entry => entry.name)
-		.sort((a, b) => a.localeCompare(b));
+		.toSorted((a, b) => a.localeCompare(b));
 }
 
 /**
