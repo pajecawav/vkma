@@ -44,4 +44,4 @@ Read `packages/devtools/PRODUCT.md` for product truth and `DESIGN.md` for the vi
 - Publishing: changesets (`pnpm changeset`, `pnpm version`). Apps stay private.
 - Changeset summaries stay one short line — the details belong in the commit message, not the changelog.
 - Inspector browser target: `BROWSER=firefox|chrome` (default chrome), two static manifests in `apps/inspector/src/`, `web-ext` to run/pack.
-- Node >= 22, dev machine version pinned in `.node-version`.
+- Node >= 22.18 (type stripping for generator scripts), dev machine version pinned in `.node-version`.

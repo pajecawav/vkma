@@ -30,7 +30,7 @@ test("wrapped send injects a vkma request_id and taps the outgoing event", async
 	const seen: BridgeTapEvent[] = [];
 	onTap(event => seen.push(event));
 
-	await bridge.send("VKWebAppSetLocation", { location: "profile" } as never);
+	await bridge.send("VKWebAppSetLocation", { location: "profile" });
 
 	expect(sendMock).toHaveBeenCalledWith("VKWebAppSetLocation", {
 		location: "profile",

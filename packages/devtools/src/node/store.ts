@@ -55,10 +55,11 @@ export class DevtoolsStore {
 	 */
 	public listClients(now = Date.now()): ClientStatus[] {
 		const statuses = [...this.clients.values()]
-			.map(info => ({
-				...info,
-				online: now - info.lastSeenAt <= CLIENT_ONLINE_TTL_MS,
-			}))
+			.map(info =>
+				Object.assign({}, info, {
+					online: now - info.lastSeenAt <= CLIENT_ONLINE_TTL_MS,
+				}),
+			)
 			.toSorted((a, b) => {
 				if (a.online !== b.online) {
 					return a.online ? -1 : 1;

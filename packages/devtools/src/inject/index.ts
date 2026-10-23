@@ -154,10 +154,13 @@ function watchClientIds(): (() => void) | undefined {
 	};
 
 	const claim = () => {
+		// BroadcastChannel.postMessage takes only the message, there is no
+		// targetOrigin — the rule is a false positive here.
+		// oxlint-disable-next-line unicorn/require-post-message-target-origin
 		channel.postMessage({ type: "claim", id: clientId, token });
 	};
 
-	channel.onmessage = (event: MessageEvent<IdMessage | undefined>) => {
+	channel.addEventListener("message", (event: MessageEvent<IdMessage | undefined>) => {
 		const message = event.data;
 		if (!message) {
 			return;
@@ -167,6 +170,9 @@ function watchClientIds(): (() => void) | undefined {
 			// carrying my token cannot happen — and a claim of my id by
 			// another tab means the claimant yields, I keep it.
 			if (message.token !== token && message.id === clientId) {
+				// BroadcastChannel.postMessage takes only the message, there
+				// is no targetOrigin — the rule is a false positive here.
+				// oxlint-disable-next-line unicorn/require-post-message-target-origin
 				channel.postMessage({ type: "taken", id: message.id, token: message.token });
 			}
 			return;
@@ -180,7 +186,7 @@ function watchClientIds(): (() => void) | undefined {
 			regenerate();
 			claim();
 		}
-	};
+	});
 
 	claim();
 	return claim;
