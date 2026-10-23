@@ -121,7 +121,7 @@ export function Timeline({
 
 	// Newest first: the ledger opens on the latest traffic. The scroll
 	// container starts at the top, so no follow-the-bottom logic is needed.
-	const ordered = useMemo(() => [...groups].reverse(), [groups]);
+	const ordered = useMemo(() => groups.toReversed(), [groups]);
 
 	const buffered =
 		paused && anchorSeq !== null
