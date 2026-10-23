@@ -199,6 +199,55 @@ describe("CliLogger", () => {
 		expect(out.join("")).not.toMatch(/ -[\d.]+/);
 	});
 
+	it("erases each progress frame so shorter frames leave no ghost tail", () => {
+		// A retry drops the speed text and a unit boundary ("999.9 KB" ->
+		// "1.0 MB") shrinks the sizes — both make a frame shorter than its
+		// predecessor, and without an erase sequence the tail would glue
+		// onto the new frame ("1.7 MB/s   /s" was a real report).
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true },
+			stderr: { write: () => {} },
+		});
+		logger.progress(900 * 1024 * 1024, 999 * 1024 * 1024);
+		logger.progress(999.9 * 1024, 999 * 1024 * 1024);
+		logger.progress(1024, 999 * 1024 * 1024);
+		// The final newline of a finished bar is not a frame.
+		const frames = out.filter(text => text !== "\n");
+		expect(frames.length).toBeGreaterThan(0);
+		for (const frame of frames) {
+			expect(frame.startsWith("\r\x1b[2K")).toBe(true);
+		}
+	});
+
+	it("shrinks the progress bar to fit a narrow terminal in one line", () => {
+		// A frame wider than the terminal wraps, and \r can only redraw
+		// the last screen line — earlier wrapped lines would linger as
+		// progress-history ghosts.
+		const out: string[] = [];
+		const logger = new CliLogger({
+			mode: "pretty",
+			color: false,
+			level: "info",
+			redactor: createRedactor(),
+			stdout: { write: text => out.push(text), isTTY: true, columns: 60 },
+			stderr: { write: () => {} },
+		});
+		logger.progress(400 * 1024 * 1024, 999 * 1024 * 1024);
+		expect(out.join("")).toContain("Uploading [");
+		// Visible width (the leading erase sequence is not screen width).
+		const erase = "\r\x1b[2K";
+		const first = out[0] ?? "";
+		const visible = first.startsWith(erase) ? first.slice(erase.length) : first;
+		expect(visible.length).toBeLessThanOrEqual(60);
+		// The bar is genuinely shrunk, not just the trailing spaces cut.
+		expect(visible).toMatch(/\[[#]{4,}[-]{4,}\]/);
+	});
+
 	it("prints on a fresh line while the spinner is running and resumes it", () => {
 		const out: string[] = [];
 		const err: string[] = [];

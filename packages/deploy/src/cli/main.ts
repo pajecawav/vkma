@@ -41,7 +41,7 @@ const VERSION = pkg.version;
 export interface MainOptions {
 	readonly env?: Record<string, string | undefined>;
 	readonly cwd?: string;
-	readonly stdout?: { write(text: string): void; isTTY?: boolean };
+	readonly stdout?: { write(text: string): void; isTTY?: boolean; columns?: number };
 	readonly stderr?: { write(text: string): void };
 	readonly stdin?: { isTTY?: boolean };
 	/** Prompt input stream injection (tests); defaults to process.stdin. */
@@ -612,7 +612,7 @@ function renderDeployPlan(
 		config.environment !== "dev" ? config.updateProd : undefined,
 		config.environment !== "production" ? config.updateDev : undefined,
 	].filter((value): value is boolean => value !== undefined);
-	if (relevantSwitches.length > 0 && relevantSwitches.every(value => value === false)) {
+	if (relevantSwitches.length > 0 && relevantSwitches.every(value => !value)) {
 		logger.warn("no URLs will switch to the new version — the upload alone creates it");
 	}
 }

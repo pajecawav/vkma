@@ -30,7 +30,7 @@ export interface CliLoggerOptions {
 	readonly color: boolean;
 	readonly level: LogLevel;
 	readonly redactor: Redactor;
-	readonly stdout: { write(text: string): void; isTTY?: boolean };
+	readonly stdout: { write(text: string): void; isTTY?: boolean; columns?: number };
 	readonly stderr: { write(text: string): void };
 }
 
@@ -61,7 +61,7 @@ export class CliLogger {
 	private readonly colorEnabled: boolean;
 	private readonly level: LogLevel;
 	private readonly redactor: Redactor;
-	private readonly stdout: { write(text: string): void; isTTY?: boolean };
+	private readonly stdout: { write(text: string): void; isTTY?: boolean; columns?: number };
 	private readonly stderr: { write(text: string): void };
 	private ciUrls = false;
 
@@ -293,12 +293,29 @@ export class CliLogger {
 		}
 		this.progressMark = { time: now, sent };
 		const ratio = total > 0 ? sent / total : 0;
-		const width = 24;
-		const filled = Math.round(ratio * width);
-		const bar = `${"#".repeat(filled)}${"-".repeat(width - filled)}`;
 		const percent = Math.floor(ratio * 100);
-		const line = `\r${this.paint("⠿", "cyan")} Uploading [${bar}] ${percent}% ${formatBytes(sent)}/${formatBytes(total)}${speedText}   `;
-		this.stdout.write(line);
+		const sizes = `${formatBytes(sent)}/${formatBytes(total)}`;
+		// Erase before drawing: the previous frame may have been longer
+		// (a retry drops the speed text, a unit boundary "999.9 KB" ->
+		// "1.0 MB" shrinks the sizes) and its tail would glue onto the
+		// new frame — "1.7 MB/s   /s" was a real report.
+		//
+		// Narrow terminals: a frame wider than `columns` wraps, and \r
+		// can only redraw the last screen line — earlier wrapped lines
+		// would linger as ghosts. Shrink the bar to keep one line.
+		const columns = this.stdout.columns ?? 80;
+		const build = (barWidth: number): string => {
+			const filled = Math.round(ratio * barWidth);
+			const bar = `${"#".repeat(filled)}${"-".repeat(barWidth - filled)}`;
+			return `⠿ Uploading [${bar}] ${percent}% ${sizes}${speedText}   `;
+		};
+		let frame = build(24);
+		if (frame.length > columns && columns > 0) {
+			// Keep the width math on the plain text: painted glyphs must
+			// not inflate the length (ANSI escapes are zero-width).
+			frame = build(Math.max(4, 24 - (frame.length - columns)));
+		}
+		this.stdout.write(`\r\x1b[2K${this.paint(frame.slice(0, 1), "cyan")}${frame.slice(1)}`);
 		if (sent >= total) {
 			this.stdout.write("\n");
 			this.progressMark = undefined;
