@@ -1,5 +1,12 @@
 # @vkma.dev/deploy
 
+## 0.2.1
+
+### Patch Changes
+
+- 4c33b91: Keep a spinner running while the hosting backend processes the upload (the silent window between "Bundle uploaded" and the createGoHostingTask response); spinner phases now swap text on the live line instead of stacking timers.
+- af7a226: Keep the upload speed visible between recomputations: it is now sticky (~every 300 ms window) instead of blinking away on frequent per-chunk frames, which the erase-line fix exposed.
+
 ## 0.2.0
 
 ### Minor Changes
