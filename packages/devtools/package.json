@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/devtools",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Devtools for VK Mini Apps: /__vkma panel, bridge event timeline, execute",
 	"type": "module",
 	"license": "MIT",
