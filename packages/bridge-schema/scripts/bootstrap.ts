@@ -96,7 +96,9 @@ async function main(): Promise<void> {
 			title: "VK Bridge event catalogue",
 			description:
 				"Payload types ($defs) and method wiring (x-vkma-catalogue) of every VK Bridge event. Facts only — event names and payload shapes of the platform interface.",
-			$defs: Object.fromEntries([...defs.entries()].sort(([a], [b]) => a.localeCompare(b))),
+			$defs: Object.fromEntries(
+				[...defs.entries()].toSorted(([a], [b]) => a.localeCompare(b)),
+			),
 			"x-vkma-catalogue": catalogue,
 		};
 		await mkdir(path.dirname(schemaFile), { recursive: true });

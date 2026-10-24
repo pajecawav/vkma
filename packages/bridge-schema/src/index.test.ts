@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import type { ReceiveDataMap, ReceiveEventMap, RequestPropsMap } from "@vkma.dev/bridge-schema";
 import { catalogue, eventsSchema } from "@vkma.dev/bridge-schema/schema";
 import type {
@@ -100,8 +99,6 @@ expectTypeOf<ReceiveEventMap["VKWebAppGetAuthToken"]>().toEqualTypeOf<{
 // ---------------------------------------------------------------------------
 // Runtime
 // ---------------------------------------------------------------------------
-
-const require = createRequire(import.meta.url);
 
 test("the catalogue covers the documented event set", () => {
 	expect(Object.keys(catalogue.props)).toHaveLength(96);

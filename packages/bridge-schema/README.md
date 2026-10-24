@@ -24,7 +24,6 @@ import type { RequestPropsMap, UserInfo } from "@vkma.dev/bridge-schema";
 type InitProps = RequestPropsMap["VKWebAppInit"];
 ```
 
-
 ## Extending the catalogue
 
 The maps are declared as `interface`s in the package root specifically so that **declaration merging** works: add your own (or your backend's proxy) events without forking anything.

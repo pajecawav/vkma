@@ -155,8 +155,6 @@ function renderIndex(
 		"//     }",
 		"//   }",
 		"",
-		`/** The @vkontakte/vk-bridge release this catalogue was extracted from. */`,
-		"",
 		importType(referenced),
 		"",
 		exportType(defNames),

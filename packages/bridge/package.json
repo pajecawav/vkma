@@ -1,7 +1,7 @@
 {
 	"name": "@vkma.dev/bridge",
-	"version": "0.0.0",
-	"description": "VK Bridge abstraction for VK Mini Apps",
+	"version": "0.1.0",
+	"description": "Independent VK Bridge for VK Mini Apps — drop-in API, built-in devtools tap",
 	"type": "module",
 	"license": "MIT",
 	"publishConfig": {
@@ -17,7 +17,8 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
-		}
+		},
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",
@@ -33,9 +34,10 @@
 		"test:watch": "vitest watch"
 	},
 	"dependencies": {
-		"@vkontakte/vk-bridge": "catalog:"
+		"@vkma.dev/bridge-schema": "workspace:^"
 	},
 	"devDependencies": {
+		"happy-dom": "catalog:",
 		"publint": "catalog:",
 		"tsdown": "catalog:",
 		"vitest": "catalog:"
