@@ -3,6 +3,7 @@
 	"references": [
 		{ "path": "./tsconfig.node.json" },
 		{ "path": "./packages/api-schema" },
+		{ "path": "./packages/bridge-schema" },
 		{ "path": "./packages/bridge" },
 		{ "path": "./packages/deploy" },
 		{ "path": "./packages/devtools" }

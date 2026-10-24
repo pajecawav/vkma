@@ -1,0 +1,5230 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "VK Bridge event catalogue",
+	"description": "Payload types ($defs) and method wiring (x-vkma-catalogue) of every VK Bridge event. Facts only — event names and payload shapes of the platform interface.",
+	"$defs": {
+		"ActionSheetSlide": {
+			"type": "object",
+			"properties": {
+				"media": {
+					"$ref": "#/$defs/ActionSheetSlideMedia"
+				},
+				"subtitle": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"media",
+				"subtitle",
+				"title"
+			]
+		},
+		"ActionSheetSlideMedia": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"type": {
+							"enum": [
+								"gif",
+								"image",
+								"video"
+							],
+							"description": "Media type"
+						},
+						"url": {
+							"type": "string",
+							"description": "Content url"
+						}
+					},
+					"required": [
+						"type",
+						"url"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"blob": {
+							"type": "string",
+							"description": "Base64 string with BLOB"
+						},
+						"type": {
+							"enum": [
+								"gif",
+								"image",
+								"video"
+							],
+							"description": "Media type"
+						}
+					},
+					"required": [
+						"blob",
+						"type"
+					]
+				}
+			]
+		},
+		"AdaptivityType": {
+			"enum": [
+				"adaptive",
+				"force_mobile",
+				"force_mobile_compact"
+			]
+		},
+		"AddToCommunityRequest": {
+			"type": "object",
+			"properties": {
+				"hide_success_modal": {
+					"type": "boolean"
+				}
+			},
+			"required": []
+		},
+		"AddToProfileRequest": {
+			"type": "object",
+			"properties": {
+				"ttl": {
+					"type": "number"
+				}
+			},
+			"required": []
+		},
+		"AddToProfileResponse": {
+			"type": "object",
+			"properties": {
+				"visibility": {
+					"enum": [
+						"all",
+						"best_friends",
+						"friends"
+					]
+				}
+			},
+			"required": [
+				"visibility"
+			]
+		},
+		"AppCloseStatus": {
+			"enum": [
+				"failed",
+				"success"
+			],
+			"description": "App close status"
+		},
+		"AppearanceSchemeType": {
+			"enum": [
+				"bright_light",
+				"space_gray",
+				"vkcom_dark",
+				"vkcom_light"
+			],
+			"description": "Application color scheme type"
+		},
+		"AppearanceType": {
+			"enum": [
+				"dark",
+				"light"
+			],
+			"description": "Appearance type"
+		},
+		"BannerAdAlign": {
+			"enum": [
+				"center",
+				"left",
+				"right"
+			]
+		},
+		"BannerAdHeightType": {
+			"enum": [
+				"compact",
+				"regular"
+			]
+		},
+		"BannerAdLayoutType": {
+			"enum": [
+				"overlay",
+				"resize"
+			]
+		},
+		"BannerAdLocation": {
+			"enum": [
+				"bottom",
+				"top"
+			]
+		},
+		"BannerAdOrientation": {
+			"enum": [
+				"horizontal",
+				"vertical"
+			]
+		},
+		"CallFinishedResponse": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"CallGetStatusResponse": {
+			"type": "object",
+			"properties": {
+				"is_active": {
+					"type": "boolean"
+				},
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"is_active",
+				"result"
+			]
+		},
+		"CallJoinRequest": {
+			"type": "object",
+			"properties": {
+				"join_link": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"join_link"
+			]
+		},
+		"CallJoinResponse": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"CallLeftResponse": {
+			"type": "object",
+			"properties": {
+				"reason": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"reason"
+			]
+		},
+		"CallStartResponse": {
+			"type": "object",
+			"properties": {
+				"join_link": {
+					"type": "string"
+				},
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"join_link",
+				"result"
+			]
+		},
+		"ChangeFragmentResponse": {
+			"type": "object",
+			"properties": {
+				"location": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"location"
+			]
+		},
+		"CheckNativeAdsRequest": {
+			"type": "object",
+			"properties": {
+				"ad_format": {
+					"$ref": "#/$defs/EAdsFormats"
+				},
+				"use_waterfall": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"ad_format"
+			]
+		},
+		"CodeReaderOutput": {
+			"type": "object",
+			"properties": {
+				"code_data": {
+					"type": "string",
+					"description": "Read QR code data"
+				}
+			},
+			"required": [
+				"code_data"
+			],
+			"description": "Output data from code reader"
+		},
+		"CommunityAuthScope": {
+			"enum": [
+				"app_widget",
+				"docs",
+				"manage",
+				"messages",
+				"photos",
+				"stories"
+			],
+			"description": "Access Permissions for Community Token"
+		},
+		"CommunityTokenRequestOptions": {
+			"type": "object",
+			"properties": {
+				"app_id": {
+					"type": "number"
+				},
+				"group_id": {
+					"type": "number"
+				},
+				"scope": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"app_id",
+				"group_id",
+				"scope"
+			]
+		},
+		"CommunityWidgetType": {
+			"enum": [
+				"compact_list",
+				"cover_list",
+				"donation",
+				"list",
+				"match",
+				"matches",
+				"table",
+				"text",
+				"tiles"
+			],
+			"description": "Community widget type"
+		},
+		"ConversionHitRequest": {
+			"type": "object",
+			"properties": {
+				"conversion_event": {
+					"type": "string"
+				},
+				"conversion_value": {
+					"type": "number"
+				},
+				"pixel_code": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"conversion_event",
+				"conversion_value",
+				"pixel_code"
+			]
+		},
+		"ConversionHitResponse": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"CreateHashRequest": {
+			"type": "object",
+			"properties": {
+				"payload": {
+					"type": "string"
+				}
+			},
+			"required": []
+		},
+		"CreateHashResponse": {
+			"type": "object",
+			"properties": {
+				"payload": {
+					"type": "string"
+				},
+				"sign": {
+					"type": "string"
+				},
+				"ts": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"sign",
+				"ts"
+			]
+		},
+		"DefaultUpdateConfigData": {
+			"type": "object",
+			"properties": {
+				"app_id": {
+					"type": "string",
+					"description": "App_id of opened app"
+				},
+				"appearance": {
+					"$ref": "#/$defs/AppearanceType"
+				},
+				"scheme": {
+					"$ref": "#/$defs/AppearanceSchemeType"
+				}
+			},
+			"required": [
+				"app_id",
+				"appearance",
+				"scheme"
+			],
+			"description": "Default fields for config response on all platforms"
+		},
+		"EAdsFormats": {
+			"enum": [
+				"interstitial",
+				"reward"
+			]
+		},
+		"EGetLaunchParamsResponseGroupRole": {
+			"enum": [
+				"admin",
+				"editor",
+				"member",
+				"moder",
+				"none"
+			]
+		},
+		"EGetLaunchParamsResponseLanguages": {
+			"enum": [
+				"be",
+				"en",
+				"es",
+				"kz",
+				"pt",
+				"ru",
+				"ua",
+				"uk"
+			]
+		},
+		"EGetLaunchParamsResponsePlatforms": {
+			"enum": [
+				"desktop_app_messenger",
+				"desktop_web",
+				"desktop_web_messenger",
+				"mobile_android",
+				"mobile_android_messenger",
+				"mobile_ipad",
+				"mobile_iphone",
+				"mobile_iphone_messenger",
+				"mobile_web"
+			]
+		},
+		"EGrantedPermission": {
+			"enum": [
+				"camera",
+				"location",
+				"photo"
+			]
+		},
+		"GetGrantedPermissionsResponse": {
+			"type": "object",
+			"properties": {
+				"permissions": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/EGrantedPermission"
+					}
+				}
+			},
+			"required": [
+				"permissions"
+			]
+		},
+		"GetLaunchParamsResponse": {
+			"type": "object",
+			"properties": {
+				"sign": {
+					"type": "string"
+				},
+				"vk_access_token_settings": {
+					"type": "string"
+				},
+				"vk_app_id": {
+					"type": "number"
+				},
+				"vk_are_notifications_enabled": {
+					"enum": [
+						0,
+						1
+					]
+				},
+				"vk_group_id": {
+					"type": "number"
+				},
+				"vk_is_app_user": {
+					"enum": [
+						0,
+						1
+					]
+				},
+				"vk_is_favorite": {
+					"enum": [
+						0,
+						1
+					]
+				},
+				"vk_language": {
+					"$ref": "#/$defs/EGetLaunchParamsResponseLanguages"
+				},
+				"vk_platform": {
+					"$ref": "#/$defs/EGetLaunchParamsResponsePlatforms"
+				},
+				"vk_ref": {
+					"type": "string"
+				},
+				"vk_ts": {
+					"type": "number"
+				},
+				"vk_user_id": {
+					"type": "number"
+				},
+				"vk_viewer_group_role": {
+					"$ref": "#/$defs/EGetLaunchParamsResponseGroupRole"
+				}
+			},
+			"required": [
+				"sign",
+				"vk_access_token_settings",
+				"vk_app_id",
+				"vk_are_notifications_enabled",
+				"vk_is_app_user",
+				"vk_is_favorite",
+				"vk_language",
+				"vk_platform",
+				"vk_ref",
+				"vk_ts",
+				"vk_user_id"
+			]
+		},
+		"GroupInfo": {
+			"type": "object",
+			"properties": {
+				"description": {
+					"type": "string"
+				},
+				"id": {
+					"type": "number"
+				},
+				"is_closed": {
+					"type": "number"
+				},
+				"is_member": {
+					"type": "number"
+				},
+				"name": {
+					"type": "string"
+				},
+				"photo_100": {
+					"type": "string"
+				},
+				"photo_200": {
+					"type": "string"
+				},
+				"photo_50": {
+					"type": "string"
+				},
+				"screen_name": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"description",
+				"id",
+				"is_closed",
+				"is_member",
+				"name",
+				"photo_100",
+				"photo_200",
+				"photo_50",
+				"screen_name",
+				"type"
+			],
+			"description": "Group info"
+		},
+		"Insets": {
+			"type": "object",
+			"properties": {
+				"bottom": {
+					"type": "number"
+				},
+				"left": {
+					"type": "number"
+				},
+				"right": {
+					"type": "number"
+				},
+				"top": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"bottom",
+				"left",
+				"right",
+				"top"
+			],
+			"description": "Screen insets."
+		},
+		"LinkShareResult": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"type": {
+							"const": "message"
+						},
+						"users": {
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/ShareUserInfo"
+							}
+						}
+					},
+					"required": [
+						"type",
+						"users"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"post_id": {
+							"type": "string"
+						},
+						"type": {
+							"const": "post"
+						}
+					},
+					"required": [
+						"post_id",
+						"type"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"story_id": {
+							"type": "string"
+						},
+						"type": {
+							"const": "story"
+						}
+					},
+					"required": [
+						"story_id",
+						"type"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"type": {
+							"enum": [
+								"link",
+								"other",
+								"qr"
+							]
+						}
+					},
+					"required": [
+						"type"
+					]
+				}
+			],
+			"description": "Result data of link share"
+		},
+		"MessageRequestOptions": {
+			"type": "object",
+			"properties": {
+				"attachment": {
+					"type": "string",
+					"description": "List of attaches"
+				},
+				"lat": {
+					"type": "number",
+					"description": "Geographic latitude of a point, specified in degrees (from -90 to 90)."
+				},
+				"lng": {
+					"type": "number",
+					"description": "Geographic longitude of a point, specified in degrees (from -180 to 180)."
+				},
+				"message": {
+					"type": "string",
+					"description": "Message text"
+				},
+				"peer_id": {
+					"type": "number",
+					"description": "Receiver ID (user, community, chat)"
+				}
+			},
+			"required": [
+				"message",
+				"peer_id"
+			]
+		},
+		"MobileUpdateConfigData": {
+			"allOf": [
+				{
+					"$ref": "#/$defs/DefaultUpdateConfigData"
+				},
+				{
+					"type": "object",
+					"properties": {
+						"app": {
+							"enum": [
+								"vkclient",
+								"vkme"
+							],
+							"description": "Client type"
+						},
+						"insets": {
+							"$ref": "#/$defs/Insets"
+						}
+					},
+					"required": [
+						"app"
+					]
+				}
+			],
+			"description": "Config response for native platforms"
+		},
+		"MVKUpdateConfigData": {
+			"$ref": "#/$defs/SharedUpdateConfigData",
+			"description": "Config response for m.vk.ru (mobile browser)"
+		},
+		"OKCallApiParams": {
+			"type": "object",
+			"properties": {
+				"access_token": {
+					"type": "string"
+				},
+				"application_key": {
+					"type": "string"
+				},
+				"format": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"access_token",
+				"application_key"
+			],
+			"additionalProperties": true,
+			"description": "Type for params field in OKWebAppCallAPIMethod"
+		},
+		"OKWebAppCallAPIMethodData": {
+			"type": "object",
+			"properties": {
+				"response": true
+			},
+			"required": [
+				"response"
+			]
+		},
+		"OKWebAppCallAPIMethodProps": {
+			"type": "object",
+			"properties": {
+				"method": {
+					"type": "string"
+				},
+				"params": {
+					"$ref": "#/$defs/OKCallApiParams"
+				}
+			},
+			"required": [
+				"method",
+				"params"
+			]
+		},
+		"OpenAppOptions": {
+			"type": "object",
+			"properties": {
+				"app_id": {
+					"type": "number"
+				},
+				"close_parent": {
+					"type": "boolean",
+					"description": "Tells the platform that the current app should be closed after opening another one from it. Android, iOS only"
+				},
+				"group_id": {
+					"type": "number",
+					"description": "Community ID, if app will open from community. Android, iOS only"
+				},
+				"location": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"app_id"
+			]
+		},
+		"OrderBoxShowingStatus": {
+			"enum": [
+				"cancel",
+				"fail",
+				"success"
+			],
+			"description": "Status of showing order box"
+		},
+		"OrderRequestOptions": {
+			"type": "object",
+			"properties": {
+				"item": {
+					"type": "string",
+					"description": "Name of product. Will be transmitted in the notification of receipt\nof product information"
+				},
+				"type": {
+					"const": "item",
+					"description": "Always `item`"
+				}
+			},
+			"required": [
+				"item",
+				"type"
+			]
+		},
+		"ParentConfigData": {
+			"anyOf": [
+				{
+					"$ref": "#/$defs/MobileUpdateConfigData"
+				},
+				{
+					"$ref": "#/$defs/SharedUpdateConfigData"
+				},
+				{
+					"$ref": "#/$defs/VKUpdateConfigData"
+				}
+			],
+			"description": "Update config data"
+		},
+		"PersonalAuthScope": {
+			"enum": [
+				"docs",
+				"friends",
+				"groups",
+				"market",
+				"notes",
+				"pages",
+				"photos",
+				"stats",
+				"status",
+				"stories",
+				"video",
+				"wall"
+			],
+			"description": "Access Permissions for User Token"
+		},
+		"PersonalCardData": {
+			"type": "object",
+			"properties": {
+				"address": {
+					"type": "object",
+					"properties": {
+						"city": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "number"
+								},
+								"name": {
+									"type": "string"
+								}
+							},
+							"required": [
+								"id",
+								"name"
+							]
+						},
+						"country": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "number"
+								},
+								"name": {
+									"type": "string"
+								}
+							},
+							"required": [
+								"id",
+								"name"
+							]
+						},
+						"postal_code": {
+							"type": "string"
+						},
+						"specified_address": {
+							"type": "string"
+						}
+					},
+					"required": []
+				},
+				"email": {
+					"type": "string"
+				},
+				"phone": {
+					"type": "string"
+				}
+			},
+			"required": [],
+			"description": "User's contact data from the Personal Card from"
+		},
+		"PersonalCardType": {
+			"enum": [
+				"address",
+				"email",
+				"phone"
+			],
+			"description": "Type of the Personal Card"
+		},
+		"PostAttachmentLink": {
+			"type": "object",
+			"properties": {
+				"link": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"link",
+				"type"
+			]
+		},
+		"RequestForRequestOptions": {
+			"type": "object",
+			"properties": {
+				"message": {
+					"type": "string",
+					"description": "Request test"
+				},
+				"requestKey": {
+					"type": "string",
+					"description": "Optional parameter. Custom string to track conversion. It is passed\nin the application launch parameters in case of launch from the\nrequest."
+				},
+				"uid": {
+					"type": "number",
+					"description": "User Id"
+				}
+			},
+			"required": [
+				"message",
+				"uid"
+			]
+		},
+		"RequestResult": {
+			"type": "object",
+			"properties": {
+				"requestKey": {
+					"type": "string",
+					"description": "`requestKey` from request"
+				},
+				"success": {
+					"type": "boolean",
+					"description": "Operation success"
+				}
+			},
+			"required": [
+				"requestKey",
+				"success"
+			],
+			"description": "Request result data"
+		},
+		"RetargetingPixelOptions": {
+			"type": "object",
+			"properties": {
+				"event": {
+					"type": "string",
+					"description": "Event id, pixel rule"
+				},
+				"pixel_code": {
+					"type": "string",
+					"description": "Pixel code, e.g. `VK-RTRG-447253-dUuM`"
+				},
+				"price_list_id": {
+					"type": "number",
+					"description": "ID of the price list"
+				},
+				"products_event": {
+					"type": "string",
+					"description": "Type of product event"
+				},
+				"products_params": {
+					"type": "string",
+					"description": "Product params"
+				},
+				"target_group_id": {
+					"type": "number",
+					"description": "ID of the retargeting group to which the current user should be added"
+				}
+			},
+			"required": [
+				"pixel_code"
+			]
+		},
+		"ScrollTopResponse": {
+			"type": "object",
+			"properties": {
+				"scrollTop": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"scrollTop"
+			]
+		},
+		"SelectedContact": {
+			"type": "object",
+			"properties": {
+				"first_name": {
+					"type": "string"
+				},
+				"last_name": {
+					"type": "string"
+				},
+				"phone": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"first_name",
+				"last_name",
+				"phone"
+			],
+			"description": "Selected contact data"
+		},
+		"SetSupportedHandlersData": {
+			"type": "object",
+			"properties": {
+				"supportedHandlers": {
+					"type": "array",
+					"items": {
+						"enum": [
+							"OKWebAppCallAPIMethod",
+							"SetSupportedHandlers",
+							"VKWebAppAccelerometerStart",
+							"VKWebAppAccelerometerStop",
+							"VKWebAppAddToCommunity",
+							"VKWebAppAddToFavorites",
+							"VKWebAppAddToHomeScreen",
+							"VKWebAppAddToHomeScreenInfo",
+							"VKWebAppAddToMenu",
+							"VKWebAppAddToProfile",
+							"VKWebAppAllowMessagesFromGroup",
+							"VKWebAppAllowNotifications",
+							"VKWebAppAudioPause",
+							"VKWebAppCallAPIMethod",
+							"VKWebAppCallGetStatus",
+							"VKWebAppCallJoin",
+							"VKWebAppCallStart",
+							"VKWebAppCheckAllowedScopes",
+							"VKWebAppCheckBannerAd",
+							"VKWebAppCheckNativeAds",
+							"VKWebAppCheckSurvey",
+							"VKWebAppClose",
+							"VKWebAppConversionHit",
+							"VKWebAppCopyText",
+							"VKWebAppCreateHash",
+							"VKWebAppDenyNotifications",
+							"VKWebAppDeviceMotionStart",
+							"VKWebAppDeviceMotionStop",
+							"VKWebAppDisableSwipeBack",
+							"VKWebAppDownloadFile",
+							"VKWebAppEnableSwipeBack",
+							"VKWebAppFlashGetInfo",
+							"VKWebAppFlashSetLevel",
+							"VKWebAppGetAuthToken",
+							"VKWebAppGetClientVersion",
+							"VKWebAppGetCommunityToken",
+							"VKWebAppGetConfig",
+							"VKWebAppGetEmail",
+							"VKWebAppGetFriends",
+							"VKWebAppGetGeodata",
+							"VKWebAppGetGrantedPermissions",
+							"VKWebAppGetGroupInfo",
+							"VKWebAppGetLaunchParams",
+							"VKWebAppGetPersonalCard",
+							"VKWebAppGetPhoneNumber",
+							"VKWebAppGetUserInfo",
+							"VKWebAppGyroscopeStart",
+							"VKWebAppGyroscopeStop",
+							"VKWebAppHideBannerAd",
+							"VKWebAppInit",
+							"VKWebAppJoinGroup",
+							"VKWebAppLeaveGroup",
+							"VKWebAppLibverifyCheck",
+							"VKWebAppLibverifyRequest",
+							"VKWebAppOpenApp",
+							"VKWebAppOpenCodeReader",
+							"VKWebAppOpenContacts",
+							"VKWebAppOpenPayForm",
+							"VKWebAppOpenQR",
+							"VKWebAppOpenWallPost",
+							"VKWebAppRecommend",
+							"VKWebAppResizeWindow",
+							"VKWebAppRetargetingPixel",
+							"VKWebAppScroll",
+							"VKWebAppScrollTop",
+							"VKWebAppScrollTopStart",
+							"VKWebAppScrollTopStop",
+							"VKWebAppSendPayload",
+							"VKWebAppSendToClient",
+							"VKWebAppSetLocation",
+							"VKWebAppSetSwipeSettings",
+							"VKWebAppSetViewSettings",
+							"VKWebAppShare",
+							"VKWebAppShowBannerAd",
+							"VKWebAppShowCommunityWidgetPreviewBox",
+							"VKWebAppShowImages",
+							"VKWebAppShowInviteBox",
+							"VKWebAppShowLeaderBoardBox",
+							"VKWebAppShowMessageBox",
+							"VKWebAppShowNativeAds",
+							"VKWebAppShowOrderBox",
+							"VKWebAppShowRequestBox",
+							"VKWebAppShowSlidesSheet",
+							"VKWebAppShowStoryBox",
+							"VKWebAppShowSubscriptionBox",
+							"VKWebAppShowSurvey",
+							"VKWebAppShowWallPostBox",
+							"VKWebAppStorageGet",
+							"VKWebAppStorageGetKeys",
+							"VKWebAppStorageSet",
+							"VKWebAppSubscribeStoryApp",
+							"VKWebAppTapticImpactOccurred",
+							"VKWebAppTapticNotificationOccurred",
+							"VKWebAppTapticSelectionChanged",
+							"VKWebAppTrackEvent",
+							"VKWebAppTranslate"
+						]
+					}
+				}
+			},
+			"required": [
+				"supportedHandlers"
+			]
+		},
+		"SetSupportedHandlersProps": {
+			"type": "object"
+		},
+		"SharedUpdateConfigData": {
+			"allOf": [
+				{
+					"$ref": "#/$defs/DefaultUpdateConfigData"
+				},
+				{
+					"type": "object",
+					"properties": {
+						"adaptivity": {
+							"$ref": "#/$defs/AdaptivityType"
+						},
+						"api_host": {
+							"type": "string",
+							"description": "Server API host for direct requests."
+						},
+						"viewport_height": {
+							"type": "number",
+							"description": "window.innerHeight of the parent window"
+						},
+						"viewport_width": {
+							"type": "number",
+							"description": "window.innerWidth of the parent window"
+						}
+					},
+					"required": [
+						"api_host",
+						"viewport_height",
+						"viewport_width"
+					]
+				}
+			],
+			"description": "Config response for m.vk.ru and vk.ru"
+		},
+		"ShareUserInfo": {
+			"type": "object",
+			"properties": {
+				"first_name": {
+					"type": "string",
+					"description": "User name"
+				},
+				"id": {
+					"type": "number",
+					"description": "User id"
+				},
+				"last_name": {
+					"type": "string",
+					"description": "User surname"
+				},
+				"photo": {
+					"type": "string",
+					"description": "User profile photo"
+				},
+				"sex": {
+					"enum": [
+						0,
+						1,
+						2
+					],
+					"description": "User sex: 0 - not specified, 1 - female, 2 - male"
+				}
+			},
+			"required": [
+				"first_name",
+				"id",
+				"last_name",
+				"photo",
+				"sex"
+			],
+			"description": "Result data user in Share"
+		},
+		"ShowBannerAdRequest": {
+			"type": "object",
+			"properties": {
+				"banner_align": {
+					"$ref": "#/$defs/BannerAdAlign"
+				},
+				"banner_location": {
+					"$ref": "#/$defs/BannerAdLocation"
+				},
+				"can_close": {
+					"type": "boolean"
+				},
+				"height_type": {
+					"$ref": "#/$defs/BannerAdHeightType"
+				},
+				"layout_type": {
+					"$ref": "#/$defs/BannerAdLayoutType"
+				},
+				"orientation": {
+					"$ref": "#/$defs/BannerAdOrientation"
+				}
+			},
+			"required": [
+				"banner_location"
+			]
+		},
+		"ShowNativeAdsRequest": {
+			"type": "object",
+			"properties": {
+				"ad_format": {
+					"$ref": "#/$defs/EAdsFormats"
+				},
+				"use_waterfall": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"ad_format"
+			]
+		},
+		"ShowSlidesSheetRequest": {
+			"type": "object",
+			"properties": {
+				"slides": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ActionSheetSlide"
+					}
+				}
+			},
+			"required": [
+				"slides"
+			]
+		},
+		"ShowSlidesSheetResponse": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"action": {
+							"enum": [
+								"cancel",
+								"confirm"
+							]
+						},
+						"result": {
+							"const": true
+						}
+					},
+					"required": [
+						"action",
+						"result"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"action": {
+							"const": "reject"
+						},
+						"result": {
+							"const": true
+						},
+						"slide_index": {
+							"type": "number"
+						}
+					},
+					"required": [
+						"action",
+						"result",
+						"slide_index"
+					]
+				}
+			]
+		},
+		"ShowStoryBoxOptions": {
+			"type": "object",
+			"properties": {
+				"attachment": {
+					"$ref": "#/$defs/StoryAttachment"
+				},
+				"background_type": {
+					"enum": [
+						"image",
+						"none",
+						"video"
+					],
+					"description": "Story type"
+				},
+				"blob": {
+					"type": "string",
+					"description": "Base64 string with BLOB (supported only for image)"
+				},
+				"camera_type": {
+					"enum": [
+						"back",
+						"front"
+					],
+					"description": "Camera type (only for `background_type: none`). Default: `back`"
+				},
+				"locked": {
+					"type": "boolean",
+					"description": "Lock to move the photo"
+				},
+				"stickers": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/StickerContainer"
+					},
+					"description": "Array of sticker objects"
+				},
+				"url": {
+					"type": "string",
+					"description": "Link to an image or video (should follow a direct link to mp4)"
+				}
+			},
+			"required": [
+				"background_type"
+			]
+		},
+		"ShowSubscriptionBoxRequest": {
+			"type": "object",
+			"properties": {
+				"action": {
+					"enum": [
+						"cancel",
+						"create",
+						"resume"
+					]
+				},
+				"item": {
+					"type": "string"
+				},
+				"subscription_id": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"action"
+			]
+		},
+		"ShowSubscriptionBoxResponse": {
+			"type": "object",
+			"properties": {
+				"subscriptionId": {
+					"type": "string"
+				},
+				"success": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"subscriptionId",
+				"success"
+			]
+		},
+		"StickerContainer": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"sticker": {
+							"$ref": "#/$defs/StoryRenderableSticker"
+						},
+						"sticker_type": {
+							"const": "renderable"
+						}
+					},
+					"required": [
+						"sticker",
+						"sticker_type"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"sticker": {
+							"$ref": "#/$defs/StoryNativeSticker"
+						},
+						"sticker_type": {
+							"const": "native"
+						}
+					},
+					"required": [
+						"sticker",
+						"sticker_type"
+					]
+				}
+			],
+			"description": "Sticker container"
+		},
+		"StoryAction": {
+			"anyOf": [
+				{
+					"$ref": "#/$defs/StoryActionEmoji"
+				},
+				{
+					"$ref": "#/$defs/StoryActionGeo"
+				},
+				{
+					"$ref": "#/$defs/StoryActionHashtag"
+				},
+				{
+					"$ref": "#/$defs/StoryActionLink"
+				},
+				{
+					"$ref": "#/$defs/StoryActionMarketItem"
+				},
+				{
+					"$ref": "#/$defs/StoryActionMention"
+				},
+				{
+					"$ref": "#/$defs/StoryActionPlace"
+				},
+				{
+					"$ref": "#/$defs/StoryActionQuestion"
+				},
+				{
+					"$ref": "#/$defs/StoryActionSticker"
+				},
+				{
+					"$ref": "#/$defs/StoryActionText"
+				},
+				{
+					"$ref": "#/$defs/StoryActionTime"
+				}
+			],
+			"description": "Story action type"
+		},
+		"StoryActionEmoji": {
+			"type": "object",
+			"properties": {
+				"emoji": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"emoji"
+			]
+		},
+		"StoryActionGeo": {
+			"type": "object",
+			"properties": {
+				"category_id": {
+					"type": "number",
+					"description": "Category id"
+				},
+				"place_id": {
+					"type": "number",
+					"description": "Place id"
+				},
+				"style": {
+					"enum": [
+						"blue",
+						"green",
+						"transparent",
+						"white"
+					],
+					"description": "Sticker style. Default: `blue`"
+				},
+				"text": {
+					"type": "string",
+					"description": "Place name"
+				}
+			},
+			"required": [
+				"place_id",
+				"text"
+			]
+		},
+		"StoryActionHashtag": {
+			"type": "object",
+			"properties": {
+				"hashtag": {
+					"type": "string",
+					"description": "Hashtag text"
+				},
+				"style": {
+					"enum": [
+						"blue_gradient",
+						"transparent"
+					],
+					"description": "Hashtag style. Default: `blue_gradient`"
+				}
+			},
+			"required": [
+				"hashtag"
+			]
+		},
+		"StoryActionLink": {
+			"type": "object",
+			"properties": {
+				"link": {
+					"type": "string",
+					"description": "Content link"
+				},
+				"tooltip_text_key": {
+					"enum": [
+						"tooltip_open_default",
+						"tooltip_open_page",
+						"tooltip_open_photo",
+						"tooltip_open_post"
+					],
+					"description": "The value of the string that will be displayed on the client when\nclicking on the tooltip."
+				}
+			},
+			"required": [
+				"link",
+				"tooltip_text_key"
+			],
+			"description": "Story action link"
+		},
+		"StoryActionMarketItem": {
+			"type": "object",
+			"properties": {
+				"link": {
+					"type": "string",
+					"description": "Aliexpress product link"
+				},
+				"owner_id": {
+					"type": "number",
+					"description": "Owner id of product in VK Market"
+				},
+				"product_id": {
+					"type": "number",
+					"description": "Product id in VK Market"
+				},
+				"title": {
+					"type": "string",
+					"description": "Product name"
+				}
+			},
+			"required": [
+				"title"
+			]
+		},
+		"StoryActionMention": {
+			"type": "object",
+			"properties": {
+				"mention": {
+					"type": "string",
+					"description": "Text in mention format:\nfor users: \"[id123|name]\"\nfor communities: \"[club123|name]\""
+				},
+				"style": {
+					"enum": [
+						"red_gradient",
+						"transparent"
+					],
+					"description": "Mention style. Default: `red_gradient`"
+				}
+			},
+			"required": [
+				"mention"
+			]
+		},
+		"StoryActionPlace": {
+			"type": "object",
+			"properties": {
+				"category_id": {
+					"type": "number",
+					"description": "Category id"
+				},
+				"place_id": {
+					"type": "number",
+					"description": "Place id"
+				},
+				"style": {
+					"enum": [
+						"blue",
+						"green",
+						"transparent",
+						"white"
+					],
+					"description": "Style"
+				},
+				"title": {
+					"type": "string",
+					"description": "Place name"
+				}
+			},
+			"required": [
+				"place_id",
+				"title"
+			]
+		},
+		"StoryActionQuestion": {
+			"type": "object",
+			"properties": {
+				"button": {
+					"type": "string",
+					"description": "Button text"
+				},
+				"question": {
+					"type": "string",
+					"description": "Question text"
+				}
+			},
+			"required": [
+				"button",
+				"question"
+			]
+		},
+		"StoryActionSticker": {
+			"type": "object",
+			"properties": {
+				"animation_url": {
+					"type": "string",
+					"description": "JSON sticker url"
+				},
+				"pack_id": {
+					"type": "number",
+					"description": "Sticker pack id"
+				},
+				"sticker_id": {
+					"type": "number",
+					"description": "Sticker id"
+				},
+				"url": {
+					"type": "string",
+					"description": "Sticker url"
+				}
+			},
+			"required": [
+				"sticker_id"
+			]
+		},
+		"StoryActionText": {
+			"type": "object",
+			"properties": {
+				"alignment": {
+					"enum": [
+						"center",
+						"left",
+						"right"
+					],
+					"description": "Horizontal alignment"
+				},
+				"background_style": {
+					"enum": [
+						"alpha",
+						"neon",
+						"none",
+						"solid",
+						"sticker"
+					],
+					"description": "Background/border style. Default: `none`"
+				},
+				"selection_color": {
+					"type": "string",
+					"description": "HEX color"
+				},
+				"style": {
+					"enum": [
+						"classic",
+						"cursive",
+						"italics",
+						"marker",
+						"poster",
+						"retro",
+						"typewriter"
+					],
+					"description": "Text style"
+				},
+				"text": {
+					"type": "string",
+					"description": "The text may contain mentions/hashtags in the formats specified with\nthe corresponding objects"
+				}
+			},
+			"required": [
+				"text"
+			]
+		},
+		"StoryActionTime": {
+			"type": "object",
+			"properties": {
+				"date": {
+					"type": "string",
+					"description": "Date (`timestamp_ms` alternative) in format:\n`yyyy:MM:dd HH:mm:ss`\n(this format is chosen to unify dates from exif fields https://vk.cc/9NrgMr)"
+				},
+				"style": {
+					"enum": [
+						"black",
+						"date",
+						"green",
+						"text",
+						"white"
+					],
+					"description": "Time style. Default: `date`"
+				},
+				"timestamp_ms": {
+					"type": "number",
+					"description": "Timestamp in milliseconds"
+				},
+				"title": {
+					"type": "string",
+					"description": "Top sticker title, meaning only for date style"
+				}
+			},
+			"required": []
+		},
+		"StoryAttachment": {
+			"type": "object",
+			"properties": {
+				"access_key": {
+					"type": "string",
+					"description": "Access key for the attachment"
+				},
+				"id": {
+					"type": "number",
+					"description": "Object id"
+				},
+				"owner_id": {
+					"type": "number",
+					"description": "Owner id"
+				},
+				"text": {
+					"type": "string",
+					"description": "Button text key (см. link_text в stories.getVideoUploadServer)"
+				},
+				"type": {
+					"enum": [
+						"audio",
+						"photo",
+						"url",
+						"video"
+					],
+					"description": "Attach type"
+				},
+				"url": {
+					"type": "string",
+					"description": "Content url"
+				}
+			},
+			"required": [
+				"text",
+				"type"
+			]
+		},
+		"StoryButtonText": {
+			"enum": [
+				"book",
+				"buy",
+				"contact",
+				"enroll",
+				"fill",
+				"go_to",
+				"install",
+				"learn_more",
+				"more",
+				"open",
+				"order",
+				"play",
+				"read",
+				"signup",
+				"ticket",
+				"to_store",
+				"view",
+				"vote",
+				"watch",
+				"write"
+			],
+			"description": "Link text for moving from a story (community stories only)"
+		},
+		"StoryClickableZone": {
+			"type": "object",
+			"properties": {
+				"action": {
+					"$ref": "#/$defs/StoryAction"
+				},
+				"action_type": {
+					"enum": [
+						"hashtag",
+						"link",
+						"market_item",
+						"mention",
+						"place",
+						"question"
+					],
+					"description": "Action type"
+				},
+				"clickable_area": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/StoryClickableZoneOrigin"
+					},
+					"description": "Clickable area border on the sticker. The points should be located\nclockwise, forming a closed square."
+				}
+			},
+			"required": [
+				"action",
+				"action_type"
+			]
+		},
+		"StoryClickableZoneOrigin": {
+			"type": "object",
+			"properties": {
+				"x": {
+					"type": "number"
+				},
+				"y": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"x",
+				"y"
+			]
+		},
+		"StoryNativeSticker": {
+			"type": "object",
+			"properties": {
+				"action": {
+					"$ref": "#/$defs/StoryAction"
+				},
+				"action_type": {
+					"enum": [
+						"emoji",
+						"hashtag",
+						"market_item",
+						"mention",
+						"place",
+						"question",
+						"sticker",
+						"text",
+						"time"
+					],
+					"description": "Story action type"
+				},
+				"can_delete": {
+					"type": "boolean",
+					"description": "Whether the sticker can be removed from the screen, `true` by default"
+				},
+				"transform": {
+					"$ref": "#/$defs/StoryObjectTransform"
+				}
+			},
+			"required": [
+				"action",
+				"action_type"
+			]
+		},
+		"StoryObjectTransform": {
+			"type": "object",
+			"properties": {
+				"gravity": {
+					"enum": [
+						"center",
+						"center_bottom",
+						"center_top",
+						"left_bottom",
+						"left_center",
+						"left_top",
+						"right_bottom",
+						"right_center",
+						"right_top"
+					],
+					"description": "Gravity. Default: center."
+				},
+				"relation_width": {
+					"type": "number",
+					"description": "The desired width of the sticker relative to the screen is (0, 1), the\nheight will be calculated taking into account maintaining the aspect ratio\nof the content."
+				},
+				"rotation": {
+					"type": "number",
+					"description": "Rotation, from 0 to 359 deg. Counterclockwise rotation."
+				},
+				"translation_x": {
+					"type": "number",
+					"description": "From -1 to 1 of screen with"
+				},
+				"translation_y": {
+					"type": "number",
+					"description": "From -1 to 1 of screen height"
+				}
+			},
+			"required": []
+		},
+		"StoryRenderableSticker": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"can_delete": {
+							"type": "boolean",
+							"description": "Whether the sticker can be removed from the screen, `true` by default"
+						},
+						"clickable_zones": {
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/StoryClickableZone"
+							},
+							"description": "Clickable zones"
+						},
+						"content_type": {
+							"enum": [
+								"gif",
+								"image",
+								"video"
+							],
+							"description": "Story type"
+						},
+						"original_height": {
+							"type": "number",
+							"description": "Content height"
+						},
+						"original_width": {
+							"type": "number",
+							"description": "Content width"
+						},
+						"transform": {
+							"$ref": "#/$defs/StoryObjectTransform"
+						},
+						"url": {
+							"type": "string",
+							"description": "Content url"
+						}
+					},
+					"required": [
+						"content_type",
+						"url"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"blob": {
+							"type": "string",
+							"description": "Base64 string with BLOB"
+						},
+						"can_delete": {
+							"type": "boolean",
+							"description": "Whether the sticker can be removed from the screen, `true` by default"
+						},
+						"clickable_zones": {
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/StoryClickableZone"
+							},
+							"description": "Clickable zones"
+						},
+						"content_type": {
+							"enum": [
+								"gif",
+								"image",
+								"video"
+							],
+							"description": "Story type"
+						},
+						"original_height": {
+							"type": "number",
+							"description": "Content height"
+						},
+						"original_width": {
+							"type": "number",
+							"description": "Content width"
+						},
+						"transform": {
+							"$ref": "#/$defs/StoryObjectTransform"
+						}
+					},
+					"required": [
+						"blob",
+						"content_type"
+					]
+				}
+			]
+		},
+		"SubscribeStoryAppOptions": {
+			"type": "object",
+			"properties": {
+				"access_key": {
+					"type": "string",
+					"description": "Private stories access key"
+				},
+				"sticker_id": {
+					"type": "number",
+					"description": "Clickable sticker id"
+				},
+				"story_id": {
+					"type": "number",
+					"description": "Story id"
+				},
+				"story_owner_id": {
+					"type": "number",
+					"description": "Story owner id"
+				}
+			},
+			"required": [
+				"sticker_id",
+				"story_id",
+				"story_owner_id"
+			],
+			"description": "Params of method for subscribing to a story updates"
+		},
+		"TapticNotificationType": {
+			"enum": [
+				"error",
+				"success",
+				"warning"
+			],
+			"description": "Notification type for Taptic Engine"
+		},
+		"TapticVibrationPowerType": {
+			"enum": [
+				"heavy",
+				"light",
+				"medium"
+			],
+			"description": "Vibration type for Taptic Engine"
+		},
+		"TrackEventRequest": {
+			"type": "object",
+			"properties": {
+				"custom_user_id": {
+					"type": "string"
+				},
+				"event_name": {
+					"type": "string"
+				},
+				"event_params": {
+					"type": "object"
+				}
+			},
+			"required": [
+				"event_name"
+			]
+		},
+		"TransactionResult": {
+			"type": "object",
+			"properties": {
+				"amount": {
+					"type": "string",
+					"description": "Payment amount"
+				},
+				"extra": {
+					"anyOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					],
+					"description": "Additional information of the seller"
+				},
+				"status": {
+					"type": "boolean",
+					"description": "Payment (true — successful, false — unsuccessful)."
+				},
+				"transaction_id": {
+					"type": "string",
+					"description": "Payment transaction identifier (for `status=true`)."
+				}
+			},
+			"required": [
+				"amount",
+				"status",
+				"transaction_id"
+			],
+			"description": "Result data of transaction"
+		},
+		"TranslateRequest": {
+			"type": "object",
+			"properties": {
+				"texts": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"translation_language": {
+					"$ref": "#/$defs/TranslationLanguage"
+				}
+			},
+			"required": [
+				"texts",
+				"translation_language"
+			]
+		},
+		"TranslateResponse": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"type": "object",
+					"properties": {
+						"source_lang": {
+							"$ref": "#/$defs/TranslationLanguage"
+						},
+						"texts": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					},
+					"required": [
+						"source_lang",
+						"texts"
+					]
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"TranslationLanguage": {
+			"type": "string"
+		},
+		"UserGetFriendsFriend": {
+			"type": "object",
+			"properties": {
+				"first_name": {
+					"type": "string",
+					"description": "User name"
+				},
+				"id": {
+					"type": "number",
+					"description": "User id"
+				},
+				"last_name": {
+					"type": "string",
+					"description": "User surname"
+				},
+				"photo_200": {
+					"type": "string",
+					"description": "URL of the square user's photo with 200px width.\nhttps://vk.ru/images/camera_200.png will be returned if the photo\nis not set."
+				},
+				"sex": {
+					"enum": [
+						0,
+						1,
+						2
+					],
+					"description": "User sex: 0 - not specified, 1 - female, 2 - male"
+				}
+			},
+			"required": [
+				"first_name",
+				"id",
+				"last_name",
+				"photo_200",
+				"sex"
+			],
+			"description": "Type of VKWebAppGetFriendsResult user"
+		},
+		"UserInfo": {
+			"type": "object",
+			"properties": {
+				"bdate": {
+					"type": "string",
+					"description": "Date of Birth. It is returned in the format D.M.YYYY or D.M (if the\nyear of birth is hidden). If the date of birth is hidden entirely,\nthe field is not in the response."
+				},
+				"bdate_visibility": {
+					"enum": [
+						0,
+						1,
+						2
+					],
+					"description": "Visibility of Date of birth: 0 - hidden, 1 - entire date of birth is visible,\n2 - day and month are visible"
+				},
+				"can_access_closed": {
+					"type": "boolean",
+					"description": "Can see a private user profile"
+				},
+				"city": {
+					"type": "object",
+					"properties": {
+						"id": {
+							"type": "number",
+							"description": "City ID"
+						},
+						"title": {
+							"type": "string",
+							"description": "City title"
+						}
+					},
+					"required": [
+						"id",
+						"title"
+					],
+					"description": "User's city"
+				},
+				"country": {
+					"type": "object",
+					"properties": {
+						"id": {
+							"type": "number",
+							"description": "Country ID"
+						},
+						"title": {
+							"type": "string",
+							"description": "Country  title"
+						}
+					},
+					"required": [
+						"id",
+						"title"
+					],
+					"description": "User's country"
+				},
+				"first_name": {
+					"type": "string",
+					"description": "User name"
+				},
+				"id": {
+					"type": "number",
+					"description": "User id"
+				},
+				"is_closed": {
+					"type": "boolean",
+					"description": "Is user profile closed"
+				},
+				"last_name": {
+					"type": "string",
+					"description": "User surname"
+				},
+				"photo_100": {
+					"type": "string",
+					"description": "URL of the square user's photo with 100px width.\nhttps://vk.ru/images/camera_100.png will be returned if the photo\nis not set."
+				},
+				"photo_200": {
+					"type": "string",
+					"description": "URL of the square user's photo with 200px width.\nhttps://vk.ru/images/camera_200.png will be returned if the photo\nis not set."
+				},
+				"photo_max_orig": {
+					"type": "string",
+					"description": "URL of the square user's photo with maximum size.\nhttps://vk.ru/images/camera_400.png will be returned if the photo\nis not set."
+				},
+				"sex": {
+					"enum": [
+						0,
+						1,
+						2
+					],
+					"description": "User sex: 0 - not specified, 1 - female, 2 - male"
+				},
+				"timezone": {
+					"type": "number",
+					"description": "User's timezone"
+				}
+			},
+			"required": [
+				"bdate_visibility",
+				"can_access_closed",
+				"city",
+				"country",
+				"first_name",
+				"id",
+				"is_closed",
+				"last_name",
+				"photo_100",
+				"photo_200",
+				"sex"
+			],
+			"description": "Type of user info object"
+		},
+		"VKPayActionParamsMap": {
+			"type": "object",
+			"properties": {
+				"pay-to-group": {
+					"type": "object",
+					"properties": {
+						"amount": {
+							"type": "number",
+							"description": "The amount of payment in rubles. The minimum value is 1"
+						},
+						"data": {
+							"type": "string",
+							"description": "Dictionary with arbitrary parameters"
+						},
+						"description": {
+							"type": "string",
+							"description": "Payment description"
+						},
+						"group_id": {
+							"type": "number",
+							"description": "Community ID"
+						}
+					},
+					"required": [
+						"amount",
+						"group_id"
+					],
+					"description": "Payment with a given amount to a community"
+				},
+				"pay-to-service": {
+					"type": "object",
+					"properties": {
+						"amount": {
+							"anyOf": [
+								{
+									"type": "string"
+								},
+								{
+									"type": "number"
+								}
+							],
+							"description": "Amount of payment. The minimum value is 1. The amount field is\ninvolved in the formation of merchant_data for the signature of\nthe seller."
+						},
+						"data": {
+							"type": "object",
+							"properties": {
+								"cashback": {
+									"type": "object",
+									"properties": {
+										"amount": {
+											"type": "number",
+											"description": "Cashback size"
+										},
+										"amount_percent": {
+											"type": "number",
+											"description": "Percentage cashback size"
+										},
+										"pay_time": {
+											"type": "number",
+											"description": "Cashback timestamp"
+										}
+									},
+									"required": [
+										"pay_time"
+									],
+									"description": "Cashback data"
+								},
+								"currency": {
+									"const": "RUB",
+									"description": "Currency. Only RUB is currently supported"
+								},
+								"merchant_data": {
+									"type": "string",
+									"description": "Base64-string of data for the signature of the seller"
+								},
+								"merchant_sign": {
+									"type": "string",
+									"description": "SHA-1 seller sign"
+								},
+								"order_id": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "number"
+										}
+									],
+									"description": "Sales order id"
+								},
+								"ts": {
+									"type": "number",
+									"description": "Timestamp"
+								}
+							},
+							"required": [
+								"currency",
+								"merchant_data",
+								"merchant_sign",
+								"order_id",
+								"ts"
+							],
+							"description": "Service data"
+						},
+						"description": {
+							"type": "string",
+							"description": "Description of the payment for user. The text will be shown in\npayment dialog"
+						},
+						"merchant_id": {
+							"type": "number",
+							"description": "Merchant ID. This is your ID in the payment system, obtained after\nthe conclusion of the contract along with the seller’s private key"
+						},
+						"sign": {
+							"type": "string",
+							"description": "The signature of the VK app that caused the payment"
+						},
+						"version": {
+							"type": "number",
+							"description": "Version of the payment form"
+						}
+					},
+					"required": [
+						"amount",
+						"data",
+						"description",
+						"merchant_id",
+						"sign",
+						"version"
+					],
+					"description": "Payment in favor of the merchant"
+				},
+				"pay-to-user": {
+					"type": "object",
+					"properties": {
+						"amount": {
+							"type": "number",
+							"description": "The amount of payment in rubles. The minimum value is 1"
+						},
+						"description": {
+							"type": "string",
+							"description": "Payment description"
+						},
+						"user_id": {
+							"type": "number",
+							"description": "User ID"
+						}
+					},
+					"required": [
+						"user_id"
+					],
+					"description": "Payment with a given amount to a user"
+				},
+				"transfer-to-group": {
+					"type": "object",
+					"properties": {
+						"group_id": {
+							"type": "number"
+						}
+					},
+					"required": [
+						"group_id"
+					],
+					"description": "Transferring an arbitrary amount to a community"
+				},
+				"transfer-to-user": {
+					"type": "object",
+					"properties": {
+						"user_id": {
+							"type": "number"
+						}
+					},
+					"required": [
+						"user_id"
+					],
+					"description": "Transferring an arbitrary amount to a user"
+				}
+			},
+			"required": [
+				"pay-to-group",
+				"pay-to-service",
+				"pay-to-user",
+				"transfer-to-group",
+				"transfer-to-user"
+			],
+			"description": "Map of VK Pay request params"
+		},
+		"VKPayActionType": {
+			"enum": [
+				"pay-to-group",
+				"pay-to-service",
+				"pay-to-user",
+				"transfer-to-group",
+				"transfer-to-user"
+			],
+			"description": "Possible types VK Pay operations"
+		},
+		"VKPayProps": true,
+		"VKUpdateConfigData": {
+			"allOf": [
+				{
+					"$ref": "#/$defs/DefaultUpdateConfigData"
+				},
+				{
+					"type": "object",
+					"properties": {
+						"adaptivity": {
+							"$ref": "#/$defs/AdaptivityType"
+						},
+						"api_host": {
+							"type": "string",
+							"description": "Server API host for direct requests."
+						},
+						"is_layer": {
+							"type": "boolean",
+							"description": "Is app opened in layer"
+						},
+						"viewport_height": {
+							"type": "number",
+							"description": "window.innerHeight of the parent window"
+						},
+						"viewport_width": {
+							"type": "number",
+							"description": "window.innerWidth of the parent window"
+						}
+					},
+					"required": [
+						"api_host",
+						"is_layer",
+						"viewport_height",
+						"viewport_width"
+					]
+				}
+			],
+			"description": "Config response for vk.ru (full web)"
+		},
+		"VKWebAppAccelerometerChangedData": {
+			"type": "object",
+			"properties": {
+				"x": {
+					"type": "string"
+				},
+				"y": {
+					"type": "string"
+				},
+				"z": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"x",
+				"y",
+				"z"
+			]
+		},
+		"VKWebAppAccelerometerStartData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAccelerometerStartProps": {
+			"type": "object",
+			"properties": {
+				"refresh_rate": {
+					"type": "string"
+				}
+			},
+			"required": []
+		},
+		"VKWebAppAccelerometerStopData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAccelerometerStopProps": {
+			"type": "object"
+		},
+		"VKWebAppAddToCommunityData": {
+			"type": "object",
+			"properties": {
+				"group_id": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"group_id"
+			]
+		},
+		"VKWebAppAddToFavoritesData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAddToFavoritesProps": {
+			"type": "object"
+		},
+		"VKWebAppAddToHomeScreenData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAddToHomeScreenInfoData": {
+			"type": "object",
+			"properties": {
+				"is_added_to_home_screen": {
+					"type": "boolean"
+				},
+				"is_feature_supported": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"is_added_to_home_screen",
+				"is_feature_supported"
+			]
+		},
+		"VKWebAppAddToHomeScreenInfoProps": {
+			"type": "object"
+		},
+		"VKWebAppAddToHomeScreenProps": {
+			"type": "object"
+		},
+		"VKWebAppAddToMenuData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAddToMenuProps": {
+			"type": "object"
+		},
+		"VKWebAppAllowMessagesFromGroupData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAllowMessagesFromGroupProps": {
+			"type": "object",
+			"properties": {
+				"group_id": {
+					"type": "number"
+				},
+				"key": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"group_id"
+			]
+		},
+		"VKWebAppAllowNotificationsData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAllowNotificationsProps": {
+			"type": "object"
+		},
+		"VKWebAppAudioPauseData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppAudioPausedData": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"position": {
+					"type": "number"
+				},
+				"type": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"position",
+				"type"
+			]
+		},
+		"VKWebAppAudioPauseProps": {
+			"type": "object"
+		},
+		"VKWebAppAudioStoppedData": {
+			"type": "object"
+		},
+		"VKWebAppAudioTrackChangedData": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		"VKWebAppAudioUnpausedData": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"type"
+			]
+		},
+		"VKWebAppBannerAdClosedByUserResponse": {
+			"type": "object",
+			"properties": {
+				"banner_align": {
+					"$ref": "#/$defs/BannerAdAlign"
+				},
+				"banner_height": {
+					"type": "number"
+				},
+				"banner_location": {
+					"$ref": "#/$defs/BannerAdLocation"
+				},
+				"banner_width": {
+					"type": "number"
+				},
+				"height_type": {
+					"$ref": "#/$defs/BannerAdHeightType"
+				},
+				"layout_type": {
+					"$ref": "#/$defs/BannerAdLayoutType"
+				},
+				"orientation": {
+					"$ref": "#/$defs/BannerAdOrientation"
+				}
+			},
+			"required": [
+				"banner_height",
+				"banner_location",
+				"banner_width",
+				"height_type",
+				"layout_type"
+			]
+		},
+		"VKWebAppBannerAdUpdatedResponse": {
+			"$ref": "#/$defs/VKWebAppShowBannerAdResponse"
+		},
+		"VKWebAppCallAPIMethodData": {
+			"type": "object",
+			"properties": {
+				"response": true
+			},
+			"required": [
+				"response"
+			]
+		},
+		"VKWebAppCallAPIMethodProps": {
+			"type": "object",
+			"properties": {
+				"method": {
+					"type": "string"
+				},
+				"params": {
+					"type": "object",
+					"properties": {
+						"access_token": {
+							"type": "string"
+						},
+						"v": {
+							"type": "string"
+						}
+					},
+					"required": [
+						"access_token",
+						"v"
+					],
+					"additionalProperties": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number"
+							}
+						]
+					}
+				}
+			},
+			"required": [
+				"method",
+				"params"
+			]
+		},
+		"VKWebAppCallGetStatusProps": {
+			"type": "object"
+		},
+		"VKWebAppCallStartProps": {
+			"type": "object"
+		},
+		"VKWebAppCheckAllowedScopesData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/VKWebAppCheckAllowedScopesResponseEntry"
+					}
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppCheckAllowedScopesProps": {
+			"type": "object",
+			"properties": {
+				"scopes": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"scopes"
+			]
+		},
+		"VKWebAppCheckAllowedScopesResponseEntry": {
+			"type": "object",
+			"properties": {
+				"allowed": {
+					"type": "boolean"
+				},
+				"scope": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"allowed",
+				"scope"
+			],
+			"description": "Type for VKWebAppCheckAllowedScopes method results"
+		},
+		"VKWebAppCheckBannerAdProps": {
+			"type": "object"
+		},
+		"VKWebAppCheckBannerAdResponse": {
+			"$ref": "#/$defs/VKWebAppShowBannerAdResponse"
+		},
+		"VKWebAppCheckNativeAdsData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppCheckSurveyData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppCheckSurveyProps": {
+			"type": "object"
+		},
+		"VKWebAppCloseData": {
+			"type": "object",
+			"properties": {
+				"payload": true
+			},
+			"required": [
+				"payload"
+			]
+		},
+		"VKWebAppCloseProps": {
+			"type": "object",
+			"properties": {
+				"payload": true,
+				"status": {
+					"$ref": "#/$defs/AppCloseStatus"
+				}
+			},
+			"required": [
+				"status"
+			]
+		},
+		"VKWebAppCopyTextData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppCopyTextProps": {
+			"type": "object",
+			"properties": {
+				"text": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"text"
+			]
+		},
+		"VKWebAppDenyNotificationsData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppDenyNotificationsProps": {
+			"type": "object"
+		},
+		"VKWebAppDeviceMotionChangedData": {
+			"type": "object",
+			"properties": {
+				"alpha": {
+					"type": "string"
+				},
+				"beta": {
+					"type": "string"
+				},
+				"gamma": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"alpha",
+				"beta",
+				"gamma"
+			]
+		},
+		"VKWebAppDeviceMotionStartData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppDeviceMotionStartProps": {
+			"type": "object"
+		},
+		"VKWebAppDeviceMotionStopData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppDeviceMotionStopProps": {
+			"type": "object"
+		},
+		"VKWebAppDisableSwipeBackData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppDisableSwipeBackProps": {
+			"type": "object"
+		},
+		"VKWebAppDownloadFileData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppDownloadFileProps": {
+			"type": "object",
+			"properties": {
+				"filename": {
+					"type": "string"
+				},
+				"url": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"filename",
+				"url"
+			]
+		},
+		"VKWebAppEnableSwipeBackData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppEnableSwipeBackProps": {
+			"type": "object"
+		},
+		"VKWebAppFlashGetInfoData": {
+			"type": "object",
+			"properties": {
+				"is_available": {
+					"type": "boolean"
+				},
+				"level": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"is_available",
+				"level"
+			]
+		},
+		"VKWebAppFlashGetInfoProps": {
+			"type": "object"
+		},
+		"VKWebAppFlashSetLevelData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppFlashSetLevelProps": {
+			"type": "object",
+			"properties": {
+				"level": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"level"
+			]
+		},
+		"VKWebAppGetAuthTokenProps": {
+			"type": "object",
+			"properties": {
+				"app_id": {
+					"type": "number"
+				},
+				"scope": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"app_id",
+				"scope"
+			]
+		},
+		"VKWebAppGetAuthTokenResponse": {
+			"type": "object",
+			"properties": {
+				"access_token": {
+					"type": "string"
+				},
+				"expires": {
+					"type": "number"
+				},
+				"scope": {
+					"type": "string"
+				},
+				"status": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"access_token",
+				"scope"
+			]
+		},
+		"VKWebAppGetClientVersionData": {
+			"type": "object",
+			"properties": {
+				"platform": {
+					"type": "string"
+				},
+				"version": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"platform",
+				"version"
+			]
+		},
+		"VKWebAppGetClientVersionProps": {
+			"type": "object"
+		},
+		"VKWebAppGetCommunityTokenData": {
+			"type": "object",
+			"properties": {
+				"access_token": {
+					"type": "string"
+				},
+				"scope": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"access_token",
+				"scope"
+			]
+		},
+		"VKWebAppGetConfigProps": {
+			"type": "object"
+		},
+		"VKWebAppGetEmailData": {
+			"type": "object",
+			"properties": {
+				"email": {
+					"type": "string"
+				},
+				"sign": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"email",
+				"sign"
+			]
+		},
+		"VKWebAppGetEmailProps": {
+			"type": "object"
+		},
+		"VKWebAppGetFriendsData": {
+			"type": "object",
+			"properties": {
+				"users": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/UserGetFriendsFriend"
+					}
+				}
+			},
+			"required": [
+				"users"
+			]
+		},
+		"VKWebAppGetFriendsProps": {
+			"type": "object",
+			"properties": {
+				"multi": {
+					"type": "boolean"
+				}
+			},
+			"required": []
+		},
+		"VKWebAppGetGeodataData": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"available": {
+							"const": 0
+						}
+					},
+					"required": [
+						"available"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"accuracy": {
+							"type": "number"
+						},
+						"available": {
+							"const": 1
+						},
+						"lat": {
+							"type": "number"
+						},
+						"long": {
+							"type": "number"
+						}
+					},
+					"required": [
+						"accuracy",
+						"available",
+						"lat",
+						"long"
+					]
+				}
+			]
+		},
+		"VKWebAppGetGeodataProps": {
+			"type": "object"
+		},
+		"VKWebAppGetGrantedPermissionsProps": {
+			"type": "object"
+		},
+		"VKWebAppGetGroupInfoProps": {
+			"type": "object",
+			"properties": {
+				"group_id": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"group_id"
+			]
+		},
+		"VKWebAppGetLaunchParamsProps": {
+			"type": "object"
+		},
+		"VKWebAppGetPersonalCardProps": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/PersonalCardType"
+					}
+				}
+			},
+			"required": [
+				"type"
+			]
+		},
+		"VKWebAppGetPhoneNumberData": {
+			"type": "object",
+			"properties": {
+				"is_verified": {
+					"type": "boolean"
+				},
+				"phone_number": {
+					"type": "string"
+				},
+				"sign": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"is_verified",
+				"phone_number",
+				"sign"
+			]
+		},
+		"VKWebAppGetPhoneNumberProps": {
+			"type": "object"
+		},
+		"VKWebAppGetUserInfoProps": {
+			"type": "object",
+			"properties": {
+				"user_id": {
+					"type": "number"
+				},
+				"user_ids": {
+					"type": "string"
+				}
+			},
+			"required": []
+		},
+		"VKWebAppGyroscopeChangedData": {
+			"type": "object",
+			"properties": {
+				"x": {
+					"type": "string"
+				},
+				"y": {
+					"type": "string"
+				},
+				"z": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"x",
+				"y",
+				"z"
+			]
+		},
+		"VKWebAppGyroscopeStartData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppGyroscopeStartProps": {
+			"type": "object"
+		},
+		"VKWebAppGyroscopeStopData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppGyroscopeStopProps": {
+			"type": "object"
+		},
+		"VKWebAppHideBannerAdProps": {
+			"type": "object"
+		},
+		"VKWebAppHideBannerAdResponse": {
+			"$ref": "#/$defs/VKWebAppShowBannerAdResponse"
+		},
+		"VKWebAppInitAdsData": {
+			"type": "object",
+			"properties": {
+				"init": {
+					"enum": [
+						"false",
+						"true"
+					]
+				}
+			},
+			"required": [
+				"init"
+			]
+		},
+		"VKWebAppInitData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppInitProps": {
+			"type": "object"
+		},
+		"VKWebAppJoinGroupData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppJoinGroupProps": {
+			"type": "object",
+			"properties": {
+				"group_id": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"group_id"
+			]
+		},
+		"VKWebAppLeaveGroupData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppLeaveGroupProps": {
+			"type": "object",
+			"properties": {
+				"group_id": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"group_id"
+			]
+		},
+		"VKWebAppLibverifyCheckProps": {
+			"type": "object",
+			"properties": {
+				"code": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"code"
+			]
+		},
+		"VKWebAppLibverifyOnConfirmedData": {
+			"type": "object",
+			"properties": {
+				"validate_session": {
+					"type": "string"
+				},
+				"validate_token": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"validate_session",
+				"validate_token"
+			]
+		},
+		"VKWebAppLibverifyOnFailedCode": {
+			"enum": [
+				"GENERAL_ERROR",
+				"INCORRECT_PHONE_NUMBER",
+				"INCORRECT_SMS_CODE",
+				"NETWORK_ERROR",
+				"NO_NETWORK",
+				"RATELIMIT",
+				"UNSUPPORTED_NUMBER"
+			]
+		},
+		"VKWebAppLibverifyOnFailedData": {
+			"type": "object",
+			"properties": {
+				"code": {
+					"$ref": "#/$defs/VKWebAppLibverifyOnFailedCode"
+				}
+			},
+			"required": [
+				"code"
+			]
+		},
+		"VKWebAppLibverifyRequestProps": {
+			"type": "object",
+			"properties": {
+				"phone": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"phone"
+			]
+		},
+		"VKWebAppLoadAdsData": {
+			"type": "object",
+			"properties": {
+				"load": {
+					"enum": [
+						"false",
+						"true"
+					]
+				}
+			},
+			"required": [
+				"load"
+			]
+		},
+		"VKWebAppLocationChangedData": {
+			"type": "object",
+			"properties": {
+				"location": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"location"
+			]
+		},
+		"VKWebAppOpenAppData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppOpenCodeReaderProps": {
+			"type": "object"
+		},
+		"VKWebAppOpenContactsProps": {
+			"type": "object"
+		},
+		"VKWebAppOpenPayFormData": {
+			"anyOf": [
+				{
+					"$ref": "#/$defs/TransactionResult"
+				},
+				{
+					"type": "object",
+					"properties": {
+						"result": {
+							"$ref": "#/$defs/TransactionResult"
+						}
+					},
+					"required": [
+						"result"
+					]
+				}
+			]
+		},
+		"VKWebAppOpenPayFormProps": {
+			"type": "object",
+			"properties": {
+				"action": {
+					"enum": [
+						"pay-to-group",
+						"pay-to-service",
+						"pay-to-user",
+						"transfer-to-group",
+						"transfer-to-user"
+					]
+				},
+				"app_id": {
+					"type": "number"
+				},
+				"params": {
+					"anyOf": [
+						{
+							"type": "object",
+							"properties": {
+								"amount": {
+									"type": "number",
+									"description": "The amount of payment in rubles. The minimum value is 1"
+								},
+								"description": {
+									"type": "string",
+									"description": "Payment description"
+								},
+								"user_id": {
+									"type": "number",
+									"description": "User ID"
+								}
+							},
+							"required": [
+								"user_id"
+							]
+						},
+						{
+							"type": "object",
+							"properties": {
+								"amount": {
+									"type": "number",
+									"description": "The amount of payment in rubles. The minimum value is 1"
+								},
+								"data": {
+									"type": "string",
+									"description": "Dictionary with arbitrary parameters"
+								},
+								"description": {
+									"type": "string",
+									"description": "Payment description"
+								},
+								"group_id": {
+									"type": "number",
+									"description": "Community ID"
+								}
+							},
+							"required": [
+								"amount",
+								"group_id"
+							]
+						},
+						{
+							"type": "object",
+							"properties": {
+								"user_id": {
+									"type": "number"
+								}
+							},
+							"required": [
+								"user_id"
+							]
+						},
+						{
+							"type": "object",
+							"properties": {
+								"group_id": {
+									"type": "number"
+								}
+							},
+							"required": [
+								"group_id"
+							]
+						},
+						{
+							"type": "object",
+							"properties": {
+								"amount": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "number"
+										}
+									],
+									"description": "Amount of payment. The minimum value is 1. The amount field is\ninvolved in the formation of merchant_data for the signature of\nthe seller."
+								},
+								"data": {
+									"type": "object",
+									"properties": {
+										"cashback": {
+											"type": "object",
+											"properties": {
+												"amount": {
+													"type": "number",
+													"description": "Cashback size"
+												},
+												"amount_percent": {
+													"type": "number",
+													"description": "Percentage cashback size"
+												},
+												"pay_time": {
+													"type": "number",
+													"description": "Cashback timestamp"
+												}
+											},
+											"required": [
+												"pay_time"
+											],
+											"description": "Cashback data"
+										},
+										"currency": {
+											"const": "RUB",
+											"description": "Currency. Only RUB is currently supported"
+										},
+										"merchant_data": {
+											"type": "string",
+											"description": "Base64-string of data for the signature of the seller"
+										},
+										"merchant_sign": {
+											"type": "string",
+											"description": "SHA-1 seller sign"
+										},
+										"order_id": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "number"
+												}
+											],
+											"description": "Sales order id"
+										},
+										"ts": {
+											"type": "number",
+											"description": "Timestamp"
+										}
+									},
+									"required": [
+										"currency",
+										"merchant_data",
+										"merchant_sign",
+										"order_id",
+										"ts"
+									],
+									"description": "Service data"
+								},
+								"description": {
+									"type": "string",
+									"description": "Description of the payment for user. The text will be shown in\npayment dialog"
+								},
+								"merchant_id": {
+									"type": "number",
+									"description": "Merchant ID. This is your ID in the payment system, obtained after\nthe conclusion of the contract along with the seller’s private key"
+								},
+								"sign": {
+									"type": "string",
+									"description": "The signature of the VK app that caused the payment"
+								},
+								"version": {
+									"type": "number",
+									"description": "Version of the payment form"
+								}
+							},
+							"required": [
+								"amount",
+								"data",
+								"description",
+								"merchant_id",
+								"sign",
+								"version"
+							]
+						}
+					]
+				}
+			},
+			"required": [
+				"action",
+				"app_id",
+				"params"
+			]
+		},
+		"VKWebAppOpenQRProps": {
+			"type": "object"
+		},
+		"VKWebAppOpenWallPostData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppOpenWallPostProps": {
+			"type": "object",
+			"properties": {
+				"owner_id": {
+					"type": "number"
+				},
+				"post_id": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"owner_id",
+				"post_id"
+			]
+		},
+		"VKWebAppRecommendData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppRecommendProps": {
+			"type": "object"
+		},
+		"VKWebAppResizeWindowData": {
+			"type": "object",
+			"properties": {
+				"height": {
+					"type": "number"
+				},
+				"width": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"height",
+				"width"
+			]
+		},
+		"VKWebAppResizeWindowProps": {
+			"type": "object",
+			"properties": {
+				"height": {
+					"type": "number"
+				},
+				"width": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"width"
+			]
+		},
+		"VKWebAppRetargetingPixelData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppScrollData": {
+			"type": "object",
+			"properties": {
+				"height": {
+					"type": "number"
+				},
+				"top": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"height",
+				"top"
+			]
+		},
+		"VKWebAppScrollProps": {
+			"type": "object",
+			"properties": {
+				"speed": {
+					"type": "number"
+				},
+				"top": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"top"
+			]
+		},
+		"VKWebAppScrollTopProps": {
+			"type": "object"
+		},
+		"VKWebAppScrollTopStartData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppScrollTopStartProps": {
+			"type": "object"
+		},
+		"VKWebAppScrollTopStopData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppScrollTopStopProps": {
+			"type": "object"
+		},
+		"VKWebAppSendPayloadData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppSendPayloadProps": {
+			"type": "object",
+			"properties": {
+				"group_id": {
+					"type": "number"
+				},
+				"payload": true
+			},
+			"required": [
+				"group_id",
+				"payload"
+			]
+		},
+		"VKWebAppSendToClientData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppSendToClientProps": {
+			"type": "object",
+			"properties": {
+				"fragment": {
+					"type": "string"
+				}
+			},
+			"required": []
+		},
+		"VKWebAppSetLocationData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppSetLocationProps": {
+			"type": "object",
+			"properties": {
+				"location": {
+					"type": "string"
+				},
+				"replace_state": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"location"
+			]
+		},
+		"VKWebAppSetSwipeSettingsData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppSetSwipeSettingsProps": {
+			"type": "object",
+			"properties": {
+				"history": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"history"
+			]
+		},
+		"VKWebAppSetViewSettingsData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppSetViewSettingsProps": {
+			"type": "object",
+			"properties": {
+				"action_bar_color": {
+					"type": "string",
+					"description": "Android only"
+				},
+				"navigation_bar_color": {
+					"type": "string",
+					"description": "Android only"
+				},
+				"status_bar_style": {
+					"$ref": "#/$defs/AppearanceType"
+				}
+			},
+			"required": [
+				"status_bar_style"
+			]
+		},
+		"VKWebAppShareData": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/LinkShareResult"
+			}
+		},
+		"VKWebAppShareProps": {
+			"type": "object",
+			"properties": {
+				"link": {
+					"type": "string"
+				}
+			},
+			"required": []
+		},
+		"VKWebAppShowBannerAdResponse": {
+			"type": "object",
+			"properties": {
+				"banner_align": {
+					"$ref": "#/$defs/BannerAdAlign"
+				},
+				"banner_height": {
+					"type": "number"
+				},
+				"banner_location": {
+					"$ref": "#/$defs/BannerAdLocation"
+				},
+				"banner_width": {
+					"type": "number"
+				},
+				"height_type": {
+					"$ref": "#/$defs/BannerAdHeightType"
+				},
+				"layout_type": {
+					"$ref": "#/$defs/BannerAdLayoutType"
+				},
+				"orientation": {
+					"$ref": "#/$defs/BannerAdOrientation"
+				},
+				"result": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"banner_height",
+				"banner_location",
+				"banner_width",
+				"height_type",
+				"layout_type",
+				"result"
+			]
+		},
+		"VKWebAppShowCommunityWidgetPreviewBoxData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppShowImagesData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppShowImagesProps": {
+			"type": "object",
+			"properties": {
+				"images": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"start_index": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"images"
+			]
+		},
+		"VKWebAppShowInviteBoxData": {
+			"type": "object",
+			"properties": {
+				"success": {
+					"const": true
+				}
+			},
+			"required": [
+				"success"
+			]
+		},
+		"VKWebAppShowInviteBoxProps": {
+			"type": "object"
+		},
+		"VKWebAppShowLeaderBoardBoxData": {
+			"type": "object",
+			"properties": {
+				"success": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"success"
+			]
+		},
+		"VKWebAppShowLeaderBoardBoxProps": {
+			"type": "object",
+			"properties": {
+				"user_result": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"user_result"
+			]
+		},
+		"VKWebAppShowMessageBoxData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppShowNativeAdsData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppShowOrderBoxResponse": {
+			"type": "object",
+			"properties": {
+				"order_id": {
+					"type": "string"
+				},
+				"status": {
+					"$ref": "#/$defs/OrderBoxShowingStatus"
+				}
+			},
+			"required": [
+				"order_id",
+				"status"
+			]
+		},
+		"VKWebAppShowStoryBoxData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppShowSurveyData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppShowSurveyProps": {
+			"type": "object"
+		},
+		"VKWebAppShowWallPostBoxData": {
+			"type": "object",
+			"properties": {
+				"post_id": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "number"
+						}
+					]
+				}
+			},
+			"required": [
+				"post_id"
+			]
+		},
+		"VKWebAppStorageGetData": {
+			"type": "object",
+			"properties": {
+				"keys": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"key": {
+								"type": "string"
+							},
+							"value": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"key",
+							"value"
+						]
+					}
+				}
+			},
+			"required": [
+				"keys"
+			]
+		},
+		"VKWebAppStorageGetKeysData": {
+			"type": "object",
+			"properties": {
+				"keys": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			},
+			"required": [
+				"keys"
+			]
+		},
+		"VKWebAppStorageGetKeysProps": {
+			"type": "object",
+			"properties": {
+				"count": {
+					"type": "number"
+				},
+				"offset": {
+					"type": "number"
+				}
+			},
+			"required": [
+				"count",
+				"offset"
+			]
+		},
+		"VKWebAppStorageGetProps": {
+			"type": "object",
+			"properties": {
+				"keys": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			},
+			"required": [
+				"keys"
+			]
+		},
+		"VKWebAppStorageSetData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppStorageSetProps": {
+			"type": "object",
+			"properties": {
+				"key": {
+					"type": "string"
+				},
+				"value": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"key",
+				"value"
+			]
+		},
+		"VKWebAppSubscribeStoryAppData": {
+			"type": "object",
+			"properties": {
+				"access_key": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"access_key"
+			]
+		},
+		"VKWebAppTapticImpactOccurredData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppTapticImpactOccurredProps": {
+			"type": "object",
+			"properties": {
+				"style": {
+					"$ref": "#/$defs/TapticVibrationPowerType"
+				}
+			},
+			"required": [
+				"style"
+			]
+		},
+		"VKWebAppTapticNotificationOccurredData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppTapticNotificationOccurredProps": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"$ref": "#/$defs/TapticNotificationType"
+				}
+			},
+			"required": [
+				"type"
+			]
+		},
+		"VKWebAppTapticSelectionChangedData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppTapticSelectionChangedProps": {
+			"type": "object"
+		},
+		"VKWebAppTrackEventData": {
+			"type": "object",
+			"properties": {
+				"result": {
+					"const": true
+				}
+			},
+			"required": [
+				"result"
+			]
+		},
+		"VKWebAppUpdateInsetsData": {
+			"type": "object",
+			"properties": {
+				"insets": {
+					"$ref": "#/$defs/Insets"
+				}
+			},
+			"required": [
+				"insets"
+			]
+		},
+		"VKWebAppViewHideData": {
+			"type": "object"
+		},
+		"VKWebAppViewRestoreData": {
+			"type": "object"
+		},
+		"WallPostRequestOptions": {
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"attachments": {
+							"type": "string"
+						},
+						"close_comments": {
+							"type": "boolean",
+							"description": "`true` - post comments will be closed\n`false` - permission to leave post comments will be up to user's settings (default)"
+						},
+						"copyright": {
+							"type": "string",
+							"description": "Source of the post. Internal and external links supported"
+						},
+						"friends_only": {
+							"type": "boolean",
+							"description": "`true` - post will be available to friends only\n`false` - post will be available to all users (default)"
+						},
+						"lat": {
+							"type": "number",
+							"description": "Latitude, specified in degrees (from -90 to 90)"
+						},
+						"long": {
+							"type": "number",
+							"description": "Longitude, specified in degrees (from -180 to 180)"
+						},
+						"message": {
+							"type": "string"
+						},
+						"owner_id": {
+							"type": "number",
+							"description": "ID of the user or community on whose wall the post is to be\npublished"
+						},
+						"place_id": {
+							"type": "number",
+							"description": "The place ID where the user is marked"
+						},
+						"publish_date": {
+							"type": "number",
+							"description": "Publication date (in Unix time). If used, posting will be delayed until the set time"
+						},
+						"services": {
+							"type": "string",
+							"description": "List of services or websites the update will be exported to, if the user has so requested.\nSample values: 'twitter', 'facebook'"
+						},
+						"signed": {
+							"type": "boolean",
+							"description": "`true` - the post posted on behalf of the community will have a\nsignature added (the name of the user who posted the post)\n`false` - the signature will not be added. The parameter is taken\ninto account only when publishing on the community wall and\nspecifying the from_group parameter. By default, the signature is\nnot added"
+						},
+						"upload_attachments": {
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/PostAttachmentLink"
+							}
+						}
+					},
+					"required": [
+						"attachments"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"attachments": {
+							"type": "string"
+						},
+						"close_comments": {
+							"type": "boolean",
+							"description": "`true` - post comments will be closed\n`false` - permission to leave post comments will be up to user's settings (default)"
+						},
+						"copyright": {
+							"type": "string",
+							"description": "Source of the post. Internal and external links supported"
+						},
+						"friends_only": {
+							"type": "boolean",
+							"description": "`true` - post will be available to friends only\n`false` - post will be available to all users (default)"
+						},
+						"lat": {
+							"type": "number",
+							"description": "Latitude, specified in degrees (from -90 to 90)"
+						},
+						"long": {
+							"type": "number",
+							"description": "Longitude, specified in degrees (from -180 to 180)"
+						},
+						"message": {
+							"type": "string"
+						},
+						"owner_id": {
+							"type": "number",
+							"description": "ID of the user or community on whose wall the post is to be\npublished"
+						},
+						"place_id": {
+							"type": "number",
+							"description": "The place ID where the user is marked"
+						},
+						"publish_date": {
+							"type": "number",
+							"description": "Publication date (in Unix time). If used, posting will be delayed until the set time"
+						},
+						"services": {
+							"type": "string",
+							"description": "List of services or websites the update will be exported to, if the user has so requested.\nSample values: 'twitter', 'facebook'"
+						},
+						"signed": {
+							"type": "boolean",
+							"description": "`true` - the post posted on behalf of the community will have a\nsignature added (the name of the user who posted the post)\n`false` - the signature will not be added. The parameter is taken\ninto account only when publishing on the community wall and\nspecifying the from_group parameter. By default, the signature is\nnot added"
+						},
+						"upload_attachments": {
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/PostAttachmentLink"
+							}
+						}
+					},
+					"required": [
+						"message"
+					]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"attachments": {
+							"type": "string"
+						},
+						"close_comments": {
+							"type": "boolean",
+							"description": "`true` - post comments will be closed\n`false` - permission to leave post comments will be up to user's settings (default)"
+						},
+						"copyright": {
+							"type": "string",
+							"description": "Source of the post. Internal and external links supported"
+						},
+						"friends_only": {
+							"type": "boolean",
+							"description": "`true` - post will be available to friends only\n`false` - post will be available to all users (default)"
+						},
+						"lat": {
+							"type": "number",
+							"description": "Latitude, specified in degrees (from -90 to 90)"
+						},
+						"long": {
+							"type": "number",
+							"description": "Longitude, specified in degrees (from -180 to 180)"
+						},
+						"message": {
+							"type": "string"
+						},
+						"owner_id": {
+							"type": "number",
+							"description": "ID of the user or community on whose wall the post is to be\npublished"
+						},
+						"place_id": {
+							"type": "number",
+							"description": "The place ID where the user is marked"
+						},
+						"publish_date": {
+							"type": "number",
+							"description": "Publication date (in Unix time). If used, posting will be delayed until the set time"
+						},
+						"services": {
+							"type": "string",
+							"description": "List of services or websites the update will be exported to, if the user has so requested.\nSample values: 'twitter', 'facebook'"
+						},
+						"signed": {
+							"type": "boolean",
+							"description": "`true` - the post posted on behalf of the community will have a\nsignature added (the name of the user who posted the post)\n`false` - the signature will not be added. The parameter is taken\ninto account only when publishing on the community wall and\nspecifying the from_group parameter. By default, the signature is\nnot added"
+						},
+						"upload_attachments": {
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/PostAttachmentLink"
+							}
+						}
+					},
+					"required": [
+						"upload_attachments"
+					]
+				}
+			]
+		},
+		"WidgetPreviewRequestOptions": {
+			"type": "object",
+			"properties": {
+				"code": {
+					"type": "string",
+					"description": "Widget code"
+				},
+				"group_id": {
+					"type": "number",
+					"description": "Community ID"
+				},
+				"type": {
+					"$ref": "#/$defs/CommunityWidgetType"
+				}
+			},
+			"required": [
+				"code",
+				"group_id",
+				"type"
+			]
+		}
+	},
+	"x-vkma-catalogue": {
+		"props": {
+			"OKWebAppCallAPIMethod": "OKWebAppCallAPIMethodProps",
+			"SetSupportedHandlers": "SetSupportedHandlersProps",
+			"VKWebAppAccelerometerStart": "VKWebAppAccelerometerStartProps",
+			"VKWebAppAccelerometerStop": "VKWebAppAccelerometerStopProps",
+			"VKWebAppAddToCommunity": "AddToCommunityRequest",
+			"VKWebAppAddToFavorites": "VKWebAppAddToFavoritesProps",
+			"VKWebAppAddToHomeScreen": "VKWebAppAddToHomeScreenProps",
+			"VKWebAppAddToHomeScreenInfo": "VKWebAppAddToHomeScreenInfoProps",
+			"VKWebAppAddToMenu": "VKWebAppAddToMenuProps",
+			"VKWebAppAddToProfile": "AddToProfileRequest",
+			"VKWebAppAllowMessagesFromGroup": "VKWebAppAllowMessagesFromGroupProps",
+			"VKWebAppAllowNotifications": "VKWebAppAllowNotificationsProps",
+			"VKWebAppAudioPause": "VKWebAppAudioPauseProps",
+			"VKWebAppCallAPIMethod": "VKWebAppCallAPIMethodProps",
+			"VKWebAppCallGetStatus": "VKWebAppCallGetStatusProps",
+			"VKWebAppCallJoin": "CallJoinRequest",
+			"VKWebAppCallStart": "VKWebAppCallStartProps",
+			"VKWebAppCheckAllowedScopes": "VKWebAppCheckAllowedScopesProps",
+			"VKWebAppCheckBannerAd": "VKWebAppCheckBannerAdProps",
+			"VKWebAppCheckNativeAds": "CheckNativeAdsRequest",
+			"VKWebAppCheckSurvey": "VKWebAppCheckSurveyProps",
+			"VKWebAppClose": "VKWebAppCloseProps",
+			"VKWebAppConversionHit": "ConversionHitRequest",
+			"VKWebAppCopyText": "VKWebAppCopyTextProps",
+			"VKWebAppCreateHash": "CreateHashRequest",
+			"VKWebAppDenyNotifications": "VKWebAppDenyNotificationsProps",
+			"VKWebAppDeviceMotionStart": "VKWebAppDeviceMotionStartProps",
+			"VKWebAppDeviceMotionStop": "VKWebAppDeviceMotionStopProps",
+			"VKWebAppDisableSwipeBack": "VKWebAppDisableSwipeBackProps",
+			"VKWebAppDownloadFile": "VKWebAppDownloadFileProps",
+			"VKWebAppEnableSwipeBack": "VKWebAppEnableSwipeBackProps",
+			"VKWebAppFlashGetInfo": "VKWebAppFlashGetInfoProps",
+			"VKWebAppFlashSetLevel": "VKWebAppFlashSetLevelProps",
+			"VKWebAppGetAuthToken": "VKWebAppGetAuthTokenProps",
+			"VKWebAppGetClientVersion": "VKWebAppGetClientVersionProps",
+			"VKWebAppGetCommunityToken": "CommunityTokenRequestOptions",
+			"VKWebAppGetConfig": "VKWebAppGetConfigProps",
+			"VKWebAppGetEmail": "VKWebAppGetEmailProps",
+			"VKWebAppGetFriends": "VKWebAppGetFriendsProps",
+			"VKWebAppGetGeodata": "VKWebAppGetGeodataProps",
+			"VKWebAppGetGrantedPermissions": "VKWebAppGetGrantedPermissionsProps",
+			"VKWebAppGetGroupInfo": "VKWebAppGetGroupInfoProps",
+			"VKWebAppGetLaunchParams": "VKWebAppGetLaunchParamsProps",
+			"VKWebAppGetPersonalCard": "VKWebAppGetPersonalCardProps",
+			"VKWebAppGetPhoneNumber": "VKWebAppGetPhoneNumberProps",
+			"VKWebAppGetUserInfo": "VKWebAppGetUserInfoProps",
+			"VKWebAppGyroscopeStart": "VKWebAppGyroscopeStartProps",
+			"VKWebAppGyroscopeStop": "VKWebAppGyroscopeStopProps",
+			"VKWebAppHideBannerAd": "VKWebAppHideBannerAdProps",
+			"VKWebAppInit": "VKWebAppInitProps",
+			"VKWebAppJoinGroup": "VKWebAppJoinGroupProps",
+			"VKWebAppLeaveGroup": "VKWebAppLeaveGroupProps",
+			"VKWebAppLibverifyCheck": "VKWebAppLibverifyCheckProps",
+			"VKWebAppLibverifyRequest": "VKWebAppLibverifyRequestProps",
+			"VKWebAppOpenApp": "OpenAppOptions",
+			"VKWebAppOpenCodeReader": "VKWebAppOpenCodeReaderProps",
+			"VKWebAppOpenContacts": "VKWebAppOpenContactsProps",
+			"VKWebAppOpenPayForm": "VKWebAppOpenPayFormProps",
+			"VKWebAppOpenQR": "VKWebAppOpenQRProps",
+			"VKWebAppOpenWallPost": "VKWebAppOpenWallPostProps",
+			"VKWebAppRecommend": "VKWebAppRecommendProps",
+			"VKWebAppResizeWindow": "VKWebAppResizeWindowProps",
+			"VKWebAppRetargetingPixel": "RetargetingPixelOptions",
+			"VKWebAppScroll": "VKWebAppScrollProps",
+			"VKWebAppScrollTop": "VKWebAppScrollTopProps",
+			"VKWebAppScrollTopStart": "VKWebAppScrollTopStartProps",
+			"VKWebAppScrollTopStop": "VKWebAppScrollTopStopProps",
+			"VKWebAppSendPayload": "VKWebAppSendPayloadProps",
+			"VKWebAppSendToClient": "VKWebAppSendToClientProps",
+			"VKWebAppSetLocation": "VKWebAppSetLocationProps",
+			"VKWebAppSetSwipeSettings": "VKWebAppSetSwipeSettingsProps",
+			"VKWebAppSetViewSettings": "VKWebAppSetViewSettingsProps",
+			"VKWebAppShare": "VKWebAppShareProps",
+			"VKWebAppShowBannerAd": "ShowBannerAdRequest",
+			"VKWebAppShowCommunityWidgetPreviewBox": "WidgetPreviewRequestOptions",
+			"VKWebAppShowImages": "VKWebAppShowImagesProps",
+			"VKWebAppShowInviteBox": "VKWebAppShowInviteBoxProps",
+			"VKWebAppShowLeaderBoardBox": "VKWebAppShowLeaderBoardBoxProps",
+			"VKWebAppShowMessageBox": "MessageRequestOptions",
+			"VKWebAppShowNativeAds": "ShowNativeAdsRequest",
+			"VKWebAppShowOrderBox": "OrderRequestOptions",
+			"VKWebAppShowRequestBox": "RequestForRequestOptions",
+			"VKWebAppShowSlidesSheet": "ShowSlidesSheetRequest",
+			"VKWebAppShowStoryBox": "ShowStoryBoxOptions",
+			"VKWebAppShowSubscriptionBox": "ShowSubscriptionBoxRequest",
+			"VKWebAppShowSurvey": "VKWebAppShowSurveyProps",
+			"VKWebAppShowWallPostBox": "WallPostRequestOptions",
+			"VKWebAppStorageGet": "VKWebAppStorageGetProps",
+			"VKWebAppStorageGetKeys": "VKWebAppStorageGetKeysProps",
+			"VKWebAppStorageSet": "VKWebAppStorageSetProps",
+			"VKWebAppSubscribeStoryApp": "SubscribeStoryAppOptions",
+			"VKWebAppTapticImpactOccurred": "VKWebAppTapticImpactOccurredProps",
+			"VKWebAppTapticNotificationOccurred": "VKWebAppTapticNotificationOccurredProps",
+			"VKWebAppTapticSelectionChanged": "VKWebAppTapticSelectionChangedProps",
+			"VKWebAppTrackEvent": "TrackEventRequest",
+			"VKWebAppTranslate": "TranslateRequest"
+		},
+		"receive": {
+			"OKWebAppCallAPIMethod": "OKWebAppCallAPIMethodData",
+			"SetSupportedHandlers": "SetSupportedHandlersData",
+			"VKWebAppAccelerometerChanged": "VKWebAppAccelerometerChangedData",
+			"VKWebAppAccelerometerStart": "VKWebAppAccelerometerStartData",
+			"VKWebAppAccelerometerStop": "VKWebAppAccelerometerStopData",
+			"VKWebAppAddToCommunity": "VKWebAppAddToCommunityData",
+			"VKWebAppAddToFavorites": "VKWebAppAddToFavoritesData",
+			"VKWebAppAddToHomeScreen": "VKWebAppAddToHomeScreenData",
+			"VKWebAppAddToHomeScreenInfo": "VKWebAppAddToHomeScreenInfoData",
+			"VKWebAppAddToMenu": "VKWebAppAddToMenuData",
+			"VKWebAppAddToProfile": "AddToProfileResponse",
+			"VKWebAppAllowMessagesFromGroup": "VKWebAppAllowMessagesFromGroupData",
+			"VKWebAppAllowNotifications": "VKWebAppAllowNotificationsData",
+			"VKWebAppAudioPause": "VKWebAppAudioPauseData",
+			"VKWebAppAudioPaused": "VKWebAppAudioPausedData",
+			"VKWebAppAudioStopped": "VKWebAppAudioStoppedData",
+			"VKWebAppAudioTrackChanged": "VKWebAppAudioTrackChangedData",
+			"VKWebAppAudioUnpaused": "VKWebAppAudioUnpausedData",
+			"VKWebAppBannerAdClosedByUser": "VKWebAppBannerAdClosedByUserResponse",
+			"VKWebAppBannerAdUpdated": "VKWebAppBannerAdUpdatedResponse",
+			"VKWebAppCallAPIMethod": "VKWebAppCallAPIMethodData",
+			"VKWebAppCallFinished": "CallFinishedResponse",
+			"VKWebAppCallGetStatus": "CallGetStatusResponse",
+			"VKWebAppCallJoin": "CallJoinResponse",
+			"VKWebAppCallLeft": "CallLeftResponse",
+			"VKWebAppCallStart": "CallStartResponse",
+			"VKWebAppChangeFragment": "ChangeFragmentResponse",
+			"VKWebAppCheckAllowedScopes": "VKWebAppCheckAllowedScopesData",
+			"VKWebAppCheckBannerAd": "VKWebAppCheckBannerAdResponse",
+			"VKWebAppCheckNativeAds": "VKWebAppCheckNativeAdsData",
+			"VKWebAppCheckSurvey": "VKWebAppCheckSurveyData",
+			"VKWebAppClose": "VKWebAppCloseData",
+			"VKWebAppConversionHit": "ConversionHitResponse",
+			"VKWebAppCopyText": "VKWebAppCopyTextData",
+			"VKWebAppCreateHash": "CreateHashResponse",
+			"VKWebAppDenyNotifications": "VKWebAppDenyNotificationsData",
+			"VKWebAppDeviceMotionChanged": "VKWebAppDeviceMotionChangedData",
+			"VKWebAppDeviceMotionStart": "VKWebAppDeviceMotionStartData",
+			"VKWebAppDeviceMotionStop": "VKWebAppDeviceMotionStopData",
+			"VKWebAppDisableSwipeBack": "VKWebAppDisableSwipeBackData",
+			"VKWebAppDownloadFile": "VKWebAppDownloadFileData",
+			"VKWebAppEnableSwipeBack": "VKWebAppEnableSwipeBackData",
+			"VKWebAppFlashGetInfo": "VKWebAppFlashGetInfoData",
+			"VKWebAppFlashSetLevel": "VKWebAppFlashSetLevelData",
+			"VKWebAppGetAuthToken": "VKWebAppGetAuthTokenResponse",
+			"VKWebAppGetClientVersion": "VKWebAppGetClientVersionData",
+			"VKWebAppGetCommunityToken": "VKWebAppGetCommunityTokenData",
+			"VKWebAppGetConfig": "ParentConfigData",
+			"VKWebAppGetEmail": "VKWebAppGetEmailData",
+			"VKWebAppGetFriends": "VKWebAppGetFriendsData",
+			"VKWebAppGetGeodata": "VKWebAppGetGeodataData",
+			"VKWebAppGetGrantedPermissions": "GetGrantedPermissionsResponse",
+			"VKWebAppGetGroupInfo": "GroupInfo",
+			"VKWebAppGetLaunchParams": "GetLaunchParamsResponse",
+			"VKWebAppGetPersonalCard": "PersonalCardData",
+			"VKWebAppGetPhoneNumber": "VKWebAppGetPhoneNumberData",
+			"VKWebAppGetUserInfo": "UserInfo",
+			"VKWebAppGyroscopeChanged": "VKWebAppGyroscopeChangedData",
+			"VKWebAppGyroscopeStart": "VKWebAppGyroscopeStartData",
+			"VKWebAppGyroscopeStop": "VKWebAppGyroscopeStopData",
+			"VKWebAppHideBannerAd": "VKWebAppHideBannerAdResponse",
+			"VKWebAppInit": "VKWebAppInitData",
+			"VKWebAppInitAds": "VKWebAppInitAdsData",
+			"VKWebAppJoinGroup": "VKWebAppJoinGroupData",
+			"VKWebAppLeaveGroup": "VKWebAppLeaveGroupData",
+			"VKWebAppLibverifyOnConfirmed": "VKWebAppLibverifyOnConfirmedData",
+			"VKWebAppLibverifyOnFailed": "VKWebAppLibverifyOnFailedData",
+			"VKWebAppLoadAds": "VKWebAppLoadAdsData",
+			"VKWebAppLocationChanged": "VKWebAppLocationChangedData",
+			"VKWebAppOpenApp": "VKWebAppOpenAppData",
+			"VKWebAppOpenCodeReader": "CodeReaderOutput",
+			"VKWebAppOpenContacts": "SelectedContact",
+			"VKWebAppOpenPayForm": "VKWebAppOpenPayFormData",
+			"VKWebAppOpenQR": "CodeReaderOutput",
+			"VKWebAppOpenWallPost": "VKWebAppOpenWallPostData",
+			"VKWebAppRecommend": "VKWebAppRecommendData",
+			"VKWebAppResizeWindow": "VKWebAppResizeWindowData",
+			"VKWebAppRetargetingPixel": "VKWebAppRetargetingPixelData",
+			"VKWebAppScroll": "VKWebAppScrollData",
+			"VKWebAppScrollTop": "ScrollTopResponse",
+			"VKWebAppScrollTopStart": "VKWebAppScrollTopStartData",
+			"VKWebAppScrollTopStop": "VKWebAppScrollTopStopData",
+			"VKWebAppSendPayload": "VKWebAppSendPayloadData",
+			"VKWebAppSendToClient": "VKWebAppSendToClientData",
+			"VKWebAppSetLocation": "VKWebAppSetLocationData",
+			"VKWebAppSetSwipeSettings": "VKWebAppSetSwipeSettingsData",
+			"VKWebAppSetViewSettings": "VKWebAppSetViewSettingsData",
+			"VKWebAppShare": "VKWebAppShareData",
+			"VKWebAppShowBannerAd": "VKWebAppShowBannerAdResponse",
+			"VKWebAppShowCommunityWidgetPreviewBox": "VKWebAppShowCommunityWidgetPreviewBoxData",
+			"VKWebAppShowImages": "VKWebAppShowImagesData",
+			"VKWebAppShowInviteBox": "VKWebAppShowInviteBoxData",
+			"VKWebAppShowLeaderBoardBox": "VKWebAppShowLeaderBoardBoxData",
+			"VKWebAppShowMessageBox": "VKWebAppShowMessageBoxData",
+			"VKWebAppShowNativeAds": "VKWebAppShowNativeAdsData",
+			"VKWebAppShowOrderBox": "VKWebAppShowOrderBoxResponse",
+			"VKWebAppShowRequestBox": "RequestResult",
+			"VKWebAppShowSlidesSheet": "ShowSlidesSheetResponse",
+			"VKWebAppShowStoryBox": "VKWebAppShowStoryBoxData",
+			"VKWebAppShowSubscriptionBox": "ShowSubscriptionBoxResponse",
+			"VKWebAppShowSurvey": "VKWebAppShowSurveyData",
+			"VKWebAppShowWallPostBox": "VKWebAppShowWallPostBoxData",
+			"VKWebAppStorageGet": "VKWebAppStorageGetData",
+			"VKWebAppStorageGetKeys": "VKWebAppStorageGetKeysData",
+			"VKWebAppStorageSet": "VKWebAppStorageSetData",
+			"VKWebAppSubscribeStoryApp": "VKWebAppSubscribeStoryAppData",
+			"VKWebAppTapticImpactOccurred": "VKWebAppTapticImpactOccurredData",
+			"VKWebAppTapticNotificationOccurred": "VKWebAppTapticNotificationOccurredData",
+			"VKWebAppTapticSelectionChanged": "VKWebAppTapticSelectionChangedData",
+			"VKWebAppTrackEvent": "VKWebAppTrackEventData",
+			"VKWebAppTranslate": "TranslateResponse",
+			"VKWebAppUpdateConfig": "ParentConfigData",
+			"VKWebAppUpdateInsets": "VKWebAppUpdateInsetsData",
+			"VKWebAppViewHide": "VKWebAppViewHideData",
+			"VKWebAppViewRestore": "VKWebAppViewRestoreData"
+		},
+		"events": {
+			"OKWebAppCallAPIMethod": {
+				"result": "OKWebAppCallAPIMethodResult",
+				"failed": "OKWebAppCallAPIMethodFailed"
+			},
+			"SetSupportedHandlers": {
+				"result": "SetSupportedHandlers",
+				"failed": "SetSupportedHandlersFailed"
+			},
+			"VKWebAppAccelerometerStart": {
+				"result": "VKWebAppAccelerometerStartResult",
+				"failed": "VKWebAppAccelerometerStartFailed"
+			},
+			"VKWebAppAccelerometerStop": {
+				"result": "VKWebAppAccelerometerStopResult",
+				"failed": "VKWebAppAccelerometerStopFailed"
+			},
+			"VKWebAppAddToCommunity": {
+				"result": "VKWebAppAddToCommunityResult",
+				"failed": "VKWebAppAddToCommunityFailed"
+			},
+			"VKWebAppAddToFavorites": {
+				"result": "VKWebAppAddToFavoritesResult",
+				"failed": "VKWebAppAddToFavoritesFailed"
+			},
+			"VKWebAppAddToHomeScreen": {
+				"result": "VKWebAppAddToHomeScreenResult",
+				"failed": "VKWebAppAddToHomeScreenFailed"
+			},
+			"VKWebAppAddToHomeScreenInfo": {
+				"result": "VKWebAppAddToHomeScreenInfoResult",
+				"failed": "VKWebAppAddToHomeScreenInfoFailed"
+			},
+			"VKWebAppAddToMenu": {
+				"result": "VKWebAppAddToMenuResult",
+				"failed": "VKWebAppAddToMenuFailed"
+			},
+			"VKWebAppAddToProfile": {
+				"result": "VKWebAppAddToProfileResult",
+				"failed": "VKWebAppAddToProfileFailed"
+			},
+			"VKWebAppAllowMessagesFromGroup": {
+				"result": "VKWebAppAllowMessagesFromGroupResult",
+				"failed": "VKWebAppAllowMessagesFromGroupFailed"
+			},
+			"VKWebAppAllowNotifications": {
+				"result": "VKWebAppAllowNotificationsResult",
+				"failed": "VKWebAppAllowNotificationsFailed"
+			},
+			"VKWebAppAudioPause": {
+				"result": "VKWebAppAudioPauseResult",
+				"failed": "VKWebAppAudioPauseFailed"
+			},
+			"VKWebAppCallAPIMethod": {
+				"result": "VKWebAppCallAPIMethodResult",
+				"failed": "VKWebAppCallAPIMethodFailed"
+			},
+			"VKWebAppCallGetStatus": {
+				"result": "VKWebAppCallGetStatusResult",
+				"failed": "VKWebAppCallGetStatusFailed"
+			},
+			"VKWebAppCallJoin": {
+				"result": "VKWebAppCallJoinResult",
+				"failed": "VKWebAppCallJoinFailed"
+			},
+			"VKWebAppCallStart": {
+				"result": "VKWebAppCallStartResult",
+				"failed": "VKWebAppCallStartFailed"
+			},
+			"VKWebAppCheckAllowedScopes": {
+				"result": "VKWebAppCheckAllowedScopesResult",
+				"failed": "VKWebAppCheckAllowedScopesFailed"
+			},
+			"VKWebAppCheckBannerAd": {
+				"result": "VKWebAppCheckBannerAdResult",
+				"failed": "VKWebAppCheckBannerAdFailed"
+			},
+			"VKWebAppCheckNativeAds": {
+				"result": "VKWebAppCheckNativeAdsResult",
+				"failed": "VKWebAppCheckNativeAdsFailed"
+			},
+			"VKWebAppCheckSurvey": {
+				"result": "VKWebAppCheckSurveyResult",
+				"failed": "VKWebAppCheckSurveyFailed"
+			},
+			"VKWebAppClose": {
+				"result": "VKWebAppCloseResult",
+				"failed": "VKWebAppCloseFailed"
+			},
+			"VKWebAppConversionHit": {
+				"result": "VKWebAppConversionHitResult",
+				"failed": "VKWebAppConversionHitFailed"
+			},
+			"VKWebAppCopyText": {
+				"result": "VKWebAppCopyTextResult",
+				"failed": "VKWebAppCopyTextFailed"
+			},
+			"VKWebAppCreateHash": {
+				"result": "VKWebAppCreateHashResult",
+				"failed": "VKWebAppCreateHashFailed"
+			},
+			"VKWebAppDenyNotifications": {
+				"result": "VKWebAppDenyNotificationsResult",
+				"failed": "VKWebAppDenyNotificationsFailed"
+			},
+			"VKWebAppDeviceMotionStart": {
+				"result": "VKWebAppDeviceMotionStartResult",
+				"failed": "VKWebAppDeviceMotionStartFailed"
+			},
+			"VKWebAppDeviceMotionStop": {
+				"result": "VKWebAppDeviceMotionStopResult",
+				"failed": "VKWebAppDeviceMotionStopFailed"
+			},
+			"VKWebAppDisableSwipeBack": {
+				"result": "VKWebAppDisableSwipeBackResult",
+				"failed": "VKWebAppDisableSwipeBackFailed"
+			},
+			"VKWebAppDownloadFile": {
+				"result": "VKWebAppDownloadFileResult",
+				"failed": "VKWebAppDownloadFileFailed"
+			},
+			"VKWebAppEnableSwipeBack": {
+				"result": "VKWebAppEnableSwipeBackResult",
+				"failed": "VKWebAppEnableSwipeBackFailed"
+			},
+			"VKWebAppFlashGetInfo": {
+				"result": "VKWebAppFlashGetInfoResult",
+				"failed": "VKWebAppFlashGetInfoFailed"
+			},
+			"VKWebAppFlashSetLevel": {
+				"result": "VKWebAppFlashSetLevelResult",
+				"failed": "VKWebAppFlashSetLevelFailed"
+			},
+			"VKWebAppGetAuthToken": {
+				"result": "VKWebAppAccessTokenReceived",
+				"failed": "VKWebAppAccessTokenFailed"
+			},
+			"VKWebAppGetClientVersion": {
+				"result": "VKWebAppGetClientVersionResult",
+				"failed": "VKWebAppGetClientVersionFailed"
+			},
+			"VKWebAppGetCommunityToken": {
+				"result": "VKWebAppGetCommunityTokenResult",
+				"failed": "VKWebAppGetCommunityTokenFailed"
+			},
+			"VKWebAppGetConfig": {
+				"result": "VKWebAppGetConfigResult",
+				"failed": "VKWebAppGetConfigFailed"
+			},
+			"VKWebAppGetEmail": {
+				"result": "VKWebAppGetEmailResult",
+				"failed": "VKWebAppGetEmailFailed"
+			},
+			"VKWebAppGetFriends": {
+				"result": "VKWebAppGetFriendsResult",
+				"failed": "VKWebAppGetFriendsFailed"
+			},
+			"VKWebAppGetGeodata": {
+				"result": "VKWebAppGetGeodataResult",
+				"failed": "VKWebAppGetGeodataFailed"
+			},
+			"VKWebAppGetGrantedPermissions": {
+				"result": "VKWebAppGetGrantedPermissionsResult",
+				"failed": "VKWebAppGetGrantedPermissionsFailed"
+			},
+			"VKWebAppGetGroupInfo": {
+				"result": "VKWebAppGetGroupInfoResult",
+				"failed": "VKWebAppGetGroupInfoFailed"
+			},
+			"VKWebAppGetLaunchParams": {
+				"result": "VKWebAppGetLaunchParamsResult",
+				"failed": "VKWebAppGetLaunchParamsFailed"
+			},
+			"VKWebAppGetPersonalCard": {
+				"result": "VKWebAppGetPersonalCardResult",
+				"failed": "VKWebAppGetPersonalCardFailed"
+			},
+			"VKWebAppGetPhoneNumber": {
+				"result": "VKWebAppGetPhoneNumberResult",
+				"failed": "VKWebAppGetPhoneNumberFailed"
+			},
+			"VKWebAppGetUserInfo": {
+				"result": "VKWebAppGetUserInfoResult",
+				"failed": "VKWebAppGetUserInfoFailed"
+			},
+			"VKWebAppGyroscopeStart": {
+				"result": "VKWebAppGyroscopeStartResult",
+				"failed": "VKWebAppGyroscopeStartFailed"
+			},
+			"VKWebAppGyroscopeStop": {
+				"result": "VKWebAppGyroscopeStopResult",
+				"failed": "VKWebAppGyroscopeStopFailed"
+			},
+			"VKWebAppHideBannerAd": {
+				"result": "VKWebAppHideBannerAdResult",
+				"failed": "VKWebAppHideBannerAdFailed"
+			},
+			"VKWebAppInit": {
+				"result": "VKWebAppInitResult",
+				"failed": "VKWebAppInitFailed"
+			},
+			"VKWebAppJoinGroup": {
+				"result": "VKWebAppJoinGroupResult",
+				"failed": "VKWebAppJoinGroupFailed"
+			},
+			"VKWebAppLeaveGroup": {
+				"result": "VKWebAppLeaveGroupResult",
+				"failed": "VKWebAppLeaveGroupFailed"
+			},
+			"VKWebAppOpenApp": {
+				"result": "VKWebAppOpenAppResult",
+				"failed": "VKWebAppOpenAppFailed"
+			},
+			"VKWebAppOpenCodeReader": {
+				"result": "VKWebAppOpenCodeReaderResult",
+				"failed": "VKWebAppOpenCodeReaderFailed"
+			},
+			"VKWebAppOpenContacts": {
+				"result": "VKWebAppOpenContactsResult",
+				"failed": "VKWebAppOpenContactsFailed"
+			},
+			"VKWebAppOpenPayForm": {
+				"result": "VKWebAppOpenPayFormResult",
+				"failed": "VKWebAppOpenPayFormFailed"
+			},
+			"VKWebAppOpenQR": {
+				"result": "VKWebAppOpenQRResult",
+				"failed": "VKWebAppOpenQRFailed"
+			},
+			"VKWebAppOpenWallPost": {
+				"result": "VKWebAppOpenWallPostResult",
+				"failed": "VKWebAppOpenWallPostFailed"
+			},
+			"VKWebAppRecommend": {
+				"result": "VKWebAppRecommendResult",
+				"failed": "VKWebAppRecommendFailed"
+			},
+			"VKWebAppResizeWindow": {
+				"result": "VKWebAppResizeWindowResult",
+				"failed": "VKWebAppResizeWindowFailed"
+			},
+			"VKWebAppRetargetingPixel": {
+				"result": "VKWebAppRetargetingPixelResult",
+				"failed": "VKWebAppRetargetingPixelFailed"
+			},
+			"VKWebAppScroll": {
+				"result": "VKWebAppScrollResult",
+				"failed": "VKWebAppScrollFailed"
+			},
+			"VKWebAppScrollTop": {
+				"result": "VKWebAppScrollTopResult",
+				"failed": "VKWebAppScrollTopFailed"
+			},
+			"VKWebAppScrollTopStart": {
+				"result": "VKWebAppScrollTopStartResult",
+				"failed": "VKWebAppScrollTopStop"
+			},
+			"VKWebAppScrollTopStop": {
+				"result": "VKWebAppScrollTopStopResult",
+				"failed": "VKWebAppScrollTopStopFailed"
+			},
+			"VKWebAppSendPayload": {
+				"result": "VKWebAppSendPayloadResult",
+				"failed": "VKWebAppSendPayloadFailed"
+			},
+			"VKWebAppSendToClient": {
+				"result": "VKWebAppSendToClientResult",
+				"failed": "VKWebAppSendToClientFailed"
+			},
+			"VKWebAppSetLocation": {
+				"result": "VKWebAppSetLocationResult",
+				"failed": "VKWebAppSetLocationFailed"
+			},
+			"VKWebAppSetSwipeSettings": {
+				"result": "VKWebAppSetSwipeSettingsResult",
+				"failed": "VKWebAppSetSwipeSettingsFailed"
+			},
+			"VKWebAppSetViewSettings": {
+				"result": "VKWebAppSetViewSettingsResult",
+				"failed": "VKWebAppSetViewSettingsFailed"
+			},
+			"VKWebAppShare": {
+				"result": "VKWebAppShareResult",
+				"failed": "VKWebAppShareFailed"
+			},
+			"VKWebAppShowBannerAd": {
+				"result": "VKWebAppShowBannerAdResult",
+				"failed": "VKWebAppShowBannerAdFailed"
+			},
+			"VKWebAppShowCommunityWidgetPreviewBox": {
+				"result": "VKWebAppShowCommunityWidgetPreviewBoxResult",
+				"failed": "VKWebAppShowCommunityWidgetPreviewBoxFailed"
+			},
+			"VKWebAppShowImages": {
+				"result": "VKWebAppShowImagesResult",
+				"failed": "VKWebAppShowImagesFailed"
+			},
+			"VKWebAppShowInviteBox": {
+				"result": "VKWebAppShowInviteBoxResult",
+				"failed": "VKWebAppShowInviteBoxFailed"
+			},
+			"VKWebAppShowLeaderBoardBox": {
+				"result": "VKWebAppShowLeaderBoardBoxResult",
+				"failed": "VKWebAppShowLeaderBoardBoxFailed"
+			},
+			"VKWebAppShowMessageBox": {
+				"result": "VKWebAppShowMessageBoxResult",
+				"failed": "VKWebAppShowMessageBoxFailed"
+			},
+			"VKWebAppShowNativeAds": {
+				"result": "VKWebAppShowNativeAdsResult",
+				"failed": "VKWebAppShowNativeAdsFailed"
+			},
+			"VKWebAppShowOrderBox": {
+				"result": "VKWebAppShowOrderBoxResult",
+				"failed": "VKWebAppShowOrderBoxFailed"
+			},
+			"VKWebAppShowRequestBox": {
+				"result": "VKWebAppShowRequestBoxResult",
+				"failed": "VKWebAppShowRequestBoxFailed"
+			},
+			"VKWebAppShowSlidesSheet": {
+				"result": "VKWebAppShowSlidesSheetResult",
+				"failed": "VKWebAppShowSlidesSheetFailed"
+			},
+			"VKWebAppShowStoryBox": {
+				"result": "VKWebAppShowStoryBoxResult",
+				"failed": "VKWebAppShowStoryBoxFailed"
+			},
+			"VKWebAppShowSubscriptionBox": {
+				"result": "VKWebAppShowSubscriptionBoxResult",
+				"failed": "VKWebAppShowSubscriptionBoxFailed"
+			},
+			"VKWebAppShowSurvey": {
+				"result": "VKWebAppShowSurveyResult",
+				"failed": "VKWebAppShowSurveyFailed"
+			},
+			"VKWebAppShowWallPostBox": {
+				"result": "VKWebAppShowWallPostBoxResult",
+				"failed": "VKWebAppShowWallPostBoxFailed"
+			},
+			"VKWebAppStorageGet": {
+				"result": "VKWebAppStorageGetResult",
+				"failed": "VKWebAppStorageGetFailed"
+			},
+			"VKWebAppStorageGetKeys": {
+				"result": "VKWebAppStorageGetKeysResult",
+				"failed": "VKWebAppStorageGetKeysFailed"
+			},
+			"VKWebAppStorageSet": {
+				"result": "VKWebAppStorageSetResult",
+				"failed": "VKWebAppStorageSetFailed"
+			},
+			"VKWebAppSubscribeStoryApp": {
+				"result": "VKWebAppSubscribeStoryAppResult",
+				"failed": "VKWebAppSubscribeStoryAppFailed"
+			},
+			"VKWebAppTapticImpactOccurred": {
+				"result": "VKWebAppTapticImpactOccurredResult",
+				"failed": "VKWebAppTapticImpactOccurredFailed"
+			},
+			"VKWebAppTapticNotificationOccurred": {
+				"result": "VKWebAppTapticNotificationOccurredResult",
+				"failed": "VKWebAppTapticNotificationOccurredFailed"
+			},
+			"VKWebAppTapticSelectionChanged": {
+				"result": "VKWebAppTapticSelectionChangedResult",
+				"failed": "VKWebAppTapticSelectionChangedFailed"
+			},
+			"VKWebAppTrackEvent": {
+				"result": "VKWebAppTrackEventResult",
+				"failed": "VKWebAppTrackEventFailed"
+			},
+			"VKWebAppTranslate": {
+				"result": "VKWebAppTranslateResult",
+				"failed": "VKWebAppTranslateFailed"
+			}
+		}
+	}
+}
