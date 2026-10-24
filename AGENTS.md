@@ -4,11 +4,12 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 
 ## Structure
 
-- `packages/bridge`, `packages/deploy`, `packages/devtools` — publishable libraries (tsdown: ESM + dts)
+- `packages/bridge`, `packages/deploy`, `packages/devtools`, `packages/api-schema` — publishable libraries (tsdown: ESM + dts)
 - `packages/bridge-schema` — JSON Schema catalogue of VK Bridge events + generated types
+- `packages/api-schema` — generated TS types + zod/valibot schemas for the VK API, built at build time from the `VKCOM/vk-api-schema` git submodule
 - `apps/web` — docs & demos site (bare Astro, no React yet)
 - `apps/inspector` — browser extension (rsbuild + Solid, MV3 for chrome & firefox)
-- `playground/mini-app` — fake mini app for manual e2e of the devtools (imports the original `@vkontakte/vk-bridge` so the plugin's interception is what routes it through the tap)
+- `playground/mini-app` (Vite) and `playground/mini-app-rsbuild` (Rsbuild) — fake mini apps for manual e2e of the devtools adapters (import the original `@vkontakte/vk-bridge` so the plugin's interception is what routes it through the tap; `VKMA_MCP=1` enables the MCP route)
 
 ## Bridge packages (`packages/bridge`, `packages/bridge-schema`)
 
@@ -22,6 +23,13 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 - **Transports read the host lazily** (per call), unlike upstream's import-time caches — that's what makes the happy-dom unit tests possible. Mobile WebView transports are contract-tested via fakes only; run the manual device checklist before a release.
 - **Devtools dependency direction**: `devtools` never imports the bridge at runtime — the inject collector talks to `globalThis.__vkmaDevtoolsBridge` through structurally declared local types. The resolveId skip for `TAP_IMPORTERS` stays even though the clone no longer imports the original: installed older wrapper versions (peer `>=0.0.0`) still do.
 
+## API schema (`packages/api-schema`)
+
+`@vkma.dev/api-schema` is fully generated — read `packages/api-schema/AGENTS.md` before touching the generator. Root-level invariants:
+
+- **Generated code is never committed**: `src/generated/` and `.schema-transformed/` are build intermediates; build/test/lint all generate first. Typechecking the package on a fresh clone without a generate pass fails by design — run `pnpm generate`.
+- **The version minor is the API version**: `0.5199.x` ↔ API `5.199`; the generated `API_VERSION` is asserted by a test. Schema updates go through `pnpm update-schema` (bumps the submodule to upstream master + regenerates) and ship via changesets with the minor realigned.
+
 ## Devtools architecture (`packages/devtools`)
 
 Read `packages/devtools/PRODUCT.md` for product truth and `DESIGN.md` for the visual system. The non-obvious invariants:
@@ -29,6 +37,8 @@ Read `packages/devtools/PRODUCT.md` for product truth and `DESIGN.md` for the vi
 - **Single source of truth**: events live in the node side's ring buffer (500) and flow to every surface over devframe RPC. The FAB iframe and the standalone `/__vkma/` tab render the same data; do not add client-side-only event paths.
 - **The tap is on `globalThis`**: `@vkma.dev/bridge` publishes `{ tap, send }` as `globalThis.__vkmaDevtoolsBridge`. The inject collector finds it there — it never shares a module graph with the app. The tap's buffer (500) replays to the first subscriber, so the collector may attach after the app started sending.
 - **Interception is a resolveId hook, not an alias**: the vite plugin redirects `@vkontakte/vk-bridge` imports via an `enforce: "pre"` `resolveId` that must SKIP importers inside `@vkma.dev/bridge` itself — otherwise a redirect target importing the original turns the "alias" into a self-cycle (TDZ crash). Do not replace this with `resolve.alias`.
+- **Two bundler adapters, one contract**: the rsbuild adapter (`@vkma.dev/devtools/rsbuild`, `vkmaDevtoolsRsbuild`) mounts the same panel/RPC/collector as the vite plugin. rspack's `resolve.alias` is importer-agnostic (it would loop the tap onto itself), so interception there is `NormalModuleReplacementPlugin` applying the same `TAP_IMPORTERS` skip; `alias: false` turns the rewrite off in both adapters (apps importing `@vkma.dev/bridge` directly). Rsbuild's connect stack never hands over HTTP upgrades, so the RPC socket is a side-car WS server on its own port, discovered via `<base>__connection.json`; the devframe instance rides on `globalThis` to survive dev-server restarts. `playground/mini-app-rsbuild` is its manual e2e target.
+- **The MCP route is opt-in**: the `mcp` option (both adapters) exposes `vkma:mcp-state`/`vkma:mcp-execute` at `<base>__mcp` (Streamable-HTTP) for coding agents — default off, and the Origin check is the only built-in protection, so pass a bearer-token `McpSetting` for tunnels/LAN. `allowedOrigins` locks the RPC WebSocket handshake (default: any origin; the interactive OTP auth gate is the trust boundary). The bridge's reserved `__mcp`/`__sse` routes must never be eaten by a SPA fallback — that bug once served the panel at `/__vkma/__mcp` instead of the MCP stream.
 - **Inject loading order**: the plugin injects a plain (non-module) script that sets `globalThis.__VKMA_DEVTOOLS_BASE__` and appends the module tag at runtime. Deriving the base from `import.meta.url` breaks when a dev pipeline inlines the module as a data: URL; letting Vite rewrite a module `src` in index.html breaks too. The collector waits for the bridge handle (`waitForBridge`) because dynamic module insertion races the app's graph.
 - **Mount order**: the static SPA mount comes BEFORE `devframeViteBridge` — the bridge's router is terminal and would 404 the panel files. The plugin's `configureServer` also 308-redirects `/__vkma` (no slash) to `/__vkma/` — relative asset URLs in the panel HTML resolve against the parent directory otherwise — and chains `server.printUrls` (unocss-style) to print the panel URL on `pnpm dev`.
 - **Sessions**: the collector sends a per-page-load `sessionId` in `vkma:hello`; when the node side sees a new session for a known client it purges that client's history and broadcasts `vkma:on-session-reset`. Client ids persist across reloads (sessionStorage), session ids do not. `connectedAt` is first-seen per session — the store pins it against heartbeat re-stamps — and anchors the registry order and the "connected N ago" label.
@@ -47,8 +57,9 @@ Read `packages/devtools/PRODUCT.md` for product truth and `DESIGN.md` for the vi
 ## Commands (root)
 
 - `pnpm build` / `pnpm dev` — recursive over all workspaces
-- `pnpm lint` — oxlint + `tsc -b --noEmit` + apps typecheck + `pt format --check` + publint (run `pnpm build` first: publint needs `dist/`)
+- `pnpm lint` — oxlint + `tsc -b --noEmit` + apps typecheck + `pt format --check` + publint (run `pnpm build` first: publint needs `dist/`; lint generates `src/generated` for both schema packages first — a fresh clone has no generated code to typecheck until then)
 - `pnpm test` — vitest per package
+- `pnpm update-schema` — bump the `vk-api-schema` submodule to upstream master + regenerate `packages/api-schema`
 - `pnpm format` — oxfmt via `pt format`
 
 ## Conventions
