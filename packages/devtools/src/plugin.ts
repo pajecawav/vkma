@@ -182,8 +182,11 @@ function vkmaCorePlugin(base: string, options: VkmaDevtoolsOptions): Plugin {
 			if (options.alias === false || source !== BRIDGE_PACKAGE) {
 				return;
 			}
-			// Our own tap package imports the original package — let that
-			// resolve normally, or the "alias" becomes a self-cycle.
+			// The redirect target itself must see the REAL package: the
+			// historical @vkma.dev/bridge wrapper imported the original
+			// (aliasing that import = self-cycle → TDZ crash), and older
+			// installed versions may still do. The current bridge does not
+			// import it, but the skip stays cheap and correct.
 			if (importer !== undefined && TAP_IMPORTERS.test(importer)) {
 				return;
 			}

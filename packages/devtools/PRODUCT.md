@@ -20,7 +20,7 @@ Show the full VK Bridge dialogue (outgoing `send`, incoming events, launch param
 
 ## Positioning
 
-A devframe-based devtools page (`/__vkma`, like `/__unocss` for UnoCSS) embedded into the app bundle via `@vkma/bridge` (fork of `@vkontakte/vk-bridge` with an `onSend` tap). Replaces the chrome-extension approach: works inside VK's iframe, in standalone, and from a phone through the same dev server — no extension store, no manual console.
+A devframe-based devtools page (`/__vkma`, like `/__unocss` for UnoCSS) embedded into the app bundle via `@vkma/bridge` (independent VK Bridge with the `onSend`/`onEvent` tap built into the core). Replaces the chrome-extension approach: works inside VK's iframe, in standalone, and from a phone through the same dev server — no extension store, no manual console.
 
 ## Operating Context
 
