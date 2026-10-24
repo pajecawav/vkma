@@ -1,9 +1,64 @@
-import vkBridge, { type VKBridge } from "@vkontakte/vk-bridge";
+/**
+ * @vkma.dev/bridge — an independent VK Bridge for VK Mini Apps.
+ *
+ * The default export is a ready singleton; `createVKBridge` builds additional
+ * instances. Every instance carries an always-on tap (see `onSend`/`onEvent`
+ * and `tap`), which is what the VKMA devtools observe — no opt-in required.
+ *
+ * Merely importing this module publishes the page-wide devtools handle on
+ * `globalThis.__vkmaDevtoolsBridge` (`{ tap, send }`), so the devtools
+ * collector — loaded as a separate script, never sharing a module graph with
+ * the app — can observe and drive the app's own bridge instance.
+ */
+
+import packageJson from "../package.json" with { type: "json" };
+import { createVKBridge, type VkmaBridgeOptions } from "./bridge.ts";
 import { createTap, type BridgeTap, type BridgeTapEvent } from "./tap.ts";
 
+export { createVKBridge, type RequestIdPolicy, type VkmaBridgeOptions } from "./bridge.ts";
+import type { VkmaBridge } from "./types.ts";
+export { applyMiddleware, type Middleware, type MiddlewareAPI } from "./middleware.ts";
+export { parseURLSearchParamsForGetLaunchParams, type LaunchParams } from "./launch-params.ts";
 export { createTap } from "./tap.ts";
-export type { BridgeTap, BridgeTapEvent } from "./tap.ts";
-export * from "@vkontakte/vk-bridge";
+export type {
+	SendOptions,
+	VKBridge,
+	VKBridgeErrorEvent,
+	VKBridgeEvent,
+	VKBridgeEventBase,
+	VKBridgeIOEvent,
+	VKBridgeReceiveOnlyEvent,
+	VKBridgeResultEvent,
+	VKBridgeSend,
+	VKBridgeSubscribeHandler,
+	VkmaBridge,
+	AnyIOMethodName,
+	AnyMethodName,
+	AnyReceiveMethodName,
+	AnyReceiveOnlyMethodName,
+	AnyRequestMethodName,
+	AnyRequestOnlyMethodName,
+	ErrorData,
+	ErrorDataAPIError,
+	ErrorDataAuthError,
+	ErrorDataClientError,
+	FailedResponseEventName,
+	RequestIdProp,
+	RequestProps,
+	ReceiveData,
+	ResultResponseEventName,
+} from "./types.ts";
+export type {
+	RequestMethodName,
+	ReceiveMethodName,
+	RequestOnlyMethodName,
+	ReceiveOnlyMethodName,
+	MethodName,
+	IOMethodName,
+	WidgetType,
+} from "./deprecated.ts";
+export type { ReceiveDataMap, ReceiveEventMap, RequestPropsMap } from "@vkma.dev/bridge-schema";
+export * from "@vkma.dev/bridge-schema";
 
 /**
  * The devtools bridge handle shared by every copy of this module on the page,
@@ -25,133 +80,51 @@ const globalScope = globalThis as typeof globalThis & {
 	[GLOBAL_KEY]?: DevtoolsBridgeHandle;
 };
 
-function getTap(): BridgeTap {
-	if (!globalScope[GLOBAL_KEY]) {
-		globalScope[GLOBAL_KEY] = {
-			tap: createTap(),
-			send: (name, params) => vkBridge.send(name as never, (params ?? {}) as never),
-		};
+function sharedTap(): BridgeTap {
+	const existing = globalScope[GLOBAL_KEY];
+	if (existing) {
+		return existing.tap;
 	}
-	return globalScope[GLOBAL_KEY].tap;
+	const tap = createTap();
+	globalScope[GLOBAL_KEY] = {
+		tap,
+		// The collector executes arbitrary method names — the handle stays
+		// stringly typed by design.
+		send: (name, params) => bridge.send(name as never, params as never),
+	};
+	return tap;
 }
 
-const tap = getTap();
+/** Options of the page-wide default instance: it shares the global tap. */
+const defaultOptions: VkmaBridgeOptions = {
+	tap: sharedTap(),
+};
 
-/** vk-bridge matches a send to its response by `request_id` in the response
- * payload; we inject our own ids so the tap can pair events exactly. */
-const REQUEST_ID_PREFIX = "__vkma_";
-const pendingRequests = new Map<string, number>();
-let requestCounter = 0;
+const bridge: VkmaBridge = createVKBridge(packageJson.version, defaultOptions);
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
-function stripRequestId(data: unknown): unknown {
-	if (!isPlainObject(data) || !("request_id" in data)) {
-		return data;
-	}
-	const { request_id: _requestId, ...rest } = data;
-	return rest;
-}
-
-// One internal subscription classifies every incoming bridge event:
-// a payload carrying one of our request ids is the paired response to a
-// wrapped send, everything else is an unsolicited event from VK.
-vkBridge.subscribe((event: { detail?: { type?: unknown; data?: unknown } }) => {
-	const { type, data } = event.detail ?? {};
-	if (typeof type !== "string") {
-		return;
-	}
-
-	if (isPlainObject(data) && typeof data["request_id"] === "string") {
-		const requestId = data["request_id"];
-		const reqTapId = pendingRequests.get(requestId);
-		if (reqTapId !== undefined) {
-			pendingRequests.delete(requestId);
-			tap.emit({
-				direction: "in",
-				kind: "response",
-				name: type,
-				payload: stripRequestId(data),
-				reqId: reqTapId,
-				ok: !("error_type" in data),
-			});
-			return;
-		}
-	}
-
-	tap.emit({ direction: "in", kind: "event", name: type, payload: data });
-});
-
-const wrappedSend: VKBridge["send"] = ((method: string, props?: Record<string, unknown>) => {
-	const explicitRequestId =
-		props !== undefined && typeof props["request_id"] === "string"
-			? props["request_id"]
-			: undefined;
-	const requestId = explicitRequestId ?? `${REQUEST_ID_PREFIX}${++requestCounter}`;
-
-	const tapId = tap.emit({
-		direction: "out",
-		kind: "send",
-		name: method,
-		payload: props,
-	});
-	if (explicitRequestId === undefined) {
-		pendingRequests.set(requestId, tapId);
-	}
-
-	return vkBridge.send(
-		method as never,
-		{
-			...props,
-			request_id: requestId,
-		} as never,
-	);
-}) as VKBridge["send"];
-
-/** Subscribe to outgoing `send` calls (request side only). */
+/**
+ * Subscribe to outgoing `send` calls of the default instance.
+ */
 export function onSend(
 	listener: (event: BridgeTapEvent & { direction: "out" }) => void,
 ): () => void {
-	return tap.subscribe(event => {
-		if (event.direction === "out") {
-			listener(event as BridgeTapEvent & { direction: "out" });
-		}
-	});
+	return bridge.onSend(listener);
 }
 
-/** Subscribe to every tapped bridge event: sends, paired responses, events. */
-export function onTap(listener: (event: BridgeTapEvent) => void): () => void {
-	return tap.subscribe(listener);
+/**
+ * Subscribe to everything incoming on the default instance: paired responses
+ * and unsolicited events.
+ */
+export function onEvent(
+	listener: (event: BridgeTapEvent & { direction: "in" }) => void,
+): () => void {
+	return bridge.onEvent(listener);
 }
 
-/** The shared tap (buffered until first subscribe — see `createTap`). */
-export const bridgeTap: BridgeTap = tap;
+/** The shared tap of the default instance (buffered until first subscribe). */
+export const bridgeTap: BridgeTap = bridge.tap;
 
 /** The `globalThis` key the devtools collector looks the handle up by. */
 export const devtoolsBridgeGlobalKey = GLOBAL_KEY;
 
-export type VkmaBridge = VKBridge & {
-	onSend: typeof onSend;
-	onTap: typeof onTap;
-};
-
-const wrappedBridge = new Proxy(vkBridge, {
-	get(target, prop, _receiver) {
-		if (prop === "send") {
-			return wrappedSend;
-		}
-		if (prop === "onSend") {
-			return onSend;
-		}
-		if (prop === "onTap") {
-			return onTap;
-		}
-		const value = Reflect.get(target, prop, target);
-		return typeof value === "function"
-			? (value as (...args: unknown[]) => unknown).bind(target)
-			: value;
-	},
-}) as VkmaBridge;
-
-export default wrappedBridge;
+export { bridge as default };

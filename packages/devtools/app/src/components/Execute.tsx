@@ -59,8 +59,15 @@ export function Execute({
 
 	const latest = clients.length > 0 ? clients.at(-1) : undefined;
 	const latestClientId = latest?.clientId ?? "";
-	const [target, setTarget] = useState(latestClientId);
-	const activeTarget = fixedClientId ?? target;
+	const [target, setTarget] = useState("");
+	// Derived, not stored: clients land after this component mounts (the
+	// state snapshot follows the connect), so a stored id would stay `""`
+	// forever — and every Send would silently no-op. Falls back to the
+	// latest client while nothing is picked and when a picked client has
+	// disconnected.
+	const activeTarget =
+		fixedClientId ??
+		(clients.some(client => client.clientId === target) ? target : latestClientId);
 	const [name, setName] = useState("");
 	const [paramsText, setParamsText] = useState("{\n  \n}");
 	const [pending, setPending] = useState<Pending>();
@@ -175,6 +182,7 @@ export function Execute({
 								type="button"
 								onClick={() => void send()}
 								disabled={
+									activeTarget === "" ||
 									name.trim() === "" ||
 									paramsError !== undefined ||
 									pending?.state === "pending"

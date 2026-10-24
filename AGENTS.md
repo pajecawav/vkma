@@ -5,9 +5,22 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 ## Structure
 
 - `packages/bridge`, `packages/deploy`, `packages/devtools` — publishable libraries (tsdown: ESM + dts)
+- `packages/bridge-schema` — JSON Schema catalogue of VK Bridge events + generated types
 - `apps/web` — docs & demos site (bare Astro, no React yet)
 - `apps/inspector` — browser extension (rsbuild + Solid, MV3 for chrome & firefox)
 - `playground/mini-app` — fake mini app for manual e2e of the devtools (imports the original `@vkontakte/vk-bridge` so the plugin's interception is what routes it through the tap)
+
+## Bridge packages (`packages/bridge`, `packages/bridge-schema`)
+
+`@vkma.dev/bridge` is an independent VK Bridge (no `@vkontakte/vk-bridge` dependency); `@vkma.dev/bridge-schema` owns the event catalogue. The non-obvious invariants:
+
+- **The catalogue is data, extracted once**: `bridge-schema/schema/events.json` is checked in and hand-maintained. `pnpm --filter @vkma.dev/bridge-schema bootstrap` re-extracts it from the reference devDependency (`@vkontakte/vk-bridge`, catalog-pinned) via the TS7 unstable sync checker; that script is the only place allowed to touch the JSON. Sync ritual: VKCOM publishes a release → bump the catalog version → bootstrap → review the JSON diff → the parity tests tell you if the types drifted. There is no automation watching upstream — subscription to VKCOM releases is manual.
+- **Augmentation lives in the schema package ROOT**: the three catalogue maps (`RequestPropsMap` / `ReceiveDataMap` / `ReceiveEventMap`) are emitted as `interface`s in `src/index.ts` (generated) on purpose — `declare module` merging only works against the declaring module, so consumers extend the catalogue by augmenting `@vkma.dev/bridge-schema`, never `@vkma.dev/bridge`. Interface merging is extend-only; fixing VK's own payload types means a new schema version, never an override.
+- **Map entries reference `$defs` by name; json2code is the only TS printer**: the bootstrap writes pure JSON Schema (a subset json2code understands), generate.ts never prints payload types by hand. Divergences from upstream type expressions (intersection merging, `any`→`unknown`, `object`→`{}`, generic aliases degraded to `unknown`) are documented in the bootstrap header.
+- **The tap is core, not a wrapper**: every bridge instance carries a replay-buffered tap; `onSend`/`onEvent` sit on the instance, `send` pairs responses via the injected `__vkma_<n>` request_id (policy in `VkmaBridgeOptions`). The tap payload must never be mutated after emit — send builds a separate wire-props object for exactly this reason.
+- **Wire parity over convenience**: the `vk-connect` envelope, the four transports (web postMessage, Android, iOS, RN), `VKWebAppSettings` frame-id assignment and the `SetSupportedHandlers` caching reproduce the platform contract the host clients implement. `parent.postMessage` uses `"*"` because the host origin is unknowable ahead of time — do not "fix" that.
+- **Transports read the host lazily** (per call), unlike upstream's import-time caches — that's what makes the happy-dom unit tests possible. Mobile WebView transports are contract-tested via fakes only; run the manual device checklist before a release.
+- **Devtools dependency direction**: `devtools` never imports the bridge at runtime — the inject collector talks to `globalThis.__vkmaDevtoolsBridge` through structurally declared local types. The resolveId skip for `TAP_IMPORTERS` stays even though the clone no longer imports the original: installed older wrapper versions (peer `>=0.0.0`) still do.
 
 ## Devtools architecture (`packages/devtools`)
 
@@ -15,7 +28,7 @@ Read `packages/devtools/PRODUCT.md` for product truth and `DESIGN.md` for the vi
 
 - **Single source of truth**: events live in the node side's ring buffer (500) and flow to every surface over devframe RPC. The FAB iframe and the standalone `/__vkma/` tab render the same data; do not add client-side-only event paths.
 - **The tap is on `globalThis`**: `@vkma.dev/bridge` publishes `{ tap, send }` as `globalThis.__vkmaDevtoolsBridge`. The inject collector finds it there — it never shares a module graph with the app. The tap's buffer (500) replays to the first subscriber, so the collector may attach after the app started sending.
-- **Interception is a resolveId hook, not an alias**: the vite plugin redirects `@vkontakte/vk-bridge` imports via an `enforce: "pre"` `resolveId` that must SKIP importers inside the tap package itself — otherwise the wrapper imports itself (TDZ crash). Do not replace this with `resolve.alias`.
+- **Interception is a resolveId hook, not an alias**: the vite plugin redirects `@vkontakte/vk-bridge` imports via an `enforce: "pre"` `resolveId` that must SKIP importers inside `@vkma.dev/bridge` itself — otherwise a redirect target importing the original turns the "alias" into a self-cycle (TDZ crash). Do not replace this with `resolve.alias`.
 - **Inject loading order**: the plugin injects a plain (non-module) script that sets `globalThis.__VKMA_DEVTOOLS_BASE__` and appends the module tag at runtime. Deriving the base from `import.meta.url` breaks when a dev pipeline inlines the module as a data: URL; letting Vite rewrite a module `src` in index.html breaks too. The collector waits for the bridge handle (`waitForBridge`) because dynamic module insertion races the app's graph.
 - **Mount order**: the static SPA mount comes BEFORE `devframeViteBridge` — the bridge's router is terminal and would 404 the panel files. The plugin's `configureServer` also 308-redirects `/__vkma` (no slash) to `/__vkma/` — relative asset URLs in the panel HTML resolve against the parent directory otherwise — and chains `server.printUrls` (unocss-style) to print the panel URL on `pnpm dev`.
 - **Sessions**: the collector sends a per-page-load `sessionId` in `vkma:hello`; when the node side sees a new session for a known client it purges that client's history and broadcasts `vkma:on-session-reset`. Client ids persist across reloads (sessionStorage), session ids do not. `connectedAt` is first-seen per session — the store pins it against heartbeat re-stamps — and anchors the registry order and the "connected N ago" label.

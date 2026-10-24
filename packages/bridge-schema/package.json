@@ -1,0 +1,48 @@
+{
+	"name": "@vkma.dev/bridge-schema",
+	"version": "0.1.0",
+	"description": "JSON Schema catalogue of VK Bridge events with generated TypeScript types",
+	"type": "module",
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22.18.0"
+	},
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./schema": {
+			"types": "./dist/schema.d.ts",
+			"import": "./dist/schema.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"bootstrap": "node scripts/bootstrap.ts",
+		"generate": "node scripts/generate.ts",
+		"build": "pnpm generate && tsdown",
+		"dev": "pnpm generate && tsdown --watch",
+		"lint:package": "publint",
+		"test": "pnpm generate && vitest run",
+		"test:watch": "pnpm generate && vitest watch"
+	},
+	"devDependencies": {
+		"@pajecawav/json2code": "catalog:",
+		"@types/node": "catalog:",
+		"@vkontakte/vk-bridge": "catalog:",
+		"publint": "catalog:",
+		"tsdown": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

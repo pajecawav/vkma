@@ -1,101 +1,110 @@
-import { expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
+import bridge, { onEvent, onSend } from "./index.js";
+import { parseURLSearchParamsForGetLaunchParams } from "./launch-params.js";
+import { applyMiddleware } from "./middleware.js";
+import type { BridgeTapEvent } from "./tap.js";
 
-const { listeners, sendMock } = vi.hoisted(() => {
-	const listeners = new Set<(event: unknown) => void>();
-	return {
-		listeners,
-		sendMock: vi.fn(async () => ({ result: "ok" })),
-	};
-});
-
-vi.mock("@vkontakte/vk-bridge", () => ({
-	default: {
-		subscribe: (listener: (event: unknown) => void) => listeners.add(listener),
-		unsubscribe: (listener: (event: unknown) => void) => listeners.delete(listener),
-		send: sendMock,
-	},
-	applyMiddleware: vi.fn(),
-	parseURLSearchParamsForGetLaunchParams: vi.fn(),
-}));
-
-import bridge, { onTap, type BridgeTapEvent } from "./index.ts";
-
-function emitIncoming(detail: unknown) {
-	for (const listener of listeners) {
-		listener({ detail });
-	}
+/** Respond to the most recent outgoing send of the default bridge. */
+function respondToLast(type: string, data: Record<string, unknown>): void {
+	const last = bridge.tap.drain().findLast((event: BridgeTapEvent) => event.direction === "out");
+	const requestId =
+		last !== undefined && typeof last.payload === "object" && last.payload !== null
+			? (last.payload as Record<string, unknown>)["request_id"]
+			: undefined;
+	window.dispatchEvent(
+		new MessageEvent("message", {
+			data: { type, data: { ...data, request_id: requestId }, frameId: "frame-1" },
+		}),
+	);
 }
 
-test("wrapped send injects a vkma request_id and taps the outgoing event", async () => {
-	const seen: BridgeTapEvent[] = [];
-	onTap(event => seen.push(event));
+describe("applyMiddleware", () => {
+	test("middleware wraps send without breaking responses", async () => {
+		const seen: string[] = [];
+		const enhanced = applyMiddleware(_api => next => async (method, props, options) => {
+			seen.push(method);
+			return next(method, props, options);
+		})(bridge);
 
-	await bridge.send("VKWebAppSetLocation", { location: "profile" });
-
-	expect(sendMock).toHaveBeenCalledWith("VKWebAppSetLocation", {
-		location: "profile",
-		request_id: "__vkma_1",
+		const promise = enhanced.send("VKWebAppSetLocation", { location: "profile" });
+		respondToLast("VKWebAppSetLocationResult", { result: true });
+		await expect(promise).resolves.toEqual({ result: true });
+		expect(seen).toEqual(["VKWebAppSetLocation"]);
 	});
-	expect(seen).toHaveLength(1);
-	expect(seen[0]).toMatchObject({
-		direction: "out",
-		kind: "send",
-		name: "VKWebAppSetLocation",
+
+	test("empty middleware list returns the bridge as-is", () => {
+		const enhanced = applyMiddleware()(bridge);
+		expect(enhanced.subscribe).toBe(bridge.subscribe);
 	});
 });
 
-test("a response carrying our request_id pairs back to its send", async () => {
-	const seen: BridgeTapEvent[] = [];
-	onTap(event => seen.push(event));
-
-	await bridge.send("VKWebAppGetUserInfo");
-	emitIncoming({
-		type: "VKWebAppGetUserInfo",
-		data: { request_id: "__vkma_2", id: 1, first_name: "Пётр" },
+describe("parseURLSearchParamsForGetLaunchParams", () => {
+	let search: string;
+	beforeEach(() => {
+		search = window.location.search;
 	});
 
-	const [send, response] = seen;
-	if (send === undefined || response === undefined) {
-		throw new Error("expected both a send and a response event");
-	}
-	expect(send.kind).toBe("send");
-	expect(response).toMatchObject({
-		direction: "in",
-		kind: "response",
-		name: "VKWebAppGetUserInfo",
-		reqId: send.id,
-		ok: true,
+	test("parses and validates the known keys", () => {
+		const params = parseURLSearchParamsForGetLaunchParams(
+			"vk_user_id=1&vk_app_id=2&vk_is_app_user=1&vk_language=ru&vk_platform=desktop_web&vk_viewer_group_role=admin&sign=abc&vk_ref=feed&vk_is_favorite=0&odr_enabled=1&unknown_field=42",
+		);
+		expect(params).toEqual({
+			vk_user_id: 1,
+			vk_app_id: 2,
+			vk_is_app_user: 1,
+			vk_language: "ru",
+			vk_platform: "desktop_web",
+			vk_viewer_group_role: "admin",
+			sign: "abc",
+			vk_ref: "feed",
+			vk_is_favorite: 0,
+			odr_enabled: 1,
+		});
+		expect(search !== undefined).toBe(true);
 	});
-	// request_id is stripped from the reported payload
-	expect(response.payload).toEqual({ id: 1, first_name: "Пётр" });
+
+	test("invalid enum values are dropped", () => {
+		const params = parseURLSearchParamsForGetLaunchParams("vk_language=xx&vk_platform=huh");
+		expect(params["vk_language"]).toBeUndefined();
+		expect(params["vk_platform"]).toBeUndefined();
+	});
 });
 
-test("an error response keeps its payload and reports ok: false", async () => {
-	const seen: BridgeTapEvent[] = [];
-	onTap(event => seen.push(event));
-
-	await bridge.send("VKWebAppStorageGet", { keys: ["a"] }).catch(() => {});
-	emitIncoming({
-		type: "VKWebAppStorageGet",
-		data: {
-			request_id: "__vkma_3",
-			error_type: "client_error",
-			error_data: { error_reason: 1 },
-		},
+describe("the default instance", () => {
+	test("publishes the devtools handle on globalThis", () => {
+		const handle = (globalThis as Record<string, unknown>)["__vkmaDevtoolsBridge"] as {
+			tap: unknown;
+			send: (name: string, params?: Record<string, unknown>) => Promise<unknown>;
+		};
+		expect(handle).toBeDefined();
+		expect(typeof handle.send).toBe("function");
 	});
 
-	expect(seen.at(-1)).toMatchObject({ kind: "response", ok: false });
-});
+	test("the default instance streams through the module-level onSend/onEvent", async () => {
+		const sent: Array<{ name: string; requestId: unknown }> = [];
+		const incoming: string[] = [];
+		const offSend = onSend(event =>
+			sent.push({
+				name: event.name,
+				requestId: (event.payload as Record<string, unknown>)["request_id"],
+			}),
+		);
+		const offEvent = onEvent(event => incoming.push(event.name));
 
-test("incoming events without our request_id are tapped as unsolicited", () => {
-	const seen: BridgeTapEvent[] = [];
-	onTap(event => seen.push(event));
+		const promise = bridge.send("VKWebAppGetUserInfo");
+		const requestId = sent.at(-1)?.requestId;
+		window.dispatchEvent(
+			new MessageEvent("message", {
+				data: { type: "VKWebAppGetUserInfoResult", data: { id: 7, request_id: requestId } },
+			}),
+		);
+		await expect(promise).resolves.toEqual({ id: 7 });
+		// The first tap subscription replays the buffer, so earlier sends of
+		// this file show up too — assert on the newest event.
+		expect(sent.at(-1)?.name).toBe("VKWebAppGetUserInfo");
+		expect(incoming.at(-1)).toBe("VKWebAppGetUserInfoResult");
 
-	emitIncoming({ type: "VKWebAppUpdateConfig", data: { appearance: "dark" } });
-
-	expect(seen.at(-1)).toMatchObject({
-		direction: "in",
-		kind: "event",
-		name: "VKWebAppUpdateConfig",
+		offSend();
+		offEvent();
 	});
 });

@@ -12,7 +12,7 @@
 		"build": "pnpm -r --if-present build",
 		"dev": "pnpm -r --if-present --parallel dev",
 		"format": "pt format",
-		"lint": "pnpm --filter @vkma.dev/api-schema generate && run-p -l lint:*",
+		"lint": "pnpm --filter @vkma.dev/api-schema --filter @vkma.dev/bridge-schema generate && run-p -l lint:*",
 		"lint:apps": "pnpm --filter './apps/*' exec tsc --noEmit",
 		"lint:format": "pt format --check",
 		"lint:oxlint": "oxlint .",

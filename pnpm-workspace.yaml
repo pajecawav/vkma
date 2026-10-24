@@ -18,6 +18,7 @@ catalog:
     "@rsbuild/plugin-react": ^2.1.1
     cross-env: ^10.1.0
     devframe: ^1.2.6
+    happy-dom: ^21.0.4
     lucide-react: ^1.57.0
     npm-run-all2: ^9.0.3
     publint: ^0.3.25

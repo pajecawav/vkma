@@ -1,0 +1,12 @@
+{
+	"extends": "../../tsconfig.lib.json",
+	"compilerOptions": {
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
+		"types": ["node"],
+		"paths": {
+			"@vkma.dev/bridge-schema": ["./src/index.ts"],
+			"@vkma.dev/bridge-schema/schema": ["./src/schema.ts"]
+		}
+	},
+	"include": ["src", "scripts", "tsdown.config.ts", "vitest.config.ts"]
+}
