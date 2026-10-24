@@ -227,6 +227,46 @@ describe("timeout and abort", () => {
 			vi.useRealTimers();
 		}
 	});
+
+	test("timeout rejects even for unpaired sends (inject: false)", async () => {
+		vi.useFakeTimers();
+		try {
+			const { bridge } = createHarness({ requestId: { inject: false } });
+			const promise = bridge.send("VKWebAppGetUserInfo", undefined, { timeout: 1000 });
+			const assertion = expect(promise).rejects.toMatchObject({ name: "TimeoutError" });
+			await vi.advanceTimersByTimeAsync(1001);
+			await assertion;
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test("abort rejects even for unpaired sends (inject: false)", async () => {
+		const { bridge } = createHarness({ requestId: { inject: false } });
+		const controller = new AbortController();
+		const promise = bridge.send("VKWebAppGetUserInfo", undefined, {
+			signal: controller.signal,
+		});
+		const assertion = expect(promise).rejects.toMatchObject({ name: "AbortError" });
+		controller.abort();
+		await assertion;
+	});
+
+	test("a pre-aborted signal rejects without a tap send", async () => {
+		const tap = createTap();
+		const { bridge } = createHarness({ tap });
+		const seen: Array<{ direction: string }> = [];
+		tap.subscribe(event => seen.push({ direction: event.direction }));
+
+		const controller = new AbortController();
+		controller.abort();
+		await expect(
+			bridge.send("VKWebAppGetUserInfo", undefined, { signal: controller.signal }),
+		).rejects.toMatchObject({ name: "AbortError" });
+
+		// Nothing touched the wire — the tap must reflect that.
+		expect(seen).toEqual([]);
+	});
 });
 
 describe("native transports", () => {
@@ -317,5 +357,81 @@ describe("tap subscriptions", () => {
 
 		expect(sent).toEqual(["VKWebAppGetUserInfo"]);
 		expect(incoming).toEqual(["VKWebAppGetUserInfoResult", "VKWebAppUpdateInsets"]);
+	});
+});
+
+describe("subscribe fan-out", () => {
+	test("unsolicited events reach subscribers", () => {
+		const { bridge, respond } = createHarness();
+		const seen: Array<{ type?: unknown; data?: unknown }> = [];
+		bridge.subscribe(event =>
+			seen.push({ type: event.detail?.type, data: event.detail?.data }),
+		);
+
+		respond("VKWebAppUpdateInsets", { insets: { top: 1, left: 0, right: 0, bottom: 0 } });
+
+		expect(seen).toEqual([
+			{
+				type: "VKWebAppUpdateInsets",
+				data: { insets: { top: 1, left: 0, right: 0, bottom: 0 } },
+			},
+		]);
+	});
+
+	test("paired responses reach subscribers with the raw data, the promise strips request_id", async () => {
+		const { bridge, respond } = createHarness();
+		const seen: Array<Record<string, unknown> | undefined> = [];
+		bridge.subscribe(event => seen.push(event.detail?.data as Record<string, unknown>));
+
+		const promise = bridge.send("VKWebAppGetUserInfo");
+		respond("VKWebAppGetUserInfoResult", { id: 1 }, "__vkma_1");
+
+		// Upstream parity: promisifySend is itself a subscriber, so user
+		// handlers observe the wire event as-is — request_id not yet
+		// stripped; only the promise resolution strips it.
+		expect(await promise).toEqual({ id: 1 });
+		expect(seen).toEqual([{ id: 1, request_id: "__vkma_1" }]);
+	});
+
+	test("unsubscribe stops the delivery", () => {
+		const { bridge, respond } = createHarness();
+		const seen: string[] = [];
+		const handler = (event: { detail?: { type?: unknown } }): void => {
+			seen.push(String(event.detail?.type));
+		};
+
+		bridge.subscribe(handler);
+		respond("VKWebAppUpdateConfig", { scheme: "space_gray" });
+		bridge.unsubscribe(handler);
+		respond("VKWebAppViewRestore", {});
+
+		expect(seen).toEqual(["VKWebAppUpdateConfig"]);
+	});
+
+	test("VKWebAppSettings never reaches subscribers", () => {
+		const { bridge, respond } = createHarness();
+		const seen: Array<string | undefined> = [];
+		bridge.subscribe(event => seen.push(event.detail?.type));
+
+		respond("VKWebAppSettings", {});
+
+		expect(seen).toEqual([]);
+	});
+
+	test("supportsAsync refreshes its cache from unsolicited SetSupportedHandlers pushes", async () => {
+		const { bridge, parentPostMessage, respond } = createHarness();
+
+		const first = bridge.supportsAsync("VKWebAppOpenCodeReader");
+		respond("SetSupportedHandlers", { supportedHandlers: ["VKWebAppInit"] }, "__vkma_1");
+		expect(await first).toBe(false);
+
+		// An unsolicited push (no request_id — the host volunteered it).
+		respond("SetSupportedHandlers", {
+			supportedHandlers: ["VKWebAppInit", "VKWebAppOpenCodeReader"],
+		});
+		const roundTrips = parentPostMessage.mock.calls.length;
+		expect(await bridge.supportsAsync("VKWebAppOpenCodeReader")).toBe(true);
+		// Answered from the refreshed cache — no new round trip.
+		expect(parentPostMessage.mock.calls.length).toBe(roundTrips);
 	});
 });

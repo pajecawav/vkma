@@ -312,6 +312,24 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 		deliver({ detail: { type, data } });
 	}
 
+	/**
+	 * Upstream parity: every incoming event reaches `[...subscribers]` —
+	 * paired responses included, with the raw wire data (upstream's
+	 * promisifySend is itself a subscriber and strips request_id only for
+	 * the promise). Snapshot iteration: a handler may unsubscribe mid-fan.
+	 */
+	function fanOutToSubscribers(type: string, data: unknown): void {
+		// The wire type is stringly here by design — handleEvent dispatches
+		// arbitrary host envelopes; the public subscribe surface narrows it.
+		// The slice is a snapshot: a handler may unsubscribe mid-fan-out,
+		// and shifting live iteration would skip its neighbours (upstream
+		// copies the array for the same reason).
+		const out = { detail: { type, data } } as Parameters<VKBridgeSubscribeHandler>[0];
+		for (const listener of subscribers.slice()) {
+			listener(out);
+		}
+	}
+
 	/** Fan an incoming event out to the tap and to the subscribers. */
 	function deliver(event: { detail?: { type?: unknown; data?: unknown } }): void {
 		const { type, data } = event.detail ?? {};
@@ -326,6 +344,7 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 			const wireRequestId = data["request_id"];
 			if (typeof wireRequestId !== "string" && typeof wireRequestId !== "number") {
 				tap.emit({ direction: "in", kind: "event", name: type, payload: data });
+				fanOutToSubscribers(type, data);
 				return;
 			}
 			const requestId = String(wireRequestId);
@@ -348,11 +367,15 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 				} else {
 					pending.reject(payload);
 				}
+				// After the pairing listener's job (the promise is settled
+				// already, like upstream's first-registered pairing handler).
+				fanOutToSubscribers(type, data);
 				return;
 			}
 		}
 
 		tap.emit({ direction: "in", kind: "event", name: type, payload: data });
+		fanOutToSubscribers(type, data);
 	}
 
 	function subscribe(listener: VKBridgeSubscribeHandler): void {
@@ -385,6 +408,16 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 		sendOptions?: SendOptions,
 	) => {
 		return new Promise((resolve, reject) => {
+			const signal = sendOptions?.signal;
+			// A pre-aborted signal rejects before anything happens: no wire
+			// send, no tap entry, no pending slot (the tap reflects reality).
+			if (signal?.aborted) {
+				const error = new Error(`VK Bridge send "${method}" aborted`);
+				error.name = "AbortError";
+				reject(error);
+				return;
+			}
+
 			const sourceProps: Record<string, unknown> = { ...props };
 			const explicitId =
 				typeof sourceProps["request_id"] === "string" ||
@@ -420,13 +453,18 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 				if (timer !== undefined) {
 					clearTimeout(timer);
 				}
-				if (sendOptions?.signal && signalHandler) {
-					sendOptions.signal.removeEventListener("abort", signalHandler);
+				if (signal && signalHandler) {
+					signal.removeEventListener("abort", signalHandler);
 				}
 			};
 
+			// Timeout and abort must fire even for unpaired sends (no
+			// pending slot to consult — e.g. inject: false without a caller
+			// request_id): the caller asked for a bounded call. For paired
+			// sends the pending entry doubles as the "already answered"
+			// guard against a double rejection.
 			const timeoutReject = (): void => {
-				if (!pendingRequests.delete(String(requestId))) {
+				if (requestId !== undefined && !pendingRequests.delete(String(requestId))) {
 					return;
 				}
 				cleanup();
@@ -438,7 +476,7 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 			};
 
 			const abortReject = (): void => {
-				if (!pendingRequests.delete(String(requestId))) {
+				if (requestId !== undefined && !pendingRequests.delete(String(requestId))) {
 					return;
 				}
 				cleanup();
@@ -460,13 +498,9 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 			if (sendOptions?.timeout !== undefined) {
 				timer = setTimeout(timeoutReject, sendOptions.timeout);
 			}
-			if (sendOptions?.signal) {
-				if (sendOptions.signal.aborted) {
-					abortReject();
-					return;
-				}
+			if (signal) {
 				signalHandler = abortReject;
-				sendOptions.signal.addEventListener("abort", signalHandler);
+				signal.addEventListener("abort", signalHandler);
 			}
 
 			sendThroughTransport(method, wireProps);
