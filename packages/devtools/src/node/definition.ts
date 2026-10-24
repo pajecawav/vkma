@@ -1,6 +1,5 @@
 import { fileURLToPath } from "node:url";
 import { defineDevframe } from "devframe";
-import { s } from "devframe/utils/simple-schema";
 import {
 	VKMA_RPC,
 	type ClientInfo,
@@ -253,35 +252,62 @@ export const vkmaDevframe = defineDevframe({
 			},
 		});
 
-		ctx.rpc.register({
-			name: VKMA_RPC.mcpExecute,
-			type: "action",
-			jsonSerializable: true,
-			agent: {
-				description:
-					"Execute a VK Bridge method (e.g. VKWebAppGetUserInfo) on a connected mini app client and await its result. Client ids come from vkma:mcp-state. Mutates the running app's bridge state, not files.",
-				safety: "action",
-				examples: [
-					{
-						args: [{ clientId: "c3f…", name: "VKWebAppGetUserInfo" }],
-						description: "Fetch the current user on the given client",
+		// The execute twin is a plain agent tool, not an agent-flagged RPC:
+		// devframe projects a single-payload RPC arg positionally, so the
+		// MCP input schema would demand `{ arg0: … }` and flat input would
+		// fail validation (DF0043). The explicit flat `inputSchema` wins
+		// over the synthesized one, and the handler receives the caller's
+		// input as-is — no positional conversion.
+		ctx.agent.registerTool({
+			id: VKMA_RPC.mcpExecute,
+			title: "Execute a VK Bridge method",
+			description:
+				"Execute a VK Bridge method (e.g. VKWebAppGetUserInfo) on a connected mini app client and await its result. Client ids come from vkma:mcp-state. Mutates the running app's bridge state, not files.",
+			safety: "action",
+			inputSchema: {
+				type: "object",
+				properties: {
+					clientId: {
+						type: "string",
+						description: "Target client id from vkma:mcp-state",
 					},
-				],
+					name: {
+						type: "string",
+						description: "VK Bridge method name, e.g. VKWebAppGetUserInfo",
+					},
+					params: {
+						type: "object",
+						description: "Optional VK Bridge method params",
+					},
+				},
+				required: ["clientId", "name"],
+				additionalProperties: false,
 			},
-			handler: async (payload: {
-				clientId: string;
-				name: string;
-				params?: Record<string, unknown>;
-			}) => toMcpJson(await runExecute(payload)),
-			args: [
-				// `params` stays undocumented-by-schema on purpose (no `any()`
-				// in simple-schema); it passes through as an extra key, and the
-				// agent description + examples cover it.
-				s.object({
-					clientId: s.describe(s.string(), "Target client id from vkma:mcp-state"),
-					name: s.describe(s.string(), "VK Bridge method name, e.g. VKWebAppGetUserInfo"),
-				}),
+			examples: [
+				{
+					args: [{ clientId: "c3f…", name: "VKWebAppGetUserInfo" }],
+					description: "Fetch the current user on the given client",
+				},
 			],
+			handler: async (input: {
+				clientId?: unknown;
+				name?: unknown;
+				params?: Record<string, unknown>;
+			}) => {
+				// Plain tools bypass RPC args validation — guard the required
+				// fields here; `params` passes through unchecked (the page-side
+				// execute reports VK's own rejection).
+				if (typeof input?.clientId !== "string" || typeof input?.name !== "string") {
+					throw new Error("vkma:mcp-execute: string `clientId` and `name` are required");
+				}
+				return toMcpJson(
+					await runExecute({
+						clientId: input.clientId,
+						name: input.name,
+						params: input.params,
+					}),
+				);
+			},
 		});
 
 		async function runExecute(payload: {

@@ -84,8 +84,10 @@ export const VKMA_RPC = {
 	onSessionReset: "vkma:on-session-reset",
 	/**
 	 * Agent-facing (MCP) mirrors of `state`/`execute`: same data, but every
-	 * app-provided payload sanitized to plain JSON (`jsonSerializable` is
-	 * required for agent-exposed functions).
+	 * app-provided payload sanitized to plain JSON. `mcpState` is an
+	 * agent-flagged RPC (no args → flat input); `mcpExecute` is only the
+	 * agent tool id — it registers via `ctx.agent.registerTool` with an
+	 * explicit flat inputSchema, not as an RPC.
 	 */
 	mcpState: "vkma:mcp-state",
 	mcpExecute: "vkma:mcp-execute",
