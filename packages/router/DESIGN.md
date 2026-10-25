@@ -4,9 +4,10 @@ VK Mini Apps router built on top of TanStack Router. Successor to
 `@vkontakte/vk-mini-apps-router`: **feature parity, not API parity** — a
 migration guide ships instead of drop-in compatibility.
 
-This document is the shared understanding produced by the design sessions
-(2026-10). Everything under "Decided" is settled; "Spikes" is the validation
-plan that precedes implementation.
+**Status: v0.1 implemented and validated end-to-end in
+`playground/router-spike`** (which consumes the package, not copies of it).
+See "Spikes" for the validation history and "Implementation notes" for the
+hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Product frame
 
@@ -76,12 +77,20 @@ plan that precedes implementation.
 ## Overlays
 
 - **Modals are routes** (+ route masking, a documented TanStack pattern):
-  back closes for free, deep links work, modal chains are just history.
-    - Local modals: child routes of a panel.
-    - Global modals: pathless route at the root, opened from anywhere via a
-      search param (`?modal=<id>`) and masked to the current path.
+  back closes for free, deep links work.
+    - Local modals: SIBLING child routes of a panel (chain steps are
+      siblings — nesting modal routes inside each other keeps the parent
+      matched and stacks two open sheets, the user-reported bug).
+    - Global modals: rendered by the host from `?modal=<id>` on any panel
+      (deep-linkable; masking them is a v0.1 TODO — needs an imperative
+      `mask` on the open action).
     - Resolution local → global; the same `id` declared in both places is a
       dev-time error.
+    - **Sequential choreography**: when the matched modal changes, the host
+      closes the displayed sheet (`open={false}` + keepMounted exit budget)
+      and opens the new one only after the exit completes — never two open
+      sheets at once. Modal→modal navigation REPLACES the history entry
+      (old-router parity: back returns to the panel).
 - **Popouts** (Alert/ActionSheet/ScreenSpinner) are transient overlays, not
   routes: `history.state` holds `{ popout: id, props }`; back closes them.
   Components are declared per-panel and/or globally (same resolution and
