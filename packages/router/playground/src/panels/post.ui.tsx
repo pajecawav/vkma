@@ -20,28 +20,16 @@ import {
 	TabsItem,
 	Text,
 } from "@vkontakte/vkui";
-import type { ComponentType } from "react";
-import { app } from "../app";
+import type { ReactElement } from "react";
 import { posts, users } from "../data";
 import { InitialsAvatar } from "../ui";
+import { postPanel, type PostSearch } from "./post.panel";
 
-/**
- * The lazy panel chunk: split out of the main bundle, resolved on match
- * (the builder bridges these plain options into route.lazy()).
- */
-
-export const postLazy = async (_routeId: string): Promise<{ component: ComponentType }> => ({
-	component: PostPanel,
-});
-
-export interface PostSearch {
-	tab?: "comments" | "likes";
-}
-
-function PostPanel() {
+/** The lazy panel chunk: split out of the main bundle, resolved on match. */
+export default function PostPanel(): ReactElement {
 	const navigator = useNavigator();
-	const { id } = usePanelParams(app.panels["feed/post/$id"]);
-	const search = usePanelSearch(app.panels["feed/post/$id"]);
+	const { id } = usePanelParams(postPanel);
+	const search = usePanelSearch(postPanel);
 	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
 	const author = users[post.authorId]!;
 	const setTab = (tab: PostSearch["tab"]) => {

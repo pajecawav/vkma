@@ -13,7 +13,7 @@ import { useState } from "react";
 import { chatTitleOf, chats, users } from "../data";
 import { InitialsAvatar } from "../ui";
 
-export function ChatsPanel() {
+export default function ChatsPanel() {
 	const navigator = useNavigator();
 	const [query, setQuery] = useState("");
 	const filtered = chats.filter(chat =>

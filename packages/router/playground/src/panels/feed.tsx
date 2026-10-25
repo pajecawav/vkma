@@ -7,23 +7,17 @@ import {
 	IconButton,
 	PanelHeader,
 	PanelHeaderBack,
-	ScreenSpinner,
 	Separator,
 	SimpleCell,
 	Text,
 } from "@vkontakte/vkui";
-import { app } from "../app";
 import { users, type Post } from "../data";
 import { InitialsAvatar } from "../ui";
+import { feedPanel } from "./feed.panel";
 
-/** Loader data shape of the feed index panel. */
-export interface FeedLoaderData {
-	posts: Post[];
-}
-
-export function FeedPanel() {
+export default function FeedPanel() {
 	const navigator = useNavigator();
-	const data = usePanelLoaderData(app.panels["feed/feed"]);
+	const data = usePanelLoaderData(feedPanel);
 
 	return (
 		<>
@@ -93,8 +87,4 @@ function PostCard({
 			</div>
 		</div>
 	);
-}
-
-export function FeedPending() {
-	return <ScreenSpinner />;
 }

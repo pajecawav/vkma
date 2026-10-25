@@ -17,9 +17,9 @@ import {
 	Text,
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
-import { app } from "../app";
 import { posts, users } from "../data";
 import { InitialsAvatar } from "../ui";
+import { postPanel } from "./post.panel";
 
 /** Route modals of the post panel — lazy chunks next to the panel itself.
  * Each component renders its own surface (page or card) and owns every
@@ -27,7 +27,7 @@ import { InitialsAvatar } from "../ui";
 
 export function CommentsModal(): ReactElement {
 	const navigator = useNavigator();
-	const { id } = usePanelParams(app.panels["feed/post/$id"]);
+	const { id } = usePanelParams(postPanel);
 	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
 
 	return (
@@ -114,7 +114,7 @@ export function ThreadModal(): ReactElement {
  * state) with a fallback, actions use the navigator.
  */
 export function ShareCard(): ReactElement {
-	const { id } = usePanelParams(app.panels["feed/post/$id"]);
+	const { id } = usePanelParams(postPanel);
 	const { note } = useModalProps<{ note?: string }>() ?? {};
 	const navigator = useNavigator();
 	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;

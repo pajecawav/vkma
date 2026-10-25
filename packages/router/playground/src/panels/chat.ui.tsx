@@ -12,19 +12,13 @@ import {
 	WriteBar,
 	WriteBarIcon,
 } from "@vkontakte/vkui";
-import type { ComponentType } from "react";
-import { app } from "../app";
 import { chatTitleOf, chats } from "../data";
+import { chatPanel } from "./chat.panel";
 
 /** Lazy chat screen — deep-linkable (#/chat/anna inflates the chain). */
-
-export const chatLazy = async (_routeId: string): Promise<{ component: ComponentType }> => ({
-	component: ChatPanel,
-});
-
-function ChatPanel() {
+export default function ChatPanel() {
 	const navigator = useNavigator();
-	const { id } = usePanelParams(app.panels["messages/chat/$id"]);
+	const { id } = usePanelParams(chatPanel);
 	const chat = chats.find(candidate => candidate.id === id);
 
 	if (chat === undefined) {
