@@ -107,14 +107,23 @@ read it before touching anything here.
   `staticData` panel/modal ids use build-time keys
   (`${viewKey}/${panelKey}`), never `route.id`.
 - **Typed panel handles** (preset): two shapes.
-  **`definePanel(view, path, options, lazy?)` is the recommended one** —
-  the returned definition IS the typed handle (phantom `types` derived from
-  the panel's own options: `$param` path segments → params, `validateSearch`
-  return → search, `loader` return → loaderData; `routeId` is the literal
-  `/view:${view}/${path}` convention). Chunk modules import their
-  DEFINITION — never the app — so the app disappears from the chunk graph
-  and `app.tsx` needs no erasers or two-phase tricks. Non-negotiable rules
-  that keep the type graph acyclic:
+  **`defineView` hubs + `definePanel` are the recommended one.** A view hub
+  (`export const feedView = defineView("feed")` in
+  `panels/feed/feed.panel.tsx`) is the ONE place the view key is written;
+  `feedView.panel(path, options, lazy?)` creates the definition
+  (view-scoped `definePanel`) and registers it in call order — the order is
+  what the VKUI View children get, i.e. the push/pop animation direction.
+  `createApp({ views: [profileView, ...] })` takes the hubs as a flat array
+  (→ loose `AppHandle`); the raw `views: Record<string, ViewOptions>` form
+  (→ `TypedAppHandle`, typed `app.panels` map) stays for small inline apps.
+  Directory convention per view: `panels/<view>/<view>.panel.ts(x)` (the
+  hub, sorts first) + `<name>.ui.tsx` chunks (annotated `: ReactElement`) +
+  private modal chunks. A definition IS the typed handle (phantom `types`
+  derived from the panel's own options: `$param` path segments → params,
+  `validateSearch` return → search, `loader` return → loaderData; `routeId`
+  is the literal `/view:${view}/${path}` convention). Chunk modules import
+  their HUB — never the app — so `app.tsx` needs no erasers or two-phase
+  tricks. Non-negotiable rules that keep the type graph acyclic:
     1. The definition's stored type is CLOSED (`options` are widened; the
        data types travel only in the phantom). The `lazy` loader is a
        SEPARATE factory parameter, not an options member — its arrow
@@ -127,11 +136,12 @@ read it before touching anything here.
        and a deferred signature inside the definition's initializer graph
        re-opens the same cycle (route modals in `post-modals.tsx` carry the
        annotation for exactly this reason).
-    3. The definition file must sort BEFORE its chunk
-       (`feed.panel.tsx` < `feed.tsx`, `post.panel.ts` < `post.ui.tsx`) —
-       TypeScript enters the checking graph from whichever file it reaches
-       first; `definePanel(view, ...)` vs the `views.${view}` nesting key
-       mismatch is a dev-time console error.
+    3. The hub file must sort BEFORE its chunks
+       (`feed.panel.tsx` < `feed.ui.tsx`/`post.ui.tsx`) — TypeScript enters
+       the checking graph from whichever file it reaches first; the
+       directory convention (`<view>.panel.ts(x)` prefixes with the view
+       name) guarantees it. Duplicate view keys and duplicate panel paths
+       within a hub are dev-time console errors.
        The raw inline path stays for small apps: panels declared directly in
        `createApp` keep `app.panels["feed/post/$id"]` (literal-keyed map) and
        MUST wrap `lazy` in the `panel()` eraser for the same cyclic reasons.

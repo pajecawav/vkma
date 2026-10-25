@@ -11,9 +11,10 @@ in history state, VK history in hash (default, `#/path`) or hash-param
 deep-link inflate, typed preset builders with an auto-shell, and a parity
 navigator. Panel handles are fully typed: `app.panels` keys, route ids and
 the params/search/loaderData types flowing through the data hooks are all
-inferred from the declared views. `definePanel` makes each panel a
-self-contained definition that doubles as its typed handle — chunks import
-definitions instead of the app, with no eraser casts. Modal entries render
+inferred from the declared views. `defineView` hubs make the view key
+write-once, `definePanel` definitions double as the panels' typed handles,
+and the hubs carry the panels — chunks import hubs instead of the app,
+with no eraser casts. Modal entries render
 their own surface (`ModalPageSurface`/`ModalCardSurface`) with full runtime
 props, and `showModal({ props })` passes serializable data into the modal
 through history state (`useModalProps`). The sequential modal choreography

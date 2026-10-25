@@ -131,13 +131,11 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Preset facade (`/preset`)
 
-- **`definePanel(view, path, options, lazy?)`** declares a panel as a
-  self-contained definition that doubles as its typed handle; chunk modules
-  import the definition (never the app), so the app import — and with it
-  the inference cycles and eraser casts — disappears from chunks. The
-  definition's stored type is widened+closed (`lazy` is a separate
-  parameter; UI chunks annotate their component returns) — see the
-  AGENTS invariants for the three acyclicity rules.
+- **`defineView(view, options?)`** declares a view hub — the one place the
+  view key is written; its `panel()` method is a view-scoped `definePanel`
+  that registers definitions in call order. `createApp` takes the hubs as a
+  flat array (`views: [feedView, ...]`). See the AGENTS invariants for the
+  acyclicity rules.
 - **Typed builders** (`createApp`, `createView`, `createPanel`,
   `createModal`, popout declarations) that generate the TanStack route tree.
   Every node accepts raw TanStack options (`loader`, `beforeLoad`,

@@ -13,6 +13,7 @@ export { AppRootShell, useInflate } from "./preset/app.tsx";
 export { deriveInflateChain } from "./preset/inflate.ts";
 export { useNavigator, type VkNavigator } from "./preset/navigator.ts";
 export { definePanel, panelRouteId, type PanelDefinition } from "./preset/define-panel.ts";
+export { defineView, type ViewDefinition } from "./preset/define-view.ts";
 
 // the batteries a mini app almost always needs, one import away
 export {

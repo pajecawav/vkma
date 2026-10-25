@@ -4,6 +4,7 @@ import type { ModalEntry } from "../vkui/modals.tsx";
 import type { PopoutEntry } from "../vkui/popouts.tsx";
 import { AppRootShell } from "./app.tsx";
 import { PANEL_DEFINITION, type PanelDefinition } from "./define-panel.ts";
+import { VIEW_DEFINITION, type ViewDefinition } from "./define-view.ts";
 
 /**
  * Typed builders that generate the TanStack route tree in the /vkui
@@ -22,7 +23,7 @@ import { PANEL_DEFINITION, type PanelDefinition } from "./define-panel.ts";
  * structural type; the registered route tree provides the real typing for
  * navigation, loaders and search.
  */
-type LooseRouteOptions = Partial<
+export type LooseRouteOptions = Partial<
 	Omit<NonNullable<AnyRoute>["options"], "getParentRoute" | "path" | "id">
 >;
 
@@ -160,9 +161,7 @@ export interface TypedAppHandle<TViews extends Record<string, ViewOptions>> {
 	inflate: boolean;
 }
 
-export interface AppOptions<
-	TViews extends Record<string, ViewOptions> = Record<string, ViewOptions>,
-> {
+export interface AppOptionsBase {
 	/**
 	 * Custom root shell (renders inside the router context). Defaults to
 	 * AppRootShell: the active view + modal/popout hosts. Deliberately
@@ -171,7 +170,6 @@ export interface AppOptions<
 	 * (TS7022) — typed panel handles are read from the RETURN value.
 	 */
 	root?: (props: { app: AppHandle }) => ReactNode;
-	views: TViews;
 	/** Global modals: `?modal=<id>` opens them from any panel. */
 	modals?: Record<string, ModalComponent>;
 	/** Global popout registry. */
@@ -181,6 +179,17 @@ export interface AppOptions<
 	 * the panel flow before it, so back walks the natural chain.
 	 */
 	inflate?: boolean;
+}
+
+export interface AppOptions<
+	TViews extends Record<string, ViewOptions> = Record<string, ViewOptions>,
+> extends AppOptionsBase {
+	views: TViews;
+}
+
+/** `createApp` with `defineView` hubs — handles live on the panel definitions. */
+export interface AppDefinitionOptions extends AppOptionsBase {
+	views: readonly ViewDefinition[] | Record<string, ViewDefinition>;
 }
 
 /**
@@ -206,9 +215,47 @@ export function panel(load: PanelLazy): PanelLazy {
 	return load;
 }
 
+/** Normalized view entries the builder loop consumes. */
+interface DeclaredView {
+	viewKey: string;
+	viewRest: LooseRouteOptions;
+	viewPanels: Record<string, PanelOptions | PanelDefinition>;
+}
+
+function normalizeViews(views: unknown): DeclaredView[] {
+	if (Array.isArray(views)) {
+		return (views as readonly ViewDefinition[]).map(definition => ({
+			viewKey: definition.view,
+			viewRest: (definition.options ?? {}) as LooseRouteOptions,
+			viewPanels: { ...definition.panels },
+		}));
+	}
+	return Object.entries(views as Record<string, unknown>).map(([viewKey, declared]) => {
+		if (VIEW_DEFINITION in (declared as object)) {
+			const definition = declared as ViewDefinition;
+			if (definition.view !== viewKey) {
+				console.error(
+					`[vkma-router] view "${definition.view}" is nested under key "${viewKey}"; the hub's view string and the nesting key must match`,
+				);
+			}
+			return {
+				viewKey: definition.view,
+				viewRest: (definition.options ?? {}) as LooseRouteOptions,
+				viewPanels: { ...definition.panels },
+			};
+		}
+		const { panels, ...viewRest } = declared as ViewOptions;
+		return { viewKey, viewRest: viewRest as LooseRouteOptions, viewPanels: panels ?? {} };
+	});
+}
+
+/** Definition-form views: the typed handles live on the panel definitions. */
+export function createApp(options: AppDefinitionOptions): AppHandle;
+/** Raw inline options: `app.panels` is fully typed from the declared tree. */
 export function createApp<const TViews extends Record<string, ViewOptions>>(
 	options: AppOptions<TViews>,
-): TypedAppHandle<TViews> {
+): TypedAppHandle<TViews>;
+export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const modals: ModalEntry[] = [];
 	const popouts: PopoutEntry[] = Object.entries(options.popouts ?? {}).map(([id, Component]) => ({
 		id,
@@ -231,6 +278,7 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 	}> = [];
 	/** full panel path → owning panel key, for the duplicate-path dev check */
 	const usedPaths = new Map<string, string>();
+	const usedViewKeys = new Set<string>();
 
 	const customRoot = options.root;
 	const rootRoute = createRootRoute({
@@ -243,8 +291,14 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 			: () => <AppRootShell app={handle} />) as never,
 	});
 
-	for (const [viewKey, viewOptions] of Object.entries(options.views)) {
-		const { panels: viewPanels, ...viewRest } = viewOptions;
+	for (const { viewKey, viewRest, viewPanels } of normalizeViews(options.views)) {
+		if (usedViewKeys.has(viewKey)) {
+			console.error(
+				`[vkma-router] duplicate view "${viewKey}"; a view must be declared exactly once (one defineView hub)`,
+			);
+			continue;
+		}
+		usedViewKeys.add(viewKey);
 		const viewRoute = createRoute({
 			getParentRoute: () => rootRoute,
 			id: `view:${viewKey}`,
@@ -361,7 +415,7 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 		views,
 		inflate: options.inflate ?? true,
 	};
-	// the runtime shape matches; the literal route-id types are only
+	// the TypedAppHandle overload's literal route-id types are only
 	// computable through the caller's generic
-	return handle as unknown as TypedAppHandle<TViews>;
+	return handle;
 }
