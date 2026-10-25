@@ -25,6 +25,7 @@
 		"@vkma.dev/protocol": "workspace:*",
 		"lucide-react": "catalog:",
 		"react": "catalog:",
-		"react-dom": "catalog:"
+		"react-dom": "catalog:",
+		"tailwindcss": "catalog:"
 	}
 }

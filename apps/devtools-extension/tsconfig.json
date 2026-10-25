@@ -4,9 +4,9 @@
 
 		"target": "ES2022",
 		"useDefineForClassFields": true,
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
-		"types": ["chrome", "node"],
+		"types": ["chrome"],
 		"skipLibCheck": true,
 
 		/* Bundler mode */
@@ -19,9 +19,8 @@
 		"allowJs": true,
 		"esModuleInterop": true,
 
-		/* Solid */
-		"jsx": "preserve",
-		"jsxImportSource": "solid-js",
+		/* React */
+		"jsx": "react-jsx",
 
 		/* Linting */
 		"strict": true,
@@ -29,5 +28,5 @@
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true
 	},
-	"include": ["src", "rsbuild.config.ts"]
+	"include": ["src", "rsbuild.config.ts", "css.d.ts"]
 }

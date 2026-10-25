@@ -1,0 +1,71 @@
+{
+	"$schema": "https://json.schemastore.org/chrome-manifest",
+	"manifest_version": 3,
+	"name": "vkma devtools",
+	"description": "VK Bridge devtools for VK Mini Apps — event timeline and execute on any vk.ru page",
+	"version": "0.0.0",
+	"minimum_chrome_version": "116",
+	"permissions": ["storage", "sidePanel"],
+	"action": {
+		"default_title": "vkma devtools — open the panel in a tab"
+	},
+	"side_panel": {
+		"default_path": "panel.html"
+	},
+	"background": {
+		"service_worker": "background.js",
+		"type": "module"
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"*://vk.com/*",
+				"*://vk.ru/*",
+				"*://*.vk.com/*",
+				"*://*.vk.ru/*",
+				"*://web.vk.me/*",
+				"*://*.dzen.ru/*",
+				"*://*.ok.ru/*",
+				"*://*.okcdn.ru/*",
+				"*://*.gameroom.games.mail.ru/*",
+				"*://vkvideo.ru/*",
+				"*://*.vkvideo.ru/*",
+				"*://max.ru/*"
+			],
+			"js": ["host.js"],
+			"run_at": "document_end"
+		},
+		{
+			"matches": ["http://*/*", "https://*/*"],
+			"js": ["frame.js"],
+			"all_frames": true,
+			"run_at": "document_start"
+		},
+		{
+			"matches": ["http://*/*", "https://*/*"],
+			"js": ["relay.js"],
+			"all_frames": true,
+			"run_at": "document_start",
+			"world": "MAIN"
+		}
+	],
+	"web_accessible_resources": [
+		{
+			"resources": ["panel.html", "static/*"],
+			"matches": [
+				"*://vk.com/*",
+				"*://vk.ru/*",
+				"*://*.vk.com/*",
+				"*://*.vk.ru/*",
+				"*://web.vk.me/*",
+				"*://*.dzen.ru/*",
+				"*://*.ok.ru/*",
+				"*://*.okcdn.ru/*",
+				"*://*.gameroom.games.mail.ru/*",
+				"*://vkvideo.ru/*",
+				"*://*.vkvideo.ru/*",
+				"*://max.ru/*"
+			]
+		}
+	]
+}
