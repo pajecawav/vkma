@@ -100,6 +100,7 @@ function DetailsModal() {
 					onClick={() =>
 						void navigate({
 							to: "/item/$id/details/more",
+							search: {},
 							params: { id },
 						})
 					}

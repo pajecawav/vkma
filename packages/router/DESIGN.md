@@ -153,11 +153,10 @@ plan that precedes implementation.
    `feat(router): spike 1`) and "Spike 1 verdict" below.
 2. **Modals** — ✅ done (commit `feat(router): spike 2 — modals as routes
    with masking`), see "Spike 2 verdict" below.
-3. **VK-history**: `createHistory` over the hash; launch-param isolation;
-   `VKWebAppSetLocation`/`ChangeFragment` sync (fake bridge) with loop
-   protection; manual hash edits; browser mode.
-4. **TanStack passthrough**: loaders/pending/`beforeLoad`/typed search
-   through preset builders; nothing re-wrapped or broken.
+3. **VK-history** — ✅ done (commit `feat(router): spike 3 — VK history +
+   fake host bridge sync`), see "Spike 3 verdict" below.
+4. **TanStack passthrough** — ✅ done (commit `feat(router): spike 4`),
+   see "Spike 4 verdict" below.
 
 ### Spike 1 verdict (2026-10-25, playground/router-spike)
 
@@ -223,13 +222,79 @@ plan that precedes implementation.
 - VKUI housekeeping: `Div` is deprecated (use `Box`) — the spike uses it,
   the real package must not.
 
+### Spike 3 verdict (2026-10-25, playground/router-spike)
+
+**VK history + bridge sync validated.** Questions answered:
+
+- ✅ **`createVkHistory`** = `createBrowserHistory` with swapped
+  `parseLocation`/`createHref` (the same trick TanStack's own hash history
+  uses) — inherits blockers, popstate classification, throttling, TSR
+  index/key stamping. The whole router location rides in one hash query
+  param (`#?path=%2Fitem%2F7`), **foreign hash params (UTM) survive every
+  navigation**, and the real `location.search` (launch params) is never
+  touched.
+- ✅ **`VKWebAppSetLocation` sync**: must serialize from the history
+  EVENT's location, not `window.location` — history notifies subscribers
+  synchronously BEFORE its microtask flush writes the URL, so the hash is
+  stale by one entry. The initial location is sent once at init. Host
+  semantics: `replace_state: true`.
+- ✅ **`VKWebAppChangeFragment` inbound**: navigate `{ href, replace }`;
+  an echo of the current location is ignored — loop protection verified
+  (re-sending the current fragment twice: suppressed, no navigation).
+- ✅ **Manual hash edits**: an entry without TanStack state is stamped
+  `lastIndex + 1` inside `parseLocation`, so popstate classifies it as
+  FORWARD — it behaves like a push (the old router's trick, now proven
+  against `__TSR_index`). Verified: editing the hash navigates, back
+  returns.
+- ⚠️ The sync layer must be initialized AFTER the router exists (a module
+  cycle with routes.ts is a TDZ crash); the fake-host model also showed
+  that "host back" is NOT a fragment pop (that's `VKWebAppClose`
+  territory) — `ChangeFragment` models host-initiated jumps.
+- Not separately validated: the browser-history escape hatch (stock
+  TanStack history, trivial swap) — covered by TanStack's own tests.
+
+### Spike 4 verdict (2026-10-25, playground/router-spike)
+
+**TanStack features pass through the VKUI layer untouched.**
+
+- ✅ **`loader` + `pendingComponent`** render inside the static-children
+  model: the pending spinner lives inside the panel, the loader data
+  arrives on settle. Note: `useLoaderData` has NO `shouldThrow` option —
+  read loader data through `useMatch({ shouldThrow: false }).loaderData`;
+  the `/vkui` data hooks must wrap exactly that family.
+- ✅ **`beforeLoad` guard**: `throw redirect({ to: "/" })` for a forbidden
+  param (`/item/666`) redirects home, works through the VK history.
+- ✅ **Typed search** (`validateSearch`): typed reads in the panel (with
+  the departing-freeze semantics), round-trips through the hash-param
+  encoding (`#?path=%2Fitem%2F7%3Ftab%3Dreviews`) and `SetLocation`.
+- ⚠️ **Finding**: a function-based `validateSearch` must return an
+  explicitly all-optional shape (`{ tab?: string }`), otherwise
+  `Link`/`navigate`/masks DEMAND `search` (MakeRequiredSearchParams). The
+  real package should recommend Standard Schema validators (zod v4 /
+  valibot + the TanStack adapters) for proper input/output inference.
+- ⚠️ TanStack warns about a missing `defaultNotFoundComponent` — the real
+  package must ship a VKUI-styled 404 default (parity with the old
+  router's `notFound` option).
+
 ## Open questions
 
-- Spike 3: exact loop-protection contract between `SetLocation` and
-  `ChangeFragment`; behavior when the host rewrites the fragment.
-- Spike 4: which TanStack versions does the peer range need (floor);
-  interplay of `search.strict` with our isolated hash params.
 - Global modal masking strategy (imperative `mask` on the open action vs
   per-panel declarative masks) — decide during implementation.
 - Peer versions to pin: `@vkontakte/vkui` `^8` (v7 compatibility to be
-  fact-checked against the `open` prop history), TanStack `^1.170`.
+  fact-checked against the `open` prop history), TanStack `^1.170` (floor
+  to be confirmed against the `useMatch({ shouldThrow })` API surface).
+- Mobile webviews: unit-tested via fakes here; the manual device checklist
+  gates the first release (same ritual as the bridge package).
+
+## Implementation notes carried out of the spikes
+
+- The `usePanelParams`/`usePanelSearch`/loader-data hooks (`shouldThrow:
+  false` + retain-last-value) are a hard requirement (spike 1).
+- The stack mirror writes on `status === "idle"` only and anchors init at
+  the real `__TSR_index` (spike 1); `__TSR_index` survives reloads.
+- Serialize `SetLocation` from the history event, not `window.location`
+  (spike 3); stamp stateless entries `lastIndex + 1` (spike 3).
+- Keep-seen-modals-mounted (`keepMounted`) for closing animations (spike 2).
+- Prefer Standard Schema validators over function `validateSearch` (spike 4).
+- Ship a VKUI `defaultNotFoundComponent`; avoid deprecated VKUI `Div`
+  (use `Box`) and build for a `ModalRoot`-free future (spikes 2).

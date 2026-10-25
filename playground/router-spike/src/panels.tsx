@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useMatch, useRouterState } from "@tanstack/react-router";
 import {
 	Button,
 	CellButton,
@@ -8,6 +8,7 @@ import {
 	PanelHeader,
 	PanelHeaderBack,
 	Placeholder,
+	ScreenSpinner,
 } from "@vkontakte/vkui";
 import { useOpenGlobalModal } from "./modals";
 
@@ -47,6 +48,21 @@ export function HomePanel() {
 				</CellButton>
 				<CellButton>
 					<Link to="/about">→ about</Link>
+				</CellButton>
+			</Group>
+			<Group header={<Header>spike 4: TanStack passthrough</Header>}>
+				<CellButton>
+					<Link to="/feed">⟳ feed (loader + pending)</Link>
+				</CellButton>
+				<CellButton>
+					<Link to="/item/$id" params={{ id: "7" }} search={{ tab: "reviews" }}>
+						? item 7 with ?tab=reviews (typed search)
+					</Link>
+				</CellButton>
+				<CellButton>
+					<Link to="/item/$id" params={{ id: "666" }}>
+						🚫 item 666 (beforeLoad → redirect home)
+					</Link>
 				</CellButton>
 			</Group>
 			<Group header={<Header>spike 2: overlays</Header>}>
@@ -98,5 +114,34 @@ export function AboutPanel() {
 				<Placeholder>Static panel, nothing to see.</Placeholder>
 			</Group>
 		</>
+	);
+}
+
+/** spike 4: loader data through the static-children model. */
+export function FeedPanel() {
+	// shouldThrow:false on useMatch — the departing panel must not crash (spike 1)
+	const match = useMatch({ from: "/view-main/feed", shouldThrow: false });
+	const data = match?.loaderData as { items: string[] } | undefined;
+	return (
+		<>
+			<PanelHeader before={<PanelHeaderBack onClick={() => window.history.back()} />}>
+				Feed
+			</PanelHeader>
+			<Group>
+				{data ? (
+					<Placeholder>loaded: {data.items.join(", ")}</Placeholder>
+				) : (
+					<Placeholder>no loader data (departing?)</Placeholder>
+				)}
+			</Group>
+		</>
+	);
+}
+
+export function FeedPending() {
+	return (
+		<div style={{ height: "100vh" }}>
+			<ScreenSpinner />
+		</div>
 	);
 }

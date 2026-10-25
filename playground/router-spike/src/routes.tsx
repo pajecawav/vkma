@@ -3,9 +3,11 @@ import {
 	createRoute,
 	createRouteMask,
 	createRouter,
+	redirect,
 } from "@tanstack/react-router";
-import { AboutPanel, HomePanel, ListPanel } from "./panels";
+import { AboutPanel, FeedPanel, FeedPending, HomePanel, ListPanel } from "./panels";
 import { Shell } from "./Shell";
+import { createVkHistory } from "./vkHistory";
 import { VkuiView } from "./VkuiView";
 
 /**
@@ -46,9 +48,30 @@ const itemRoute = createRoute({
 	getParentRoute: () => viewRoute,
 	path: "item/$id",
 	staticData: { panel: "item" },
+	// spike 4: typed search passed straight through to TanStack
+	validateSearch: (search: { tab?: string }): { tab?: string } => ({ tab: search.tab }),
+	// spike 4: beforeLoad guard — item 666 is forbidden, redirects home
+	beforeLoad: ({ params }) => {
+		if (params.id === "666") {
+			throw redirect({ to: "/" });
+		}
+	},
 });
 // lazy panel: chunk splits without file-based routing (code-based createLazyRoute)
 itemRoute.lazy(() => import("./panels/item.lazy").then(m => m.itemLazy));
+
+// spike 4: loader + pendingComponent through the static-children model
+const feedRoute = createRoute({
+	getParentRoute: () => viewRoute,
+	path: "feed",
+	staticData: { panel: "feed" },
+	loader: async () => {
+		await new Promise(resolve => setTimeout(resolve, 700));
+		return { items: ["alpha", "beta", "gamma"] };
+	},
+	pendingComponent: FeedPending,
+	component: FeedPanel,
+});
 
 const aboutRoute = createRoute({
 	getParentRoute: () => viewRoute,
@@ -76,6 +99,7 @@ export const routeTree = rootRoute.addChildren([
 	viewRoute.addChildren([
 		homeRoute,
 		listRoute,
+		feedRoute,
 		itemRoute.addChildren([detailsRoute.addChildren([moreRoute])]),
 		aboutRoute,
 	]),
@@ -95,7 +119,11 @@ const moreMask = createRouteMask({
 	to: "/item/$id",
 });
 
-export const router = createRouter({ routeTree, routeMasks: [detailsMask, moreMask] });
+export const router = createRouter({
+	routeTree,
+	routeMasks: [detailsMask, moreMask],
+	history: createVkHistory(),
+});
 
 declare module "@tanstack/react-router" {
 	interface Register {
