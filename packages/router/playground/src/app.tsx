@@ -1,12 +1,10 @@
 import { createRouter } from "@tanstack/react-router";
 import { createApp, createVkHistory, NotFound } from "@vkma.dev/router/preset";
 import { SettingsGlobalModal, LogoutPopout } from "./overlays";
-import { chatPanel } from "./panels/chat.panel";
-import { feedPanel } from "./panels/feed.panel";
-import { chatsPanel } from "./panels/messages.panel";
-import { aboutPanel, morePanel, notificationsPanel } from "./panels/more.panel";
-import { postPanel } from "./panels/post.panel";
-import { profilePanel, profileSettingsPanel } from "./panels/profile.panel";
+import { feedView } from "./panels/feed/feed.panel";
+import { messagesView } from "./panels/messages/messages.panel";
+import { moreView } from "./panels/more/more.panel";
+import { profileView } from "./panels/profile/profile.panel";
 import { AppShell } from "./shell";
 
 /**
@@ -16,20 +14,14 @@ import { AppShell } from "./shell";
  * search, route modals with a chain, the masked global modal, popouts,
  * inflate and the hash history.
  *
- * Panels are `definePanel` definitions: the definition IS the typed handle,
- * lives in a leaf module (`panels/*.panel.ts`) and is imported by the
- * panel's own lazy chunk for its data hooks — nothing imports `app` back,
- * so there are no eraser casts and no inference cycles here. View keys
- * match the definitions' view strings (createApp dev-checks it).
+ * Views are `defineView` hubs in `panels/<view>/` — the view key is written
+ * exactly once, and the `hub.panel(...)` declarations double as the typed
+ * handles their lazy chunks import. Nothing imports `app` back: no casts,
+ * no inference cycles. The array order is the story order.
  */
 export const app = createApp({
 	root: ({ app: appHandle }) => <AppShell app={appHandle} />,
-	views: {
-		profile: { panels: { index: profilePanel, settings: profileSettingsPanel } },
-		feed: { panels: { feed: feedPanel, "post/$id": postPanel } },
-		messages: { panels: { messages: chatsPanel, "chat/$id": chatPanel } },
-		more: { panels: { more: morePanel, notifications: notificationsPanel, about: aboutPanel } },
-	},
+	views: [profileView, feedView, messagesView, moreView],
 	modals: { settings: SettingsGlobalModal },
 	popouts: { logout: LogoutPopout },
 });

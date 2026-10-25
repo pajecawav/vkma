@@ -11,8 +11,8 @@ import {
 	SimpleCell,
 	Text,
 } from "@vkontakte/vkui";
-import { users, type Post } from "../data";
-import { InitialsAvatar } from "../ui";
+import { users, type Post } from "../../data";
+import { InitialsAvatar } from "../../ui";
 import { feedPanel } from "./feed.panel";
 
 export default function FeedPanel() {

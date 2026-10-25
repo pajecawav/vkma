@@ -10,8 +10,8 @@ import {
 	Flex,
 } from "@vkontakte/vkui";
 import { useState } from "react";
-import { chatTitleOf, chats, users } from "../data";
-import { InitialsAvatar } from "../ui";
+import { chatTitleOf, chats, users } from "../../data";
+import { InitialsAvatar } from "../../ui";
 
 export default function ChatsPanel() {
 	const navigator = useNavigator();

@@ -12,8 +12,8 @@ import {
 	WriteBar,
 	WriteBarIcon,
 } from "@vkontakte/vkui";
-import { chatTitleOf, chats } from "../data";
-import { chatPanel } from "./chat.panel";
+import { chatTitleOf, chats } from "../../data";
+import { chatPanel } from "./messages.panel";
 
 /** Lazy chat screen — deep-linkable (#/chat/anna inflates the chain). */
 export default function ChatPanel() {

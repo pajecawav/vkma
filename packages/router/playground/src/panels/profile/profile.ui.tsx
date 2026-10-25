@@ -5,8 +5,8 @@ import {
 	Icon28UserCircleOutline,
 } from "@vkontakte/icons";
 import { CellButton, Caption, Group, Header, PanelHeader, Title } from "@vkontakte/vkui";
-import { users } from "../data";
-import { InitialsAvatar } from "../ui";
+import { users } from "../../data";
+import { InitialsAvatar } from "../../ui";
 
 const me = users["anna"]!;
 

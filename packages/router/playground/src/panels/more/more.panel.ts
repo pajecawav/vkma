@@ -1,13 +1,14 @@
-import { definePanel } from "@vkma.dev/router/preset";
+import { defineView } from "@vkma.dev/router/preset";
 
-/** The "more" story: home panel + two sub-panels, each its own chunk. */
-export const morePanel = definePanel("more", "more", {}, () => import("./more"));
+/** The "more" story hub — the only place the "more" view key is written. */
+export const moreView = defineView("more");
 
-export const notificationsPanel = definePanel(
-	"more",
+export const morePanel = moreView.panel("more", {}, () => import("./more.ui"));
+
+export const notificationsPanel = moreView.panel(
 	"notifications",
 	{},
-	() => import("./notifications"),
+	() => import("./notifications.ui"),
 );
 
-export const aboutPanel = definePanel("more", "about", {}, () => import("./about"));
+export const aboutPanel = moreView.panel("about", {}, () => import("./about.ui"));

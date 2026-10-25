@@ -17,9 +17,9 @@ import {
 	Text,
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
-import { posts, users } from "../data";
-import { InitialsAvatar } from "../ui";
-import { postPanel } from "./post.panel";
+import { posts, users } from "../../data";
+import { InitialsAvatar } from "../../ui";
+import { postPanel } from "./feed.panel";
 
 /** Route modals of the post panel — lazy chunks next to the panel itself.
  * Each component renders its own surface (page or card) and owns every

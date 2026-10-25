@@ -21,9 +21,9 @@ import {
 	Text,
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
-import { posts, users } from "../data";
-import { InitialsAvatar } from "../ui";
-import { postPanel, type PostSearch } from "./post.panel";
+import { posts, users } from "../../data";
+import { InitialsAvatar } from "../../ui";
+import { postPanel, type PostSearch } from "./feed.panel";
 
 /** The lazy panel chunk: split out of the main bundle, resolved on match. */
 export default function PostPanel(): ReactElement {

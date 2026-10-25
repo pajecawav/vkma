@@ -1,22 +1,53 @@
-import { definePanel } from "@vkma.dev/router/preset";
+import { defineView } from "@vkma.dev/router/preset";
 import { ScreenSpinner } from "@vkontakte/vkui";
-import { posts } from "../data";
+import { lazy, type ComponentType } from "react";
+import { posts } from "../../data";
 
-/**
- * The feed panel definition — the typed handle the panel chunk (and any
- * sibling) imports instead of the app. Kept deliberately light: the loader
- * and a spinner only, the UI lives in the lazy chunk.
- */
-export const feedPanel = definePanel(
-	"feed",
+/** The feed story hub — the only place the "feed" view key is written. */
+export const feedView = defineView("feed");
+
+export const feedPanel = feedView.panel(
 	"feed",
 	{
 		loader: async () => {
 			await new Promise(resolve => setTimeout(resolve, 700));
 			return { posts };
 		},
-		pendingComponent: () => <ScreenSpinner style={{ height: "100vh" }} />,
+		pendingComponent: () => <ScreenSpinner />,
 		staleTime: 30_000,
 	},
-	() => import("./feed"),
+	() => import("./feed.ui"),
+);
+
+/** Route-modal chunks need React.lazy (the Modals host renders entries in
+ * Suspense); the module members are addressed by name, so the payload keeps
+ * the `{ default }` shape React.lazy expects. */
+const lazyModal = <T extends ComponentType>(load: () => Promise<{ default: T }>): ComponentType =>
+	lazy(load) as unknown as ComponentType;
+
+/** The typed search shape of the post panel — shared with the UI chunk. */
+export type PostSearch = {
+	tab?: "comments" | "likes";
+};
+
+export const postPanel = feedView.panel(
+	"post/$id",
+	{
+		validateSearch: (search: Record<string, unknown>): PostSearch => ({
+			tab:
+				search["tab"] === "comments" || search["tab"] === "likes"
+					? search["tab"]
+					: undefined,
+		}),
+		modals: {
+			comments: lazyModal(() =>
+				import("./post-modals").then(m => ({ default: m.CommentsModal })),
+			),
+			thread: lazyModal(() =>
+				import("./post-modals").then(m => ({ default: m.ThreadModal })),
+			),
+			share: lazyModal(() => import("./post-modals").then(m => ({ default: m.ShareCard }))),
+		},
+	},
+	() => import("./post.ui"),
 );
