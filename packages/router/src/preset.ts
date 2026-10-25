@@ -23,6 +23,8 @@ export {
 } from "./index.ts";
 export {
 	Modals,
+	ModalPageSurface,
+	ModalCardSurface,
 	Popouts,
 	VkView,
 	NotFound,
@@ -30,13 +32,12 @@ export {
 	useHidePopout,
 	usePopoutState,
 	type ModalEntry,
-	type ModalKind,
-	type ModalCardOptions,
 } from "./vkui.ts";
 export {
 	usePanelParams,
 	usePanelSearch,
 	usePanelLoaderData,
+	useModalProps,
 	usePanelsHistory,
 	type PanelRef,
 } from "./react.ts";

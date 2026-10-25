@@ -1,4 +1,4 @@
-import { useNavigator } from "@vkma.dev/router/preset";
+import { ModalPageSurface, useNavigator } from "@vkma.dev/router/preset";
 import {
 	Alert,
 	Group,
@@ -18,10 +18,15 @@ import {
 export function SettingsGlobalModal() {
 	const navigator = useNavigator();
 	return (
-		<>
-			<ModalPageHeader before={<PanelHeaderClose onClick={() => navigator.hideModal()} />}>
-				Настройки
-			</ModalPageHeader>
+		<ModalPageSurface
+			header={
+				<ModalPageHeader
+					before={<PanelHeaderClose onClick={() => navigator.hideModal()} />}
+				>
+					Настройки
+				</ModalPageHeader>
+			}
+		>
 			<Group>
 				<SimpleCell Component="label" after={<Switch defaultChecked />}>
 					Push-уведомления
@@ -38,7 +43,7 @@ export function SettingsGlobalModal() {
 					глобальная модалка ?modal=settings — открыта с любой панели, URL замаскирован
 				</Footer>
 			</Group>
-		</>
+		</ModalPageSurface>
 	);
 }
 

@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, type AnyRoute } from "@tanstack/react-router";
 import type { ComponentType, ReactNode } from "react";
-import type { ModalCardOptions, ModalEntry, ModalKind } from "../vkui/modals.tsx";
+import type { ModalEntry } from "../vkui/modals.tsx";
 import type { PopoutEntry } from "../vkui/popouts.tsx";
 import { AppRootShell } from "./app.tsx";
 
@@ -25,29 +25,8 @@ type LooseRouteOptions = Partial<
 	Omit<NonNullable<AnyRoute>["options"], "getParentRoute" | "path" | "id">
 >;
 
-/**
- * A modal declared in options: either a plain component (hosted by a
- * ModalPage) or `{ kind, component, ...cardChrome }` — `kind: "card"` hosts
- * the content in a VKUI ModalCard with the given icon/title/description/
- * actions chrome.
- */
-type ModalComponent =
-	| ComponentType
-	| ({ kind?: ModalKind; component: ComponentType } & ModalCardOptions);
-
-/** Normalize a declared modal into a host entry (kind defaults to page). */
-function normalizeModal(modal: ModalComponent): {
-	Component: ComponentType;
-	kind: ModalKind;
-	card?: ModalCardOptions;
-} {
-	// shape check, NOT typeof: lazy/memo/forwardRef components are objects
-	if (typeof modal !== "object" || modal === null || !("component" in modal)) {
-		return { Component: modal, kind: "page" };
-	}
-	const { kind = "page", component, ...card } = modal;
-	return { Component: component, kind, card };
-}
+/** A modal entry component — renders its own ModalPageSurface/ModalCardSurface root. */
+type ModalComponent = ComponentType;
 
 export interface PanelOptions extends LooseRouteOptions {
 	/**
@@ -212,12 +191,7 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 		key: string;
 		path: string;
 		route: AnyRoute;
-		modals: Array<{
-			route: AnyRoute;
-			Component: ComponentType;
-			kind: ModalKind;
-			card?: ModalCardOptions;
-		}>;
+		modals: Array<{ route: AnyRoute; Component: ComponentType }>;
 	}> = [];
 	/** full panel path → owning panel key, for the duplicate-path dev check */
 	const usedPaths = new Map<string, string>();
@@ -273,20 +247,14 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 						})) as never,
 				);
 			}
-			const modalRoutes: Array<{
-				route: AnyRoute;
-				Component: ComponentType;
-				kind: ModalKind;
-				card?: ModalCardOptions;
-			}> = [];
-			for (const [modalKey, modal] of Object.entries(panelModals ?? {})) {
-				const entry = normalizeModal(modal);
+			const modalRoutes: Array<{ route: AnyRoute; Component: ComponentType }> = [];
+			for (const [modalKey, Modal] of Object.entries(panelModals ?? {})) {
 				const modalRoute = createRoute({
 					getParentRoute: () => panelRoute,
 					path: modalKey,
 					staticData: { modal: `${viewKey}/${panelKey}/${modalKey}` },
 				});
-				modalRoutes.push({ route: modalRoute, ...entry });
+				modalRoutes.push({ route: modalRoute, Component: Modal as ComponentType });
 			}
 			// addChildren REPLACES the children array — one call after the loop
 			// (per-modal calls would orphan every modal but the last)
@@ -316,7 +284,7 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 				return route.id.split("/")[0] ?? "";
 			},
 		};
-		for (const { route: modalRoute, Component, kind, card } of panelModalEntries) {
+		for (const { route: modalRoute, Component } of panelModalEntries) {
 			modals.push({
 				get routeId() {
 					return modalRoute.id;
@@ -325,19 +293,17 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 					return modalRoute.id;
 				},
 				Component,
-				kind,
-				card,
 			});
 		}
 	}
 
 	// global modals: no route — the Modals host opens them from the
 	// `?modal=<id>` search param on any panel (deep-linkable, unmasked in v0.1)
-	for (const [modalKey, modal] of Object.entries(options.modals ?? {})) {
+	for (const [modalKey, Modal] of Object.entries(options.modals ?? {})) {
 		modals.push({
 			routeId: `?modal=${modalKey}`,
 			id: modalKey,
-			...normalizeModal(modal),
+			Component: Modal as ComponentType,
 		});
 	}
 

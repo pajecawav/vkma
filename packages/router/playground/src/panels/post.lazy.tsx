@@ -151,6 +151,7 @@ function PostPanel() {
 							void navigator.showModal({
 								to: "/post/$id/share",
 								params: { id },
+								props: { note: "Выберите чат для пересылки" },
 							})
 						}
 					>

@@ -1,16 +1,24 @@
 import { useRouterState } from "@tanstack/react-router";
-import { ModalCard, ModalPage } from "@vkontakte/vkui";
-import { type ComponentType, type ReactNode, Suspense, useEffect, useState } from "react";
+import { ModalCard, ModalPage, type ModalCardProps, type ModalPageProps } from "@vkontakte/vkui";
+import {
+	type ComponentType,
+	createContext,
+	Suspense,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
 
 /**
  * Modal choreography: exactly one modal is visible at a time.
  *
  * A modal is a child route of a panel; while matched, its surface (a
- * ModalPage or a ModalCard) is open. When the matched modal CHANGES (a chain
- * step: Comments → Thread, or a page → card retarget), the old modal closes
- * WITH its animation first — the host keeps it mounted with `open={false}` —
- * and only after the exit completes does the new modal open. Stacked open
- * sheets (two at once) cannot happen.
+ * ModalPage or a ModalCard — chosen by the ENTRY COMPONENT through
+ * ModalPageSurface/ModalCardSurface) is open. When the matched modal
+ * CHANGES (a chain step: Comments → Thread, or a page → card retarget),
+ * the old modal closes WITH its animation first — the host keeps it
+ * mounted with `open={false}` — and only after the exit completes does the
+ * new modal open. Stacked open sheets (two at once) cannot happen.
  *
  * Exit completion is EVENT-DRIVEN: VKUI fires `onClosed` at the transition
  * end and backs it with an internal timer computed from the element's real
@@ -22,26 +30,17 @@ import { type ComponentType, type ReactNode, Suspense, useEffect, useState } fro
  * transition mid-flight, so there is no close-then-reopen bounce.
  */
 
-export type ModalKind = "page" | "card";
-
-/** Static chrome for `kind: "card"` entries — props of the ModalCard surface. */
-export interface ModalCardOptions {
-	icon?: ReactNode;
-	title?: ReactNode;
-	description?: ReactNode;
-	actions?: ReactNode;
-}
-
 export interface ModalEntry {
 	/** Full route id of the modal route (e.g. `/item/$id/details`). */
 	routeId: string;
 	/** Modal id — also the VKUI `nav`. */
 	id: string;
+	/**
+	 * The modal content. Its root must be a ModalPageSurface or
+	 * ModalCardSurface — the host binds nav/open/close choreography to it
+	 * through context; the component owns every other prop at runtime.
+	 */
 	Component: ComponentType;
-	/** Which VKUI surface hosts the content. Default: `"page"`. */
-	kind?: ModalKind;
-	/** ModalCard chrome — only read when `kind: "card"`. */
-	card?: ModalCardOptions;
 }
 
 export interface ModalsProps {
@@ -54,29 +53,59 @@ export interface ModalsProps {
 	exitDuration?: number;
 }
 
-interface SurfaceProps {
+/** Host-bound surface controls, provided to every mounted modal entry. */
+interface ModalSurfaceApi {
 	nav: string;
 	open: boolean;
-	keepMounted: boolean;
 	onClose: () => void;
 	onClosed: () => void;
 }
 
-/** The VKUI surface for an entry: a full-height page or a centered card. */
-function ModalSurface({
-	kind,
-	card,
-	children,
-	...surface
-}: SurfaceProps & { kind: ModalKind; card?: ModalCardOptions; children: ReactNode }) {
-	if (kind === "card") {
-		return (
-			<ModalCard {...surface} {...card}>
-				{children}
-			</ModalCard>
+const ModalSurfaceContext = createContext<ModalSurfaceApi | null>(null);
+
+function useModalSurface(): ModalSurfaceApi {
+	const api = useContext(ModalSurfaceContext);
+	if (api === null) {
+		throw new Error(
+			"[vkma-router] ModalPageSurface/ModalCardSurface must be the root of a modal entry rendered by <Modals>",
 		);
 	}
-	return <ModalPage {...surface}>{children}</ModalPage>;
+	return api;
+}
+
+/**
+ * ModalPage surface for a modal entry. The host owns `nav`, `open`,
+ * `keepMounted` and the close choreography (`onClose`/`onClosed`); the
+ * component passes everything else — header, size, height, dynamic chrome —
+ * as regular runtime props.
+ */
+export function ModalPageSurface({
+	children,
+	...surface
+}: Omit<ModalPageProps, "nav" | "open" | "onClose" | "onClosed" | "keepMounted">) {
+	const api = useModalSurface();
+	return (
+		<ModalPage {...api} keepMounted {...surface}>
+			{children}
+		</ModalPage>
+	);
+}
+
+/**
+ * ModalCard surface for a modal entry — same contract as
+ * ModalPageSurface, with the card's icon/title/description/actions as
+ * ordinary runtime props.
+ */
+export function ModalCardSurface({
+	children,
+	...surface
+}: Omit<ModalCardProps, "nav" | "open" | "onClose" | "onClosed" | "keepMounted">) {
+	const api = useModalSurface();
+	return (
+		<ModalCard {...api} keepMounted {...surface}>
+			{children}
+		</ModalCard>
+	);
 }
 
 interface ChoreographyState {
@@ -212,20 +241,19 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 				const isDisplayed = state.displayed?.id === id;
 				const open = isDisplayed && state.displayedOpen;
 				return (
-					<ModalSurface
+					<ModalSurfaceContext.Provider
 						key={id}
-						kind={entry.kind ?? "page"}
-						card={entry.card}
-						nav={entry.id}
-						open={open}
-						keepMounted
-						onClose={() => window.history.back()}
-						onClosed={() => handleClosed(id)}
+						value={{
+							nav: entry.id,
+							open,
+							onClose: () => window.history.back(),
+							onClosed: () => handleClosed(id),
+						}}
 					>
 						<Suspense fallback={null}>
 							<entry.Component />
 						</Suspense>
-					</ModalSurface>
+					</ModalSurfaceContext.Provider>
 				);
 			})}
 		</>

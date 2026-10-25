@@ -4,6 +4,7 @@ import {
 	useRouterState,
 	type NavigateOptions,
 } from "@tanstack/react-router";
+import { MODAL_STATE_KEY } from "../core/state-keys.ts";
 import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
 
 /**
@@ -21,15 +22,20 @@ export interface VkNavigator {
 	back(): void;
 	/** Pop all the way to the first history entry. */
 	backToFirst(): void;
-	/** Open a modal route; replaces the entry if another modal is open. */
-	showModal(options: NavigateOptions): Promise<void>;
+	/** Open a modal route; replaces the entry if another modal is open.
+	 * `props` (serializable) land in history.state and are read by
+	 * `useModalProps()` inside the modal component. */
+	showModal(options: NavigateOptions & { props?: unknown }): Promise<void>;
 	/** Close the current modal (back, or replace to the panel on first entry). */
 	hideModal(): void;
 	/**
 	 * Open a global (`?modal=<id>`) modal from any panel, masking the URL so
 	 * the visible path stays at the panel. Back closes it.
 	 */
-	showGlobalModal(id: string, options?: { state?: Record<string, unknown> }): Promise<void>;
+	showGlobalModal(
+		id: string,
+		options?: { state?: Record<string, unknown>; props?: unknown },
+	): Promise<void>;
 	showPopout(id: string, props?: Record<string, unknown>): void;
 	hidePopout(): void;
 	/**
@@ -69,7 +75,20 @@ export function useNavigator(): VkNavigator {
 				router.history.go(-index);
 			}
 		},
-		showModal: options => navigate({ ...options, replace: modalOpen }) as Promise<void>,
+		showModal: ({ props, ...options }) => {
+			// TanStack types history state as its own updater shape — arbitrary
+			// serializable keys go through a cast (same as the popout state)
+			const withProps =
+				props !== undefined
+					? {
+							state: {
+								...(options.state as Record<string, unknown> | undefined),
+								[MODAL_STATE_KEY]: { props },
+							} as never,
+						}
+					: {};
+			return navigate({ ...options, replace: modalOpen, ...withProps }) as Promise<void>;
+		},
 		hideModal: () => {
 			if (router.history.canGoBack()) {
 				router.history.back();
@@ -85,7 +104,7 @@ export function useNavigator(): VkNavigator {
 		hidePopout: () => {
 			hidePopout();
 		},
-		showGlobalModal: (id, options) => {
+		showGlobalModal: (id, { state, props, ...rest } = {}) => {
 			const { pathname, searchStr, hash } = router.state.location;
 			const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
 			const already = params.get("modal") === id;
@@ -97,11 +116,21 @@ export function useNavigator(): VkNavigator {
 			maskParams.delete("modal");
 			const maskQuery = maskParams.toString();
 			const maskHref = `${pathname}${maskQuery !== "" ? `?${maskQuery}` : ""}${hash}`;
+			const nextState =
+				state !== undefined || props !== undefined
+					? {
+							state: {
+								...state,
+								...(props !== undefined ? { [MODAL_STATE_KEY]: { props } } : {}),
+							} as never,
+						}
+					: {};
 			return navigate({
 				href,
 				mask: { to: maskHref },
 				replace: already || modalOpen,
-				...(options as Record<string, unknown> | undefined),
+				...rest,
+				...nextState,
 			}) as Promise<void>;
 		},
 		block: onLeave => {

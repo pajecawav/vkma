@@ -70,28 +70,30 @@ read it before touching anything here.
   `createBrowserRouter`).
 - **Modals are routes** (masked child routes; global ones via `?modal=` —
   deep-linkable, unmasked in v0.1), never `ModalRoot` (deprecated, gone in
-  VKUI v10). Drive controlled `ModalPage`/`ModalCard` open via an entry
-  `kind` (card chrome — icon/title/description/actions — is declared next
-  to the entry; the entry component is the param-aware body). The modal
-  host keeps the exiting modal mounted (`keepMounted`) so closing
-  animations play, and choreographs chains SEQUENTIALLY: when the matched
-  modal changes, the old sheet closes first and the new one opens only
-  after the exit completes — never two open sheets at once (the
-  user-reported bug from the first spike implementation). Exit completion
-  is EVENT-DRIVEN on the surface's `onClosed` — VKUI backs it with an
-  internal timer computed from the element's real `transitionDuration`
-  (useCSSTransition), so it beats any host-side constant; the host
-  `exitDuration` is only a WATCHDOG for the one case VKUI cannot report
-  (the modal unmounting mid-exit). Re-targeting the displayed modal while
-  it exits CANCELS the exit (VKUI reverses the transition mid-flight).
-  `onClose = history.back()`. When normalizing declared modal options,
-  discriminate by SHAPE (`"component" in modal`), never `typeof function`
-  — `React.lazy`/`memo`/`forwardRef` components are objects. Chain steps
-  are SIBLING child routes of the panel, and modal→modal navigation
-  REPLACES the entry (old-router parity: back returns to the panel).
-  `ChangeFragment` inbound is a host-initiated jump (navigate replace,
-  echo-suppressed) — "host back" is `VKWebAppClose` territory, not a
-  fragment pop.
+  VKUI v10). The Modals host drives the choreography through CONTEXT and
+  the ENTRY COMPONENT renders its own surface — `ModalPageSurface` or
+  `ModalCardSurface` (the component owns header/card chrome/size as
+  ordinary runtime props; the host owns `nav`/`open`/`keepMounted`/
+  `onClose`/`onClosed` — registry-declared chrome was tried and rejected:
+  modal content is contextual, not declarative). The host keeps the
+  exiting modal mounted so closing animations play, and choreographs
+  chains SEQUENTIALLY: when the matched modal changes, the old sheet
+  closes first and the new one opens only after the exit completes — never
+  two open sheets at once (the user-reported bug from the first spike
+  implementation). Exit completion is EVENT-DRIVEN on the surface's
+  `onClosed` — VKUI backs it with an internal timer computed from the
+  element's real `transitionDuration` (useCSSTransition), so it beats any
+  host-side constant; the host `exitDuration` is only a WATCHDOG for the
+  one case VKUI cannot report (the modal unmounting mid-exit).
+  Re-targeting the displayed modal while it exits CANCELS the exit (VKUI
+  reverses the transition mid-flight). `onClose = history.back()`. Runtime
+  props ride `showModal({ props })` / `showGlobalModal(id, { props })` →
+  `history.state` (`vkma:modal` key, serializable only) → `useModalProps()`
+  in the component (panel-hook freeze semantics). Chain steps are SIBLING
+  child routes of the panel, and modal→modal navigation REPLACES the entry
+  (old-router parity: back returns to the panel). `ChangeFragment` inbound
+  is a host-initiated jump (navigate replace, echo-suppressed) — "host
+  back" is `VKWebAppClose` territory, not a fragment pop.
 - **Popouts** are transient overlays: `{ popout: id, props }` in
   `history.state`, components from per-panel/global registries (resolution
   local → global, id collision in both is a dev error), `onClose`

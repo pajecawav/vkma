@@ -1,10 +1,10 @@
 export { VkView, panelIdOf, type VkViewProps } from "./vkui/vk-view.tsx";
 export {
 	Modals,
+	ModalPageSurface,
+	ModalCardSurface,
 	type ModalEntry,
 	type ModalsProps,
-	type ModalKind,
-	type ModalCardOptions,
 } from "./vkui/modals.tsx";
 export {
 	Popouts,

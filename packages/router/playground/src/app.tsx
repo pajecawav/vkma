@@ -1,6 +1,6 @@
 import { createRouter, redirect } from "@tanstack/react-router";
 import { createApp, createVkHistory, NotFound, panel } from "@vkma.dev/router/preset";
-import { Button, ButtonGroup, ScreenSpinner } from "@vkontakte/vkui";
+import { ScreenSpinner } from "@vkontakte/vkui";
 import { lazy, type ComponentType } from "react";
 import { posts } from "./data";
 import { LogoutPopout, SettingsGlobalModal } from "./overlays";
@@ -108,33 +108,9 @@ export const app = createApp({
 						thread: lazyModal(() =>
 							postModalsChunk().then(m => ({ default: m.ThreadModal })),
 						),
-						share: {
-							kind: "card",
-							component: lazyModal(() =>
-								postModalsChunk().then(m => ({ default: m.ShareCard })),
-							),
-							title: "Поделиться постом",
-							description: "Публикация будет отправлена в выбранный чат",
-							actions: (
-								<ButtonGroup stretched gap="s">
-									<Button
-										size="l"
-										stretched
-										onClick={() => window.history.back()}
-									>
-										Отправить
-									</Button>
-									<Button
-										size="l"
-										mode="secondary"
-										stretched
-										onClick={() => window.history.back()}
-									>
-										Отмена
-									</Button>
-								</ButtonGroup>
-							),
-						},
+						share: lazyModal(() =>
+							postModalsChunk().then(m => ({ default: m.ShareCard })),
+						),
 					},
 				},
 			},

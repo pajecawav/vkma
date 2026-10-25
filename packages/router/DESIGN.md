@@ -95,10 +95,21 @@ hard-won invariants; `AGENTS.md` distills them for agents.
     - Resolution local → global; the same `id` declared in both places is a
       dev-time error.
     - **Sequential choreography**: when the matched modal changes, the host
-      closes the displayed sheet (`open={false}` + keepMounted exit budget)
-      and opens the new one only after the exit completes — never two open
-      sheets at once. Modal→modal navigation REPLACES the history entry
+      closes the displayed sheet (`open={false}` + keepMounted) and opens
+      the new one only after the exit completes — never two open sheets at
+      once. Exit completion is EVENT-DRIVEN on the surface's `onClosed`
+      (VKUI's useCSSTransition backs it with a computed-duration fallback —
+      more accurate than any host constant); the host keeps only a watchdog
+      for the unmount-mid-exit case, and re-targeting the displayed modal
+      while it exits CANCELS the exit (VKUI reverses the transition
+      mid-flight). Modal→modal navigation REPLACES the history entry
       (old-router parity: back returns to the panel).
+    - **The entry component owns its surface**: the host binds
+      nav/open/close choreography through context, and the component
+      renders a `ModalPageSurface` or `ModalCardSurface` root with every
+      other prop (header, card chrome, size) as ordinary runtime props —
+      no static chrome in the registry (registry-declared chrome was tried
+      and rejected: modal content is contextual, not declarative).
 - **Popouts** (Alert/ActionSheet/ScreenSpinner) are transient overlays, not
   routes: `history.state` holds `{ popout: id, props }`; back closes them.
   Components are declared per-panel and/or globally (same resolution and
@@ -107,7 +118,10 @@ hard-won invariants; `AGENTS.md` distills them for agents.
     1. URL — path params + search params (typed by builders, resolved by
        loaders); the shareable channel.
     2. `location.state` — transient serializable props; survives back/forward
-       within the session, never shared.
+       within the session, never shared. Modals: `showModal({ props })` /
+       `showGlobalModal(id, { props })` stash them under the `vkma:modal`
+       state key; `useModalProps()` reads them (panel-hook freeze
+       semantics).
     3. Callbacks cannot be serialized: `onClose` is injected by the router
        (→ back / hidePopout); business callbacks become navigation or store
        subscriptions.

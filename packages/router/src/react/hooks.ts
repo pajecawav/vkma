@@ -6,6 +6,7 @@ import {
 	type PanelsStackState,
 	panelsHistoryOf,
 } from "../core/panels-stack.ts";
+import { readModalState } from "../core/state-keys.ts";
 
 /**
  * The departing-panel freeze (spike 1): raw TanStack data hooks throw
@@ -65,6 +66,19 @@ export function usePanelLoaderData(refOrFrom: PanelRef | string): unknown {
 	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
 	const match = useMatch({ from: routeId, shouldThrow: false } as never);
 	return useLastWhileUndefined((match as { loaderData?: unknown } | undefined)?.loaderData);
+}
+
+/**
+ * Runtime props of the open modal — `showModal({ to, params, props })` /
+ * `showGlobalModal(id, { props })` stash them in `history.state` (so they
+ * survive reload and back/forward) and the modal entry component reads them
+ * here. Serializable values only (structured clone); same freeze semantics
+ * as the panel hooks — the departing modal keeps its last props while it
+ * animates out.
+ */
+export function useModalProps<T = unknown>(): T | undefined {
+	const modal = useRouterState({ select: state => readModalState(state.location.state) });
+	return useLastWhileUndefined(modal?.props) as T | undefined;
 }
 
 /**
