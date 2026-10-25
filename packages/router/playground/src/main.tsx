@@ -1,10 +1,10 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { createBridgeSync, createSwipeBackManager } from "@vkma.dev/router";
-import { AppRoot, ConfigProvider, SplitCol, SplitLayout } from "@vkontakte/vkui";
+import { AppRoot, ConfigProvider } from "@vkontakte/vkui";
 import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import "@vkontakte/vkui/dist/vkui.css";
 
-import { createRoot } from "react-dom/client";
 import { fakeBridge } from "./bridge";
 import { router } from "./routes";
 
@@ -16,11 +16,7 @@ createRoot(document.getElementById("root")!).render(
 	<StrictMode>
 		<ConfigProvider platform="ios">
 			<AppRoot>
-				<SplitLayout>
-					<SplitCol animate>
-						<RouterProvider router={router} />
-					</SplitCol>
-				</SplitLayout>
+				<RouterProvider router={router} />
 			</AppRoot>
 		</ConfigProvider>
 	</StrictMode>,

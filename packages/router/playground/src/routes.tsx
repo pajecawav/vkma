@@ -1,115 +1,82 @@
 import { createRouter, redirect } from "@tanstack/react-router";
-import { AppRootShell, NotFound, createApp, createVkHistory } from "@vkma.dev/router/preset";
-import { usePanelParams } from "@vkma.dev/router/react";
-import { Alert } from "@vkontakte/vkui";
-import { HostControls } from "./HostControls";
-import { Hud } from "./Hud";
-import { AboutPanel, FeedPanel, FeedPending, HomePanel, ListPanel } from "./panels";
+import { createApp, createVkHistory, NotFound } from "@vkma.dev/router/preset";
+import { posts } from "./data";
+import { CommentsModal, LogoutPopout, SettingsGlobalModal, ThreadModal } from "./overlays";
+import { FeedPanel, FeedPending, type FeedLoaderData } from "./panels/feed";
+import { ChatsPanel } from "./panels/messages";
+import { AboutPanel, MorePanel, NotificationsPanel } from "./panels/more";
+import type { PostSearch } from "./panels/post.lazy";
+import { ProfilePanel, ProfileSettingsPanel } from "./panels/profile";
+import { AppShell } from "./shell";
 
 /**
- * The playground consumes @vkma.dev/router — this IS the integration check
- * of the package (the spikes live in git history and DESIGN.md verdicts).
+ * The showcase app tree — four stories (Профиль / Лента / Сообщения / Ещё)
+ * driven entirely by the router. Every @vkma.dev/router feature stays
+ * demonstrated: lazy panels, loaders + pending, beforeLoad redirect, typed
+ * search, route modals with a chain, the masked global modal, popouts,
+ * inflate and the hash history. All TanStack route options pass through.
  */
-
-function DetailsModal() {
-	const { id = "?" } = usePanelParams(app.panels["main/item/$id"]!.routeId);
-	return (
-		<div style={{ padding: 20 }}>
-			<h2 style={{ margin: "0 0 8px" }}>Details</h2>
-			<p style={{ margin: "0 0 16px", color: "#666" }}>details for item {id}</p>
-			<button
-				type="button"
-				onClick={() =>
-					void router.navigate({
-						to: "/item/$id/more",
-						params: { id },
-						replace: true,
-					})
-				}
-			>
-				open more (modal on modal, sequential)
-			</button>
-		</div>
-	);
-}
-
-function MoreModal() {
-	return (
-		<div style={{ padding: 20 }}>
-			<h2 style={{ margin: "0 0 8px" }}>More</h2>
-			<p style={{ margin: 0, color: "#666" }}>
-				second-level modal: the first one closed with animation before this one opened
-			</p>
-		</div>
-	);
-}
-
-function SettingsModal() {
-	return (
-		<div style={{ padding: 20 }}>
-			<h2 style={{ margin: "0 0 8px" }}>Settings</h2>
-			<p style={{ margin: 0, color: "#666" }}>
-				global modal via ?modal=settings — opened from any panel
-			</p>
-		</div>
-	);
-}
-
 export const app = createApp({
-	root: () => (
-		<>
-			<AppRootShell app={app} />
-			<Hud />
-			<HostControls />
-		</>
-	),
+	root: ({ app: appHandle }) => <AppShell app={appHandle} />,
 	views: {
-		main: {
+		profile: {
 			panels: {
-				index: { component: HomePanel },
-				list: { component: ListPanel },
-				"item/$id": {
-					lazy: routeId => import("./panels/item.lazy").then(m => m.itemLazy(routeId)),
-					validateSearch: (search: { tab?: string }): { tab?: string } => ({
-						tab: search.tab,
+				index: { component: ProfilePanel },
+				settings: {
+					component: ProfileSettingsPanel,
+					validateSearch: (search: Record<string, unknown>): { section?: "privacy" } => ({
+						section: search["section"] === "privacy" ? "privacy" : undefined,
 					}),
-					beforeLoad: ({ params }: { params: { id: string } }) => {
-						if (params.id === "666") {
-							throw redirect({ to: "/" });
-						}
-					},
-					modals: { details: DetailsModal, more: MoreModal },
 				},
+			},
+		},
+		feed: {
+			panels: {
 				feed: {
-					loader: async () => {
+					component: FeedPanel,
+					loader: async (): Promise<FeedLoaderData> => {
 						await new Promise(resolve => setTimeout(resolve, 700));
-						return { items: ["alpha", "beta", "gamma"] };
+						return { posts };
 					},
 					pendingComponent: FeedPending,
-					component: FeedPanel,
+					staleTime: 30_000,
 				},
+				"post/$id": {
+					lazy: routeId => import("./panels/post.lazy").then(m => m.postLazy(routeId)),
+					validateSearch: (search: Record<string, unknown>): PostSearch => ({
+						tab:
+							search["tab"] === "comments" || search["tab"] === "likes"
+								? search["tab"]
+								: undefined,
+					}),
+					modals: { comments: CommentsModal, thread: ThreadModal },
+				},
+			},
+		},
+		messages: {
+			panels: {
+				messages: { component: ChatsPanel },
+				"chat/$id": {
+					lazy: routeId => import("./panels/chat.lazy").then(m => m.chatLazy(routeId)),
+					beforeLoad: ({ params }: { params: { id: string } }) => {
+						if (params.id === "bot") {
+							throw redirect({ to: "/messages" });
+						}
+					},
+				},
+			},
+		},
+		more: {
+			panels: {
+				more: { component: MorePanel },
+				notifications: { component: NotificationsPanel },
 				about: { component: AboutPanel },
 			},
 		},
 	},
-	modals: { settings: SettingsModal },
-	popouts: { confirm: ConfirmLeave },
+	modals: { settings: SettingsGlobalModal },
+	popouts: { logout: LogoutPopout },
 });
-
-function ConfirmLeave({ onClose }: { onClose: () => void }) {
-	return (
-		<Alert
-			title="Выйти без сохранения?"
-			description="Изменения не сохранятся."
-			actions={[
-				{ title: "Остаться", mode: "cancel", action: onClose },
-				{ title: "Выйти", mode: "destructive", action: onClose },
-			]}
-			onClose={onClose}
-			onClosed={onClose}
-		/>
-	);
-}
 
 export const router = createRouter({
 	routeTree: app.routeTree,
@@ -122,3 +89,11 @@ declare module "@tanstack/react-router" {
 		router: typeof router;
 	}
 }
+
+/** Runtime handle for the debug overlay and browser e2e probes. */
+declare global {
+	interface Window {
+		__vkmaApp: typeof app;
+	}
+}
+window.__vkmaApp = app;

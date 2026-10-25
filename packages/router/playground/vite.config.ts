@@ -1,9 +1,9 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// PROTOTYPE (spike 1): panels + animations in the static-children model.
-// Throwaway validation playground for @vkma.dev/router, see
-// packages/router/DESIGN.md "Spikes".
+// The showcase playground for @vkma.dev/router — it CONSUMES the package
+// (dist), see packages/router/AGENTS.md. New design questions still get
+// spikes here, and every answer lands back in DESIGN.md.
 export default defineConfig({
 	plugins: [react()],
 });
