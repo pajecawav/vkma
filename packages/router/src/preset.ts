@@ -1,9 +1,12 @@
 export {
 	createApp,
+	panel,
 	type AppHandle,
 	type AppOptions,
 	type PanelHandle,
 	type PanelOptions,
+	type PanelHandlesOf,
+	type TypedAppHandle,
 	type ViewOptions,
 } from "./preset/builders.tsx";
 export { AppRootShell, useInflate } from "./preset/app.tsx";
@@ -27,4 +30,10 @@ export {
 	useHidePopout,
 	usePopoutState,
 } from "./vkui.ts";
-export { usePanelParams, usePanelSearch, usePanelLoaderData, usePanelsHistory } from "./react.ts";
+export {
+	usePanelParams,
+	usePanelSearch,
+	usePanelLoaderData,
+	usePanelsHistory,
+	type PanelRef,
+} from "./react.ts";

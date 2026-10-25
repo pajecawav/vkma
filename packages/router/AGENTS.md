@@ -94,6 +94,27 @@ read it before touching anything here.
   `panels`/`modals` handles therefore expose `routeId` as GETTERS, and
   `staticData` panel/modal ids use build-time keys
   (`${viewKey}/${panelKey}`), never `route.id`.
+- **Typed panel handles** (preset): `app.panels["feed/post/$id"]` is a
+  literal-keyed map — never undefined, `routeId` is the literal runtime id
+  (`/view:feed/post/$id`), and the handle carries phantom `types` derived
+  from the panel's own options (`$param` path segments → params,
+  `validateSearch` return → search, `loader` return → loaderData). The
+  `/react` hooks take the HANDLE (`usePanelParams(app.panels[...])`) and
+  resolve those types; a plain route-id string is the loose fallback.
+  Two hard rules keep the app's inference acyclic:
+    1. Chunk modules import `app` back for their handles, so their component
+       types depend on `app.panels`. Never let those types into the
+       `createApp` literal — wrap every `lazy` in the exported `panel()`
+       eraser, and keep route-modal chunks behind `lazyModal`'s
+       `as ComponentType` cast (the Modals host renders them in Suspense).
+    2. Build the options as a standalone `const options = {...}` and call
+       `createApp(options)` separately — inlining the literal into `app`'s
+       own initializer is self-referential (TS7022, inference degrades to
+       the constraint). The custom `root` is deliberately typed with the
+       LOOSE `AppHandle` for the same reason.
+       Keep the module that calls `createApp` sorting before the modules that
+       read `app.panels` (e.g. `app.tsx` < `panels/*`): TypeScript enters the
+       circular import from whichever file it checks first.
 - **`addChildren` REPLACES the children array** — collect children and
   call it once (per-modal calls orphan every child but the last; that bug
   manifested as a modal route missing from `routesById`).

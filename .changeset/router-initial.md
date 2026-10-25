@@ -9,5 +9,7 @@ in history state, VK history in hash (default, `#/path`) or hash-param
 (`#?path=…`, foreign hash params preserved) modes with bridge sync
 (`VKWebAppSetLocation` / `VKWebAppChangeFragment`), auto swipe-back,
 deep-link inflate, typed preset builders with an auto-shell, and a parity
-navigator. Pairs with `@vkontakte/vk-bridge` or `@vkma.dev/bridge`
-(structural contract).
+navigator. Panel handles are fully typed: `app.panels` keys, route ids and
+the params/search/loaderData types flowing through the data hooks are all
+inferred from the declared views. Pairs with `@vkontakte/vk-bridge` or
+`@vkma.dev/bridge` (structural contract).

@@ -1,5 +1,14 @@
 import { useNavigator } from "@vkma.dev/router/preset";
-import { Group, PanelHeader, RichCell, Search, Footer, Counter, Caption } from "@vkontakte/vkui";
+import {
+	Group,
+	PanelHeader,
+	Search,
+	Footer,
+	Counter,
+	Caption,
+	SimpleCell,
+	Flex,
+} from "@vkontakte/vkui";
 import { useState } from "react";
 import { chatTitleOf, chats, users } from "../data";
 import { InitialsAvatar } from "../ui";
@@ -14,33 +23,25 @@ export function ChatsPanel() {
 	return (
 		<>
 			<PanelHeader>Сообщения</PanelHeader>
-			<Search
-				value={query}
-				onChange={event => setQuery(event.target.value)}
-				placeholder="Поиск сообщений"
-			/>
 			<Group>
+				<Search
+					value={query}
+					onChange={event => setQuery(event.target.value)}
+					placeholder="Поиск сообщений"
+				/>
+
 				{filtered.map(chat => {
 					const user = users[chat.userId]!;
 					return (
-						<RichCell
+						<SimpleCell
 							key={chat.id}
-							before={
-								<InitialsAvatar name={user.name} color={user.color} size={48} />
-							}
+							before={<InitialsAvatar name={user.name} size={48} />}
 							subtitle={chat.lastMessage}
 							onClick={() =>
 								void navigator.push({ to: "/chat/$id", params: { id: chat.id } })
 							}
 							after={
-								<div
-									style={{
-										display: "flex",
-										flexDirection: "column",
-										alignItems: "flex-end",
-										gap: 4,
-									}}
-								>
+								<Flex direction="column" align="end">
 									<Caption style={{ color: "var(--vkui--color_text_secondary)" }}>
 										{chat.time}
 									</Caption>
@@ -49,11 +50,11 @@ export function ChatsPanel() {
 											{chat.unread}
 										</Counter>
 									)}
-								</div>
+								</Flex>
 							}
 						>
 							{user.name}
-						</RichCell>
+						</SimpleCell>
 					);
 				})}
 				{filtered.length === 0 && <Footer>Никого не нашли</Footer>}

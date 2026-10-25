@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { ModalPage } from "@vkontakte/vkui";
-import { type ComponentType, useEffect, useRef, useState } from "react";
+import { type ComponentType, Suspense, useEffect, useRef, useState } from "react";
 
 /**
  * Modal choreography: exactly one modal is visible at a time.
@@ -133,7 +133,9 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 						keepMounted
 						onClose={() => window.history.back()}
 					>
-						<entry.Component />
+						<Suspense fallback={null}>
+							<entry.Component />
+						</Suspense>
 					</ModalPage>
 				);
 			})}

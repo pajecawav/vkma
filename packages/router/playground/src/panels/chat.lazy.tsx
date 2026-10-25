@@ -3,19 +3,18 @@ import { usePanelParams } from "@vkma.dev/router/react";
 import { Icon28BlockOutline } from "@vkontakte/icons";
 import {
 	CellButton,
+	Footer,
 	Group,
-	Input,
 	PanelHeader,
 	PanelHeaderBack,
-	Button,
-	Separator,
-	Text,
 	Placeholder,
-	Footer,
+	Text,
+	WriteBar,
+	WriteBarIcon,
 } from "@vkontakte/vkui";
 import type { ComponentType } from "react";
+import { app } from "../app";
 import { chatTitleOf, chats } from "../data";
-import { app } from "../routes";
 
 /** Lazy chat screen — deep-linkable (#/chat/anna inflates the chain). */
 
@@ -25,7 +24,7 @@ export const chatLazy = async (_routeId: string): Promise<{ component: Component
 
 function ChatPanel() {
 	const navigator = useNavigator();
-	const { id = "" } = usePanelParams(app.panels["messages/chat/$id"]!.routeId);
+	const { id } = usePanelParams(app.panels["messages/chat/$id"]);
 	const chat = chats.find(candidate => candidate.id === id);
 
 	if (chat === undefined) {
@@ -83,19 +82,17 @@ function ChatPanel() {
 						</div>
 					))}
 				</div>
+
 				<Footer style={{ paddingTop: 8 }}>
 					глубокая ссылка #/chat/{chat.id} — инфлейт цепочки
 				</Footer>
-			</Group>
-			<Group>
-				<div style={{ display: "flex", gap: 8, padding: "4px 16px", alignItems: "center" }}>
-					<div style={{ flex: 1, minWidth: 0 }}>
-						<Input placeholder="Сообщение" aria-label="Сообщение" />
-					</div>
-					<div style={{ flexShrink: 0 }}>
-						<Button>Отправить</Button>
-					</div>
-				</div>
+
+				<WriteBar
+					placeholder="Сообщение"
+					aria-label="Сообщение"
+					before={<WriteBarIcon mode="attach" />}
+					after={<WriteBarIcon mode="send" />}
+				/>
 			</Group>
 			<Group>
 				<CellButton
@@ -105,7 +102,6 @@ function ChatPanel() {
 					Пожаловаться (redirect из beforeLoad)
 				</CellButton>
 			</Group>
-			<Separator />
 		</>
 	);
 }

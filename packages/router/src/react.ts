@@ -5,4 +5,5 @@ export {
 	usePanelLoaderData,
 	usePanelsStack,
 	usePanelsHistory,
+	type PanelRef,
 } from "./react/hooks.ts";

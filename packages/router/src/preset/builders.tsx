@@ -44,32 +44,63 @@ export interface ViewOptions extends LooseRouteOptions {
 	panels: Record<string, PanelOptions>;
 }
 
-export interface AppOptions {
-	/**
-	 * Custom root shell (renders inside the router context). Defaults to
-	 * AppRootShell: the active view + modal/popout hosts.
-	 */
-	root?: (props: { app: AppHandle }) => ReactNode;
-	views: Record<string, ViewOptions>;
-	/** Global modals: `?modal=<id>` opens them from any panel. */
-	modals?: Record<string, ModalComponent>;
-	/** Global popout registry. */
-	popouts?: Record<string, PopoutEntry["Component"]>;
-	/**
-	 * Inflate (default `true`): a cold start on a deep-linked panel replays
-	 * the panel flow before it, so back walks the natural chain.
-	 */
-	inflate?: boolean;
-}
-
-export interface PanelHandle {
+export interface PanelHandle<
+	TParams = Record<string, string>,
+	TSearch = Record<string, unknown>,
+	TLoaderData = unknown,
+> {
 	/** Full TanStack route id — the `from` for the /react data hooks. */
-	routeId: string;
+	readonly routeId: string;
 	/** URL path of the panel. */
 	path: string;
 	/** The view route id the panel belongs to. */
 	viewId: string;
+	/** Phantom carrier — the panel's data types for the /react hooks. */
+	readonly types?: { params: TParams; search: TSearch; loaderData: TLoaderData };
 }
+
+/** `view:feed` + panel `post/$id` → the runtime id `/view:feed/post/$id`. */
+type PanelRouteId<V extends string, P extends string> = P extends "index"
+	? `/view:${V}/`
+	: `/view:${V}/${P}`;
+
+/** `$id`-segments of a panel path → the params object type. */
+type ParamsOfKey<P extends string> = P extends `${infer Head}/${infer Rest}`
+	? ParamsOfSegment<Head> & ParamsOfKey<Rest>
+	: ParamsOfSegment<P>;
+type ParamsOfSegment<S extends string> = S extends `$${infer Name}` ? { [K in Name]: string } : {};
+type SearchOf<O extends PanelOptions> = O extends { validateSearch: (search: never) => infer S }
+	? S
+	: Record<string, never>;
+type LoaderDataOf<O extends PanelOptions> = O extends { loader: (...args: never[]) => infer L }
+	? Awaited<L>
+	: unknown;
+
+type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends (
+	arg: infer I,
+) => void
+	? I
+	: never;
+
+/**
+ * The declared panels map with LITERAL route ids and option-derived data
+ * types: `app.panels["feed/post/$id"]` autocompletes, is never undefined,
+ * its `routeId` is the literal runtime id, and `usePanelParams(handle)` &
+ * co. resolve params / search / loaderData from the declared options.
+ */
+export type PanelHandlesOf<TViews extends Record<string, ViewOptions>> = UnionToIntersection<
+	{
+		[V in keyof TViews & string]: {
+			[P in keyof TViews[V]["panels"] & string as `${V}/${P}`]: PanelHandle<
+				ParamsOfKey<P>,
+				SearchOf<TViews[V]["panels"][P]>,
+				LoaderDataOf<TViews[V]["panels"][P]>
+			> & {
+				readonly routeId: PanelRouteId<V, P>;
+			};
+		};
+	}[keyof TViews & string]
+>;
 
 export interface AppHandle {
 	routeTree: AnyRoute;
@@ -84,7 +115,63 @@ export interface AppHandle {
 	inflate: boolean;
 }
 
-export function createApp(options: AppOptions): AppHandle {
+/**
+ * The app handle with the DECLARED panels shape: literal keys
+ * (`app.panels["feed/post/$id"]` — autocomplete, never undefined) and
+ * literal route ids that drive the /react hooks' typing. Structurally an
+ * AppHandle, so it flows into AppRootShell / useInflate / deriveInflateChain.
+ */
+export interface TypedAppHandle<TViews extends Record<string, ViewOptions>> {
+	routeTree: AnyRoute;
+	modals: ModalEntry[];
+	popouts: PopoutEntry[];
+	panels: PanelHandlesOf<TViews>;
+	views: Record<string, AnyRoute>;
+	inflate: boolean;
+}
+
+export interface AppOptions<
+	TViews extends Record<string, ViewOptions> = Record<string, ViewOptions>,
+> {
+	/**
+	 * Custom root shell (renders inside the router context). Defaults to
+	 * AppRootShell: the active view + modal/popout hosts. Deliberately
+	 * LOOSE (`AppHandle`, not `TypedAppHandle<TViews>`): a contextual type
+	 * mentioning TViews makes the app const's own initializer circular
+	 * (TS7022) — typed panel handles are read from the RETURN value.
+	 */
+	root?: (props: { app: AppHandle }) => ReactNode;
+	views: TViews;
+	/** Global modals: `?modal=<id>` opens them from any panel. */
+	modals?: Record<string, ModalComponent>;
+	/** Global popout registry. */
+	popouts?: Record<string, PopoutEntry["Component"]>;
+	/**
+	 * Inflate (default `true`): a cold start on a deep-linked panel replays
+	 * the panel flow before it, so back walks the natural chain.
+	 */
+	inflate?: boolean;
+}
+
+/**
+ * Type-erasing wrapper for `lazy` panel chunks. The chunk module imports
+ * the app back for its typed panel handles — passing its component types
+ * straight into `views` makes the app's own inference circular (the
+ * component's inferred type depends on `app.panels`). `panel()` erases the
+ * chunk to `{ component: ComponentType }` at the boundary.
+ *
+ * ```tsx
+ * lazy: panel(() => import("./panels/feed").then(m => ({ component: m.FeedPanel })))
+ * lazy: panel(routeId => import("./panels/post.lazy").then(m => m.postLazy(routeId)))
+ * ```
+ */
+export function panel(load: (routeId: string) => Promise<{ component: ComponentType }>) {
+	return load;
+}
+
+export function createApp<const TViews extends Record<string, ViewOptions>>(
+	options: AppOptions<TViews>,
+): TypedAppHandle<TViews> {
 	const modals: ModalEntry[] = [];
 	const popouts: PopoutEntry[] = Object.entries(options.popouts ?? {}).map(([id, Component]) => ({
 		id,
@@ -227,5 +314,7 @@ export function createApp(options: AppOptions): AppHandle {
 		views,
 		inflate: options.inflate ?? true,
 	};
-	return handle;
+	// the runtime shape matches; the literal route-id types are only
+	// computable through the caller's generic
+	return handle as unknown as TypedAppHandle<TViews>;
 }

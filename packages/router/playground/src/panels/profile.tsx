@@ -18,8 +18,8 @@ import {
 	TabsItem,
 	Title,
 } from "@vkontakte/vkui";
+import { app } from "../app";
 import { users } from "../data";
-import { app } from "../routes";
 import { InitialsAvatar } from "../ui";
 
 const me = users["anna"]!;
@@ -39,7 +39,7 @@ export function ProfilePanel() {
 						padding: "28px 0 20px",
 					}}
 				>
-					<InitialsAvatar name={me.name} color={me.color} size={72} />
+					<InitialsAvatar name={me.name} size={72} />
 					<Title level="2">{me.name}</Title>
 					<Caption style={{ color: "var(--vkui--color_text_secondary)" }}>
 						онлайн · Москва
@@ -80,7 +80,7 @@ export interface SettingsSearch {
 
 export function ProfileSettingsPanel() {
 	const navigator = useNavigator();
-	const search = usePanelSearch<SettingsSearch>(app.panels["profile/settings"]!.routeId);
+	const search = usePanelSearch(app.panels["profile/settings"]);
 	const privacy = search?.section === "privacy";
 
 	return (

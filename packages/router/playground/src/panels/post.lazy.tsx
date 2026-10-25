@@ -6,6 +6,7 @@ import {
 	CellButton,
 	Group,
 	Header,
+	HorizontalScroll,
 	PanelHeader,
 	PanelHeaderBack,
 	RichCell,
@@ -15,8 +16,8 @@ import {
 	Text,
 } from "@vkontakte/vkui";
 import type { ComponentType } from "react";
+import { app } from "../app";
 import { posts, users } from "../data";
-import { app } from "../routes";
 import { InitialsAvatar } from "../ui";
 
 /**
@@ -34,8 +35,8 @@ export interface PostSearch {
 
 function PostPanel() {
 	const navigator = useNavigator();
-	const { id = "1" } = usePanelParams(app.panels["feed/post/$id"]!.routeId);
-	const search = usePanelSearch<PostSearch>(app.panels["feed/post/$id"]!.routeId);
+	const { id } = usePanelParams(app.panels["feed/post/$id"]);
+	const search = usePanelSearch(app.panels["feed/post/$id"]);
 	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
 	const author = users[post.authorId]!;
 	const setTab = (tab: PostSearch["tab"]) => {
@@ -49,7 +50,7 @@ function PostPanel() {
 			</PanelHeader>
 			<Group>
 				<RichCell
-					before={<InitialsAvatar name={author.name} color={author.color} size={44} />}
+					before={<InitialsAvatar name={author.name} size={44} />}
 					subtitle={post.time}
 				>
 					{author.name}
@@ -80,23 +81,28 @@ function PostPanel() {
 				)}
 			</Group>
 			<Group>
-				<Tabs>
-					<TabsItem
-						selected={search?.tab === undefined}
-						onClick={() => setTab(undefined)}
-					>
-						Запись
-					</TabsItem>
-					<TabsItem
-						selected={search?.tab === "comments"}
-						onClick={() => setTab("comments")}
-					>
-						Комментарии
-					</TabsItem>
-					<TabsItem selected={search?.tab === "likes"} onClick={() => setTab("likes")}>
-						Нравится
-					</TabsItem>
-				</Tabs>
+				<HorizontalScroll>
+					<Tabs withScrollToSelectedTab>
+						<TabsItem
+							selected={search?.tab === undefined}
+							onClick={() => setTab(undefined)}
+						>
+							Запись
+						</TabsItem>
+						<TabsItem
+							selected={search?.tab === "comments"}
+							onClick={() => setTab("comments")}
+						>
+							Комментарии
+						</TabsItem>
+						<TabsItem
+							selected={search?.tab === "likes"}
+							onClick={() => setTab("likes")}
+						>
+							Нравится
+						</TabsItem>
+					</Tabs>
+				</HorizontalScroll>
 			</Group>
 			{search?.tab === "comments" ? (
 				<Group
@@ -108,13 +114,7 @@ function PostPanel() {
 						return (
 							<RichCell
 								key={comment.id}
-								before={
-									<InitialsAvatar
-										name={commenter.name}
-										color={commenter.color}
-										size={36}
-									/>
-								}
+								before={<InitialsAvatar name={commenter.name} size={36} />}
 								subtitle={comment.time}
 							>
 								{commenter.name}

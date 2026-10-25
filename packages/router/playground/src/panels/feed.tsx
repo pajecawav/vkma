@@ -1,19 +1,19 @@
 import { useNavigator } from "@vkma.dev/router/preset";
 import { usePanelLoaderData } from "@vkma.dev/router/react";
-import { Icon24CommentOutline, Icon24LikeOutline } from "@vkontakte/icons";
+import { Icon24CommentOutline, Icon24Like, Icon24LikeOutline } from "@vkontakte/icons";
 import {
-	Button,
 	Group,
 	Header,
+	IconButton,
 	PanelHeader,
 	PanelHeaderBack,
-	RichCell,
 	ScreenSpinner,
 	Separator,
+	SimpleCell,
 	Text,
 } from "@vkontakte/vkui";
+import { app } from "../app";
 import { users, type Post } from "../data";
-import { app } from "../routes";
 import { InitialsAvatar } from "../ui";
 
 /** Loader data shape of the feed index panel. */
@@ -23,7 +23,7 @@ export interface FeedLoaderData {
 
 export function FeedPanel() {
 	const navigator = useNavigator();
-	const data = usePanelLoaderData<FeedLoaderData>(app.panels["feed/feed"]!.routeId);
+	const data = usePanelLoaderData(app.panels["feed/feed"]);
 
 	return (
 		<>
@@ -69,43 +69,32 @@ function PostCard({
 	const author = users[post.authorId]!;
 	return (
 		<div style={{ padding: "4px 0 10px" }}>
-			<RichCell
-				before={<InitialsAvatar name={author.name} color={author.color} size={44} />}
+			<SimpleCell
+				before={<InitialsAvatar name={author.name} size={44} />}
 				subtitle={post.time}
 				onClick={onOpen}
 			>
 				{author.name}
-			</RichCell>
+			</SimpleCell>
 			<div style={{ padding: "0 16px" }}>
 				<Text>{post.text}</Text>
 			</div>
 			<div style={{ display: "flex", gap: 4, padding: "8px 8px 0" }}>
-				<Button
-					size="s"
-					mode={post.liked ? "secondary" : "tertiary"}
-					before={<Icon24LikeOutline />}
-					after={post.likes}
-				>
-					Нравится
-				</Button>
-				<Button
-					size="s"
-					mode="tertiary"
-					before={<Icon24CommentOutline />}
-					after={post.comments.length}
-					onClick={onComments}
-				>
-					Комментарии
-				</Button>
+				<IconButton>
+					{post.liked ? (
+						<Icon24Like fill="var(--vkui--color_accent_red)" />
+					) : (
+						<Icon24LikeOutline />
+					)}
+				</IconButton>
+				<IconButton onClick={onComments}>
+					<Icon24CommentOutline />
+				</IconButton>
 			</div>
 		</div>
 	);
 }
 
 export function FeedPending() {
-	return (
-		<div style={{ height: "100vh" }}>
-			<ScreenSpinner />
-		</div>
-	);
+	return <ScreenSpinner />;
 }

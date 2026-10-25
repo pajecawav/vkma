@@ -14,7 +14,27 @@ import {
  * back animation — the error flies past the router's error boundary and
  * remounts the whole tree. These hooks never throw and retain the last
  * resolved value while the panel is mounted but unmatched.
+ *
+ * Pass the TYPED panel handle (`app.panels["feed/post/$id"]`) — params /
+ * search / loaderData are derived from the panel's declared options
+ * (validateSearch return, loader return, $param path segments). A plain
+ * route-id string also works, with loose types.
  */
+
+/**
+ * Structural twin of the preset's `PanelHandle` — the phantom `types`
+ * member carries the panel's data types without coupling this layer to
+ * the preset.
+ */
+export interface PanelRef<
+	TParams = Record<string, string>,
+	TSearch = Record<string, unknown>,
+	TLoaderData = unknown,
+> {
+	readonly routeId: string;
+	readonly types?: { params: TParams; search: TSearch; loaderData: TLoaderData };
+}
+
 export function useLastWhileUndefined<T>(value: T | undefined): T | undefined {
 	const ref = useRef(value);
 	if (value !== undefined) {
@@ -23,24 +43,28 @@ export function useLastWhileUndefined<T>(value: T | undefined): T | undefined {
 	return value === undefined ? ref.current : value;
 }
 
-export function usePanelParams(from: string): Record<string, string> {
-	const match = useMatch({ from, shouldThrow: false } as never);
-	return (
-		useLastWhileUndefined((match as { params?: Record<string, string> } | undefined)?.params) ??
-		{}
-	);
+export function usePanelParams<P extends Record<string, string>>(ref: PanelRef<P | undefined>): P;
+export function usePanelParams(from: string): Record<string, string>;
+export function usePanelParams(refOrFrom: PanelRef | string): unknown {
+	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
+	const match = useMatch({ from: routeId, shouldThrow: false } as never);
+	return useLastWhileUndefined((match as { params?: unknown } | undefined)?.params) ?? {};
 }
 
-export function usePanelSearch<TSearch = Record<string, unknown>>(
-	from: string,
-): TSearch | undefined {
-	const match = useMatch({ from, shouldThrow: false } as never);
-	return useLastWhileUndefined((match as { search?: TSearch } | undefined)?.search);
+export function usePanelSearch<S>(ref: PanelRef<any, S | undefined>): S | undefined;
+export function usePanelSearch(from: string): Record<string, unknown>;
+export function usePanelSearch(refOrFrom: PanelRef | string): unknown {
+	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
+	const match = useMatch({ from: routeId, shouldThrow: false } as never);
+	return useLastWhileUndefined((match as { search?: unknown } | undefined)?.search);
 }
 
-export function usePanelLoaderData<TData>(from: string): TData | undefined {
-	const match = useMatch({ from, shouldThrow: false } as never);
-	return useLastWhileUndefined((match as { loaderData?: TData } | undefined)?.loaderData);
+export function usePanelLoaderData<D>(ref: PanelRef<any, any, D | undefined>): D | undefined;
+export function usePanelLoaderData(from: string): unknown;
+export function usePanelLoaderData(refOrFrom: PanelRef | string): unknown {
+	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
+	const match = useMatch({ from: routeId, shouldThrow: false } as never);
+	return useLastWhileUndefined((match as { loaderData?: unknown } | undefined)?.loaderData);
 }
 
 /**
