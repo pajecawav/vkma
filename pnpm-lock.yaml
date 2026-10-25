@@ -330,7 +330,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       valibot:
         specifier: 'catalog:'
         version: 1.5.0(typescript@7.0.2)
@@ -355,7 +355,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.4)
@@ -376,7 +376,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -401,7 +401,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.4)
@@ -462,7 +462,7 @@ importers:
         version: 4.3.3
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vite:
         specifier: 'catalog:'
         version: 8.3.4(@types/node@26.6.5)(@vitejs/devtools@0.8.0)(jiti@2.7.0)(yaml@2.9.1)
@@ -499,13 +499,50 @@ importers:
         version: 19.3.1
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.4)
+
+  packages/router/playground:
+    dependencies:
+      '@tanstack/react-router':
+        specifier: ^1.170.46
+        version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@vkma.dev/router':
+        specifier: workspace:*
+        version: link:..
+      '@vkontakte/icons':
+        specifier: ^3.78.0
+        version: 3.78.0(react@19.3.1)
+      '@vkontakte/vk-bridge':
+        specifier: 'catalog:'
+        version: 3.0.2
+      '@vkontakte/vkui':
+        specifier: ^8.4.0
+        version: 8.4.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 6.1.2(vite@8.3.4)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.4(@types/node@26.6.5)(@vitejs/devtools@0.8.0)(jiti@2.7.0)(yaml@2.9.1)
 
   playground/mini-app:
     devDependencies:
@@ -572,40 +609,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
-
-  playground/router-spike:
-    dependencies:
-      '@tanstack/react-router':
-        specifier: ^1.170.46
-        version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@vkma.dev/router':
-        specifier: workspace:*
-        version: link:../../packages/router
-      '@vkontakte/vk-bridge':
-        specifier: 'catalog:'
-        version: 3.0.2
-      '@vkontakte/vkui':
-        specifier: ^8.4.0
-        version: 8.4.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-    devDependencies:
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: 'catalog:'
-        version: 6.1.2(vite@8.3.4)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.1
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.1(react@19.3.1)
-      vite:
-        specifier: 'catalog:'
-        version: 8.3.4(@types/node@26.6.5)(@vitejs/devtools@0.8.0)(jiti@2.7.0)(yaml@2.9.1)
 
 packages:
 
@@ -8903,7 +8906,7 @@ snapshots:
 
   trough@2.2.0: {}
 
-  tsdown@0.23.1(publint@0.3.25)(typescript@7.0.2):
+  tsdown@0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2):
     dependencies:
       cac: 7.1.0
       defu: 6.1.7
@@ -8920,6 +8923,7 @@ snapshots:
       unconfig-core: 7.5.0
       verkit: 0.5.0
     optionalDependencies:
+      '@vitejs/devtools': 0.8.0(crossws@0.4.15(srvx@1.0.6))(srvx@1.0.6)(vite@8.3.4)
       publint: 0.3.25
       typescript: 7.0.2
     transitivePeerDependencies:

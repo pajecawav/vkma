@@ -3,7 +3,7 @@
 **Status: v0.1 implemented.** `@vkma.dev/router` is a VK Mini Apps router
 on top of TanStack Router, successor to `@vkontakte/vk-mini-apps-router`
 (**feature parity, not API parity**). The four layers are implemented and
-validated end-to-end in `playground/router-spike`; `DESIGN.md` is the
+validated end-to-end in `packages/router/playground`; `DESIGN.md` is the
 source of truth for decisions, spike verdicts and implementation notes —
 read it before touching anything here.
 
@@ -21,10 +21,13 @@ read it before touching anything here.
   choreography host), `Popouts` (history-state registry), `NotFound`.
 - `src/preset` — `createApp` typed builders (views/panels/modals/popouts →
   TanStack tree + registries), `AppRootShell` auto-shell, `useNavigator`.
-- `playground/router-spike` — the integration playground; it CONSUMES the
-  package (`pnpm --filter @vkma.dev/router build` before its dev server —
-  it resolves `dist`). New design questions still get answered by spikes
-  there, and every answer lands back in DESIGN.md.
+- `playground` — the showcase playground (a VKUI navigation-guide style
+  app: Epic/Tabbar + desktop sidebar, four stories driven by the router).
+  It CONSUMES the package (`pnpm --filter @vkma.dev/router build` before
+  its dev server — it resolves `dist`). Manual-e2e observability (bridge
+  payloads, host stack, `__TSR_index`) hides behind `?debug=1` in the
+  router search (`#/?debug=1`). New design questions still get answered by
+  spikes here, and every answer lands back in DESIGN.md.
 
 ## Non-obvious invariants (from the spikes — do not rediscover them)
 
@@ -94,7 +97,22 @@ read it before touching anything here.
 - **`addChildren` REPLACES the children array** — collect children and
   call it once (per-modal calls orphan every child but the last; that bug
   manifested as a modal route missing from `routesById`).
-- **Playground consumes dist**: `playground/router-spike` resolves
+- **Custom roots get the handle**: `createApp({ root })` invokes the
+  custom root with `{ app }` PLUS the raw match props (the default
+  AppRootShell closes over the handle). Custom Epic/Tabbar shells compose
+  `useInflate(app)` + `<VkView view={…}>` per story + `<Modals>` /
+  `<Popouts>` from `/preset` — Epic matches stories by
+  `getNavId(props.nav)`, so pass `nav={view.id}`. Route ids carry a
+  LEADING SLASH at runtime (`/view:feed`), and `AnyRoute["id"]` is `any` —
+  annotate select callbacks (`(state): string =>`) or `useRouterState`
+  degrades to the full-state result.
+- **One view owns `/`**: panel paths are global — two views with an
+  `index` ("/") panel conflict and matching picks arbitrarily
+  (`createApp` console-errors on duplicates at build time). Every other
+  view's home panel needs a distinct path segment (`feed`, `messages`…);
+  the panel KEY should be that segment (`app.panels` keys are
+  `${viewKey}/${panelKey}`).
+- **Playground consumes dist**: `packages/router/playground` resolves
   `@vkma.dev/router` to `packages/router/dist` — after any package change,
   `pnpm --filter @vkma.dev/router build` AND a dev-server restart (a
   running Vite serves stale/missing dist transforms). The playground's

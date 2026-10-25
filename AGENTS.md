@@ -5,7 +5,7 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 ## Structure
 
 - `packages/bridge`, `packages/deploy`, `packages/devtools`, `packages/api-schema` — publishable libraries (tsdown: ESM + dts)
-- `packages/router` — TanStack-based VK Mini Apps router (pre-implementation: `DESIGN.md` decisions + validated spikes in `playground/router-spike`; read its `AGENTS.md` before touching)
+- `packages/router` — TanStack-based VK Mini Apps router (pre-implementation: `DESIGN.md` decisions + validated spikes in `packages/router/playground`; read its `AGENTS.md` before touching)
 - `packages/bridge-schema` — JSON Schema catalogue of VK Bridge events + generated types
 - `packages/api-schema` — generated TS types + zod/valibot schemas for the VK API, built at build time from the `VKCOM/vk-api-schema` git submodule
 - `apps/web` — docs & demos site (bare Astro, no React yet)

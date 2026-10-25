@@ -5,7 +5,7 @@ VK Mini Apps router built on top of TanStack Router. Successor to
 migration guide ships instead of drop-in compatibility.
 
 **Status: v0.1 implemented and validated end-to-end in
-`playground/router-spike`** (which consumes the package, not copies of it).
+`packages/router/playground`** (which consumes the package, not copies of it).
 See "Spikes" for the validation history and "Implementation notes" for the
 hard-won invariants; `AGENTS.md` distills them for agents.
 
@@ -166,7 +166,7 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Spikes (throwaway prototypes, in this order)
 
-1. **Panels + animations** — ✅ done, see `playground/router-spike` (commit
+1. **Panels + animations** — ✅ done, see `packages/router/playground` (commit
    `feat(router): spike 1`) and "Spike 1 verdict" below.
 2. **Modals** — ✅ done (commit `feat(router): spike 2 — modals as routes
    with masking`), see "Spike 2 verdict" below.
@@ -175,7 +175,7 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 4. **TanStack passthrough** — ✅ done (commit `feat(router): spike 4`),
    see "Spike 4 verdict" below.
 
-### Spike 1 verdict (2026-10-25, playground/router-spike)
+### Spike 1 verdict (2026-10-25, packages/router/playground)
 
 **The static-children model works.** Questions answered:
 
@@ -213,7 +213,7 @@ hard-won invariants; `AGENTS.md` distills them for agents.
   transition itself once data hooks stop throwing. The prevValue idea
   survives, but at the data-hook level, not the context level.
 
-### Spike 2 verdict (2026-10-25, playground/router-spike)
+### Spike 2 verdict (2026-10-25, packages/router/playground)
 
 **Modals-as-routes fully validated.** Questions answered:
 
@@ -239,7 +239,7 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 - VKUI housekeeping: `Div` is deprecated (use `Box`) — the spike uses it,
   the real package must not.
 
-### Spike 3 verdict (2026-10-25, playground/router-spike)
+### Spike 3 verdict (2026-10-25, packages/router/playground)
 
 **VK history + bridge sync validated.** Questions answered:
 
@@ -270,7 +270,7 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 - Not separately validated: the browser-history escape hatch (stock
   TanStack history, trivial swap) — covered by TanStack's own tests.
 
-### Spike 4 verdict (2026-10-25, playground/router-spike)
+### Spike 4 verdict (2026-10-25, packages/router/playground)
 
 **TanStack features pass through the VKUI layer untouched.**
 
