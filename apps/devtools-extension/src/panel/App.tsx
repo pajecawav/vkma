@@ -45,6 +45,10 @@ function PanelRoot() {
 	const [urlTabId] = useState(resolveTabId);
 	const [sidePanelTabId, setSidePanelTabId] = useState<number | undefined>(undefined);
 	const isSidePanel = urlTabId === undefined;
+	// One theme subscription per surface, hoisted above every branch — a
+	// hook behind a conditional return flips the hook count and dies with
+	// React #310 (learned the hard way).
+	const theme = useExtensionTheme();
 
 	useEffect(() => {
 		if (!isSidePanel) {
@@ -57,13 +61,17 @@ function PanelRoot() {
 
 	if (tabId === undefined) {
 		return (
-			<PanelFrame status="error" onReconnect={() => setSidePanelTabId(undefined)}>
+			<PanelFrame
+				status="error"
+				onReconnect={() => setSidePanelTabId(undefined)}
+				theme={theme}
+			>
 				<p className="text-sm text-neutral-500">This panel has no tab to watch.</p>
 			</PanelFrame>
 		);
 	}
 
-	return <TabPanel tabId={tabId} embeddedInSidePanel={isSidePanel} />;
+	return <TabPanel tabId={tabId} embeddedInSidePanel={isSidePanel} theme={theme} />;
 }
 
 function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
@@ -82,7 +90,15 @@ function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
  * Firefox never does — the button hides there. */
 const sidePanelSupported = () => typeof chrome !== "undefined" && chrome.sidePanel !== undefined;
 
-function TabPanel({ tabId, embeddedInSidePanel }: { tabId: number; embeddedInSidePanel: boolean }) {
+function TabPanel({
+	tabId,
+	embeddedInSidePanel,
+	theme,
+}: {
+	tabId: number;
+	embeddedInSidePanel: boolean;
+	theme: { dark: boolean; toggle: () => void };
+}) {
 	const connection = useVkmaExtension(tabId);
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
@@ -99,6 +115,7 @@ function TabPanel({ tabId, embeddedInSidePanel }: { tabId: number; embeddedInSid
 				status={connection.status}
 				onReconnect={connection.reconnect}
 				lastError={connection.lastError}
+				theme={theme}
 			/>
 		);
 	}
@@ -107,8 +124,6 @@ function TabPanel({ tabId, embeddedInSidePanel }: { tabId: number; embeddedInSid
 	// runtime message carries it into the service worker (werpc ports do
 	// not) — that is what sidePanel.open() demands. The tabId rides the
 	// payload because extension pages have no sender.tab.
-	const theme = useExtensionTheme();
-
 	const openSidePanel =
 		sidePanelSupported() && !embeddedInSidePanel
 			? () => {
@@ -204,14 +219,15 @@ function PanelFrame({
 	status,
 	onReconnect,
 	lastError,
+	theme,
 	children,
 }: {
 	status: "connecting" | "error" | "disconnected";
 	onReconnect: () => void;
 	lastError?: string;
+	theme: { dark: boolean; toggle: () => void };
 	children?: React.ReactNode;
 }) {
-	const theme = useExtensionTheme();
 	return (
 		<div className="flex h-dvh flex-col">
 			<TopBar status={status} onReconnect={onReconnect} theme={theme} />
