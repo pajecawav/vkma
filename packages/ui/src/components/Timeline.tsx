@@ -1,5 +1,6 @@
+import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
+import type { ReactNode } from "react";
 import { platformLabel, shortId } from "../lib/format.ts";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { ChevronIcon, PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
@@ -75,11 +76,14 @@ export function Timeline({
 	events,
 	clients,
 	hideClient = false,
+	emptyStateHint,
 }: {
 	events: WireEvent[];
 	clients: ClientInfo[];
 	/** Embedded mode: rows always belong to this panel's client. */
 	hideClient?: boolean;
+	/** Overrides the "nothing yet" hint (surfaces with other capture modes). */
+	emptyStateHint?: ReactNode;
 }) {
 	const [query, setQuery] = useState("");
 	const [filter, setFilter] = useState<EventFilter>("all");
@@ -239,9 +243,13 @@ export function Timeline({
 							Waiting for bridge traffic
 						</p>
 						<p className="max-w-64 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-							Open your mini app — every request and event lands here. Nothing yet?
-							Make sure the app imports{" "}
-							<code className="font-mono">@vkma.dev/bridge</code>.
+							{emptyStateHint ?? (
+								<>
+									Open your mini app — every request and event lands here. Nothing
+									yet? Make sure the app imports{" "}
+									<code className="font-mono">@vkma.dev/bridge</code>.
+								</>
+							)}
 						</p>
 					</div>
 				) : groups.length === 0 ? (

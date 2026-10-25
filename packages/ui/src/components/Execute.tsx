@@ -1,5 +1,6 @@
+import type { ClientInfo, ExecResult, WireEvent } from "@vkma.dev/protocol";
 import { useMemo, useState } from "react";
-import type { ClientInfo, ExecResult, WireEvent } from "../../../src/shared/protocol.ts";
+import type { ReactNode } from "react";
 import { platformLabel, shortId } from "../lib/format.ts";
 import { CheckIcon, ChevronIcon, CrossIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
@@ -38,6 +39,7 @@ export function Execute({
 	events,
 	execute,
 	fixedClientId,
+	emptyState,
 }: {
 	clients: ClientInfo[];
 	events: WireEvent[];
@@ -48,6 +50,8 @@ export function Execute({
 	) => Promise<ExecResult>;
 	/** Embedded mode: the panel is bound to this client only. */
 	fixedClientId?: string;
+	/** Overrides the "no clients" card (surfaces with other capture modes). */
+	emptyState?: ReactNode;
 }) {
 	const knownNames = useMemo(() => {
 		const names = new Set<string>();
@@ -111,10 +115,12 @@ export function Execute({
 		>
 			<div className="mx-auto flex max-w-xl flex-col gap-4">
 				{clients.length === 0 ? (
-					<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
-						No connected clients. Open the mini app with the devtools plugin — then
-						execute bridge events here.
-					</p>
+					(emptyState ?? (
+						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
+							No connected clients. Open the mini app with the devtools plugin — then
+							execute bridge events here.
+						</p>
+					))
 				) : (
 					<>
 						{!fixedClientId && (

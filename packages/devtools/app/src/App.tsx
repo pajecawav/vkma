@@ -1,11 +1,7 @@
+import { Clients, Execute, Rail, type Section, Timeline, TopBar } from "@vkma.dev/ui";
 import { LucideProvider } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Clients } from "./components/Clients.tsx";
-import { Execute } from "./components/Execute.tsx";
-import { Rail, type Section } from "./components/Rail.tsx";
 import { StatusGate } from "./components/StatusGate.tsx";
-import { Timeline } from "./components/Timeline.tsx";
-import { TopBar } from "./components/TopBar.tsx";
 import { useVkma } from "./lib/rpc.ts";
 
 const SECTION_KEY = "vkma:section";

@@ -1,5 +1,6 @@
+import type { ClientStatus } from "@vkma.dev/protocol";
 import { useState } from "react";
-import type { ClientStatus } from "../../../src/shared/protocol.ts";
+import type { ReactNode } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
 import { ChevronIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
@@ -36,7 +37,13 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 	);
 }
 
-function ClientCard({ client }: { client: ClientStatus }) {
+function ClientCard({
+	client,
+	bridgeWarning,
+}: {
+	client: ClientStatus;
+	bridgeWarning?: ReactNode;
+}) {
 	const [open, setOpen] = useState(false);
 	return (
 		<li
@@ -92,8 +99,12 @@ function ClientCard({ client }: { client: ClientStatus }) {
 					{!client.bridge && (
 						<p className="mx-3 mb-2 flex items-start gap-2 rounded-md bg-amber-500/10 p-2.5 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
 							<WarningIcon width={13} height={13} className="mt-0.5 shrink-0" />
-							Bridge not detected: this page does not import @vkma.dev/bridge, so only
-							launch params are reported.
+							{bridgeWarning ?? (
+								<>
+									Bridge not detected: this page does not import @vkma.dev/bridge,
+									so only launch params are reported.
+								</>
+							)}
 						</p>
 					)}
 					<p
@@ -109,7 +120,18 @@ function ClientCard({ client }: { client: ClientStatus }) {
 	);
 }
 
-export function Clients({ clients }: { clients: ClientStatus[] }) {
+export function Clients({
+	clients,
+	emptyState,
+	bridgeWarning,
+}: {
+	clients: ClientStatus[];
+	/** Overrides the "no clients" card (surfaces with other capture modes). */
+	emptyState?: ReactNode;
+	/** Overrides the bridge-not-detected warning for surfaces where a
+	 * missing vkma bridge still means captured traffic (spy mode). */
+	bridgeWarning?: ReactNode;
+}) {
 	return (
 		<section
 			className="scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"
@@ -117,14 +139,20 @@ export function Clients({ clients }: { clients: ClientStatus[] }) {
 		>
 			<div className="mx-auto flex max-w-xl flex-col gap-2">
 				{clients.length === 0 ? (
-					<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
-						No connected clients. Open the mini app served by this dev server — desktop
-						tab or phone — and it appears here.
-					</p>
+					(emptyState ?? (
+						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
+							No connected clients. Open the mini app served by this dev server —
+							desktop tab or phone — and it appears here.
+						</p>
+					))
 				) : (
 					<ul className="flex flex-col gap-2">
 						{clients.map(client => (
-							<ClientCard key={client.clientId} client={client} />
+							<ClientCard
+								key={client.clientId}
+								client={client}
+								bridgeWarning={bridgeWarning}
+							/>
 						))}
 					</ul>
 				)}

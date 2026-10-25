@@ -1,5 +1,5 @@
+import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
 import { memo, useState } from "react";
-import type { ClientInfo, WireEvent } from "../../../src/shared/protocol.ts";
 import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";

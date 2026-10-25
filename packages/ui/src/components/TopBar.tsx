@@ -1,6 +1,6 @@
+import type { ConnectionStatus } from "@vkma.dev/protocol";
 import { useEffect, useState } from "react";
 import { clientColor } from "../lib/colors.ts";
-import type { ConnectionStatus } from "../lib/rpc.ts";
 import { MoonIcon, RefreshIcon, SunIcon, VkmaLogoIcon } from "./icons.tsx";
 
 const STATUS_META: Record<ConnectionStatus, { label: string; dot: string; text: string }> = {

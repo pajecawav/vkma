@@ -4,7 +4,7 @@
  * indexes map to Tailwind classes. Keep the class lists in sync with the
  * shared palette's tone order.
  */
-import { clientColorIndex } from "../../../src/shared/colors.ts";
+import { clientColorIndex } from "@vkma.dev/protocol";
 
 interface ClientColor {
 	/** Colored square in badges. */
