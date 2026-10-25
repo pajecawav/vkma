@@ -18,6 +18,12 @@ interface PendingExec {
 export class DevtoolsStore {
 	private events: WireEvent[] = [];
 	private seq = 0;
+	/**
+	 * Instance epoch, stamped on every event: the extension's host store
+	 * dies with its page, so a reload restarts `seq` — consumers dedupe
+	 * by (runId, seq) and treat other runs' events as ghosts.
+	 */
+	public readonly runId = crypto.randomUUID();
 	private readonly clients = new Map<string, ClientInfo>();
 	private readonly pendingExecs = new Map<number, PendingExec>();
 	private execCounter = 0;
@@ -117,7 +123,7 @@ export class DevtoolsStore {
 	/** Assigns global seq numbers; drops events from unknown clients. */
 	public pushEvents(
 		clientId: string,
-		events: Omit<WireEvent, "seq" | "clientId">[],
+		events: Omit<WireEvent, "seq" | "clientId" | "runId">[],
 	): WireEvent[] {
 		if (!this.clients.has(clientId)) {
 			return [];
@@ -126,6 +132,7 @@ export class DevtoolsStore {
 			...event,
 			clientId,
 			seq: ++this.seq,
+			runId: this.runId,
 		}));
 		this.events.push(...stamped);
 		if (this.events.length > RING_LIMIT) {

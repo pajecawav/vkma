@@ -24,6 +24,12 @@ export interface WireEvent {
 	ok?: boolean;
 	/** Global sequence assigned by the collecting side (node / extension host). */
 	seq: number;
+	/**
+	 * Epoch of the collecting side's store instance. The extension's host
+	 * store dies with the page (seq restarts on reload), so panels key
+	 * their dedupe by (runId, seq) and drop other runs' events.
+	 */
+	runId: string;
 }
 
 export interface ClientInfo {
@@ -62,6 +68,8 @@ export interface ExecResultReport {
 }
 
 export interface DevtoolsState {
+	/** Epoch of the store that produced this snapshot (see WireEvent.runId). */
+	runId: string;
 	events: WireEvent[];
 	clients: ClientStatus[];
 }

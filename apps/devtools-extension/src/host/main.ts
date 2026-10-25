@@ -125,6 +125,7 @@ const handler = createHandler({
 	router: werpc.router({
 		/** Full state snapshot (panels merge it with the live streams). */
 		state: werpc.procedure.query((): DevtoolsState => ({
+			runId: store.runId,
 			events: store.snapshotEvents(),
 			clients: store.listClients(),
 		})),

@@ -197,9 +197,10 @@ export const vkmaDevframe = defineDevframe({
 				const clients = store.listClients();
 				const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
 				if (scope === undefined) {
-					return { events, clients };
+					return { runId: store.runId, events, clients };
 				}
 				return {
+					runId: store.runId,
 					events: events.filter(event => event.clientId === scope),
 					clients: clients.filter(client => client.clientId === scope),
 				};
@@ -257,9 +258,10 @@ export const vkmaDevframe = defineDevframe({
 				const clients = store.listClients();
 				const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
 				if (scope === undefined) {
-					return { events, clients };
+					return { runId: store.runId, events, clients };
 				}
 				return {
+					runId: store.runId,
 					events: events.filter(event => event.clientId === scope),
 					clients: clients.filter(client => client.clientId === scope),
 				};

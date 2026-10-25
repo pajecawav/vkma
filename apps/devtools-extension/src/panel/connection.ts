@@ -7,6 +7,7 @@ import type {
 } from "@vkma.dev/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient, type WERPClient } from "werpc";
+import { absorbEvents } from "./absorb.ts";
 
 /**
  * The extension panel's data layer — the counterpart of the devtools
@@ -17,19 +18,8 @@ import { createClient, type WERPClient } from "werpc";
  * this tab", not an extension error.
  */
 
-const MAX_EVENTS = 500;
-
 /** The extension never runs the devtools OTP dance — no `unauthorized`. */
 export type ExtensionStatus = Exclude<ConnectionStatus, "unauthorized">;
-
-/** Absorb timeline batches: dedupe by the host-assigned global `seq`. */
-function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
-	const merged = new Map(prev.map(event => [event.seq, event]));
-	for (const event of incoming) {
-		merged.set(event.seq, event);
-	}
-	return [...merged.values()].toSorted((a, b) => a.seq - b.seq).slice(-MAX_EVENTS);
-}
 
 export interface PanelConnection {
 	status: ExtensionStatus;
@@ -90,6 +80,8 @@ interface TabFeed {
 	client: WERPClient;
 	/** By the HOST's seq — globally colliding, only the merger sees these. */
 	events: Map<number, WireEvent>;
+	/** The host store's epoch: a reload restarts its seq, ghosts are purged. */
+	runId?: string;
 	clients: ClientStatus[];
 	/** probing → live (probe answered) → dead (probe failed: no host). */
 	state: "probing" | "live" | "dead";
@@ -176,6 +168,10 @@ export function useVkmaAllTabs(): GlobalConnection {
 							return;
 						}
 						feed.state = "live";
+						if (feed.runId !== state.runId) {
+							feed.runId = state.runId;
+							feed.events.clear();
+						}
 						for (const event of state.events) {
 							feed.events.set(event.seq, event);
 						}
@@ -194,6 +190,14 @@ export function useVkmaAllTabs(): GlobalConnection {
 					onData: batch => {
 						if (feeds.get(tabId) !== feed) {
 							return;
+						}
+						// A batch from an unknown store epoch means the host page
+						// reloaded (werpc resurrected the subscription): its seq
+						// restarted, the previous run's events are ghosts.
+						const runId = batch.at(-1)?.runId;
+						if (runId !== undefined && feed.runId !== runId) {
+							feed.runId = runId;
+							feed.events.clear();
 						}
 						for (const event of batch) {
 							feed.events.set(event.seq, event);

@@ -10,6 +10,7 @@ const event = (clientId: string, seq: number, ts: number): WireEvent => ({
 	kind: "send",
 	name: "VKWebAppInit",
 	seq,
+	runId: "r",
 });
 
 describe("MergedTimeline", () => {

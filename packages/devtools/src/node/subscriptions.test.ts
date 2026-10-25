@@ -38,6 +38,7 @@ test("groupByClient splits a mixed-client batch", () => {
 		kind: "send",
 		name: "VKWebAppGetUserInfo",
 		seq,
+		runId: "r",
 	});
 	const groups = groupByClient([event("a", 1), event("b", 2), event("a", 3)]);
 	expect([...groups.keys()].toSorted()).toEqual(["a", "b"]);
