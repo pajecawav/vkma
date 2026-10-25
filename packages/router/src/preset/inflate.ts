@@ -32,15 +32,26 @@ export function deriveInflateChain(
 	}
 	const chain: string[] = [];
 	for (const panel of orderedPanels.slice(0, targetIndex)) {
-		// TanStack path params are `$name`
-		const interpolated = panel.path.replace(/\$([A-Za-z0-9_]+)/g, (segment, key: string) => {
-			const value = params[key];
-			return value !== undefined ? value : segment;
-		});
-		if (interpolated.includes("$")) {
-			continue; // a required param cannot be derived — skip the step
+		const interpolated = interpolatePath(panel.path, params);
+		if (interpolated !== null) {
+			chain.push(interpolated); // a required param cannot be derived — skip the step
 		}
-		chain.push(interpolated.startsWith("/") ? interpolated : `/${interpolated}`);
 	}
 	return chain;
+}
+
+/**
+ * Fill a route path's `$param` segments from the deep link's params.
+ * Returns null when a required param cannot be derived (the step is
+ * unrepresentable as a URL and must be skipped).
+ */
+export function interpolatePath(path: string, params: Record<string, string>): string | null {
+	const interpolated = path.replace(/\$([A-Za-z0-9_]+)/g, (segment, key: string) => {
+		const value = params[key];
+		return value !== undefined ? value : segment;
+	});
+	if (interpolated.includes("$")) {
+		return null;
+	}
+	return interpolated.startsWith("/") ? interpolated : `/${interpolated}`;
 }

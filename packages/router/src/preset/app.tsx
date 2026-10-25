@@ -4,7 +4,7 @@ import { Modals } from "../vkui/modals.tsx";
 import { Popouts } from "../vkui/popouts.tsx";
 import { VkView } from "../vkui/vk-view.tsx";
 import type { AppHandle } from "./builders.tsx";
-import { deriveInflateChain } from "./inflate.ts";
+import { deriveInflateChain, interpolatePath } from "./inflate.ts";
 
 /**
  * Default root shell: the active view + the modal/popout hosts + inflate.
@@ -55,6 +55,8 @@ export function useInflate(app: AppHandle, enabled = true): void {
 	const snapshot = useRouterState({
 		select: state => {
 			let panelKey: string | null = null;
+			let panelPath: string | null = null;
+			let isModal = false;
 			for (let i = state.matches.length - 1; i >= 0; i--) {
 				const routeId = state.matches[i]?.routeId;
 				if (routeId === undefined) {
@@ -63,12 +65,19 @@ export function useInflate(app: AppHandle, enabled = true): void {
 				const route = (
 					router.routesById as Record<
 						string,
-						{ options: { staticData?: { panel?: string } } }
+						{
+							options: { staticData?: { panel?: string; modal?: string } };
+							fullPath?: string;
+						}
 					>
 				)[routeId];
-				const panel = route?.options.staticData?.panel;
-				if (panel !== undefined) {
-					panelKey = panel;
+				const staticData = route?.options.staticData;
+				if (staticData?.modal !== undefined) {
+					isModal = true; // the deepest match is a route modal
+				}
+				if (staticData?.panel !== undefined) {
+					panelKey = staticData.panel;
+					panelPath = route?.fullPath ?? null;
 					break;
 				}
 			}
@@ -79,6 +88,8 @@ export function useInflate(app: AppHandle, enabled = true): void {
 					0,
 				href: state.location.href,
 				panelKey,
+				panelPath,
+				isModal,
 				deepestParams:
 					(
 						state.matches[state.matches.length - 1] as
@@ -103,7 +114,16 @@ export function useInflate(app: AppHandle, enabled = true): void {
 			return;
 		}
 		const ordered = Object.values(app.panels).filter(panel => panel.viewId === target.viewId);
-		const chain = deriveInflateChain(ordered, target.routeId, snapshot.deepestParams);
+		let chain = deriveInflateChain(ordered, target.routeId, snapshot.deepestParams);
+		// a deep link INTO A ROUTE MODAL: the parent panel must sit in history
+		// right below the modal, or back from the modal skips the panel the
+		// user is logically on (jumps straight to the view home)
+		if (snapshot.isModal && snapshot.panelPath !== null) {
+			const parentHref = interpolatePath(snapshot.panelPath, snapshot.deepestParams);
+			if (parentHref !== null && chain[chain.length - 1] !== parentHref) {
+				chain = [...chain, parentHref];
+			}
+		}
 		if (chain.length === 0) {
 			return;
 		}
