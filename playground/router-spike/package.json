@@ -1,0 +1,23 @@
+{
+	"name": "@vkma.dev/playground-router-spike",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build"
+	},
+	"dependencies": {
+		"@tanstack/react-router": "^1.170.46",
+		"@vkontakte/vk-bridge": "catalog:",
+		"@vkontakte/vkui": "^8.4.0"
+	},
+	"devDependencies": {
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"vite": "catalog:"
+	}
+}
