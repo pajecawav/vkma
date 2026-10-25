@@ -14,6 +14,7 @@ export { Rail } from "./components/Rail.tsx";
 export type { Section } from "./components/Rail.tsx";
 export { TopBar } from "./components/TopBar.tsx";
 export { JsonTree } from "./components/JsonTree.tsx";
+export { UiProvider } from "./provider.tsx";
 export {
 	ArrowInIcon,
 	ArrowOutIcon,

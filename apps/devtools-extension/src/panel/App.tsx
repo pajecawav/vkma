@@ -1,5 +1,5 @@
 import type { CaptureMode, ClientStatus } from "@vkma.dev/protocol";
-import { Clients, Execute, Rail, Timeline, TopBar, type Section } from "@vkma.dev/ui";
+import { Clients, Execute, Rail, Timeline, TopBar, UiProvider, type Section } from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
 import { useVkmaExtension } from "./connection.ts";
 
@@ -22,6 +22,14 @@ async function resolveSidePanelTabId(): Promise<number | undefined> {
 }
 
 export function App() {
+	return (
+		<UiProvider>
+			<PanelRoot />
+		</UiProvider>
+	);
+}
+
+function PanelRoot() {
 	const [urlTabId] = useState(resolveTabId);
 	const [sidePanelTabId, setSidePanelTabId] = useState<number | undefined>(undefined);
 	const isSidePanel = urlTabId === undefined;

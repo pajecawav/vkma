@@ -1,5 +1,4 @@
-import { Clients, Execute, Rail, type Section, Timeline, TopBar } from "@vkma.dev/ui";
-import { LucideProvider } from "lucide-react";
+import { Clients, Execute, Rail, type Section, Timeline, TopBar, UiProvider } from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
 import { StatusGate } from "./components/StatusGate.tsx";
 import { useVkma } from "./lib/rpc.ts";
@@ -28,9 +27,7 @@ export function App() {
 	const gate = connection.status !== "connected" ? <StatusGate connection={connection} /> : null;
 
 	return (
-		// House lucide defaults: 16px, the stroke weight the panel always
-		// drew its icons with (lucide's own default is 2).
-		<LucideProvider size={16} strokeWidth={1.75}>
+		<UiProvider>
 			<div className="flex h-dvh flex-col">
 				<TopBar
 					status={connection.status}
@@ -72,6 +69,6 @@ export function App() {
 					)}
 				</div>
 			</div>
-		</LucideProvider>
+		</UiProvider>
 	);
 }
