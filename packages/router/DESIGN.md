@@ -62,6 +62,10 @@ plan that precedes implementation.
 - **Bare names from the subpath**: `import { App, View, Panel, ModalPage }
   from '@vkma.dev/router/vkui'` — the subpath isolates the namespace; alias
   in files that also import VKUI directly.
+- **Own data hooks (spike-1 requirement)**: panels must read route data
+  through `/vkui` hooks (`usePanelParams`, `usePanelSearch`, …) built as
+  `shouldThrow: false` + retain-last-value — raw TanStack data hooks crash
+  in a departing panel during the back animation (see spike 1 verdict).
 - VKUI 8 facts that constrain us: `View`/`Root`/`Epic` are not deprecated;
   the `history` prop is only used for iOS swipe-back (`slice(-2)[0]`);
   `onTransition` is the completion signal; `ModalRoot` is deprecated
@@ -145,11 +149,8 @@ plan that precedes implementation.
 
 ## Spikes (throwaway prototypes, in this order)
 
-1. **Panels + animations** (`playground/router-spike`): static children
-   rendering; animation direction vs real history (children order vs
-   panelsHistory); transitions that skip a panel; previous-route data for
-   the departing panel; `panelsHistory` wiring; lazy panels
-   (`createLazyRoute`) inside the static-children model with pending state.
+1. **Panels + animations** — ✅ done, see `playground/router-spike` (commit
+   `feat(router): spike 1`) and "Spike 1 verdict" below.
 2. **Modals**: modal-as-route + masking; controlled `open` on
    `ModalPage`; back-close; modal chains; global (`?modal=`) vs local;
    open/close animations.
@@ -159,14 +160,46 @@ plan that precedes implementation.
 4. **TanStack passthrough**: loaders/pending/`beforeLoad`/typed search
    through preset builders; nothing re-wrapped or broken.
 
-Each spike answers its open questions, then its conclusions land back in
-this document before the real implementation of that area.
+### Spike 1 verdict (2026-10-25, playground/router-spike)
+
+**The static-children model works.** Questions answered:
+
+- ✅ **Static children + `activePanel` from the match**: VKUI renders both
+  panels during a transition (`panelNext`/`panelPrev` → `panelActive`
+  after ~640ms on iOS), hides inactive panels itself. No `<Outlet>`.
+- ✅ **Lazy panels in the static model**: `route.lazy(() => import())` +
+  `createLazyRoute` works code-based; `route.options.component` is merged
+  in place when the chunk resolves (the panel renders a Spinner fallback
+  until then). File-based routing is not needed for splitting.
+- ✅ **panelsHistory mirror** indexed by `location.state.__TSR_index`:
+    - writes must be gated on router `status === "idle"` — the location
+      commit lands one render **before** match resolution, and a naive
+      mirror writes the stale panel at the new index (self-healed by the
+      replace-on-same-index rule, but still wrong);
+    - init (cold start/reload/deep link) must **anchor at the real
+      `__TSR_index`** — it survives reloads in `history.state`; earlier
+      slots stay `null` and are skipped.
+- ❌→✅ **Departing-panel data (the critical finding)**: raw TanStack data
+  hooks (`useParams` etc.) **crash** in a departing panel —
+  `Invariant failed: Could not find an active match` — because VKUI keeps
+  the panel mounted during the back animation while its route no longer
+  matches. The error flies past the router's error boundary ("wasn't
+  caught by any route") and remounts the whole tree: animation broken,
+  scroll/state lost. Fix validated: the `/vkui` layer ships its own data
+  hooks (`usePanelParams`: `shouldThrow: false` + retain-last-value while
+  mounted) — the departing panel shows frozen data for the entire
+  animation. **This is now a hard requirement for the /vkui layer.**
+- ⚠️ **Inherent VKUI limitations to document** (same as the old router):
+  direction follows JSX declaration order, not history semantics — a PUSH
+  back-skip (item → home) animates BACK; `replace` still animates the
+  panel change; a same-panel param change does not transition (the panel
+  just stays live — correct for `item/7 → item/8`).
+- Not needed: the old router's throttled context — VKUI handles the
+  transition itself once data hooks stop throwing. The prevValue idea
+  survives, but at the data-hook level, not the context level.
 
 ## Open questions
 
-- Spike 1: does the static-children model need the old router's throttled
-  context, or do VKUI's own transition states suffice? How does a lazy
-  panel's pending state render inside an animating `<Panel>`?
 - Spike 2: does the standalone `ModalPage open` prop give the full
   open/close animation outside `ModalRoot`? How do modal chains (modal on
   modal) map onto stacked history entries?
