@@ -10,6 +10,9 @@ export default defineConfig({
 	root: "src",
 	format: "esm",
 	unbundle: true,
+	// The protocol package is private (workspace-only); inline it so the
+	// published dist keeps working without a runtime dependency on it.
+	deps: { alwaysBundle: ["@vkma.dev/protocol"] },
 	dts: { sourcemap: true },
 	sourcemap: true,
 	clean: true,
