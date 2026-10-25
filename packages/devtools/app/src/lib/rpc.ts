@@ -30,12 +30,16 @@ const MAX_EVENTS = 500;
  * first live chunks can already have arrived, so dedupe by the globally
  * unique (runId, seq) and keep chronological order. A chunk from an
  * unknown run (dev-server restart reassigned seqs) resets the state.
+ * A runId-less collecting side (pre-epoch node build, e.g. a dev server
+ * still holding the old plugin in memory) forms its own legacy epoch —
+ * bare-seq absorb, not a drop.
  */
 function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
-	const runId = incoming.at(-1)?.runId;
-	if (runId === undefined) {
+	const last = incoming.at(-1);
+	if (last === undefined) {
 		return prev;
 	}
+	const runId = last.runId;
 	const merged = new Map(
 		prev
 			.filter(event => event.runId === runId)

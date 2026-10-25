@@ -2,16 +2,17 @@ import type { WireEvent } from "@vkma.dev/protocol";
 import { describe, expect, it } from "vitest";
 import { absorbEvents } from "./absorb.ts";
 
-const event = (runId: string, seq: number): WireEvent => ({
-	id: seq,
-	ts: seq,
-	clientId: "c",
-	direction: "out",
-	kind: "send",
-	name: "VKWebAppInit",
-	seq,
-	runId,
-});
+const event = (runId: string | undefined, seq: number): WireEvent =>
+	({
+		id: seq,
+		ts: seq,
+		clientId: "c",
+		direction: "out",
+		kind: "send",
+		name: "VKWebAppInit",
+		seq,
+		runId,
+	}) as WireEvent;
 
 describe("absorbEvents", () => {
 	it("dedupes by seq within one run and keeps chronological order", () => {
@@ -30,5 +31,17 @@ describe("absorbEvents", () => {
 	it("keeps the previous state when a batch is empty", () => {
 		const state = absorbEvents([event("r", 1)], []);
 		expect(state).toHaveLength(1);
+	});
+
+	it("treats a runId-less collecting side as one legacy epoch, not a drop", () => {
+		// a dev server still holding the pre-epoch plugin in memory
+		const state = absorbEvents(
+			[event(undefined, 1), event(undefined, 2)],
+			[event(undefined, 2), event(undefined, 3)],
+		);
+		expect(state.map(item => item.seq)).toEqual([1, 2, 3]);
+		// its events never mix with a real run's
+		const upgraded = absorbEvents(state, [event("r", 1)]);
+		expect(upgraded.map(item => item.runId)).toEqual(["r"]);
 	});
 });
