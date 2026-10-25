@@ -18,6 +18,11 @@ export default defineConfig({
 			host: { import: "./src/host/main.ts", html: false },
 			frame: { import: "./src/frame/main.ts", html: false },
 			relay: { import: "./src/relay/main.ts", html: false },
+			themeBoot: {
+				import: "./src/panel/theme-boot.ts",
+				html: false,
+				filename: "theme-boot.js",
+			},
 			panel: "./src/panel/main.tsx",
 		},
 		define: {
