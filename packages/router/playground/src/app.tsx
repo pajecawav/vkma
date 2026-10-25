@@ -1,15 +1,9 @@
 import { createRouter, redirect } from "@tanstack/react-router";
-import {
-	createApp,
-	createVkHistory,
-	NotFound,
-	panel,
-	type AppHandle,
-} from "@vkma.dev/router/preset";
-import { ScreenSpinner } from "@vkontakte/vkui";
+import { createApp, createVkHistory, NotFound, panel } from "@vkma.dev/router/preset";
+import { Button, ButtonGroup, ScreenSpinner } from "@vkontakte/vkui";
 import { lazy, type ComponentType } from "react";
-import { posts, type Post } from "./data";
-import { SettingsGlobalModal, LogoutPopout } from "./overlays";
+import { posts } from "./data";
+import { LogoutPopout, SettingsGlobalModal } from "./overlays";
 import { AppShell } from "./shell";
 
 /**
@@ -59,14 +53,15 @@ const postModalsChunk = () =>
 	import("./panels/post-modals") as Promise<{
 		CommentsModal: ComponentType;
 		ThreadModal: ComponentType;
+		ShareCard: ComponentType;
 	}>;
 
 /** React.lazy bridge for route-modal components in panel chunks. */
 const lazyModal = <T extends ComponentType>(load: () => Promise<{ default: T }>): ComponentType =>
 	lazy(load) as unknown as ComponentType;
 
-const options = {
-	root: ({ app: appHandle }: { app: AppHandle }) => <AppShell app={appHandle} />,
+export const app = createApp({
+	root: ({ app: appHandle }) => <AppShell app={appHandle} />,
 	views: {
 		profile: {
 			panels: {
@@ -87,7 +82,7 @@ const options = {
 			panels: {
 				feed: {
 					lazy: panel(() => feedChunk().then(m => ({ component: m.FeedPanel }))),
-					loader: async (): Promise<{ posts: Post[] }> => {
+					loader: async () => {
 						await new Promise(resolve => setTimeout(resolve, 700));
 						return { posts };
 					},
@@ -113,6 +108,33 @@ const options = {
 						thread: lazyModal(() =>
 							postModalsChunk().then(m => ({ default: m.ThreadModal })),
 						),
+						share: {
+							kind: "card",
+							component: lazyModal(() =>
+								postModalsChunk().then(m => ({ default: m.ShareCard })),
+							),
+							title: "Поделиться постом",
+							description: "Публикация будет отправлена в выбранный чат",
+							actions: (
+								<ButtonGroup stretched gap="s">
+									<Button
+										size="l"
+										stretched
+										onClick={() => window.history.back()}
+									>
+										Отправить
+									</Button>
+									<Button
+										size="l"
+										mode="secondary"
+										stretched
+										onClick={() => window.history.back()}
+									>
+										Отмена
+									</Button>
+								</ButtonGroup>
+							),
+						},
 					},
 				},
 			},
@@ -148,9 +170,7 @@ const options = {
 	},
 	modals: { settings: SettingsGlobalModal },
 	popouts: { logout: LogoutPopout },
-};
-
-export const app = createApp(options);
+});
 
 export const router = createRouter({
 	routeTree: app.routeTree,

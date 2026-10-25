@@ -1,19 +1,36 @@
 import { useRouterState } from "@tanstack/react-router";
-import { ModalPage } from "@vkontakte/vkui";
-import { type ComponentType, Suspense, useEffect, useRef, useState } from "react";
+import { ModalCard, ModalPage } from "@vkontakte/vkui";
+import { type ComponentType, type ReactNode, Suspense, useEffect, useState } from "react";
 
 /**
  * Modal choreography: exactly one modal is visible at a time.
  *
- * A modal is a child route of a panel; while matched, its ModalPage is
- * open. When the matched modal CHANGES (a chain step: Details → More), the
- * old modal closes WITH its animation first — the host keeps it mounted
- * with `open={false}` — and only after the exit completes does the new
- * modal mount open. Stacked open sheets (two at once) cannot happen.
+ * A modal is a child route of a panel; while matched, its surface (a
+ * ModalPage or a ModalCard) is open. When the matched modal CHANGES (a chain
+ * step: Comments → Thread, or a page → card retarget), the old modal closes
+ * WITH its animation first — the host keeps it mounted with `open={false}` —
+ * and only after the exit completes does the new modal open. Stacked open
+ * sheets (two at once) cannot happen.
  *
- * The exit budget defaults to the VKUI modal close animation length; a
- * rapid retarget mid-exit just retargets the choreography.
+ * Exit completion is EVENT-DRIVEN: VKUI fires `onClosed` at the transition
+ * end and backs it with an internal timer computed from the element's real
+ * `transitionDuration` (adapts to platform/theme/reduced-motion — more
+ * accurate than any host-side constant). The host `exitDuration` is only a
+ * WATCHDOG for the one case VKUI cannot report: the modal unmounting before
+ * the exit finishes (its entry vanished from `entries`). Re-targeting the
+ * displayed modal while it is exiting CANCELS the exit — VKUI reverses the
+ * transition mid-flight, so there is no close-then-reopen bounce.
  */
+
+export type ModalKind = "page" | "card";
+
+/** Static chrome for `kind: "card"` entries — props of the ModalCard surface. */
+export interface ModalCardOptions {
+	icon?: ReactNode;
+	title?: ReactNode;
+	description?: ReactNode;
+	actions?: ReactNode;
+}
 
 export interface ModalEntry {
 	/** Full route id of the modal route (e.g. `/item/$id/details`). */
@@ -21,12 +38,45 @@ export interface ModalEntry {
 	/** Modal id — also the VKUI `nav`. */
 	id: string;
 	Component: ComponentType;
+	/** Which VKUI surface hosts the content. Default: `"page"`. */
+	kind?: ModalKind;
+	/** ModalCard chrome — only read when `kind: "card"`. */
+	card?: ModalCardOptions;
 }
 
 export interface ModalsProps {
 	entries: ModalEntry[];
-	/** Close animation budget, ms. Default 420 (VKUI modal page exit). */
+	/**
+	 * Watchdog bound for an exit whose `onClosed` never arrives (the modal
+	 * unmounted mid-animation), ms. Default 420 — well past any VKUI modal
+	 * exit animation; a healthy `onClosed` lands long before it fires.
+	 */
 	exitDuration?: number;
+}
+
+interface SurfaceProps {
+	nav: string;
+	open: boolean;
+	keepMounted: boolean;
+	onClose: () => void;
+	onClosed: () => void;
+}
+
+/** The VKUI surface for an entry: a full-height page or a centered card. */
+function ModalSurface({
+	kind,
+	card,
+	children,
+	...surface
+}: SurfaceProps & { kind: ModalKind; card?: ModalCardOptions; children: ReactNode }) {
+	if (kind === "card") {
+		return (
+			<ModalCard {...surface} {...card}>
+				{children}
+			</ModalCard>
+		);
+	}
+	return <ModalPage {...surface}>{children}</ModalPage>;
 }
 
 interface ChoreographyState {
@@ -35,9 +85,16 @@ interface ChoreographyState {
 	/** the modal currently visible (open) or animating out */
 	displayed: ModalEntry | null;
 	displayedOpen: boolean;
+	/** waiting for `displayed`'s exit animation to report `onClosed` */
+	awaitingExit: boolean;
 }
 
-const CLOSED: ChoreographyState = { target: null, displayed: null, displayedOpen: false };
+const CLOSED: ChoreographyState = {
+	target: null,
+	displayed: null,
+	displayedOpen: false,
+	awaitingExit: false,
+};
 
 export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 	const routeIds = new Set(entries.map(entry => entry.routeId));
@@ -60,59 +117,88 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 	const target = matchedModalEntry ?? globalEntry;
 
 	const [state, setState] = useState<ChoreographyState>(() =>
-		target === null ? CLOSED : { target, displayed: target, displayedOpen: true },
+		target === null
+			? CLOSED
+			: { target, displayed: target, displayedOpen: true, awaitingExit: false },
 	);
 
-	// choreograph target changes: close the displayed modal first, then open
-	// the new one (spike 2 correction: never two open sheets at once)
-	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// choreograph target changes: the visible sheet closes first and the new
+	// one opens only after its exit completes (never two open sheets at once)
 	useEffect(() => {
 		setState(previous => {
 			if (previous.target === target) {
 				return previous;
 			}
-			if (timer.current !== null) {
-				clearTimeout(timer.current);
-				timer.current = null;
-			}
 			if (target === null) {
-				// close everything
-				if (previous.displayed === null) {
-					return CLOSED;
-				}
-				timer.current = setTimeout(() => {
-					timer.current = null;
-					setState(CLOSED);
-				}, exitDuration);
-				return { target: null, displayed: previous.displayed, displayedOpen: false };
+				// close everything; the exit reports through onClosed (or the
+				// watchdog) and the displayed modal unmounts
+				return previous.displayed === null
+					? CLOSED
+					: {
+							target: null,
+							displayed: previous.displayed,
+							displayedOpen: false,
+							awaitingExit: true,
+						};
 			}
-			if (previous.displayed !== null && previous.displayedOpen) {
-				// close the old sheet, then open the new one after the exit
-				timer.current = setTimeout(() => {
-					timer.current = null;
-					setState({ target, displayed: target, displayedOpen: true });
-				}, exitDuration);
-				return { target, displayed: previous.displayed, displayedOpen: false };
+			// target IS the displayed sheet: cancel a running exit (VKUI
+			// reverses the transition mid-flight — no close-open bounce)
+			if (previous.displayed !== null && previous.displayed.id === target.id) {
+				return {
+					target,
+					displayed: previous.displayed,
+					displayedOpen: true,
+					awaitingExit: false,
+				};
 			}
-			// nothing visible — open immediately
-			return { target, displayed: target, displayedOpen: true };
+			if (previous.displayed === null) {
+				// nothing mounted — open immediately
+				return { target, displayed: target, displayedOpen: true, awaitingExit: false };
+			}
+			// a sheet is visible or already exiting: its exit gates the target
+			return {
+				target,
+				displayed: previous.displayed,
+				displayedOpen: false,
+				awaitingExit: true,
+			};
 		});
-	}, [target, exitDuration]);
+	}, [target]);
 
-	useEffect(
-		() => () => {
-			if (timer.current !== null) {
-				clearTimeout(timer.current);
+	const handleClosed = (closedId: string): void => {
+		setState(previous => {
+			if (!previous.awaitingExit || previous.displayed?.id !== closedId) {
+				return previous; // stale or unexpected callback
 			}
-		},
-		[],
-	);
+			return previous.target === null
+				? CLOSED
+				: {
+						target: previous.target,
+						displayed: previous.target,
+						displayedOpen: true,
+						awaitingExit: false,
+					};
+		});
+	};
+
+	// watchdog for the lost-onClosed case (unmount mid-exit); the dep set
+	// re-arms it on every new exit and cleans up on completion/unmount
+	useEffect(() => {
+		if (!state.awaitingExit) {
+			return;
+		}
+		const watchdog = setTimeout(
+			() => handleClosed(state.displayed?.id ?? ""),
+			exitDuration * 2,
+		);
+		return () => clearTimeout(watchdog);
+	}, [state.awaitingExit, state.displayed, exitDuration]);
 
 	const ids = new Set<string>();
 	if (state.displayed !== null) {
 		ids.add(state.displayed.id);
 	}
-	if (state.target !== null && state.target !== state.displayed) {
+	if (state.target !== null && state.target.id !== state.displayed?.id) {
 		ids.add(state.target.id);
 	}
 
@@ -126,17 +212,20 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 				const isDisplayed = state.displayed?.id === id;
 				const open = isDisplayed && state.displayedOpen;
 				return (
-					<ModalPage
+					<ModalSurface
 						key={id}
+						kind={entry.kind ?? "page"}
+						card={entry.card}
 						nav={entry.id}
 						open={open}
 						keepMounted
 						onClose={() => window.history.back()}
+						onClosed={() => handleClosed(id)}
 					>
 						<Suspense fallback={null}>
 							<entry.Component />
 						</Suspense>
-					</ModalPage>
+					</ModalSurface>
 				);
 			})}
 		</>

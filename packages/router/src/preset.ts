@@ -29,6 +29,9 @@ export {
 	useShowPopout,
 	useHidePopout,
 	usePopoutState,
+	type ModalEntry,
+	type ModalKind,
+	type ModalCardOptions,
 } from "./vkui.ts";
 export {
 	usePanelParams,

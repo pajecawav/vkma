@@ -1,7 +1,9 @@
 import { useNavigator } from "@vkma.dev/router/preset";
 import { usePanelParams } from "@vkma.dev/router/react";
 import {
+	Box,
 	CellButton,
+	Footnote,
 	Footer,
 	Group,
 	Header,
@@ -57,6 +59,14 @@ export function CommentsModal(): ReactElement {
 				>
 					Открыть тред
 				</CellButton>
+				<CellButton
+					subtitle="та же цепочка, но surface — ModalCard"
+					onClick={() =>
+						void navigator.showModal({ to: "/post/$id/share", params: { id } })
+					}
+				>
+					Поделиться (карточка)
+				</CellButton>
 			</Group>
 		</>
 	);
@@ -76,5 +86,26 @@ export function ThreadModal(): ReactElement {
 				</SimpleCell>
 			</Group>
 		</>
+	);
+}
+
+/**
+ * Body of the `share` route modal — the HOST renders it inside a ModalCard
+ * (kind: "card" in the app options); the card chrome (title/description/
+ * actions) is declared statically next to the entry, this component is the
+ * param-aware content.
+ */
+export function ShareCard(): ReactElement {
+	const { id } = usePanelParams(app.panels["feed/post/$id"]);
+	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
+
+	return (
+		<Box padding="m" style={{ textAlign: "center" }}>
+			<Text weight="2">«{post.text}»</Text>
+			<Footnote style={{ marginTop: 8, color: "var(--vkui--color_text_secondary)" }}>
+				параметры панели резолвятся и в{"\u00A0"}карточке · пост{"\u00A0"}
+				{id}
+			</Footnote>
+		</Box>
 	);
 }

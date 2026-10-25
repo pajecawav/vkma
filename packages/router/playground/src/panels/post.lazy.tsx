@@ -1,6 +1,11 @@
 import { useNavigator } from "@vkma.dev/router/preset";
 import { usePanelParams, usePanelSearch } from "@vkma.dev/router/react";
-import { Icon24CommentOutline, Icon24LikeOutline, Icon28UserCircleOutline } from "@vkontakte/icons";
+import {
+	Icon24CommentOutline,
+	Icon24LikeOutline,
+	Icon24ShareOutline,
+	Icon28UserCircleOutline,
+} from "@vkontakte/icons";
 import {
 	Button,
 	CellButton,
@@ -139,6 +144,17 @@ function PostPanel() {
 						}
 					>
 						Все комментарии (модалка)
+					</CellButton>
+					<CellButton
+						before={<Icon24ShareOutline />}
+						onClick={() =>
+							void navigator.showModal({
+								to: "/post/$id/share",
+								params: { id },
+							})
+						}
+					>
+						Поделиться (карточка)
 					</CellButton>
 				</Group>
 			) : search?.tab === "likes" ? (
