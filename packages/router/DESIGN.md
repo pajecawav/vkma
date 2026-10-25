@@ -25,18 +25,26 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## URL & history
 
-- **Custom VK history** built on TanStack's public `createHistory` factory:
-  the whole router location (path + search + inner hash) lives in the URL
-  hash. Foreign hash params (launch params, UTM) are preserved and never
-  leak into the router's search params. (TanStack's stock hash history
-  merges the real `location.search` into router search — that is why the
-  history is custom.)
+- **Custom VK history** built on TanStack's public `createHistory` factory
+  (`createBrowserHistory` with swapped `parseLocation`/`createHref`), two
+  modes (default `"hash"`):
+    - `"hash"` — the hash IS the location (`#/item/7`), old
+      `createHashRouter` parity.
+    - `"hash-param"` — the location rides in one hash query param
+      (`#?path=%2Fitem%2F7`); foreign hash params (launch params, UTM) are
+      preserved next to it and never leak into the router's search; the real
+      `location.search` is never touched. (Old `createHashParamRouter`
+      parity — and the reason the history is custom: TanStack's stock hash
+      history merges the real `location.search` into router search.)
+    - Deep links written by the other mode resolve too (legacy tolerance on
+      read; writes always use the active mode's canonical format).
 - **Host sync**: on every location change send
   `VKWebAppSetLocation { location, replace_state: true }`; incoming
   `VKWebAppChangeFragment` / `VKWebAppLocationChanged` navigate the router
   (with loop protection). A manual hash edit by the user counts as a new
   history entry (fresh key via replace, like the old router's factories).
-- **Browser mode** is an escape hatch for standalone (non-VK-hosted) web.
+- **Browser mode** is an escape hatch for standalone (non-VK-hosted) web
+  (TanStack's default history).
 - **Inflate** (synthetic history after a deep link): v1, parent chain
   auto-derived from the route tree (no manual `hierarchy` config like the
   old router), replayed as a navigation transaction.

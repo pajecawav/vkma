@@ -1,7 +1,8 @@
-import { createBrowserHistory, parseHref } from "@tanstack/history";
+import { createBrowserHistory } from "@tanstack/history";
 import {
+	parseHashLocation,
 	parseHashPayload,
-	readHashParams,
+	readHrefFromHash,
 	serializeHashPayload,
 	writeHashParams,
 } from "./hash-params.ts";
@@ -12,12 +13,22 @@ import {
  * inherit blockers with rollback, popstate classification, throttling and
  * TSR index/key stamping.
  *
- * The whole router location (path + search) lives in one hash query param
- * (`#?path=%2Fitem%2F7`), foreign hash params (launch params, UTM) are
- * preserved next to it, and the real `location.search` is never touched.
+ * Modes (parity with the old router's three factories):
+ * - `"hash"` (default) → old `createHashRouter`: the hash IS the location
+ *   (`#/item/7?tab=x`).
+ * - `"hash-param"` → old `createHashParamRouter`: the whole router
+ *   location rides in one hash query param (`#?path=%2Fitem%2F7`), foreign
+ *   hash params (launch params, UTM) are preserved next to it, and the
+ *   real `location.search` is never touched.
+ *
+ * Deep links written by the OTHER mode resolve too (legacy tolerance).
+ * `"browser"` → pass TanStack's default history instead (omit `history`
+ * in createRouter) — old `createBrowserRouter`.
  */
 
 export const DEFAULT_PATH_PARAM = "path";
+
+export type VkHistoryMode = "hash" | "hash-param";
 
 interface HistoryState {
 	key: string;
@@ -27,13 +38,17 @@ interface HistoryState {
 
 export interface VkHistoryOptions {
 	window?: Window;
-	/** Hash query param carrying the router location. Default `"path"`. */
+	/** Hash query param carrying the router location (hash-param mode). */
 	pathParam?: string;
+	/** URL mode. Default `"hash"`. */
+	mode?: VkHistoryMode;
 }
 
+/** The history plus the payload codecs the bridge sync layer needs. */
 export function createVkHistory(options: VkHistoryOptions = {}) {
 	const win = options.window ?? window;
 	const pathParam = options.pathParam ?? DEFAULT_PATH_PARAM;
+	const mode = options.mode ?? "hash";
 
 	let lastIndex = -1;
 
@@ -51,13 +66,57 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 		return state;
 	};
 
-	const parseLocation = () => {
+	const initStamp = (): HistoryState => {
 		const rawState = win.history.state as HistoryState | null;
-		const state: HistoryState = rawState?.__TSR_key ? rawState : stampMissingState();
 		if (rawState?.__TSR_key) {
-			lastIndex = rawState.__TSR_index;
+			if (rawState.__TSR_index > lastIndex) {
+				lastIndex = rawState.__TSR_index;
+			}
+			return rawState;
 		}
-		const href = readHashParams(win).get(pathParam) ?? "/";
+		return stampMissingState();
+	};
+
+	if (mode === "hash-param") {
+		const parseLocation = () => {
+			const state = initStamp();
+			const href = readHrefFromHash(win, pathParam);
+			const url = new URL(href, win.location.origin);
+			return {
+				href,
+				pathname: url.pathname,
+				search: url.search,
+				hash: url.hash,
+				state,
+			};
+		};
+
+		return {
+			history: createBrowserHistory({
+				window: win,
+				parseLocation,
+				createHref: href => writeHashParams(win, pathParam, href),
+			}),
+			/** Hash content for a router href — the SetLocation payload. */
+			serializePayload: (href: string) => serializeHashPayload(win, pathParam, href),
+			/** Router href from a SetLocation/ChangeFragment payload. */
+			parsePayload: (payload: string) => parseHashPayload(payload, pathParam),
+			/** Router href from the current document hash. */
+			parseCurrentHash: () => readHrefFromHash(win, pathParam),
+		};
+	}
+
+	// hash mode: the hash IS the location; legacy `#?path=` links resolve too
+	const parseLocation = () => {
+		const state = initStamp();
+		const hash = win.location.hash;
+		let href: string;
+		if (hash.startsWith("#?")) {
+			// legacy hash-param deep link — resolve the path param out of it
+			href = new URLSearchParams(hash.slice(2)).get(pathParam) ?? "/";
+		} else {
+			href = hash.length > 1 ? hash.slice(1) : "/";
+		}
 		const url = new URL(href, win.location.origin);
 		return {
 			href,
@@ -72,17 +131,15 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 		history: createBrowserHistory({
 			window: win,
 			parseLocation,
-			createHref: href => writeHashParams(win, pathParam, href),
+			createHref: href => `${win.location.pathname}${win.location.search}#${href}`,
 		}),
 		/** Hash content for a router href — the SetLocation payload. */
-		serializePayload: (href: string) => serializeHashPayload(win, pathParam, href),
+		serializePayload: (href: string) => href,
 		/** Router href from a SetLocation/ChangeFragment payload. */
-		parsePayload: (payload: string) => parseHashPayload(payload, pathParam),
-		/** Extract the router href from the current document hash. */
-		parseCurrentHash: () => readHashParams(win).get(pathParam) ?? "/",
+		parsePayload: (payload: string) => parseHashLocation(payload),
+		/** Router href from the current document hash. */
+		parseCurrentHash: () => (win.location.hash.length > 1 ? win.location.hash.slice(1) : "/"),
 	};
 }
 
 export type VkHistory = ReturnType<typeof createVkHistory>;
-
-export { parseHref };

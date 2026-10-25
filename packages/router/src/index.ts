@@ -2,6 +2,7 @@ export {
 	DEFAULT_PATH_PARAM,
 	createVkHistory,
 	type VkHistory,
+	type VkHistoryMode,
 	type VkHistoryOptions,
 } from "./core/vk-history.ts";
 export {
@@ -20,7 +21,10 @@ export {
 } from "./core/bridge-like.ts";
 export {
 	readHashParams,
+	readHrefFromHash,
 	writeHashParams,
 	serializeHashPayload,
+	serializeHashLocation,
+	parseHashLocation,
 	parseHashPayload,
 } from "./core/hash-params.ts";

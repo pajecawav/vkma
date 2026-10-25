@@ -1,5 +1,5 @@
 import { normalizeBridgeEvent, type VkBridgeLike } from "./bridge-like.ts";
-import { serializeHashPayload, parseHashPayload } from "./hash-params.ts";
+import { parseHashLocation, serializeHashLocation } from "./hash-params.ts";
 
 /**
  * The host↔app location sync contract:
@@ -9,17 +9,17 @@ import { serializeHashPayload, parseHashPayload } from "./hash-params.ts";
  *   (host-initiated jumps) → `history.replace(href)`;
  * - loop protection: an incoming href equal to the current one is ignored.
  *
- * The initial location is sent once at creation — the host must learn
- * where the app started. Payloads are serialized from the history EVENT's
- * location: subscribers are notified synchronously before the history's
- * microtask flush writes the URL, so `window.location.hash` is stale by
- * one entry at notify time.
+ * Payload codecs come from the history (they are mode-specific: hash mode
+ * sends the hash content, hash-param mode sends `?path=…` preserving
+ * foreign params). The initial location is sent once at creation.
+ * Serialization happens from the history EVENT's location: subscribers are
+ * notified synchronously before the microtask flush writes the URL, so
+ * `window.location.hash` is stale by one entry at notify time.
  */
 
 const LOCATION_EVENTS = new Set(["VKWebAppChangeFragment", "VKWebAppLocationChanged"]);
 
 export interface BridgeSyncOptions {
-	window?: Window;
 	history: {
 		location: { pathname: string; search: string; hash: string };
 		subscribe(
@@ -30,21 +30,29 @@ export interface BridgeSyncOptions {
 		replace(path: string): void;
 	};
 	bridge: VkBridgeLike;
-	pathParam?: string;
+	/**
+	 * SetLocation payload for a committed location. Defaults to the hash
+	 * mode (the hash content); hash-param users pass the codecs from
+	 * `createVkHistory`.
+	 */
+	serializePayload?: (location: { pathname: string; search: string; hash: string }) => string;
+	/** Router href from a SetLocation/ChangeFragment payload. */
+	parsePayload?: (payload: string) => string;
 }
 
-export function createBridgeSync(options: BridgeSyncOptions): { destroy(): void } {
-	const win = options.window ?? window;
-	const pathParam = options.pathParam ?? "path";
+/** Hash-mode codecs are the defaults. */
+const serializeDefault = (location: { pathname: string; search: string; hash: string }): string =>
+	serializeHashLocation(location);
 
+const parseDefault = (payload: string): string => parseHashLocation(payload);
+
+export function createBridgeSync(options: BridgeSyncOptions): { destroy(): void } {
+	const serializePayload = options.serializePayload ?? serializeDefault;
+	const parsePayload = options.parsePayload ?? parseDefault;
 	let lastSent = "";
 
 	const sendLocation = (location: { pathname: string; search: string; hash: string }): void => {
-		const payload = serializeHashPayload(
-			win,
-			pathParam,
-			`${location.pathname}${location.search}${location.hash}`,
-		);
+		const payload = serializePayload(location);
 		if (payload !== lastSent) {
 			lastSent = payload;
 			void options.bridge.send("VKWebAppSetLocation", {
@@ -67,7 +75,7 @@ export function createBridgeSync(options: BridgeSyncOptions): { destroy(): void 
 			return;
 		}
 		const data = event.data as { location?: string } | undefined;
-		const incoming = parseHashPayload(data?.location ?? "", pathParam);
+		const incoming = parsePayload(data?.location ?? "");
 		const current = `${options.history.location.pathname}${options.history.location.search}`;
 		if (incoming === current) {
 			return; // echo of our own location — loop protection

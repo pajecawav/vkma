@@ -54,14 +54,17 @@ read it before touching anything here.
   resolution), and anchor init at the real index — it survives reloads.
 - **VK history**: built on `createBrowserHistory` with swapped
   `parseLocation`/`createHref` (inherit blockers/popstate/throttling).
-  The location rides in ONE hash query param (`#?path=…`); foreign hash
-  params are preserved and never leak into router search;
-  `location.search` (launch params) is untouched. Serialize
-  `VKWebAppSetLocation` from the history EVENT's location — subscribers
-  are notified before the microtask flush, `window.location.hash` is stale
-  by one entry. Entries without TanStack state (manual hash edits) get
-  stamped `lastIndex + 1` so they behave as pushes. The bridge sync is
-  initialized after the router exists (module cycle ⇒ TDZ crash).
+  Two modes (default `"hash"`): the hash IS the location (`#/item/7`,
+  old `createHashRouter` parity), or `"hash-param"` (`#?path=…`, old
+  `createHashParamRouter` parity — foreign hash params preserved,
+  `location.search` untouched). Deep links written by the other mode
+  resolve too (legacy tolerance). Serialize `VKWebAppSetLocation` from
+  the history EVENT's location — subscribers are notified before the
+  microtask flush, `window.location.hash` is stale by one entry. Entries
+  without TanStack state get stamped `lastIndex + 1` so they behave as
+  pushes. The bridge sync is initialized after the router exists (module
+  cycle ⇒ TDZ crash). `"browser"` → TanStack's default history (old
+  `createBrowserRouter`).
 - **Modals are routes** (masked child routes; global ones via `?modal=` —
   deep-linkable, unmasked in v0.1), never `ModalRoot` (deprecated, gone in
   VKUI v10). Drive controlled `ModalPage open`. The modal host keeps the

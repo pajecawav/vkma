@@ -33,10 +33,16 @@ const router = createRouter({
 });
 ```
 
-`createVkHistory()` replaces all three old factories: `createHashRouter`
-and `createHashParamRouter` map to it (the location rides in one hash
-param, foreign hash params are preserved), `createBrowserRouter` maps to
-TanStack's default browser history.
+`createVkHistory()` replaces all three old factories:
+
+```ts
+createVkHistory(); // = old createHashRouter (#/path, default)
+createVkHistory({ mode: "hash-param" }); // = old createHashParamRouter (#?path=…)
+// old createBrowserRouter = TanStack's default history (omit `history`)
+```
+
+Both hash modes resolve deep links written by the other (legacy
+tolerance).
 
 ## Route config → builders
 
