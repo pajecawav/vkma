@@ -151,9 +151,8 @@ plan that precedes implementation.
 
 1. **Panels + animations** — ✅ done, see `playground/router-spike` (commit
    `feat(router): spike 1`) and "Spike 1 verdict" below.
-2. **Modals**: modal-as-route + masking; controlled `open` on
-   `ModalPage`; back-close; modal chains; global (`?modal=`) vs local;
-   open/close animations.
+2. **Modals** — ✅ done (commit `feat(router): spike 2 — modals as routes
+   with masking`), see "Spike 2 verdict" below.
 3. **VK-history**: `createHistory` over the hash; launch-param isolation;
    `VKWebAppSetLocation`/`ChangeFragment` sync (fake bridge) with loop
    protection; manual hash edits; browser mode.
@@ -198,14 +197,39 @@ plan that precedes implementation.
   transition itself once data hooks stop throwing. The prevValue idea
   survives, but at the data-hook level, not the context level.
 
+### Spike 2 verdict (2026-10-25, playground/router-spike)
+
+**Modals-as-routes fully validated.** Questions answered:
+
+- ✅ **Standalone controlled `ModalPage`** (no ModalRoot): renders through
+  its own `vkuiModalOutlet` + `vkuiModalOverlay`; full open/close
+  animations (enter/closing state classes observed mid-transition);
+  visually verified on 8 screenshots (bottom sheet, dimmed overlay, no
+  artifacts) — including deep link, chains and the global modal.
+- ✅ **Local modal = child route + declarative `createRouteMask`**: the
+  browser URL stays at the panel path (`/item/7`) while the modal is open;
+  the real location (`/item/7/details`) rides in `history.state`; deep
+  link to the full path opens the modal; back closes it with animation.
+- ✅ **Modal chains are just history**: `details → more → back → details`
+  works; two sheets stack without artifacts.
+- ✅ **Closing animation after unmatch**: the modal host keeps every seen
+  modal mounted (`keepMounted`) and flips `open` to false when its route
+  stops matching — `onClose = history.back()` is the natural close.
+- ✅ **Global modal via search param** (`?modal=settings`) opens from any
+  panel; back closes it. Spike read the param directly; the real
+  implementation uses the pathless root route; **masking the global modal
+  was not validated** (declarative masks are pairwise; the real impl needs
+  an imperative `mask` on the open action — implementation note).
+- VKUI housekeeping: `Div` is deprecated (use `Box`) — the spike uses it,
+  the real package must not.
+
 ## Open questions
 
-- Spike 2: does the standalone `ModalPage open` prop give the full
-  open/close animation outside `ModalRoot`? How do modal chains (modal on
-  modal) map onto stacked history entries?
 - Spike 3: exact loop-protection contract between `SetLocation` and
   `ChangeFragment`; behavior when the host rewrites the fragment.
 - Spike 4: which TanStack versions does the peer range need (floor);
   interplay of `search.strict` with our isolated hash params.
+- Global modal masking strategy (imperative `mask` on the open action vs
+  per-panel declarative masks) — decide during implementation.
 - Peer versions to pin: `@vkontakte/vkui` `^8` (v7 compatibility to be
   fact-checked against the `open` prop history), TanStack `^1.170`.
