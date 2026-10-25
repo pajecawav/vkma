@@ -39,7 +39,9 @@ const STYLES = `
     0 0 0 1px rgb(0 0 0 / 0.05),
     0 2px 4px rgb(0 0 0 / 0.1),
     0 12px 32px rgb(0 0 0 / 0.22);
-  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    transform 120ms cubic-bezier(0.2, 0, 0, 1),
+    translate 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 .button:hover { transform: translateY(-1px); }
 .button:active { transform: translateY(0) scale(0.96); }
@@ -72,7 +74,10 @@ const STYLES = `
   transform: translateY(10px) scale(0.98);
   opacity: 0;
   pointer-events: none;
-  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), opacity 120ms linear;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 120ms linear,
+    translate 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 .panel[data-open="true"] {
   transform: none;
@@ -106,11 +111,11 @@ const STYLES = `
   :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
   :host(.vkma-pos-bottom-left) .panel { left: 12px; right: auto; }
 }
-/* Position changes teleport, they do not slide: left/right↔auto is not
- * interpolable and the per-variant transform lists mismatch, so a
- * transition across the swap renders as a jump followed by a stray
- * partial animation. The no-anim class (held for one reflow) suppresses
- * that; open/close transitions resume at the new spot. */
+/* The FLIP swap frame: anchors (left/right, transform-origin, the
+ * per-variant transform) are not interpolable across positions, so they
+ * must land instantly while the movement itself is played back on the
+ * standalone translate property (px to px, single-type interpolation).
+ * This class suppresses every transition for exactly one reflow. */
 :host(.vkma-no-anim) .button,
 :host(.vkma-no-anim) .panel {
   transition: none !important;
@@ -191,16 +196,39 @@ export function mountFab({ panelUrl }: FabOptions): FabHandle {
 				return;
 			}
 			currentPosition = position;
+
+			// FLIP: First — where the movers sit now.
+			const first = {
+				button: button.getBoundingClientRect(),
+				panel: panel.getBoundingClientRect(),
+			};
+
+			// Last — the new anchors land instantly (transitions off, so
+			// the mismatched per-variant transforms cannot half-animate).
 			host.classList.add("vkma-no-anim");
 			for (const cls of Object.values(POSITION_CLASSES)) {
 				host.classList.toggle(cls, cls === POSITION_CLASSES[position]);
 			}
-			// Force a style flush while transitions are off, then restore
-			// them next frame — the move lands as one clean teleport and
-			// the open/close animation is untouched at the new spot.
+
+			// Invert — visually put each element back where it was, via
+			// the standalone `translate` (composes in viewport space with
+			// whatever per-variant `transform` now applies). One reflow
+			// bakes anchor + inversion together before any paint.
+			const invert = (el: HTMLElement, from: DOMRect) => {
+				const to = el.getBoundingClientRect();
+				el.style.translate = `${from.left - to.left}px ${from.top - to.top}px`;
+			};
+			invert(button, first.button);
+			invert(panel, first.panel);
 			void host.offsetWidth;
+
+			// Play — restore transitions (computed styles unchanged so far,
+			// nothing fires yet), then in the NEXT frame release the
+			// inversion: `translate` glides each element to its new spot.
+			host.classList.remove("vkma-no-anim");
 			requestAnimationFrame(() => {
-				host.classList.remove("vkma-no-anim");
+				button.style.translate = "";
+				panel.style.translate = "";
 			});
 		},
 	};
