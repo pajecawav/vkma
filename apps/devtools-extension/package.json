@@ -18,7 +18,9 @@
 		"build:chrome": "cross-env BROWSER=chrome run-s build:rsbuild build:webext:chrome",
 		"build:firefox": "cross-env BROWSER=firefox run-s build:rsbuild build:webext:firefox",
 		"build:webext:chrome": "web-ext build --source-dir dist --overwrite-dest --filename vkma-devtools-chrome-{version}.zip",
-		"build:webext:firefox": "web-ext build --source-dir dist --overwrite-dest --filename vkma-devtools-firefox-{version}.zip"
+		"build:webext:firefox": "web-ext build --source-dir dist --overwrite-dest --filename vkma-devtools-firefox-{version}.zip",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
 	},
 	"dependencies": {
 		"@vkma.dev/bridge": "workspace:*",
@@ -42,6 +44,7 @@
 		"react-dom": "catalog:",
 		"tailwindcss": "catalog:",
 		"typescript": "catalog:",
+		"vitest": "catalog:",
 		"web-ext": "^10.8.0",
 		"zod": "catalog:"
 	}

@@ -6,12 +6,12 @@ import {
 	looksLikeVkConnect,
 	tapEventSchema,
 	vkConnectEnvelopeSchema,
-	type TapEvent,
 } from "@vkma.dev/protocol/schemas";
 import { createClient, type InferNamespace, createHandler, initWERPC } from "werpc";
 import { z } from "zod";
 import { mountFab } from "./fab.ts";
 import { BatchedHub, Hub } from "./hub.ts";
+import { SpyTracker } from "./spy.ts";
 
 /**
  * The host script — the extension's "node side", running in the top frame
@@ -40,60 +40,12 @@ const broadcastClients = () => {
 // --- spy pairing state ---------------------------------------------------------
 
 /**
- * Spy-mode pairing: the app's outgoing requests are sniffed in this frame
- * (top) while their responses land in the app frame's collector — the only
- * join key is the wire `request_id`. Synthesized sends get locally unique
- * ids so the panel's request grouping works exactly like direct mode.
+ * Spy-mode pairing (sniffed sends ↔ tap responses) — see SpyTracker for
+ * why synthesized ids draw from the negative space.
  */
-interface SpyState {
-	origin: string;
-	webFrameId?: string;
-	nextLocalId: number;
-	/** app request_id (string form) → synthesized send event id */
-	requests: Map<string, number>;
-}
-
-const spyStates = new Map<string, SpyState>();
+const spy = new SpyTracker();
 const clientByWebFrameId = new Map<string, string>();
 const clientByOrigin = new Map<string, string>();
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null && !Array.isArray(value);
-
-function ensureSpyState(clientId: string, origin: string): SpyState {
-	let state = spyStates.get(clientId);
-	if (state === undefined) {
-		state = { origin, nextLocalId: 0, requests: new Map() };
-		spyStates.set(clientId, state);
-	}
-	return state;
-}
-
-/** Reclassify a spy-mode collector event: an unsolicited tap `event`
- * carrying a sniffed request's id is that request's `response`. */
-function reclassify(clientId: string, event: TapEvent): Omit<WireEvent, "seq" | "clientId"> {
-	if (event.kind !== "event" || !isPlainObject(event.payload)) {
-		return event;
-	}
-	const wireRequestId = event.payload["request_id"];
-	if (typeof wireRequestId !== "string" && typeof wireRequestId !== "number") {
-		return event;
-	}
-	const state = spyStates.get(clientId);
-	const sendId = state?.requests.get(String(wireRequestId));
-	if (state === undefined || sendId === undefined) {
-		return event;
-	}
-	state.requests.delete(String(wireRequestId));
-	const { request_id: _stripped, ...payload } = event.payload;
-	return {
-		...event,
-		kind: "response",
-		reqId: sendId,
-		ok: !("error_type" in event.payload),
-		payload,
-	};
-}
 
 // --- the vk-connect sniffer ----------------------------------------------------
 
@@ -138,22 +90,7 @@ window.addEventListener("message", event => {
 		return; // the collector's own execute send — its tap already reports it
 	}
 
-	const state = ensureSpyState(clientId, event.origin);
-	const localId = ++state.nextLocalId;
-	const wire: Omit<WireEvent, "seq" | "clientId"> = {
-		id: localId,
-		ts: Date.now(),
-		direction: "out",
-		kind: "send",
-		name: envelope.handler,
-		payload: envelope.params,
-	};
-	if (
-		requestId !== undefined &&
-		(typeof requestId === "string" || typeof requestId === "number")
-	) {
-		state.requests.set(String(requestId), localId);
-	}
+	const wire = spy.synthesizeSend(clientId, envelope);
 	const stamped = store.pushEvents(clientId, [wire]);
 	if (stamped.length > 0) {
 		timelineHub.pushMany(stamped);
@@ -223,14 +160,11 @@ const handler = createHandler({
 				clientByWebFrameId.set(webFrameId, info.clientId);
 			}
 			clientByOrigin.set(origin, info.clientId);
-			if (!info.bridge) {
-				ensureSpyState(info.clientId, origin).webFrameId = webFrameId;
-			}
 
 			if (sessionChanged) {
 				// The page reloaded: this session's history is dead everywhere.
 				store.purgeEvents(info.clientId);
-				spyStates.delete(info.clientId);
+				spy.reset(info.clientId);
 				sessionResetHub.publish({ clientId: info.clientId });
 				broadcastClients();
 				return;
@@ -249,7 +183,7 @@ const handler = createHandler({
 			const out = input.events
 				// `vk-connect` is the bridge's own transport chatter
 				.filter(event => event.name !== "vk-connect")
-				.map(event => (client.bridge ? event : reclassify(input.clientId, event)));
+				.map(event => (client.bridge ? event : spy.reclassify(input.clientId, event)));
 			const stamped = store.pushEvents(input.clientId, out);
 			if (stamped.length > 0) {
 				timelineHub.pushMany(stamped);
