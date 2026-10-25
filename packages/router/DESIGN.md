@@ -96,8 +96,10 @@ hard-won invariants; `AGENTS.md` distills them for agents.
       dev-time error.
     - **Sequential choreography**: when the matched modal changes, the host
       closes the displayed sheet (`open={false}` + keepMounted) and opens
-      the new one only after the exit completes — never two open sheets at
-      once. Exit completion is EVENT-DRIVEN on the surface's `onClosed`
+      the new one only after the exit completes — never two SIBLING sheets
+      at once. NESTED modals (child routes of a modal) are the exception:
+      they stack on top of the open parent and back unwinds one level.
+      Exit completion is EVENT-DRIVEN on the surface's `onClosed`
       (VKUI's useCSSTransition backs it with a computed-duration fallback —
       more accurate than any host constant); the host keeps only a watchdog
       for the unmount-mid-exit case, and re-targeting the displayed modal

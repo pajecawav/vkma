@@ -71,6 +71,17 @@ export default function CommentsModal(): ReactElement {
 				>
 					Поделиться (карточка)
 				</CellButton>
+				<CellButton
+					subtitle="child-роут: стекается ПОВЕРХ открытой модалки"
+					onClick={() =>
+						void navigator.showModal({
+							to: "/post/$id/comments/report",
+							params: { id },
+						})
+					}
+				>
+					Пожаловаться (вложенная карточка)
+				</CellButton>
 			</Group>
 		</ModalPageSurface>
 	);

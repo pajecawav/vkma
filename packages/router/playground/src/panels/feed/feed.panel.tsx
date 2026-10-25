@@ -34,7 +34,12 @@ export const postPanel = feedView.panel(
 					: undefined,
 		}),
 		modals: {
-			comments: lazy(() => import("./comments.ui")),
+			comments: {
+				component: lazy(() => import("./comments.ui")),
+				// NESTED modal: a child route of the comments modal — stacks on
+				// top of it instead of replacing it, back unwinds one level
+				modals: { report: lazy(() => import("./report.ui")) },
+			},
 			thread: lazy(() => import("./thread.ui")),
 			share: lazy(() => import("./share.ui")),
 		},

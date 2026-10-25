@@ -75,12 +75,18 @@ read it before touching anything here.
   `ModalCardSurface` (the component owns header/card chrome/size as
   ordinary runtime props; the host owns `nav`/`open`/`keepMounted`/
   `onClose`/`onClosed` — registry-declared chrome was tried and rejected:
-  modal content is contextual, not declarative). The host keeps the
-  exiting modal mounted so closing animations play, and choreographs
-  chains SEQUENTIALLY: when the matched modal changes, the old sheet
-  closes first and the new one opens only after the exit completes — never
-  two open sheets at once (the user-reported bug from the first spike
-  implementation). Exit completion is EVENT-DRIVEN on the surface's
+  modal content is contextual, not declarative). Modal declarations are
+  RECURSIBLE: a `{ component, modals }` entry makes its modals child
+  routes of that modal — NESTED modals stack on top of the open parent
+  (both sheets visible, the host sets `disableFocusTrap` on the covered
+  one), `showModal` PUSHES to a child route (target path starts with the
+  open modal's `fullPath`), and back unwinds exactly one level revealing
+  the parent. Sibling retargets keep the SEQUENTIAL choreography: the old
+  sheet closes first and the new one opens only after the exit completes —
+  never two sibling sheets at once (the user-reported bug from the first
+  spike implementation). The host state is a stack + one exiting sheet;
+  the nested/sibling relation is a route-id prefix check. Exit completion
+  is EVENT-DRIVEN on the surface's
   `onClosed` — VKUI backs it with an internal timer computed from the
   element's real `transitionDuration` (useCSSTransition), so it beats any
   host-side constant; the host `exitDuration` is only a WATCHDOG for the

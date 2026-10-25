@@ -76,6 +76,30 @@ export function useNavigator(): VkNavigator {
 			}
 		},
 		showModal: ({ props, ...options }) => {
+			// nested modal: the target route is a CHILD of the currently open
+			// modal — PUSH (back unwinds the stack); sibling modals keep the
+			// old-router replace parity
+			let nested = false;
+			if (modalOpen && typeof options.to === "string") {
+				for (let i = router.state.matches.length - 1; i >= 0; i--) {
+					const matchRouteId = router.state.matches[i]?.routeId;
+					if (matchRouteId === undefined) {
+						continue;
+					}
+					const route = (
+						router.routesById as Record<
+							string,
+							{ options: { staticData?: { modal?: string } }; fullPath?: string }
+						>
+					)[matchRouteId];
+					if (route?.options.staticData?.modal === undefined) {
+						continue;
+					}
+					nested =
+						route.fullPath !== undefined && options.to.startsWith(`${route.fullPath}/`);
+					break;
+				}
+			}
 			// TanStack types history state as its own updater shape — arbitrary
 			// serializable keys go through a cast (same as the popout state)
 			const withProps =
@@ -87,7 +111,11 @@ export function useNavigator(): VkNavigator {
 							} as never,
 						}
 					: {};
-			return navigate({ ...options, replace: modalOpen, ...withProps }) as Promise<void>;
+			return navigate({
+				...options,
+				replace: nested ? false : modalOpen,
+				...withProps,
+			}) as Promise<void>;
 		},
 		hideModal: () => {
 			if (router.history.canGoBack()) {

@@ -14,8 +14,10 @@ the params/search/loaderData types flowing through the data hooks are all
 inferred from the declared views. `defineView` hubs make the view key
 write-once, `definePanel` definitions double as the panels' typed handles,
 and the hubs carry the panels — chunks import hubs instead of the app,
-with no eraser casts. Route-modal chunks default-export their component
-and load through plain `React.lazy(() => import(...))`. Modal
+with no eraser casts. Modal declarations are recursible (nested modals
+stack on top of their parent and back unwinds one level), route-modal
+chunks default-export their component and load through plain
+`React.lazy(() => import(...))`. Modal
 entries render
 their own surface (`ModalPageSurface`/`ModalCardSurface`) with full runtime
 props, and `showModal({ props })` passes serializable data into the modal

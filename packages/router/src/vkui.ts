@@ -3,8 +3,8 @@ export {
 	Modals,
 	ModalPageSurface,
 	ModalCardSurface,
-	type ModalComponent,
 	type ModalEntry,
+	type ModalEntryComponent,
 	type ModalsProps,
 } from "./vkui/modals.tsx";
 export {

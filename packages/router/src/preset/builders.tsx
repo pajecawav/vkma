@@ -1,7 +1,6 @@
 import { createRootRoute, createRoute, type AnyRoute } from "@tanstack/react-router";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
 import type { ModalEntry } from "../vkui/modals.tsx";
-import type { ModalComponent as ModalEntryComponent } from "../vkui/modals.tsx";
 import type { PopoutEntry } from "../vkui/popouts.tsx";
 import { AppRootShell } from "./app.tsx";
 import { PANEL_DEFINITION, type PanelDefinition } from "./define-panel.ts";
@@ -28,9 +27,21 @@ export type LooseRouteOptions = Partial<
 	Omit<NonNullable<AnyRoute>["options"], "getParentRoute" | "path" | "id">
 >;
 
-/** A modal entry component — renders its own ModalPageSurface/ModalCardSurface
- * root. Re-exported shape from the Modals host (plain or React.lazy). */
-type ModalComponent = ModalEntryComponent;
+/** A renderable modal entry component — plain or React.lazy. */
+export type ModalEntryComponent = ComponentType | LazyExoticComponent<ComponentType>;
+
+/**
+ * A declared modal: a renderable component, or a component with ITS OWN
+ * nested modals. Nested modals are child routes of their parent modal and
+ * stack ON TOP of it (back unwinds the stack instead of closing everything).
+ */
+export interface ModalDeclaration {
+	component: ModalEntryComponent;
+	modals?: Record<string, ModalComponent>;
+}
+
+/** What a modals record accepts: either shape. */
+export type ModalComponent = ModalEntryComponent | ModalDeclaration;
 
 export interface PanelOptions extends LooseRouteOptions {
 	/**
@@ -41,7 +52,7 @@ export interface PanelOptions extends LooseRouteOptions {
 	 * import namespace with a `default` export (`lazy: () => import("./feed")`).
 	 */
 	lazy?: PanelLazy;
-	/** Route-level modals: sibling child routes of this panel. */
+	/** Route-level modals: sibling child routes of this panel (recursible). */
 	modals?: Record<string, ModalComponent>;
 }
 
@@ -173,7 +184,7 @@ export interface AppOptionsBase {
 	 */
 	root?: (props: { app: AppHandle }) => ReactNode;
 	/** Global modals: `?modal=<id>` opens them from any panel. */
-	modals?: Record<string, ModalComponent>;
+	modals?: Record<string, ModalEntryComponent>;
 	/** Global popout registry. */
 	popouts?: Record<string, PopoutEntry["Component"]>;
 	/**
@@ -251,6 +262,60 @@ function normalizeViews(views: unknown): DeclaredView[] {
 	});
 }
 
+/** Normalize a declared modal into its declaration form. */
+function asDeclaration(value: ModalComponent): ModalDeclaration {
+	// shape check, NOT typeof: lazy/memo/forwardRef components are objects
+	return typeof value === "object" && value !== null && "component" in value
+		? value
+		: { component: value as ModalEntryComponent };
+}
+
+/**
+ * Build a modal subtree under `parentRoute` (a panel or a parent modal) and
+ * register every entry (flat) into the host registry. Nested modals are
+ * child routes of their parent modal — the stacking is expressed by the
+ * route tree itself.
+ */
+function createModalTree(
+	parentRoute: AnyRoute,
+	modals: Record<string, ModalComponent>,
+	registry: ModalEntry[],
+	baseKey: string,
+): AnyRoute[] {
+	const routes: AnyRoute[] = [];
+	for (const [modalKey, declared] of Object.entries(modals)) {
+		const { component, modals: nested } = asDeclaration(declared);
+		const modalRoute = createRoute({
+			getParentRoute: () => parentRoute,
+			path: modalKey,
+			staticData: { modal: `${baseKey}/${modalKey}` },
+		});
+		registry.push({
+			get routeId() {
+				return modalRoute.id;
+			},
+			get id() {
+				return modalRoute.id;
+			},
+			Component: component,
+		});
+		routes.push(modalRoute);
+		if (nested !== undefined) {
+			const children = createModalTree(
+				modalRoute,
+				nested,
+				registry,
+				`${baseKey}/${modalKey}`,
+			);
+			if (children.length > 0) {
+				// addChildren REPLACES the children array — one call per route
+				modalRoute.addChildren(children);
+			}
+		}
+	}
+	return routes;
+}
+
 /** Definition-form views: the typed handles live on the panel definitions. */
 export function createApp(options: AppDefinitionOptions): AppHandle;
 /** Raw inline options: `app.panels` is fully typed from the declared tree. */
@@ -276,7 +341,6 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 		key: string;
 		path: string;
 		route: AnyRoute;
-		modals: Array<{ route: AnyRoute; Component: ModalComponent }>;
 	}> = [];
 	/** full panel path → owning panel key, for the duplicate-path dev check */
 	const usedPaths = new Map<string, string>();
@@ -349,24 +413,22 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 						})) as never,
 				);
 			}
-			const modalRoutes: Array<{ route: AnyRoute; Component: ComponentType }> = [];
-			for (const [modalKey, Modal] of Object.entries(panelModals ?? {})) {
-				const modalRoute = createRoute({
-					getParentRoute: () => panelRoute,
-					path: modalKey,
-					staticData: { modal: `${viewKey}/${panelKey}/${modalKey}` },
-				});
-				modalRoutes.push({ route: modalRoute, Component: Modal });
-			}
+			// the modal subtree (nested modals are child routes of their
+			// parent modal); entries register flat into the host registry
+			const modalRoutes = createModalTree(
+				panelRoute,
+				panelModals ?? {},
+				modals,
+				`${viewKey}/${panelKey}`,
+			);
 			// addChildren REPLACES the children array — one call after the loop
 			// (per-modal calls would orphan every modal but the last)
-			panelRoute.addChildren(modalRoutes.map(m => m.route));
+			panelRoute.addChildren(modalRoutes);
 			panelRoutes.push(panelRoute);
 			deferredPanels.push({
 				key: `${viewKey}/${panelKey}`,
 				path: panelPath,
 				route: panelRoute,
-				modals: modalRoutes,
 			});
 		}
 
@@ -376,7 +438,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 
 	rootRoute.addChildren(Object.values(views));
 
-	for (const { key, path, route, modals: panelModalEntries } of deferredPanels) {
+	for (const { key, path, route } of deferredPanels) {
 		panels[key] = {
 			get routeId() {
 				return route.id;
@@ -386,17 +448,6 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 				return route.id.split("/")[0] ?? "";
 			},
 		};
-		for (const { route: modalRoute, Component } of panelModalEntries) {
-			modals.push({
-				get routeId() {
-					return modalRoute.id;
-				},
-				get id() {
-					return modalRoute.id;
-				},
-				Component,
-			});
-		}
 	}
 
 	// global modals: no route — the Modals host opens them from the
