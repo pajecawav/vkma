@@ -1,0 +1,21 @@
+diff --git a/dist/keep-alive.js b/dist/keep-alive.js
+index 593e9a6568f596db0516af593f320480518971cd..c109fcbd2bf53faf49c3c17f1cced4a7896216a8 100644
+--- a/dist/keep-alive.js
++++ b/dist/keep-alive.js
+@@ -9,7 +9,15 @@ const KEEP_ALIVE_INTERVAL_MS = 2e4;
+ let refCount = 0;
+ let timer;
+ const tick = () => {
+-	chrome.runtime.getPlatformInfo();
++	// Content scripts expose a reduced chrome.runtime (no getPlatformInfo),
++	// and extension API calls made from a content script cannot reset the
++	// service worker's idle timer anyway — only skip there. Service
++	// workers and extension pages keep the full surface.
++	if (typeof (chrome === null || chrome === void 0 ? void 0 : chrome.runtime) !== "object" ||
++		typeof chrome.runtime.getPlatformInfo !== "function") {
++		return;
++	}
++	void chrome.runtime.getPlatformInfo();
+ };
+ const acquireKeepAlive = () => {
+ 	refCount++;

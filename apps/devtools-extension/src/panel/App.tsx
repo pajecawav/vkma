@@ -168,7 +168,6 @@ function Sections({
 
 function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }) {
 	const connection = useVkmaAllTabs();
-	const fabPosition = useFabPosition();
 
 	if (connection.status !== "connected") {
 		const nothingYet = connection.tabCount === 0 && connection.status === "error";
@@ -187,17 +186,13 @@ function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }
 		);
 	}
 
+	// No capture chip and no FAB-placement control here: capture is a
+	// per-tab fact (per-client on the Clients tab), and the placement
+	// belongs to the surfaces that actually host the FAB (its own panel,
+	// the side panel).
 	return (
 		<div className="flex h-dvh flex-col">
-			<TopBar
-				status={connection.status}
-				onReconnect={connection.reconnect}
-				capture={captureOf(connection.clients)}
-				theme={theme}
-				actions={
-					<FabPositionControl position={fabPosition.position} onPick={fabPosition.pick} />
-				}
-			/>
+			<TopBar status={connection.status} onReconnect={connection.reconnect} theme={theme} />
 			<Sections
 				events={connection.events}
 				clients={connection.clients}
