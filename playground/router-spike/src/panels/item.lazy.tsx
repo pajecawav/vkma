@@ -1,25 +1,21 @@
-import { createLazyRoute, Link, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { usePanelParams, usePanelSearch } from "@vkma.dev/router/react";
 import { CellButton, Group, PanelHeader, PanelHeaderBack, Text, Title } from "@vkontakte/vkui";
-import { useLastWhileUndefined, usePanelParams } from "../VkuiView";
+import { app } from "../routes";
 
 /**
- * PROTOTYPE (spikes 1, 2, 4) — the lazy panel chunk.
- * Loaded via `itemRoute.lazy()` in routes.tsx; proves code-based chunk
- * splitting works. Reads typed search (validateSearch) with the
- * departing-panel freeze semantics; spike 2 adds the modal entry point.
+ * PROTOTYPE — the lazy panel chunk (code-based splitting works without
+ * file-based routing). Reads params/search through the package hooks with
+ * the departing-panel freeze semantics.
  */
 
-export const itemLazy = createLazyRoute("/view-main/item/$id")({
+export const itemLazy = async (_routeId: string): Promise<{ component: typeof ItemPanel }> => ({
 	component: ItemPanel,
 });
 
 function ItemPanel() {
-	const { id = "?" } = usePanelParams("/view-main/item/$id");
-	const search = useLastWhileUndefined(
-		useSearch({ from: "/view-main/item/$id", shouldThrow: false }) as
-			| { tab?: string }
-			| undefined,
-	);
+	const { id = "?" } = usePanelParams(app.panels["main/item/$id"]!.routeId);
+	const search = usePanelSearch<{ tab?: string }>(app.panels["main/item/$id"]!.routeId);
 	return (
 		<>
 			<PanelHeader before={<PanelHeaderBack onClick={() => window.history.back()} />}>
@@ -39,11 +35,11 @@ function ItemPanel() {
 				</CellButton>
 				<CellButton>
 					<Link to="/item/$id/details" params={{ id }}>
-						◇ details (modal route, masked URL)
+						◇ details (modal route)
 					</Link>
 				</CellButton>
 				<CellButton>
-					<Link to="/">→ home (PUSH back-skip: VKUI animates BACK?)</Link>
+					<Link to="/">→ home</Link>
 				</CellButton>
 			</Group>
 		</>

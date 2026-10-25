@@ -1,8 +1,8 @@
 import { useRouterState } from "@tanstack/react-router";
-import { router } from "./routes";
+import { app, router } from "./routes";
 
 /**
- * PROTOTYPE (spike 1) observability: the full relevant navigation state,
+ * PROTOTYPE observability: the full relevant navigation state,
  * re-rendered on every change (prototype rule: surface the state).
  */
 export function Hud() {
@@ -10,21 +10,24 @@ export function Hud() {
 	const index = useRouterState({
 		select: s => (s.location.state as { __TSR_index?: number } | undefined)?.__TSR_index,
 	});
-	const key = useRouterState({
-		select: s => (s.location.state as { __TSR_key?: string } | undefined)?.__TSR_key,
-	});
+	const itemPanelId = app.panels["main/item/$id"]!.routeId;
 	const itemLoaded =
-		router.routesById["/view-main/item/$id"] !== undefined &&
-		router.routesById["/view-main/item/$id"].options.component !== undefined;
+		router.routesById[itemPanelId as keyof typeof router.routesById] !== undefined &&
+		(
+			router.routesById[itemPanelId as keyof typeof router.routesById] as {
+				options: { component?: unknown };
+			}
+		).options.component !== undefined;
 	const modalInfo = useRouterState({
 		select: s => {
 			const ids = s.matches
 				.map(
 					m =>
 						(
-							router.routesById[m.routeId as "/view-main/item/$id"]?.options
-								.staticData as { modal?: string } | undefined
-						)?.modal,
+							router.routesById[m.routeId as keyof typeof router.routesById] as
+								| { options: { staticData?: { modal?: string } } }
+								| undefined
+						)?.options.staticData?.modal,
 				)
 				.filter((id): id is string => id !== undefined);
 			const global = (s.location.search as { modal?: string } | undefined)?.modal ?? null;
@@ -52,14 +55,11 @@ export function Hud() {
 				pointerEvents: "none",
 			}}
 		>
-			<div style={{ color: "#7fd" }}>SPIKES 1–2: panels + modals</div>
+			<div style={{ color: "#7fd" }}>SPIKES: @vkma.dev/router playground</div>
 			<div>path: {pathname}</div>
-			<div>
-				__TSR_index: {index ?? "null"} · key: {key ?? "—"}
-			</div>
+			<div>__TSR_index: {index ?? "null"}</div>
 			<div>item lazy: {itemLoaded ? "loaded" : "pending"}</div>
 			<div>modals: {modalInfo}</div>
-			<div style={{ opacity: 0.7 }}>see console: [spike] mirror/vkuiHistory lines</div>
 		</div>
 	);
 }

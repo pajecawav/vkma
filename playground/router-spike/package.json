@@ -9,6 +9,7 @@
 	},
 	"dependencies": {
 		"@tanstack/react-router": "^1.170.46",
+		"@vkma.dev/router": "workspace:*",
 		"@vkontakte/vk-bridge": "catalog:",
 		"@vkontakte/vkui": "^8.4.0"
 	},

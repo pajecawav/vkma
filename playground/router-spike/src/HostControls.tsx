@@ -1,16 +1,15 @@
-import { useRouterState } from "@tanstack/react-router";
 import { useSyncExternalStore } from "react";
 import { fakeBridge } from "./bridge";
 
 /**
- * PROTOTYPE (spike 3) observability: the host side of the bridge contract.
+ * PROTOTYPE observability: the host side of the bridge contract. Rendered
+ * OUTSIDE the RouterProvider — no router hooks allowed here.
  */
 export function HostControls() {
 	useSyncExternalStore(
 		onStoreChange => fakeBridge.subscribe(() => onStoreChange()),
 		() => fakeBridge.sent.length,
 	);
-	const href = useRouterState({ select: s => s.location.href });
 
 	const last =
 		fakeBridge.sent.length > 0
@@ -38,8 +37,7 @@ export function HostControls() {
 				borderRadius: 8,
 			}}
 		>
-			<div style={{ color: "#fd7" }}>SPIKE 3: fake host</div>
-			<div>router href: {href}</div>
+			<div style={{ color: "#fd7" }}>SPIKE: fake host</div>
 			<div>page hash: {window.location.hash || "—"}</div>
 			<div>last SetLocation: {last}</div>
 			<div>host stack: {fakeBridge.hostStack.join(" | ") || "—"}</div>
@@ -53,7 +51,7 @@ export function HostControls() {
 			<button
 				type="button"
 				onClick={() => fakeBridge.hostJump(location.hash.slice(1) || "?path=%2F")}
-				style={{ marginTop: 4 }}
+				style={{ marginTop: 4, marginLeft: 4 }}
 			>
 				host: re-send current (loop test)
 			</button>

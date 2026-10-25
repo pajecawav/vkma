@@ -1,8 +1,9 @@
-import { Link, useMatch, useRouterState } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { useNavigator } from "@vkma.dev/router/preset";
+import { usePanelLoaderData } from "@vkma.dev/router/react";
 import {
 	Button,
 	CellButton,
-	Div,
 	Group,
 	Header,
 	PanelHeader,
@@ -10,13 +11,11 @@ import {
 	Placeholder,
 	ScreenSpinner,
 } from "@vkontakte/vkui";
-import { useOpenGlobalModal } from "./modals";
+import { app } from "./routes";
 
 /**
- * PROTOTYPE (spikes 1–2) panels. Every panel renders the CURRENT router
- * location as text so the "prev-data of the departing panel" question is
- * observable during the back animation (does the leaving panel flash with
- * the new location's data?).
+ * PROTOTYPE panels on top of @vkma.dev/router. Every panel renders the
+ * CURRENT router location as text (the departing-panel probe from spike 1).
  */
 
 function LocationProbe({ label }: { label: string }) {
@@ -33,27 +32,38 @@ function LocationProbe({ label }: { label: string }) {
 }
 
 export function HomePanel() {
-	const openGlobalModal = useOpenGlobalModal();
+	const router = useRouter();
+	const openGlobalModal = () => {
+		const { pathname, searchStr, hash } = router.state.location;
+		const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
+		params.set("modal", "settings");
+		void router.navigate({ href: `${pathname}?${params.toString()}${hash}` });
+	};
 	return (
 		<>
 			<PanelHeader>Home</PanelHeader>
-			<Group header={<Header>happy path & skip-one forward</Header>}>
+			<Group header={<Header>panels</Header>}>
 				<CellButton>
-					<Link to="/list">→ list (next, forward anim)</Link>
+					<Link to="/list">→ list</Link>
 				</CellButton>
 				<CellButton>
 					<Link to="/item/$id" params={{ id: "7" }}>
-						→ item 7 (skip-one forward)
+						→ item 7 (lazy panel)
 					</Link>
+				</CellButton>
+				<CellButton>
+					<Link to="/feed">⟳ feed (loader + pending)</Link>
 				</CellButton>
 				<CellButton>
 					<Link to="/about">→ about</Link>
 				</CellButton>
 			</Group>
-			<Group header={<Header>spike 4: TanStack passthrough</Header>}>
-				<CellButton>
-					<Link to="/feed">⟳ feed (loader + pending)</Link>
-				</CellButton>
+			<Group header={<Header>overlays & TanStack passthrough</Header>}>
+				<Div01>
+					<Button size="l" stretched onClick={openGlobalModal}>
+						settings (?modal= global)
+					</Button>
+				</Div01>
 				<CellButton>
 					<Link to="/item/$id" params={{ id: "7" }} search={{ tab: "reviews" }}>
 						? item 7 with ?tab=reviews (typed search)
@@ -65,13 +75,6 @@ export function HomePanel() {
 					</Link>
 				</CellButton>
 			</Group>
-			<Group header={<Header>spike 2: overlays</Header>}>
-				<Div>
-					<Button size="l" stretched onClick={openGlobalModal}>
-						open settings (?modal= global)
-					</Button>
-				</Div>
-			</Group>
 			<Group>
 				<LocationProbe label="home@now" />
 			</Group>
@@ -79,10 +82,16 @@ export function HomePanel() {
 	);
 }
 
+/** VKUI Div is deprecated — a local Box stand-in for the spike. */
+function Div01({ children }: { children: React.ReactNode }) {
+	return <div style={{ padding: 12 }}>{children}</div>;
+}
+
 export function ListPanel() {
+	const navigator = useNavigator();
 	return (
 		<>
-			<PanelHeader before={<PanelHeaderBack onClick={() => window.history.back()} />}>
+			<PanelHeader before={<PanelHeaderBack onClick={() => navigator.back()} />}>
 				List
 			</PanelHeader>
 			<Group>
@@ -93,7 +102,7 @@ export function ListPanel() {
 				</CellButton>
 				<CellButton>
 					<Link to="/item/$id" params={{ id: "9" }} replace>
-						⇄ item 9 (replace: same panel, no anim?)
+						⇄ item 9 (replace: same panel)
 					</Link>
 				</CellButton>
 			</Group>
@@ -104,24 +113,8 @@ export function ListPanel() {
 	);
 }
 
-export function AboutPanel() {
-	return (
-		<>
-			<PanelHeader before={<PanelHeaderBack onClick={() => window.history.back()} />}>
-				About
-			</PanelHeader>
-			<Group>
-				<Placeholder>Static panel, nothing to see.</Placeholder>
-			</Group>
-		</>
-	);
-}
-
-/** spike 4: loader data through the static-children model. */
 export function FeedPanel() {
-	// shouldThrow:false on useMatch — the departing panel must not crash (spike 1)
-	const match = useMatch({ from: "/view-main/feed", shouldThrow: false });
-	const data = match?.loaderData as { items: string[] } | undefined;
+	const data = usePanelLoaderData<{ items: string[] }>(app.panels["main/feed"]!.routeId);
 	return (
 		<>
 			<PanelHeader before={<PanelHeaderBack onClick={() => window.history.back()} />}>
@@ -131,7 +124,7 @@ export function FeedPanel() {
 				{data ? (
 					<Placeholder>loaded: {data.items.join(", ")}</Placeholder>
 				) : (
-					<Placeholder>no loader data (departing?)</Placeholder>
+					<Placeholder>no loader data</Placeholder>
 				)}
 			</Group>
 		</>
@@ -143,5 +136,24 @@ export function FeedPending() {
 		<div style={{ height: "100vh" }}>
 			<ScreenSpinner />
 		</div>
+	);
+}
+
+export function AboutPanel() {
+	const navigator = useNavigator();
+	return (
+		<>
+			<PanelHeader before={<PanelHeaderBack onClick={() => navigator.back()} />}>
+				About
+			</PanelHeader>
+			<Group header={<Header>popout (back closes it)</Header>}>
+				<Button size="l" stretched onClick={() => navigator.showPopout("confirm")}>
+					show popout (Alert)
+				</Button>
+			</Group>
+			<Group>
+				<LocationProbe label="about@now" />
+			</Group>
+		</>
 	);
 }
