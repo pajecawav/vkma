@@ -106,27 +106,36 @@ read it before touching anything here.
   `panels`/`modals` handles therefore expose `routeId` as GETTERS, and
   `staticData` panel/modal ids use build-time keys
   (`${viewKey}/${panelKey}`), never `route.id`.
-- **Typed panel handles** (preset): `app.panels["feed/post/$id"]` is a
-  literal-keyed map — never undefined, `routeId` is the literal runtime id
-  (`/view:feed/post/$id`), and the handle carries phantom `types` derived
-  from the panel's own options (`$param` path segments → params,
-  `validateSearch` return → search, `loader` return → loaderData). The
-  `/react` hooks take the HANDLE (`usePanelParams(app.panels[...])`) and
-  resolve those types; a plain route-id string is the loose fallback.
-  Two hard rules keep the app's inference acyclic:
-    1. Chunk modules import `app` back for their handles, so their component
-       types depend on `app.panels`. Never let those types into the
-       `createApp` literal — wrap every `lazy` in the exported `panel()`
-       eraser, and keep route-modal chunks behind `lazyModal`'s
-       `as ComponentType` cast (the Modals host renders them in Suspense).
-    2. Build the options as a standalone `const options = {...}` and call
-       `createApp(options)` separately — inlining the literal into `app`'s
-       own initializer is self-referential (TS7022, inference degrades to
-       the constraint). The custom `root` is deliberately typed with the
-       LOOSE `AppHandle` for the same reason.
-       Keep the module that calls `createApp` sorting before the modules that
-       read `app.panels` (e.g. `app.tsx` < `panels/*`): TypeScript enters the
-       circular import from whichever file it checks first.
+- **Typed panel handles** (preset): two shapes.
+  **`definePanel(view, path, options, lazy?)` is the recommended one** —
+  the returned definition IS the typed handle (phantom `types` derived from
+  the panel's own options: `$param` path segments → params, `validateSearch`
+  return → search, `loader` return → loaderData; `routeId` is the literal
+  `/view:${view}/${path}` convention). Chunk modules import their
+  DEFINITION — never the app — so the app disappears from the chunk graph
+  and `app.tsx` needs no erasers or two-phase tricks. Non-negotiable rules
+  that keep the type graph acyclic:
+    1. The definition's stored type is CLOSED (`options` are widened; the
+       data types travel only in the phantom). The `lazy` loader is a
+       SEPARATE factory parameter, not an options member — its arrow
+       references the UI chunk, whose member types include the (deferred)
+       component signatures; inside the inferred options they would close
+       an inference cycle the moment a chunk component resolves hooks
+       against its own definition (TS7022).
+    2. Annotate UI chunk components (`export default function
+       FeedPanel(): ReactElement`) — an unannotated signature is deferred,
+       and a deferred signature inside the definition's initializer graph
+       re-opens the same cycle (route modals in `post-modals.tsx` carry the
+       annotation for exactly this reason).
+    3. The definition file must sort BEFORE its chunk
+       (`feed.panel.tsx` < `feed.tsx`, `post.panel.ts` < `post.ui.tsx`) —
+       TypeScript enters the checking graph from whichever file it reaches
+       first; `definePanel(view, ...)` vs the `views.${view}` nesting key
+       mismatch is a dev-time console error.
+       The raw inline path stays for small apps: panels declared directly in
+       `createApp` keep `app.panels["feed/post/$id"]` (literal-keyed map) and
+       MUST wrap `lazy` in the `panel()` eraser for the same cyclic reasons.
+       A route-id string is the loose fallback in every hook.
 - **`addChildren` REPLACES the children array** — collect children and
   call it once (per-modal calls orphan every child but the last; that bug
   manifested as a modal route missing from `routesById`).

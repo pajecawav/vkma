@@ -3,6 +3,7 @@ import type { ComponentType, ReactNode } from "react";
 import type { ModalEntry } from "../vkui/modals.tsx";
 import type { PopoutEntry } from "../vkui/popouts.tsx";
 import { AppRootShell } from "./app.tsx";
+import { PANEL_DEFINITION, type PanelDefinition } from "./define-panel.ts";
 
 /**
  * Typed builders that generate the TanStack route tree in the /vkui
@@ -33,16 +34,32 @@ export interface PanelOptions extends LooseRouteOptions {
 	 * Chunk splitting without file-based routing: resolves to the panel's
 	 * component. The preset bridges it into TanStack's `route.lazy()` (which
 	 * expects a `{ options }`-shaped lazy route) and hands the caller the
-	 * panel's route id. The preset calls `route.lazy()` with the resolved
-	 * options.
+	 * panel's route id. The payload is either `{ component }` or a dynamic
+	 * import namespace with a `default` export (`lazy: () => import("./feed")`).
 	 */
-	lazy?: (routeId: string) => Promise<{ component: ComponentType }>;
+	lazy?: PanelLazy;
 	/** Route-level modals: sibling child routes of this panel. */
 	modals?: Record<string, ModalComponent>;
 }
 
+/**
+ * The lazy loader shape: an explicit `{ component }` payload or a dynamic
+ * import namespace whose `default` export is the component. The arrow keeps
+ * the chunk out of the main graph; the union keeps call sites terse
+ * (`lazy: () => import("./feed")`).
+ */
+export type PanelLazy = (
+	routeId: string,
+) => Promise<{ component: ComponentType } | { default: ComponentType }>;
+
 export interface ViewOptions extends LooseRouteOptions {
-	panels: Record<string, PanelOptions>;
+	/**
+	 * Panels of the view: raw inline options (small apps, wrap `lazy` in
+	 * `panel()`) or a {@link PanelDefinition} from `definePanel` — the
+	 * recommended shape, whose handle lives in a leaf module so panel chunks
+	 * never import the app back.
+	 */
+	panels: Record<string, PanelOptions | PanelDefinition>;
 }
 
 export interface PanelHandle<
@@ -61,21 +78,33 @@ export interface PanelHandle<
 }
 
 /** `view:feed` + panel `post/$id` → the runtime id `/view:feed/post/$id`. */
-type PanelRouteId<V extends string, P extends string> = P extends "index"
+export type PanelRouteId<V extends string, P extends string> = P extends "index"
 	? `/view:${V}/`
 	: `/view:${V}/${P}`;
 
 /** `$id`-segments of a panel path → the params object type. */
-type ParamsOfKey<P extends string> = P extends `${infer Head}/${infer Rest}`
+export type ParamsOfKey<P extends string> = P extends `${infer Head}/${infer Rest}`
 	? ParamsOfSegment<Head> & ParamsOfKey<Rest>
 	: ParamsOfSegment<P>;
 type ParamsOfSegment<S extends string> = S extends `$${infer Name}` ? { [K in Name]: string } : {};
-type SearchOf<O extends PanelOptions> = O extends { validateSearch: (search: never) => infer S }
+export type SearchOf<O extends PanelOptions> = O extends {
+	validateSearch: (search: never) => infer S;
+}
 	? S
 	: Record<string, never>;
-type LoaderDataOf<O extends PanelOptions> = O extends { loader: (...args: never[]) => infer L }
+export type LoaderDataOf<O extends PanelOptions> = O extends {
+	loader: (...args: never[]) => infer L;
+}
 	? Awaited<L>
 	: unknown;
+
+/**
+ * The options a panels-map member declares — a {@link PanelDefinition}
+ * carries them in its third type parameter, raw inline options ARE the
+ * options.
+ */
+export type OptionsOf<M extends PanelOptions | PanelDefinition> =
+	M extends PanelDefinition<any, any, infer O> ? O : M;
 
 type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends (
 	arg: infer I,
@@ -94,8 +123,8 @@ export type PanelHandlesOf<TViews extends Record<string, ViewOptions>> = UnionTo
 		[V in keyof TViews & string]: {
 			[P in keyof TViews[V]["panels"] & string as `${V}/${P}`]: PanelHandle<
 				ParamsOfKey<P>,
-				SearchOf<TViews[V]["panels"][P]>,
-				LoaderDataOf<TViews[V]["panels"][P]>
+				SearchOf<OptionsOf<TViews[V]["panels"][P]>>,
+				LoaderDataOf<OptionsOf<TViews[V]["panels"][P]>>
 			> & {
 				readonly routeId: PanelRouteId<V, P>;
 			};
@@ -166,7 +195,14 @@ export interface AppOptions<
  * lazy: panel(routeId => import("./panels/post.lazy").then(m => m.postLazy(routeId)))
  * ```
  */
-export function panel(load: (routeId: string) => Promise<{ component: ComponentType }>) {
+/**
+ * Identity eraser for RAW inline `lazy` loaders (small apps declaring panels
+ * directly in `createApp`): the chunk modules import the app back for their
+ * handles, so the loader's return type must not carry the chunk's component
+ * type into the app's own inference. Apps using `definePanel` don't need it
+ * — the definition boundary already erases.
+ */
+export function panel(load: PanelLazy): PanelLazy {
 	return load;
 }
 
@@ -216,7 +252,15 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 		});
 
 		const panelRoutes: AnyRoute[] = [];
-		for (const [panelKey, panelOptions] of Object.entries(viewPanels)) {
+		for (const [panelKey, declared] of Object.entries(viewPanels)) {
+			// a definition carries its options inside; raw options ARE the options
+			const panelOptions: PanelOptions =
+				PANEL_DEFINITION in declared ? declared.options : declared;
+			if (PANEL_DEFINITION in declared && declared.view !== viewKey) {
+				console.error(
+					`[vkma-router] panel "${panelKey}" is defined for view "${declared.view}" but nested under "views.${viewKey}"; its handle route id and the tree would disagree`,
+				);
+			}
 			const { modals: panelModals, lazy, ...panelRest } = panelOptions;
 			const panelPath = panelKey === "index" ? "/" : panelKey;
 			// dev check: two panels with the same full path silently break
@@ -239,11 +283,13 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 			if (lazy !== undefined) {
 				// runs on match load — the router (and ids) exist by then;
 				// TanStack's route.lazy() merges `lazyRoute.options`, the
-				// builder bridges the plain-options contract into that shape
+				// builder bridges the plain-options contract (both payload
+				// shapes) into that shape
 				panelRoute.lazy(
 					() =>
-						Promise.resolve(lazy(panelRoute.id)).then(lazyOptions => ({
-							options: lazyOptions,
+						Promise.resolve(lazy(panelRoute.id)).then(payload => ({
+							options:
+								"component" in payload ? payload : { component: payload.default },
 						})) as never,
 				);
 			}

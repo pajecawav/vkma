@@ -44,7 +44,9 @@ export function useLastWhileUndefined<T>(value: T | undefined): T | undefined {
 	return value === undefined ? ref.current : value;
 }
 
-export function usePanelParams<P extends Record<string, string>>(ref: PanelRef<P | undefined>): P;
+export function usePanelParams<P extends Record<string, string>>(
+	ref: PanelRef<P | undefined, any, any>,
+): P;
 export function usePanelParams(from: string): Record<string, string>;
 export function usePanelParams(refOrFrom: PanelRef | string): unknown {
 	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
@@ -52,7 +54,7 @@ export function usePanelParams(refOrFrom: PanelRef | string): unknown {
 	return useLastWhileUndefined((match as { params?: unknown } | undefined)?.params) ?? {};
 }
 
-export function usePanelSearch<S>(ref: PanelRef<any, S | undefined>): S | undefined;
+export function usePanelSearch<S>(ref: PanelRef<any, S | undefined, any>): S | undefined;
 export function usePanelSearch(from: string): Record<string, unknown>;
 export function usePanelSearch(refOrFrom: PanelRef | string): unknown {
 	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
