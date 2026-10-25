@@ -1,9 +1,9 @@
 import { FAB_POSITIONS, type FabPosition } from "../fab-position.ts";
 
 const LABELS: Record<FabPosition, string> = {
-	"bottom-right": "bottom right",
-	bottom: "bottom",
 	"bottom-left": "bottom left",
+	bottom: "bottom",
+	"bottom-right": "bottom right",
 };
 
 /**
