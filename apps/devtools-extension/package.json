@@ -12,6 +12,7 @@
 		"dev": "rsbuild build --watch",
 		"start": "web-ext run --source-dir dist --target chromium",
 		"start:firefox": "web-ext run --source-dir dist --target firefox",
+		"gen:icons": "node scripts/generate-icons.ts",
 		"build": "run-s build:rsbuild build:webext",
 		"build:rsbuild": "rsbuild build",
 		"build:webext": "web-ext build --source-dir dist --overwrite-dest",
@@ -31,6 +32,7 @@
 	"devDependencies": {
 		"@rsbuild/core": "catalog:",
 		"@rsbuild/plugin-react": "catalog:",
+		"@resvg/resvg-js": "^2.6.2",
 		"@tailwindcss/postcss": "^4.3.3",
 		"@types/chrome": "^0.3.5",
 		"@types/node": "catalog:",

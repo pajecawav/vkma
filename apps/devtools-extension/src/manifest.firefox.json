@@ -1,5 +1,10 @@
 {
 	"manifest_version": "3",
+	"icons": {
+		"16": "icons/icon16.png",
+		"48": "icons/icon48.png",
+		"128": "icons/icon128.png"
+	},
 	"name": "vkma devtools",
 	"description": "VK Bridge devtools for VK Mini Apps — event timeline and execute on any vk.ru page",
 	"version": "0.0.0",
@@ -10,7 +15,12 @@
 	},
 	"permissions": ["storage", "tabs"],
 	"action": {
-		"default_title": "vkma devtools — open the panel in a tab"
+		"default_title": "vkma devtools — open the panel in a tab",
+		"default_icon": {
+			"16": "icons/icon16.png",
+			"48": "icons/icon48.png",
+			"128": "icons/icon128.png"
+		}
 	},
 	"background": {
 		"scripts": ["background.js"],

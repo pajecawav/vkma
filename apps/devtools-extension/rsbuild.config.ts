@@ -40,7 +40,10 @@ export default defineConfig({
 			css: "./",
 		},
 		legalComments: "none",
-		copy: [{ from: `src/manifest.${browser}.json`, to: "manifest.json" }],
+		copy: [
+			{ from: `src/manifest.${browser}.json`, to: "manifest.json" },
+			{ from: "src/icons", to: "icons" },
+		],
 	},
 	performance: {
 		chunkSplit: {

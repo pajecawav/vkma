@@ -6,7 +6,7 @@
 		"useDefineForClassFields": true,
 		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
-		"types": ["chrome"],
+		"types": ["chrome", "node"],
 		"skipLibCheck": true,
 
 		/* Bundler mode */
@@ -28,5 +28,5 @@
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true
 	},
-	"include": ["src", "rsbuild.config.ts", "css.d.ts"]
+	"include": ["src", "scripts", "rsbuild.config.ts", "css.d.ts"]
 }

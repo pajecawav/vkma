@@ -13,6 +13,7 @@
 		".": "./src/index.ts",
 		"./styles.css": "./src/styles.css",
 		"./fab-position": "./src/fab-position.ts",
+		"./logo-path": "./src/logo-path.ts",
 		"./package.json": "./package.json"
 	},
 	"peerDependencies": {
