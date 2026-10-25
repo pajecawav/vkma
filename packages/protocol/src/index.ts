@@ -77,6 +77,13 @@ export interface DevtoolsState {
 export type CaptureMode = "direct" | "spy";
 
 /**
+ * The reserved window-message channel between the MAIN-world relay and
+ * the isolated-world collector (same frame, same window). Lives in the
+ * zod-free root: the relay must stay dependency-free.
+ */
+export const RELAY_CHANNEL = "__vkmaExt";
+
+/**
  * Panel-facing connection states. The devtools SPA maps devframe transport
  * states onto these; the extension adapter reports its werpc port health.
  */

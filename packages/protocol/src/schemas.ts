@@ -7,6 +7,7 @@
  * procedure inputs.
  */
 import { z } from "zod";
+import { RELAY_CHANNEL } from "./index.ts";
 
 /** A tap event before the collecting side stamps `seq`/`clientId`. */
 export const tapEventSchema = z.object({
@@ -77,9 +78,10 @@ export type ExecResultParsed = z.infer<typeof execResultSchema>;
 
 /**
  * The MAIN-world relay's window.postMessage payloads. `__vkmaExt` is the
- * reserved channel name; `kind` selects the shape.
+ * reserved channel name (constant in the zod-free package root — the
+ * relay itself must not depend on zod); `kind` selects the shape.
  */
-export const RELAY_CHANNEL = "__vkmaExt";
+export { RELAY_CHANNEL } from "./index.ts";
 
 export const relayEventMessageSchema = z.object({
 	channel: z.literal(RELAY_CHANNEL),
