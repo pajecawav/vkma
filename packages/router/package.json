@@ -1,0 +1,73 @@
+{
+	"name": "@vkma.dev/router",
+	"version": "0.0.0",
+	"description": "VK Mini Apps router on top of TanStack Router — VKUI views/panels/modals/popouts, VK history and bridge sync",
+	"type": "module",
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./react": {
+			"types": "./dist/react.d.ts",
+			"import": "./dist/react.js"
+		},
+		"./vkui": {
+			"types": "./dist/vkui.d.ts",
+			"import": "./dist/vkui.js"
+		},
+		"./preset": {
+			"types": "./dist/preset.d.ts",
+			"import": "./dist/preset.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"lint:package": "publint",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"dependencies": {
+		"@tanstack/history": "^1.162.0"
+	},
+	"peerDependencies": {
+		"@tanstack/react-router": "^1.170.0",
+		"@vkontakte/vkui": "^8.0.0",
+		"react": "^18.0.0 || ^19.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@vkontakte/vkui": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@tanstack/react-router": "^1.170.46",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@vkontakte/vkui": "^8.4.0",
+		"happy-dom": "catalog:",
+		"publint": "catalog:",
+		"react": "catalog:",
+		"tsdown": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

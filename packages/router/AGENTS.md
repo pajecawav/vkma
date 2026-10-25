@@ -1,22 +1,30 @@
 # AGENTS.md
 
-**Status: pre-implementation.** `@vkma.dev/router` is a VK Mini Apps router
+**Status: v0.1 implemented.** `@vkma.dev/router` is a VK Mini Apps router
 on top of TanStack Router, successor to `@vkontakte/vk-mini-apps-router`
-(**feature parity, not API parity**). Right now the package is design +
-validated spikes: there is no `package.json` yet — `DESIGN.md` is the
-single source of truth, and everything in it under "Decided" and the spike
-verdicts is settled. Read it before touching anything here.
+(**feature parity, not API parity**). The four layers are implemented and
+validated end-to-end in `playground/router-spike`; `DESIGN.md` is the
+source of truth for decisions, spike verdicts and implementation notes —
+read it before touching anything here.
 
 ## Where things live
 
 - `DESIGN.md` — the decision tree (product frame, URL/history model, VKUI
   layer, overlays, preset, v1 scope), the research digest, spike verdicts
   and implementation notes. Change decisions there first, code second.
-- `playground/router-spike` — the throwaway spike playground. All four
-  spikes landed in it (`pnpm --filter @vkma.dev/playground-router-spike
-  dev`). It is deliberately not production code: new design questions get
-  answered by extending it, and every answer lands back in DESIGN.md. Do
-  not import it from packages, do not "clean it up" into the real package.
+- `src/core` — React-free: `createVkHistory` (hash-param history on
+  `createBrowserHistory`), panels-stack mirror, bridge sync, swipe-back
+  manager, structural bridge contract.
+- `src/react` — data hooks with departing-panel freeze semantics
+  (`usePanelParams` & co.), `usePanelsHistory`.
+- `src/vkui` — `VkView` (static children), `Modals` (sequential
+  choreography host), `Popouts` (history-state registry), `NotFound`.
+- `src/preset` — `createApp` typed builders (views/panels/modals/popouts →
+  TanStack tree + registries), `AppRootShell` auto-shell, `useNavigator`.
+- `playground/router-spike` — the integration playground; it CONSUMES the
+  package (`pnpm --filter @vkma.dev/router build` before its dev server —
+  it resolves `dist`). New design questions still get answered by spikes
+  there, and every answer lands back in DESIGN.md.
 
 ## Non-obvious invariants (from the spikes — do not rediscover them)
 
@@ -54,13 +62,20 @@ verdicts is settled. Read it before touching anything here.
   by one entry. Entries without TanStack state (manual hash edits) get
   stamped `lastIndex + 1` so they behave as pushes. The bridge sync is
   initialized after the router exists (module cycle ⇒ TDZ crash).
-- **Modals are routes** (masked child routes; global ones via a pathless
-  root route + `?modal=`), never `ModalRoot` (deprecated, gone in VKUI
-  v10). Drive controlled `ModalPage open`. The modal host keeps every
-  seen modal mounted so closing animations play after the route unmatches;
-  `onClose = history.back()`. `ChangeFragment` inbound is a host-initiated
-  jump (navigate replace, echo-suppressed) — "host back" is
-  `VKWebAppClose` territory, not a fragment pop.
+- **Modals are routes** (masked child routes; global ones via `?modal=` —
+  deep-linkable, unmasked in v0.1), never `ModalRoot` (deprecated, gone in
+  VKUI v10). Drive controlled `ModalPage open`. The modal host keeps the
+  exiting modal mounted (`keepMounted`) so closing animations play, and
+  choreographs chains SEQUENTIALLY: when the matched modal changes, the
+  old sheet closes first and the new one opens only after the exit
+  completes — never two open sheets at once (the user-reported bug from
+  the first spike implementation). Chain steps are SIBLING child routes of
+  the panel, and modal→modal navigation REPLACES the entry (old-router
+  parity: back returns to the panel; the choreography would handle a push
+  the same way if an app wants back-through-chains). `onClose =
+  history.back()`. `ChangeFragment` inbound is a host-initiated jump
+  (navigate replace, echo-suppressed) — "host back" is `VKWebAppClose`
+  territory, not a fragment pop.
 - **Popouts** are transient overlays: `{ popout: id, props }` in
   `history.state`, components from per-panel/global registries (resolution
   local → global, id collision in both is a dev error), `onClose`
@@ -68,16 +83,30 @@ verdicts is settled. Read it before touching anything here.
 - **Search params DX**: prefer Standard Schema validators (zod v4 /
   valibot + TanStack adapters); a function `validateSearch` must return an
   explicitly all-optional shape or `Link`/`navigate` demand `search`.
+- **Route ids finalize in `route.init()`** (called by `createRouter`) —
+  they are unreadable while `createApp` assembles the tree. The preset's
+  `panels`/`modals` handles therefore expose `routeId` as GETTERS, and
+  `staticData` panel/modal ids use build-time keys
+  (`${viewKey}/${panelKey}`), never `route.id`.
+- **`addChildren` REPLACES the children array** — collect children and
+  call it once (per-modal calls orphan every child but the last; that bug
+  manifested as a modal route missing from `routesById`).
+- **Playground consumes dist**: `playground/router-spike` resolves
+  `@vkma.dev/router` to `packages/router/dist` — after any package change,
+  `pnpm --filter @vkma.dev/router build` AND a dev-server restart (a
+  running Vite serves stale/missing dist transforms). The playground's
+  tsconfig paths point tsc at `src` for typechecking.
 - **VKUI housekeeping**: no deprecated `Div` (use `Box`); ship a
   VKUI-styled `defaultNotFoundComponent`; `platform="ios"` + `SplitCol
   animate` force transitions on desktop (spike testing setup).
 
 ## Definition of done for v1
 
-Feature parity per the DESIGN.md table: restorable deep links (incl.
-modals), per-view panel history with swipe-back semantics, inflate
-(synthetic parent chain after deep links, auto-derived from the route
-tree), blockers, popout back-close, typed preset builders with auto-shell,
-parity navigator, migration guide. Full environment matrix (web iframe /
-mobile webview / standalone) — fake transports in unit tests + the manual
-device checklist gates the release (same ritual as `packages/bridge`).
+Remaining before the first release: inflate (synthetic parent chain after
+deep links, auto-derived from the route tree), navigation blockers
+parity-check, masked global modals (imperative `mask` on the open action),
+typed Page-object sugar for the navigator (TanStack's registered-tree
+typing already covers raw navigate), migration guide, changesets version.
+Full environment matrix (web iframe / mobile webview / standalone) — fake
+transports in unit tests + the manual device checklist gates the release
+(same ritual as `packages/bridge`).
