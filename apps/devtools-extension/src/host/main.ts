@@ -207,6 +207,20 @@ const handler = createHandler({
 		execResult: werpc.procedure.input(execResultInputSchema).mutation(({ input }) => {
 			store.settleExec(input);
 		}),
+
+		/** Registry hygiene: remove offline entries (live skipped — a
+		 * still-running collector would re-hello within a heartbeat
+		 * anyway). The immediate broadcast keeps every surface in sync
+		 * without waiting for the online-fingerprint timer. */
+		deleteClients: werpc.procedure
+			.input(z.object({ clientIds: z.array(z.string()) }))
+			.mutation(({ input }) => {
+				const removed = store.deleteClients(input.clientIds);
+				if (removed.length > 0) {
+					broadcastClients();
+				}
+				return removed;
+			}),
 	}),
 });
 

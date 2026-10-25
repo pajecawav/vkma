@@ -84,7 +84,12 @@ export function App() {
 							<div
 								className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "clients" ? "" : "hidden"}`}
 							>
-								<Clients clients={connection.clients} />
+								<Clients
+									clients={connection.clients}
+									onDeleteClient={clientId => {
+										void connection.deleteClients([clientId]);
+									}}
+								/>
 							</div>
 						</>
 					)}

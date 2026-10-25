@@ -85,6 +85,31 @@ export class DevtoolsStore {
 		return statuses;
 	}
 
+	/**
+	 * Manual registry cleanup (the Clients tab's delete affordance):
+	 * removes entries by id, skipping ONLINE clients — deleting an
+	 * offline-but-alive client is temporary (its next hello re-registers),
+	 * but deleting a live one would silently drop its traffic for up to a
+	 * heartbeat. Timeline events are NOT touched: the ledger is history,
+	 * the registry is hygiene.
+	 * @returns the ids actually removed.
+	 */
+	public deleteClients(clientIds: readonly string[], now = Date.now()): string[] {
+		const removed: string[] = [];
+		for (const id of clientIds) {
+			const client = this.clients.get(id);
+			if (client === undefined) {
+				continue;
+			}
+			if (now - client.lastSeenAt <= CLIENT_ONLINE_TTL_MS) {
+				continue;
+			}
+			this.clients.delete(id);
+			removed.push(id);
+		}
+		return removed;
+	}
+
 	public getClient(clientId: string): ClientInfo | undefined {
 		return this.clients.get(clientId);
 	}

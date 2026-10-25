@@ -94,10 +94,12 @@ function Sections({
 	events,
 	clients,
 	execute,
+	deleteClients,
 }: {
 	events: WireEvent[];
 	clients: ClientStatus[];
 	execute: ExtensionConnection["execute"];
+	deleteClients: ExtensionConnection["deleteClients"];
 }) {
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
@@ -155,6 +157,9 @@ function Sections({
 						</p>
 					}
 					bridgeWarning="No vkma bridge on this page — traffic is captured via the sniffer (spy mode). Events and execute still work."
+					onDeleteClient={clientId => {
+						void deleteClients([clientId]).catch(() => {});
+					}}
 				/>
 			</div>
 		</div>
@@ -197,6 +202,7 @@ function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }
 				events={connection.events}
 				clients={connection.clients}
 				execute={connection.execute}
+				deleteClients={connection.deleteClients}
 			/>
 		</div>
 	);
@@ -286,6 +292,7 @@ function TabPanel({
 				events={connection.events}
 				clients={connection.clients}
 				execute={connection.execute}
+				deleteClients={connection.deleteClients}
 			/>
 		</div>
 	);

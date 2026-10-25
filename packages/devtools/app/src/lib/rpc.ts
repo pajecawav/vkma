@@ -51,6 +51,9 @@ export interface VkmaConnection {
 		name: string,
 		params: Record<string, unknown> | undefined,
 	) => Promise<ExecResult>;
+	/** Registry hygiene: removes the given offline clients (live ones are
+	 * skipped server-side). @returns the ids actually removed. */
+	deleteClients: (clientIds: string[]) => Promise<string[]>;
 	reconnect: () => void;
 }
 
@@ -209,6 +212,15 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		return call("execute", { clientId, name, params });
 	}, []);
 
+	const deleteClients = useCallback<VkmaConnection["deleteClients"]>(async clientIds => {
+		const scoped = scopedRef.current;
+		if (!scoped) {
+			throw new Error("not connected");
+		}
+		const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<string[]>;
+		return call("delete-clients", { clientIds });
+	}, []);
+
 	return {
 		status,
 		events,
@@ -217,6 +229,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		requestAuthCode,
 		submitAuthCode,
 		execute,
+		deleteClients,
 		reconnect,
 	};
 }

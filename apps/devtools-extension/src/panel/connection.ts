@@ -31,7 +31,7 @@ function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
 	return [...merged.values()].toSorted((a, b) => a.seq - b.seq).slice(-MAX_EVENTS);
 }
 
-export interface ExtensionConnection {
+export interface PanelConnection {
 	status: ExtensionStatus;
 	events: WireEvent[];
 	clients: ClientStatus[];
@@ -41,8 +41,13 @@ export interface ExtensionConnection {
 		name: string,
 		params: Record<string, unknown> | undefined,
 	) => Promise<ExecResult>;
+	/** Registry hygiene: removes offline clients (live skipped
+	 * server-side). @returns the ids actually removed. */
+	deleteClients: (clientIds: string[]) => Promise<string[]>;
 	reconnect: () => void;
 }
+
+export type ExtensionConnection = PanelConnection;
 
 // --- global mode: every VK tab at once ----------------------------------------
 
@@ -90,17 +95,8 @@ interface TabFeed {
 	state: "probing" | "live" | "dead";
 }
 
-export interface GlobalConnection {
-	status: ExtensionStatus;
-	events: WireEvent[];
-	clients: ClientStatus[];
+export interface GlobalConnection extends Omit<PanelConnection, "lastError"> {
 	tabCount: number;
-	execute: (
-		clientId: string,
-		name: string,
-		params: Record<string, unknown> | undefined,
-	) => Promise<ExecResult>;
-	reconnect: () => void;
 }
 
 /**
@@ -266,6 +262,20 @@ export function useVkmaAllTabs(): GlobalConnection {
 		return { status: "no-client", clientId };
 	}, []);
 
+	const deleteClients = useCallback<GlobalConnection["deleteClients"]>(async clientIds => {
+		const removed: string[] = [];
+		for (const feed of feedsRef.current.values()) {
+			const mine = clientIds.filter(id =>
+				feed.clients.some(client => client.clientId === id),
+			);
+			if (mine.length === 0) {
+				continue;
+			}
+			removed.push(...(await feed.client.vkma.deleteClients.mutate({ clientIds: mine })));
+		}
+		return removed;
+	}, []);
+
 	const status: ExtensionStatus =
 		derived.live > 0
 			? "connected"
@@ -279,6 +289,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 		clients: derived.clients,
 		tabCount: tabIds?.length ?? 0,
 		execute,
+		deleteClients,
 		reconnect,
 	};
 }
@@ -368,5 +379,13 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 		return (await client.vkma.execute.mutate({ clientId, name, params })) as ExecResult;
 	}, []);
 
-	return { status, events, clients, lastError, execute, reconnect };
+	const deleteClients = useCallback<ExtensionConnection["deleteClients"]>(async clientIds => {
+		const client = clientRef.current;
+		if (!client) {
+			throw new Error("not connected");
+		}
+		return client.vkma.deleteClients.mutate({ clientIds });
+	}, []);
+
+	return { status, events, clients, lastError, execute, deleteClients, reconnect };
 }

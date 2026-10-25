@@ -220,6 +220,20 @@ export const vkmaDevframe = defineDevframe({
 		});
 
 		ctx.rpc.register({
+			name: VKMA_RPC.deleteClients,
+			type: "action",
+			// Registry hygiene only: live clients are skipped (see
+			// DevtoolsStore.deleteClients), history is not touched.
+			handler: (payload: { clientIds: string[] }) => {
+				const removed = store.deleteClients(payload?.clientIds ?? []);
+				if (removed.length > 0) {
+					broadcastClients();
+				}
+				return removed;
+			},
+		});
+
+		ctx.rpc.register({
 			name: VKMA_RPC.execute,
 			type: "action",
 			handler: runExecute,

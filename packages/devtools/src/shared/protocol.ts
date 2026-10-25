@@ -37,6 +37,8 @@ export const VKMA_RPC = {
 	subscribe: "vkma:subscribe",
 	execute: "vkma:execute",
 	execResult: "vkma:exec-result",
+	/** Panel → node: manual registry cleanup of offline entries. */
+	deleteClients: "vkma:delete-clients",
 	/** client-side (browser-registered) functions */
 	clientExecute: "vkma:client-execute",
 	onClients: "vkma:on-clients",

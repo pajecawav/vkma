@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
-import { ChevronIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
+import { ChevronIcon, CrossIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
 
 const SENSITIVE_PARAMS = new Set(["sign", "access_token", "auth_key", "sid"]);
 
@@ -40,9 +40,11 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 function ClientCard({
 	client,
 	bridgeWarning,
+	onDelete,
 }: {
 	client: ClientStatus;
 	bridgeWarning?: ReactNode;
+	onDelete?: (clientId: string) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	return (
@@ -87,6 +89,19 @@ function ClientCard({
 				<span className="ml-auto flex shrink-0 items-center gap-2 text-[11px] text-neutral-400">
 					{client.appId !== undefined && <span>app {client.appId}</span>}
 					{relativeTime(client.connectedAt)}
+					{onDelete && !client.online && (
+						<button
+							type="button"
+							title="Remove this client from the registry (its timeline history stays)"
+							onClick={event => {
+								event.stopPropagation();
+								onDelete(client.clientId);
+							}}
+							className="grid size-6 place-items-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+						>
+							<CrossIcon width={12} height={12} />
+						</button>
+					)}
 					<ChevronIcon
 						width={13}
 						height={13}
@@ -124,6 +139,7 @@ export function Clients({
 	clients,
 	emptyState,
 	bridgeWarning,
+	onDeleteClient,
 }: {
 	clients: ClientStatus[];
 	/** Overrides the "no clients" card (surfaces with other capture modes). */
@@ -131,13 +147,32 @@ export function Clients({
 	/** Overrides the bridge-not-detected warning for surfaces where a
 	 * missing vkma bridge still means captured traffic (spy mode). */
 	bridgeWarning?: ReactNode;
+	/** Registry hygiene affordance: renders a per-card remove button for
+	 * offline clients and a bulk "remove offline" action. Live clients are
+	 * never deletable from here (a running collector re-registers within
+	 * one heartbeat anyway). */
+	onDeleteClient?: (clientId: string) => void;
 }) {
+	const offline = clients.filter(client => !client.online);
 	return (
 		<section
 			className="scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"
 			aria-label="Clients"
 		>
 			<div className="mx-auto flex max-w-xl flex-col gap-2">
+				{onDeleteClient && offline.length >= 2 && (
+					<button
+						type="button"
+						onClick={() => {
+							for (const client of offline) {
+								onDeleteClient(client.clientId);
+							}
+						}}
+						className="self-end rounded-md px-2 py-1 text-[11px] font-medium text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+					>
+						Remove offline ({offline.length})
+					</button>
+				)}
 				{clients.length === 0 ? (
 					(emptyState ?? (
 						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
@@ -152,6 +187,7 @@ export function Clients({
 								key={client.clientId}
 								client={client}
 								bridgeWarning={bridgeWarning}
+								onDelete={onDeleteClient}
 							/>
 						))}
 					</ul>
