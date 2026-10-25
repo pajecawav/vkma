@@ -1,4 +1,12 @@
+import { RouterProvider } from "@tanstack/react-router";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import "@vkontakte/vkui/dist/vkui.css";
 
-// Spike 1 skeleton — the real prototype lands on top of this.
-createRoot(document.getElementById("root")!).render(<div>router spike</div>);
+import { router } from "./routes";
+
+createRoot(document.getElementById("root")!).render(
+	<StrictMode>
+		<RouterProvider router={router} />
+	</StrictMode>,
+);
