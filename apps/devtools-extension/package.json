@@ -27,7 +27,7 @@
 		"@vkma.dev/bridge": "workspace:*",
 		"@vkma.dev/devtools": "workspace:*",
 		"@vkma.dev/protocol": "workspace:*",
-		"werpc": "^0.0.8"
+		"werpc": "^0.0.9"
 	},
 	"devDependencies": {
 		"@rsbuild/core": "catalog:",
