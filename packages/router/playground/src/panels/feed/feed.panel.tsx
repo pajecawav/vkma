@@ -1,5 +1,6 @@
-import { defineView, lazyModal } from "@vkma.dev/router/preset";
+import { defineView } from "@vkma.dev/router/preset";
 import { ScreenSpinner } from "@vkontakte/vkui";
+import { lazy } from "react";
 import { posts } from "../../data";
 
 /** The feed story hub — the only place the "feed" view key is written. */
@@ -33,9 +34,9 @@ export const postPanel = feedView.panel(
 					: undefined,
 		}),
 		modals: {
-			comments: lazyModal(() => import("./comments.ui")),
-			thread: lazyModal(() => import("./thread.ui")),
-			share: lazyModal(() => import("./share.ui")),
+			comments: lazy(() => import("./comments.ui")),
+			thread: lazy(() => import("./thread.ui")),
+			share: lazy(() => import("./share.ui")),
 		},
 	},
 	() => import("./post.ui"),

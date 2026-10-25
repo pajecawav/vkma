@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, type AnyRoute } from "@tanstack/react-router";
 import type { ComponentType, ReactNode } from "react";
 import type { ModalEntry } from "../vkui/modals.tsx";
+import type { ModalComponent as ModalEntryComponent } from "../vkui/modals.tsx";
 import type { PopoutEntry } from "../vkui/popouts.tsx";
 import { AppRootShell } from "./app.tsx";
 import { PANEL_DEFINITION, type PanelDefinition } from "./define-panel.ts";
@@ -27,8 +28,9 @@ export type LooseRouteOptions = Partial<
 	Omit<NonNullable<AnyRoute>["options"], "getParentRoute" | "path" | "id">
 >;
 
-/** A modal entry component — renders its own ModalPageSurface/ModalCardSurface root. */
-type ModalComponent = ComponentType;
+/** A modal entry component — renders its own ModalPageSurface/ModalCardSurface
+ * root. Re-exported shape from the Modals host (plain or React.lazy). */
+type ModalComponent = ModalEntryComponent;
 
 export interface PanelOptions extends LooseRouteOptions {
 	/**
@@ -274,7 +276,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 		key: string;
 		path: string;
 		route: AnyRoute;
-		modals: Array<{ route: AnyRoute; Component: ComponentType }>;
+		modals: Array<{ route: AnyRoute; Component: ModalComponent }>;
 	}> = [];
 	/** full panel path → owning panel key, for the duplicate-path dev check */
 	const usedPaths = new Map<string, string>();
@@ -354,7 +356,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 					path: modalKey,
 					staticData: { modal: `${viewKey}/${panelKey}/${modalKey}` },
 				});
-				modalRoutes.push({ route: modalRoute, Component: Modal as ComponentType });
+				modalRoutes.push({ route: modalRoute, Component: Modal });
 			}
 			// addChildren REPLACES the children array — one call after the loop
 			// (per-modal calls would orphan every modal but the last)
@@ -403,7 +405,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 		modals.push({
 			routeId: `?modal=${modalKey}`,
 			id: modalKey,
-			Component: Modal as ComponentType,
+			Component: Modal,
 		});
 	}
 

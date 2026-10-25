@@ -3,7 +3,7 @@ import { ModalCard, ModalPage, type ModalCardProps, type ModalPageProps } from "
 import {
 	type ComponentType,
 	createContext,
-	lazy,
+	type LazyExoticComponent,
 	Suspense,
 	useContext,
 	useEffect,
@@ -11,20 +11,11 @@ import {
 } from "react";
 
 /**
- * React.lazy bridge for route-modal chunks. The loader MUST be a thunk —
- * `lazyModal(import("./x"))` starts fetching the chunk at app start, before
- * the modal is ever shown — and the chunk must default-export the
- * component:
- *
- * ```ts
- * modals: { comments: lazyModal(() => import("./comments.ui")) }
- * ```
+ * A modal entry component: a plain component or a `React.lazy` one. The
+ * host renders entries in Suspense, so lazy chunks work without any
+ * wrapper — `modals: { comments: lazy(() => import("./comments.ui")) }`.
  */
-export function lazyModal<T extends ComponentType>(
-	load: () => Promise<{ default: T }>,
-): ComponentType {
-	return lazy(load) as unknown as ComponentType;
-}
+export type ModalComponent = ComponentType | LazyExoticComponent<ComponentType>;
 
 /**
  * Modal choreography: exactly one modal is visible at a time.
@@ -57,7 +48,7 @@ export interface ModalEntry {
 	 * ModalCardSurface — the host binds nav/open/close choreography to it
 	 * through context; the component owns every other prop at runtime.
 	 */
-	Component: ComponentType;
+	Component: ModalComponent;
 }
 
 export interface ModalsProps {

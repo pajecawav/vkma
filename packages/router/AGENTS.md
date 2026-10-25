@@ -118,7 +118,7 @@ read it before touching anything here.
   (→ `TypedAppHandle`, typed `app.panels` map) stays for small inline apps.
   Directory convention per view: `panels/<view>/<view>.panel.ts(x)` (the
   hub, sorts first) + `<name>.ui.tsx` chunks (annotated `: ReactElement`) +
-  private modal chunks (`lazyModal(() => import("./comments.ui"))` — the
+  private modal chunks (`lazy(() => import("./comments.ui"))` — the
   chunk default-exports the component; the loader is a thunk, a bare
   `import(...)` would fetch at app start). A definition IS the typed handle
   (phantom `types`

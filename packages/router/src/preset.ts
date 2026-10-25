@@ -27,13 +27,13 @@ export {
 	Modals,
 	ModalPageSurface,
 	ModalCardSurface,
-	lazyModal,
 	Popouts,
 	VkView,
 	NotFound,
 	useShowPopout,
 	useHidePopout,
 	usePopoutState,
+	type ModalComponent,
 	type ModalEntry,
 } from "./vkui.ts";
 export {
