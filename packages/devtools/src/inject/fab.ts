@@ -2,14 +2,25 @@
  * The FAB: a shadow-DOM host button on the mini app page that toggles an
  * iframe overlay with the /__vkma panel. All styles live inside the shadow
  * root — nothing leaks into the host page and nothing of the host page
- * affects the panel chrome.
+ * affects the panel chrome. The placement (bottom-right / bottom /
+ * bottom-left) is a localStorage preference of the dev server origin —
+ * see @vkma.dev/ui/fab-position.
  */
-import { CLIENT_PALETTE, clientColorIndex } from "../shared/colors.ts";
+import { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
+import type { FabPosition } from "@vkma.dev/ui/fab-position";
 
 export interface FabOptions {
 	base: string;
 	/** Read live: the id can change when a duplicated tab yields its copied id. */
 	getClientId: () => string;
+}
+
+export interface FabHandle {
+	/** Re-tint: the client id can change mid-session when a duplicated tab
+	 * yields its copied id. */
+	retint: () => void;
+	/** Move the FAB between the three bottom placements. */
+	setPosition: (position: FabPosition) => void;
 }
 
 // Outlined glyph, lucide-style: stroke rides on currentColor (the client
@@ -36,7 +47,6 @@ const STYLES = `
   border: none;
   border-radius: 9999px;
   background: #ffffff;
-  color: #171717;
   cursor: pointer;
   /* white on a page needs real separation: hairline edge + layered
    * ambient shadows, stronger than the usual quiet-button treatment */
@@ -44,12 +54,25 @@ const STYLES = `
     0 0 0 1px rgb(0 0 0 / 0.05),
     0 2px 4px rgb(0 0 0 / 0.1),
     0 12px 32px rgb(0 0 0 / 0.22);
-  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    transform 120ms cubic-bezier(0.2, 0, 0, 1),
+    translate 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 .button:hover { transform: translateY(-1px); }
 .button:active { transform: translateY(0) scale(0.96); }
 .button:focus-visible { outline: 2px solid #a3a3a3; outline-offset: 3px; }
 .button svg { display: block; }
+/* center placement: translate keeps the hover lift from fighting the
+ * centering transform (the last transform wins in the cascade, so the
+ * lift variants below re-apply the full stack) */
+:host(.vkma-pos-bottom) .button {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+:host(.vkma-pos-bottom) .button:hover { transform: translateX(-50%) translateY(-1px); }
+:host(.vkma-pos-bottom) .button:active { transform: translateX(-50%) translateY(0) scale(0.96); }
+:host(.vkma-pos-bottom-left) .button { left: 16px; right: auto; }
 .panel {
   position: fixed;
   right: 16px;
@@ -66,12 +89,27 @@ const STYLES = `
   transform: translateY(10px) scale(0.98);
   opacity: 0;
   pointer-events: none;
-  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), opacity 120ms linear;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 120ms linear,
+    translate 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 .panel[data-open="true"] {
   transform: none;
   opacity: 1;
   pointer-events: auto;
+}
+:host(.vkma-pos-bottom) .panel {
+  left: 50%;
+  right: auto;
+  transform-origin: bottom center;
+  transform: translateX(-50%) translateY(10px) scale(0.98);
+}
+:host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
+:host(.vkma-pos-bottom-left) .panel {
+  left: 16px;
+  right: auto;
+  transform-origin: bottom left;
 }
 @media (max-width: 560px) {
   .panel {
@@ -80,13 +118,35 @@ const STYLES = `
     width: calc(100vw - 24px);
     height: calc(100vh - 84px);
   }
+  :host(.vkma-pos-bottom) .panel {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(10px) scale(0.98);
+  }
+  :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
+  :host(.vkma-pos-bottom-left) .panel { left: 12px; right: auto; }
+}
+/* The FLIP swap frame: anchors (left/right, transform-origin, the
+ * per-variant transform) are not interpolable across positions, so they
+ * must land instantly while the movement itself is played back on the
+ * standalone translate property (px to px, single-type interpolation).
+ * This class suppresses every transition for exactly one reflow. */
+:host(.vkma-no-anim) .button,
+:host(.vkma-no-anim) .panel {
+  transition: none !important;
 }
 .panel iframe { width: 100%; height: 100%; border: none; display: block; }
 `;
 
+const POSITION_CLASSES: Record<FabPosition, string> = {
+	"bottom-right": "vkma-pos-bottom-right",
+	bottom: "vkma-pos-bottom",
+	"bottom-left": "vkma-pos-bottom-left",
+};
+
 /** Returns a re-tint callback: the client id can change mid-session when a
  * duplicated tab yields its copied id. */
-export function mountFab({ base, getClientId }: FabOptions): () => void {
+export function mountFab({ base, getClientId }: FabOptions): FabHandle {
 	const host = document.createElement("div");
 	host.dataset["vkmaFab"] = "";
 	const root = host.attachShadow({ mode: "open" });
@@ -137,5 +197,50 @@ export function mountFab({ base, getClientId }: FabOptions): () => void {
 	});
 
 	document.documentElement.append(host);
-	return applyColor;
+
+	let currentPosition: FabPosition | undefined;
+
+	return {
+		retint: applyColor,
+		setPosition: position => {
+			if (position === currentPosition) {
+				return;
+			}
+			currentPosition = position;
+
+			// FLIP: First — where the movers sit now.
+			const first = {
+				button: button.getBoundingClientRect(),
+				panel: panel.getBoundingClientRect(),
+			};
+
+			// Last — the new anchors land instantly (transitions off, so
+			// the mismatched per-variant transforms cannot half-animate).
+			host.classList.add("vkma-no-anim");
+			for (const cls of Object.values(POSITION_CLASSES)) {
+				host.classList.toggle(cls, cls === POSITION_CLASSES[position]);
+			}
+
+			// Invert — visually put each element back where it was, via
+			// the standalone translate (composes in viewport space with
+			// whatever per-variant transform now applies). One reflow
+			// bakes anchor + inversion together before any paint.
+			const invert = (el: HTMLElement, from: DOMRect) => {
+				const to = el.getBoundingClientRect();
+				el.style.translate = `${from.left - to.left}px ${from.top - to.top}px`;
+			};
+			invert(button, first.button);
+			invert(panel, first.panel);
+			void host.offsetWidth;
+
+			// Play — restore transitions (computed styles unchanged so far,
+			// nothing fires yet), then in the NEXT frame release the
+			// inversion: translate glides each element to its new spot.
+			host.classList.remove("vkma-no-anim");
+			requestAnimationFrame(() => {
+				button.style.translate = "";
+				panel.style.translate = "";
+			});
+		},
+	};
 }

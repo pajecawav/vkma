@@ -1,4 +1,4 @@
-import type { FabPosition } from "../shared/fab-position.ts";
+import type { FabPosition } from "@vkma.dev/ui/fab-position";
 
 /**
  * The extension FAB: the same shadow-DOM button as the devtools one
@@ -7,7 +7,7 @@ import type { FabPosition } from "../shared/fab-position.ts";
  * single embedded client), stays neutrally colored (there is no single
  * client to tint by) and hides while the side panel of the tab is open.
  * The placement (bottom-right / bottom / bottom-left) is a preference —
- * see shared/fab-position.ts.
+ * see @vkma.dev/ui/fab-position.
  */
 
 const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>`;

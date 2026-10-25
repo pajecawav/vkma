@@ -9,10 +9,11 @@ import {
 	UiProvider,
 	type Section,
 } from "@vkma.dev/ui";
+import { FabPositionControl } from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 import { useVkmaExtension } from "./connection.ts";
-import { FabPositionControl } from "./fab-position.tsx";
+import { useFabPosition } from "./fab-position.ts";
 import { useExtensionTheme } from "./theme.ts";
 
 const SECTION_KEY = "vkma:section";
@@ -100,6 +101,7 @@ function TabPanel({
 	theme: { dark: boolean; toggle: () => void };
 }) {
 	const connection = useVkmaExtension(tabId);
+	const fabPosition = useFabPosition();
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
@@ -144,7 +146,10 @@ function TabPanel({
 				theme={theme}
 				actions={
 					<>
-						<FabPositionControl />
+						<FabPositionControl
+							position={fabPosition.position}
+							onPick={fabPosition.pick}
+						/>
 						{openSidePanel && (
 							<button
 								type="button"

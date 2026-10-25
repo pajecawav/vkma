@@ -1,10 +1,4 @@
-import { useEffect, useState } from "react";
-import {
-	FAB_POSITION_KEY,
-	FAB_POSITIONS,
-	normalizeFabPosition,
-	type FabPosition,
-} from "../shared/fab-position.ts";
+import { FAB_POSITIONS, type FabPosition } from "../fab-position.ts";
 
 const LABELS: Record<FabPosition, string> = {
 	"bottom-right": "bottom right",
@@ -13,34 +7,19 @@ const LABELS: Record<FabPosition, string> = {
 };
 
 /**
- * Picks the in-page FAB placement (bottom-right / bottom / bottom-left) —
- * a global preference in chrome.storage.local; the host script follows
- * it live via storage.onChanged, so the FAB moves the moment a state is
- * picked here, on every open VK tab.
+ * Picks the in-page FAB placement (bottom-right / bottom / bottom-left).
+ * Storage-agnostic: the surface hands in the current position and a
+ * picker — chrome.storage in the extension, localStorage on the dev
+ * server origin in the devtools panel (where the same-origin storage
+ * event is what moves the FAB live).
  */
-export function FabPositionControl() {
-	const [position, setPosition] = useState<FabPosition>("bottom-right");
-
-	useEffect(() => {
-		void chrome.storage.local.get(FAB_POSITION_KEY).then(stored => {
-			setPosition(normalizeFabPosition(stored[FAB_POSITION_KEY]));
-		});
-		const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-			if (area === "local" && FAB_POSITION_KEY in changes) {
-				setPosition(normalizeFabPosition(changes[FAB_POSITION_KEY]?.newValue));
-			}
-		};
-		chrome.storage.onChanged.addListener(listener);
-		return () => {
-			chrome.storage.onChanged.removeListener(listener);
-		};
-	}, []);
-
-	const pick = (next: FabPosition) => {
-		setPosition(next);
-		void chrome.storage.local.set({ [FAB_POSITION_KEY]: next });
-	};
-
+export function FabPositionControl({
+	position,
+	onPick,
+}: {
+	position: FabPosition;
+	onPick: (position: FabPosition) => void;
+}) {
 	return (
 		<div
 			className="flex h-7 items-center rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800"
@@ -56,7 +35,7 @@ export function FabPositionControl() {
 						type="button"
 						role="radio"
 						aria-checked={active}
-						onClick={() => pick(option)}
+						onClick={() => onPick(option)}
 						title={LABELS[option]}
 						className={`grid h-6 w-7 place-items-center rounded-[4px] ${
 							active

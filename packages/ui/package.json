@@ -12,6 +12,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./styles.css": "./src/styles.css",
+		"./fab-position": "./src/fab-position.ts",
 		"./package.json": "./package.json"
 	},
 	"peerDependencies": {

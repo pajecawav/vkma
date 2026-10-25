@@ -1,6 +1,16 @@
-import { Clients, Execute, Rail, type Section, Timeline, TopBar, UiProvider } from "@vkma.dev/ui";
+import {
+	Clients,
+	Execute,
+	FabPositionControl,
+	Rail,
+	type Section,
+	Timeline,
+	TopBar,
+	UiProvider,
+} from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
 import { StatusGate } from "./components/StatusGate.tsx";
+import { useFabPosition } from "./lib/fab-position.ts";
 import { useVkma } from "./lib/rpc.ts";
 
 const SECTION_KEY = "vkma:section";
@@ -11,6 +21,7 @@ export function App() {
 	const embeddedClientId = new URLSearchParams(window.location.search).get("client") ?? undefined;
 
 	const connection = useVkma(embeddedClientId);
+	const fabPosition = useFabPosition();
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
@@ -33,6 +44,16 @@ export function App() {
 					status={connection.status}
 					onReconnect={connection.reconnect}
 					clientBadge={embeddedClientId ? { clientId: embeddedClientId } : undefined}
+					actions={
+						// The placement controls the in-page FAB — only the
+						// embedded panel (mounted by that FAB) shows it.
+						embeddedClientId ? (
+							<FabPositionControl
+								position={fabPosition.position}
+								onPick={fabPosition.pick}
+							/>
+						) : undefined
+					}
 				/>
 				<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
 					<Rail section={section} sections={sections} onSelect={setSection} />

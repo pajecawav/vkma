@@ -1,3 +1,4 @@
+import { FAB_POSITION_STORAGE_KEY, normalizeFabPosition } from "@vkma.dev/ui/fab-position";
 import { defineRpcFunction } from "devframe";
 import { connectDevframe } from "devframe/client";
 import { VKMA_RPC, type ClientInfo } from "../shared/protocol.ts";
@@ -393,5 +394,23 @@ document.addEventListener("visibilitychange", () => {
 });
 
 void import("./fab.ts").then(({ mountFab }) => {
-	retintFab = mountFab({ base, getClientId: () => clientId });
+	const fab = mountFab({ base, getClientId: () => clientId });
+	retintFab = fab.retint;
+
+	// The FAB placement is a localStorage preference of this dev server
+	// origin — the (same-origin) panel writes it, the storage event
+	// reaches this page and moves the FAB live. No RPC involved.
+	const storedPosition = (): unknown => {
+		try {
+			return localStorage.getItem(FAB_POSITION_STORAGE_KEY);
+		} catch {
+			return undefined;
+		}
+	};
+	fab.setPosition(normalizeFabPosition(storedPosition()));
+	window.addEventListener("storage", event => {
+		if (event.key === FAB_POSITION_STORAGE_KEY) {
+			fab.setPosition(normalizeFabPosition(event.newValue));
+		}
+	});
 });

@@ -7,9 +7,9 @@ import {
 	tapEventSchema,
 	vkConnectEnvelopeSchema,
 } from "@vkma.dev/protocol/schemas";
+import { FAB_POSITION_STORAGE_KEY, normalizeFabPosition } from "@vkma.dev/ui/fab-position";
 import { createClient, type InferNamespace, createHandler, initWERPC } from "werpc";
 import { z } from "zod";
-import { FAB_POSITION_KEY, normalizeFabPosition } from "../shared/fab-position.ts";
 import { mountFab } from "./fab.ts";
 import { BatchedHub, Hub } from "./hub.ts";
 import { SpyTracker } from "./spy.ts";
@@ -285,12 +285,12 @@ void (async () => {
 
 	// The placement preference is global (any panel surface edits it);
 	// storage.onChanged makes the FAB follow it live.
-	void chrome.storage.local.get(FAB_POSITION_KEY).then(stored => {
-		fab.setPosition(normalizeFabPosition(stored[FAB_POSITION_KEY]));
+	void chrome.storage.local.get(FAB_POSITION_STORAGE_KEY).then(stored => {
+		fab.setPosition(normalizeFabPosition(stored[FAB_POSITION_STORAGE_KEY]));
 	});
 	chrome.storage.onChanged.addListener((changes, area) => {
-		if (area === "local" && FAB_POSITION_KEY in changes) {
-			fab.setPosition(normalizeFabPosition(changes[FAB_POSITION_KEY]?.newValue));
+		if (area === "local" && FAB_POSITION_STORAGE_KEY in changes) {
+			fab.setPosition(normalizeFabPosition(changes[FAB_POSITION_STORAGE_KEY]?.newValue));
 		}
 	});
 
