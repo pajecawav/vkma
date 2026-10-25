@@ -49,6 +49,7 @@ export function TopBar({
 	clientBadge,
 	capture,
 	actions,
+	theme,
 }: {
 	status: ConnectionStatus;
 	onReconnect: () => void;
@@ -59,8 +60,13 @@ export function TopBar({
 	/** Surface-specific buttons (e.g. the extension's "open side panel"),
 	 * rendered next to the theme toggle. */
 	actions?: ReactNode;
+	/** Overrides the panel-local localStorage theme (the extension backs
+	 * it with chrome.storage so every surface shares one preference). */
+	theme?: { dark: boolean; toggle: () => void };
 }) {
-	const [dark, toggleTheme] = useTheme();
+	const [localDark, toggleLocalTheme] = useTheme();
+	const dark = theme?.dark ?? localDark;
+	const toggleTheme = theme?.toggle ?? toggleLocalTheme;
 	const meta = STATUS_META[status];
 
 	return (

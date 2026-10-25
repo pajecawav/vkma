@@ -9,6 +9,7 @@ import {
 } from "@vkma.dev/protocol/schemas";
 import { createClient, type InferNamespace, createHandler, initWERPC } from "werpc";
 import { z } from "zod";
+import { FAB_POSITION_KEY, normalizeFabPosition } from "../shared/fab-position.ts";
 import { mountFab } from "./fab.ts";
 import { BatchedHub, Hub } from "./hub.ts";
 import { SpyTracker } from "./spy.ts";
@@ -278,13 +279,24 @@ void (async () => {
 	}
 	await client.background.enableSidePanel.mutate().catch(() => {});
 
-	const setFabHidden = mountFab({
+	const fab = mountFab({
 		panelUrl: `${chrome.runtime.getURL("panel.html")}?tab=${tabId}`,
+	});
+
+	// The placement preference is global (any panel surface edits it);
+	// storage.onChanged makes the FAB follow it live.
+	void chrome.storage.local.get(FAB_POSITION_KEY).then(stored => {
+		fab.setPosition(normalizeFabPosition(stored[FAB_POSITION_KEY]));
+	});
+	chrome.storage.onChanged.addListener((changes, area) => {
+		if (area === "local" && FAB_POSITION_KEY in changes) {
+			fab.setPosition(normalizeFabPosition(changes[FAB_POSITION_KEY]?.newValue));
+		}
 	});
 
 	// Two simultaneous panels is noise: the FAB yields to the side panel.
 	client.background.sidePanelChanged.subscribe(undefined, {
-		onData: ({ open }) => setFabHidden(open),
+		onData: ({ open }) => fab.setHidden(open),
 	});
 
 	// The registry's online/offline fingerprint flips on a timer, not on

@@ -1,9 +1,13 @@
+import type { FabPosition } from "../shared/fab-position.ts";
+
 /**
  * The extension FAB: the same shadow-DOM button as the devtools one
  * (`packages/devtools/src/inject/fab.ts`) adapted for the host page —
  * it opens the extension's own panel.html (all clients of the tab, not a
  * single embedded client), stays neutrally colored (there is no single
  * client to tint by) and hides while the side panel of the tab is open.
+ * The placement (bottom-right / bottom / bottom-left) is a preference —
+ * see shared/fab-position.ts.
  */
 
 const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>`;
@@ -41,6 +45,17 @@ const STYLES = `
 .button:active { transform: translateY(0) scale(0.96); }
 .button:focus-visible { outline: 2px solid #a3a3a3; outline-offset: 3px; }
 .button svg { display: block; }
+/* center placement: translate keeps the hover lift from fighting the
+ * centering transform (the last transform wins in the cascade, so the
+ * lift variants below re-apply the full stack) */
+:host(.vkma-pos-bottom) .button {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+:host(.vkma-pos-bottom) .button:hover { transform: translateX(-50%) translateY(-1px); }
+:host(.vkma-pos-bottom) .button:active { transform: translateX(-50%) translateY(0) scale(0.96); }
+:host(.vkma-pos-bottom-left) .button { left: 16px; right: auto; }
 .panel {
   position: fixed;
   right: 16px;
@@ -64,6 +79,18 @@ const STYLES = `
   opacity: 1;
   pointer-events: auto;
 }
+:host(.vkma-pos-bottom) .panel {
+  left: 50%;
+  right: auto;
+  transform-origin: bottom center;
+  transform: translateX(-50%) translateY(10px) scale(0.98);
+}
+:host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
+:host(.vkma-pos-bottom-left) .panel {
+  left: 16px;
+  right: auto;
+  transform-origin: bottom left;
+}
 @media (max-width: 560px) {
   .panel {
     right: 12px;
@@ -71,6 +98,13 @@ const STYLES = `
     width: calc(100vw - 24px);
     height: calc(100vh - 84px);
   }
+  :host(.vkma-pos-bottom) .panel {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(10px) scale(0.98);
+  }
+  :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
+  :host(.vkma-pos-bottom-left) .panel { left: 12px; right: auto; }
 }
 .panel iframe { width: 100%; height: 100%; border: none; display: block; }
 `;
@@ -80,11 +114,20 @@ export interface FabOptions {
 	panelUrl: string;
 }
 
-/**
- * Returns a visibility setter: `setHidden(true)` parks the FAB (used when
- * the tab's side panel is open — two simultaneous panels is noise).
- */
-export function mountFab({ panelUrl }: FabOptions): (hidden: boolean) => void {
+export interface FabHandle {
+	/** Park the FAB (used when the tab's side panel is open). */
+	setHidden: (hidden: boolean) => void;
+	/** Move the FAB between the three bottom placements. */
+	setPosition: (position: FabPosition) => void;
+}
+
+const POSITION_CLASSES: Record<FabPosition, string> = {
+	"bottom-right": "vkma-pos-bottom-right",
+	bottom: "vkma-pos-bottom",
+	"bottom-left": "vkma-pos-bottom-left",
+};
+
+export function mountFab({ panelUrl }: FabOptions): FabHandle {
 	const host = document.createElement("div");
 	host.dataset["vkmaFab"] = "";
 	const root = host.attachShadow({ mode: "open" });
@@ -125,10 +168,17 @@ export function mountFab({ panelUrl }: FabOptions): (hidden: boolean) => void {
 
 	document.documentElement.append(host);
 
-	return (hidden: boolean) => {
-		if (hidden) {
-			setOpen(false);
-		}
-		host.style.setProperty("display", hidden ? "none" : "");
+	return {
+		setHidden: (hidden: boolean) => {
+			if (hidden) {
+				setOpen(false);
+			}
+			host.style.setProperty("display", hidden ? "none" : "");
+		},
+		setPosition: position => {
+			for (const cls of Object.values(POSITION_CLASSES)) {
+				host.classList.toggle(cls, cls === POSITION_CLASSES[position]);
+			}
+		},
 	};
 }

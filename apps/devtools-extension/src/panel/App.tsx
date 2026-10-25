@@ -12,6 +12,8 @@ import {
 import { useEffect, useState } from "react";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 import { useVkmaExtension } from "./connection.ts";
+import { FabPositionControl } from "./fab-position.tsx";
+import { useExtensionTheme } from "./theme.ts";
 
 const SECTION_KEY = "vkma:section";
 
@@ -105,6 +107,8 @@ function TabPanel({ tabId, embeddedInSidePanel }: { tabId: number; embeddedInSid
 	// runtime message carries it into the service worker (werpc ports do
 	// not) — that is what sidePanel.open() demands. The tabId rides the
 	// payload because extension pages have no sender.tab.
+	const theme = useExtensionTheme();
+
 	const openSidePanel =
 		sidePanelSupported() && !embeddedInSidePanel
 			? () => {
@@ -122,17 +126,21 @@ function TabPanel({ tabId, embeddedInSidePanel }: { tabId: number; embeddedInSid
 				status={connection.status}
 				onReconnect={connection.reconnect}
 				capture={captureOf(connection.clients)}
+				theme={theme}
 				actions={
-					openSidePanel && (
-						<button
-							type="button"
-							onClick={openSidePanel}
-							className="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-							title="Open the side panel for this tab"
-						>
-							<PanelRightIcon />
-						</button>
-					)
+					<>
+						<FabPositionControl />
+						{openSidePanel && (
+							<button
+								type="button"
+								onClick={openSidePanel}
+								className="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+								title="Open the side panel for this tab"
+							>
+								<PanelRightIcon />
+							</button>
+						)}
+					</>
 				}
 			/>
 			<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
@@ -203,9 +211,10 @@ function PanelFrame({
 	lastError?: string;
 	children?: React.ReactNode;
 }) {
+	const theme = useExtensionTheme();
 	return (
 		<div className="flex h-dvh flex-col">
-			<TopBar status={status} onReconnect={onReconnect} />
+			<TopBar status={status} onReconnect={onReconnect} theme={theme} />
 			<div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10">
 				<div className="flex max-w-sm flex-col items-center text-center">
 					{status === "connecting" ? (
