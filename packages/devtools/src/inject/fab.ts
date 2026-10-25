@@ -13,6 +13,9 @@ export interface FabOptions {
 	base: string;
 	/** Read live: the id can change when a duplicated tab yields its copied id. */
 	getClientId: () => string;
+	/** Applied BEFORE the host is attached, so the FAB first appears at
+	 * its saved spot instead of gliding over from the default. */
+	position?: FabPosition;
 }
 
 export interface FabHandle {
@@ -146,7 +149,7 @@ const POSITION_CLASSES: Record<FabPosition, string> = {
 
 /** Returns a re-tint callback: the client id can change mid-session when a
  * duplicated tab yields its copied id. */
-export function mountFab({ base, getClientId }: FabOptions): FabHandle {
+export function mountFab({ base, getClientId, position }: FabOptions): FabHandle {
 	const host = document.createElement("div");
 	host.dataset["vkmaFab"] = "";
 	const root = host.attachShadow({ mode: "open" });
@@ -196,9 +199,15 @@ export function mountFab({ base, getClientId }: FabOptions): FabHandle {
 		}
 	});
 
-	document.documentElement.append(host);
+	// Initial placement lands BEFORE attachment: no first paint at the
+	// default corner and no FLIP — the dedupe below swallows the caller's
+	// initial setPosition.
+	let currentPosition = position;
+	if (currentPosition !== undefined) {
+		host.classList.add(POSITION_CLASSES[currentPosition]);
+	}
 
-	let currentPosition: FabPosition | undefined;
+	document.documentElement.append(host);
 
 	return {
 		retint: applyColor,

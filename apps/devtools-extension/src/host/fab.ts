@@ -126,6 +126,9 @@ const STYLES = `
 export interface FabOptions {
 	/** Absolute panel URL (chrome.runtime.getURL + ?tab=…). */
 	panelUrl: string;
+	/** Applied BEFORE the host is attached, so the FAB first appears at
+	 * its saved spot instead of gliding over from the default. */
+	position?: FabPosition;
 }
 
 export interface FabHandle {
@@ -141,7 +144,7 @@ const POSITION_CLASSES: Record<FabPosition, string> = {
 	"bottom-left": "vkma-pos-bottom-left",
 };
 
-export function mountFab({ panelUrl }: FabOptions): FabHandle {
+export function mountFab({ panelUrl, position }: FabOptions): FabHandle {
 	const host = document.createElement("div");
 	host.dataset["vkmaFab"] = "";
 	const root = host.attachShadow({ mode: "open" });
@@ -180,9 +183,15 @@ export function mountFab({ panelUrl }: FabOptions): FabHandle {
 		}
 	});
 
-	document.documentElement.append(host);
+	// Initial placement lands BEFORE attachment: no first paint at the
+	// default corner and no FLIP — the dedupe below swallows the
+	// follow-up setPosition from the storage read.
+	let currentPosition = position;
+	if (currentPosition !== undefined) {
+		host.classList.add(POSITION_CLASSES[currentPosition]);
+	}
 
-	let currentPosition: FabPosition | undefined;
+	document.documentElement.append(host);
 
 	return {
 		setHidden: (hidden: boolean) => {

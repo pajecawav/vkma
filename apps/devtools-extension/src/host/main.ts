@@ -293,15 +293,15 @@ void (async () => {
 	}
 	await client.background.enableSidePanel.mutate().catch(() => {});
 
+	// The placement preference is read BEFORE mounting (the FAB first
+	// appears at its saved spot) and followed live afterwards — any panel
+	// surface edits it, every tab follows via storage.onChanged.
+	const stored = await chrome.storage.local.get(FAB_POSITION_STORAGE_KEY).catch(() => undefined);
 	const fab = mountFab({
 		panelUrl: `${chrome.runtime.getURL("panel.html")}?tab=${tabId}`,
+		position: normalizeFabPosition(stored?.[FAB_POSITION_STORAGE_KEY]),
 	});
 
-	// The placement preference is global (any panel surface edits it);
-	// storage.onChanged makes the FAB follow it live.
-	void chrome.storage.local.get(FAB_POSITION_STORAGE_KEY).then(stored => {
-		fab.setPosition(normalizeFabPosition(stored[FAB_POSITION_STORAGE_KEY]));
-	});
 	chrome.storage.onChanged.addListener((changes, area) => {
 		if (area === "local" && FAB_POSITION_STORAGE_KEY in changes) {
 			fab.setPosition(normalizeFabPosition(changes[FAB_POSITION_STORAGE_KEY]?.newValue));
