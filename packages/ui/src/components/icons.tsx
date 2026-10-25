@@ -20,6 +20,7 @@ export {
 	Monitor as ClientsIcon,
 	Monitor as MonitorIcon,
 	Moon as MoonIcon,
+	PanelRight as PanelRightIcon,
 	PanelsTopLeft as FrameIcon,
 	Pause as PauseIcon,
 	Play as PlayIcon,

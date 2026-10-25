@@ -1,5 +1,5 @@
 import type { CaptureMode, ConnectionStatus } from "@vkma.dev/protocol";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { MoonIcon, RefreshIcon, SunIcon, VkmaLogoIcon } from "./icons.tsx";
 
@@ -48,6 +48,7 @@ export function TopBar({
 	onReconnect,
 	clientBadge,
 	capture,
+	actions,
 }: {
 	status: ConnectionStatus;
 	onReconnect: () => void;
@@ -55,6 +56,9 @@ export function TopBar({
 	/** Capture-mode chip: only meaningful when the feed is one client's
 	 * (or uniform) — mixed feeds show the mode per client card instead. */
 	capture?: CaptureMode;
+	/** Surface-specific buttons (e.g. the extension's "open side panel"),
+	 * rendered next to the theme toggle. */
+	actions?: ReactNode;
 }) {
 	const [dark, toggleTheme] = useTheme();
 	const meta = STATUS_META[status];
@@ -102,6 +106,7 @@ export function TopBar({
 					<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
 					<span className={meta.text}>{meta.label}</span>
 				</span>
+				{actions}
 				{(status === "disconnected" || status === "error") && (
 					<button
 						type="button"

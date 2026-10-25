@@ -108,6 +108,9 @@ const closeTabPanel = async (tabId: number) => {
  * does not create the global panel.
  */
 const openTabPanelFromGesture = (tabId: number) => {
+	if (!hasSidePanel) {
+		return;
+	}
 	void chrome.sidePanel
 		.open({ tabId })
 		.then(() => setPanelTab(tabId, true))
@@ -136,15 +139,25 @@ chrome.action.onClicked.addListener(tab => {
 
 // NOTE: sidePanel.open() requires a user gesture, and gestures do not
 // travel over long-lived werpc ports — only over one-shot runtime
-// messages, which is why the FAB uses this raw channel instead of rpc
+// messages, which is why the panel page uses this raw channel instead of
+// rpc (the click's gesture rides the one-shot; the tabId is explicit
+// because extension pages have no sender.tab)
 chrome.runtime.onMessage.addListener((message: unknown, sender) => {
 	if (
-		message === OPEN_SIDE_PANEL_MESSAGE &&
-		hasSidePanel &&
-		typeof sender.tab?.id === "number" &&
-		sender.tab.id !== chrome.tabs.TAB_ID_NONE
+		typeof message === "object" &&
+		message !== null &&
+		(message as { type?: unknown }).type === OPEN_SIDE_PANEL_MESSAGE
 	) {
-		openTabPanelFromGesture(sender.tab.id);
+		const explicit = (message as { tabId?: unknown }).tabId;
+		const tabId =
+			typeof explicit === "number"
+				? explicit
+				: typeof sender.tab?.id === "number" && sender.tab.id !== chrome.tabs.TAB_ID_NONE
+					? sender.tab.id
+					: undefined;
+		if (tabId !== undefined) {
+			openTabPanelFromGesture(tabId);
+		}
 	}
 });
 

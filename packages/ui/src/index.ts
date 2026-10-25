@@ -38,6 +38,7 @@ export {
 	WarningIcon,
 	VkmaLogoIcon,
 	PlatformIcon,
+	PanelRightIcon,
 } from "./components/icons.tsx";
 export { clientColor } from "./lib/colors.ts";
 export {

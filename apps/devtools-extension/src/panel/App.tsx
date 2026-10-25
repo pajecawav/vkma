@@ -1,6 +1,16 @@
 import type { CaptureMode, ClientStatus } from "@vkma.dev/protocol";
-import { Clients, Execute, Rail, Timeline, TopBar, UiProvider, type Section } from "@vkma.dev/ui";
+import {
+	Clients,
+	Execute,
+	PanelRightIcon,
+	Rail,
+	Timeline,
+	TopBar,
+	UiProvider,
+	type Section,
+} from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
+import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 import { useVkmaExtension } from "./connection.ts";
 
 const SECTION_KEY = "vkma:section";
@@ -51,8 +61,9 @@ function PanelRoot() {
 		);
 	}
 
-	return <TabPanel tabId={tabId} />;
+	return <TabPanel tabId={tabId} embeddedInSidePanel={isSidePanel} />;
 }
+
 function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
 	if (clients.length === 0) {
 		return undefined;
@@ -65,7 +76,11 @@ function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
 		: undefined;
 }
 
-function TabPanel({ tabId }: { tabId: number }) {
+/** Chrome 116+ exposes the sidePanel API surface in extension pages too;
+ * Firefox never does — the button hides there. */
+const sidePanelSupported = () => typeof chrome !== "undefined" && chrome.sidePanel !== undefined;
+
+function TabPanel({ tabId, embeddedInSidePanel }: { tabId: number; embeddedInSidePanel: boolean }) {
 	const connection = useVkmaExtension(tabId);
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
@@ -86,12 +101,39 @@ function TabPanel({ tabId }: { tabId: number }) {
 		);
 	}
 
+	// Clicking in the panel page is a user gesture, and a one-shot
+	// runtime message carries it into the service worker (werpc ports do
+	// not) — that is what sidePanel.open() demands. The tabId rides the
+	// payload because extension pages have no sender.tab.
+	const openSidePanel =
+		sidePanelSupported() && !embeddedInSidePanel
+			? () => {
+					// the listener never responds — swallow the closed-port
+					// rejection instead of leaking it as a console error
+					void chrome.runtime
+						.sendMessage({ type: OPEN_SIDE_PANEL_MESSAGE, tabId })
+						.catch(() => {});
+				}
+			: undefined;
+
 	return (
 		<div className="flex h-dvh flex-col">
 			<TopBar
 				status={connection.status}
 				onReconnect={connection.reconnect}
 				capture={captureOf(connection.clients)}
+				actions={
+					openSidePanel && (
+						<button
+							type="button"
+							onClick={openSidePanel}
+							className="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+							title="Open the side panel for this tab"
+						>
+							<PanelRightIcon />
+						</button>
+					)
+				}
 			/>
 			<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
 				<Rail
