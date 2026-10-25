@@ -20,7 +20,7 @@ import { AppShell } from "./shell";
  * no inference cycles. The array order is the story order.
  */
 export const app = createApp({
-	root: ({ app: appHandle }) => <AppShell app={appHandle} />,
+	root: props => <AppShell {...props} />,
 	views: [profileView, feedView, messagesView, moreView],
 	modals: { settings: SettingsGlobalModal },
 	popouts: { logout: LogoutPopout },

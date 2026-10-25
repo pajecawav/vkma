@@ -3,11 +3,28 @@ import { ModalCard, ModalPage, type ModalCardProps, type ModalPageProps } from "
 import {
 	type ComponentType,
 	createContext,
+	lazy,
 	Suspense,
 	useContext,
 	useEffect,
 	useState,
 } from "react";
+
+/**
+ * React.lazy bridge for route-modal chunks. The loader MUST be a thunk —
+ * `lazyModal(import("./x"))` starts fetching the chunk at app start, before
+ * the modal is ever shown — and the chunk must default-export the
+ * component:
+ *
+ * ```ts
+ * modals: { comments: lazyModal(() => import("./comments.ui")) }
+ * ```
+ */
+export function lazyModal<T extends ComponentType>(
+	load: () => Promise<{ default: T }>,
+): ComponentType {
+	return lazy(load) as unknown as ComponentType;
+}
 
 /**
  * Modal choreography: exactly one modal is visible at a time.

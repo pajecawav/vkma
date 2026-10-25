@@ -118,7 +118,10 @@ read it before touching anything here.
   (→ `TypedAppHandle`, typed `app.panels` map) stays for small inline apps.
   Directory convention per view: `panels/<view>/<view>.panel.ts(x)` (the
   hub, sorts first) + `<name>.ui.tsx` chunks (annotated `: ReactElement`) +
-  private modal chunks. A definition IS the typed handle (phantom `types`
+  private modal chunks (`lazyModal(() => import("./comments.ui"))` — the
+  chunk default-exports the component; the loader is a thunk, a bare
+  `import(...)` would fetch at app start). A definition IS the typed handle
+  (phantom `types`
   derived from the panel's own options: `$param` path segments → params,
   `validateSearch` return → search, `loader` return → loaderData; `routeId`
   is the literal `/view:${view}/${path}` convention). Chunk modules import
@@ -134,7 +137,7 @@ read it before touching anything here.
     2. Annotate UI chunk components (`export default function
        FeedPanel(): ReactElement`) — an unannotated signature is deferred,
        and a deferred signature inside the definition's initializer graph
-       re-opens the same cycle (route modals in `post-modals.tsx` carry the
+       re-opens the same cycle (the modal chunks in `panels/feed/` carry the
        annotation for exactly this reason).
     3. The hub file must sort BEFORE its chunks
        (`feed.panel.tsx` < `feed.ui.tsx`/`post.ui.tsx`) — TypeScript enters

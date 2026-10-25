@@ -3,6 +3,7 @@ export {
 	Modals,
 	ModalPageSurface,
 	ModalCardSurface,
+	lazyModal,
 	type ModalEntry,
 	type ModalsProps,
 } from "./vkui/modals.tsx";

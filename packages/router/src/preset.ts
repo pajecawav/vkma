@@ -27,6 +27,7 @@ export {
 	Modals,
 	ModalPageSurface,
 	ModalCardSurface,
+	lazyModal,
 	Popouts,
 	VkView,
 	NotFound,
