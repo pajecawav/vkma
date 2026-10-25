@@ -106,6 +106,15 @@ const STYLES = `
   :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
   :host(.vkma-pos-bottom-left) .panel { left: 12px; right: auto; }
 }
+/* Position changes teleport, they do not slide: left/right↔auto is not
+ * interpolable and the per-variant transform lists mismatch, so a
+ * transition across the swap renders as a jump followed by a stray
+ * partial animation. The no-anim class (held for one reflow) suppresses
+ * that; open/close transitions resume at the new spot. */
+:host(.vkma-no-anim) .button,
+:host(.vkma-no-anim) .panel {
+  transition: none !important;
+}
 .panel iframe { width: 100%; height: 100%; border: none; display: block; }
 `;
 
@@ -168,6 +177,8 @@ export function mountFab({ panelUrl }: FabOptions): FabHandle {
 
 	document.documentElement.append(host);
 
+	let currentPosition: FabPosition | undefined;
+
 	return {
 		setHidden: (hidden: boolean) => {
 			if (hidden) {
@@ -176,9 +187,21 @@ export function mountFab({ panelUrl }: FabOptions): FabHandle {
 			host.style.setProperty("display", hidden ? "none" : "");
 		},
 		setPosition: position => {
+			if (position === currentPosition) {
+				return;
+			}
+			currentPosition = position;
+			host.classList.add("vkma-no-anim");
 			for (const cls of Object.values(POSITION_CLASSES)) {
 				host.classList.toggle(cls, cls === POSITION_CLASSES[position]);
 			}
+			// Force a style flush while transitions are off, then restore
+			// them next frame — the move lands as one clean teleport and
+			// the open/close animation is untouched at the new spot.
+			void host.offsetWidth;
+			requestAnimationFrame(() => {
+				host.classList.remove("vkma-no-anim");
+			});
 		},
 	};
 }
