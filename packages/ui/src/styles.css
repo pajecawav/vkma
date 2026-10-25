@@ -22,6 +22,13 @@
 	background: color-mix(in oklab, var(--color-neutral-800) 24%, transparent);
 }
 
+/* The single light-theme selection is a dark tint on a light surface —
+   flipped on dark it must become a LIGHT tint, or it melts into the
+   near-black background (barely-visible selections in the JsonTree). */
+html.dark ::selection {
+	background: color-mix(in oklab, var(--color-neutral-200) 32%, transparent);
+}
+
 html {
 	color-scheme: light;
 }
