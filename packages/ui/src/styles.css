@@ -18,15 +18,15 @@
 
 /* ── browser surfaces ─────────────────────────────────────────────── */
 
+/* Selection must be OPAQUE: a translucent tint gets double-composited
+   over the panel's animated (transformed) rows — glyphs visibly ghost.
+   Solid neutrals, text color untouched (DevTools-style). */
 ::selection {
-	background: color-mix(in oklab, var(--color-neutral-800) 24%, transparent);
+	background: var(--color-neutral-300);
 }
 
-/* The single light-theme selection is a dark tint on a light surface —
-   flipped on dark it must become a LIGHT tint, or it melts into the
-   near-black background (barely-visible selections in the JsonTree). */
 html.dark ::selection {
-	background: color-mix(in oklab, var(--color-neutral-200) 32%, transparent);
+	background: var(--color-neutral-600);
 }
 
 html {
