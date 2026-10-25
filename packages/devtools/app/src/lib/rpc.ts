@@ -143,6 +143,21 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 					return;
 				}
 				readerStarted = true;
+				// State first: the timeline channel id is run-scoped (the
+				// devframe instance survives dev-server restarts, its replay
+				// window must never mix store epochs), so the reader needs
+				// `runId` before subscribing. Chunks written between the
+				// snapshot and the subscribe land in the replay window — the
+				// (runId, seq) dedupe absorbs the overlap.
+				const state = (await call("state")) as DevtoolsState;
+				if (disposed) {
+					return;
+				}
+				setClients(
+					embeddedClientId
+						? state.clients.filter(client => client.clientId === embeddedClientId)
+						: state.clients,
+				);
 				const streamId = embeddedClientId
 					? (
 							(await call("subscribe", {
@@ -150,7 +165,13 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 							})) as { streamId: string }
 						).streamId
 					: "live";
-				const reader = scoped.rpc.streaming.subscribe<WireEvent>("timeline", streamId);
+				const reader = scoped.rpc.streaming.subscribe<WireEvent>(
+					// Fully qualified on purpose: qualifyName() passes names that
+					// already contain `:` through unscoped, and the bare
+					// `timeline:<runId>` would never reach `vkma:timeline:<runId>`.
+					`vkma:timeline:${state.runId}`,
+					streamId,
+				);
 				void (async () => {
 					for await (const event of reader) {
 						if (disposed) {
@@ -163,15 +184,6 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 					// on its own, the panel shows the gate and reconnect() makes
 					// a fresh client (and reader)
 				});
-				const state = (await call("state")) as DevtoolsState;
-				if (disposed) {
-					return;
-				}
-				setClients(
-					embeddedClientId
-						? state.clients.filter(client => client.clientId === embeddedClientId)
-						: state.clients,
-				);
 			};
 
 			if (client.status === "connected") {

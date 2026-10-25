@@ -42,7 +42,13 @@ export const vkmaDevframe = defineDevframe({
 		// panels, seeded with that client's history on subscribe. An
 		// unsubscribed sink keeps buffering: losing every subscriber aborts
 		// the sink's signal but not the stream itself.
-		const timeline = ctx.rpc.streaming.create<WireEvent>("vkma:timeline", {
+		// The channel id carries the store's runId: the devframe instance
+		// survives dev-server restarts (globalThis in the rsbuild adapter),
+		// and its replay window would otherwise mix the previous store's
+		// chunks into the fresh run — panels flip-flop between epochs. A
+		// per-run channel starts empty; readers derive the id from
+		// `state.runId`.
+		const timeline = ctx.rpc.streaming.create<WireEvent>(`vkma:timeline:${store.runId}`, {
 			replayWindow: 500,
 		});
 		const live = timeline.start({ id: "live" });

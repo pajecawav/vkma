@@ -258,7 +258,10 @@ export function Timeline({
 					</p>
 				) : (
 					ordered.map(group => (
-						<div key={`${group.head.clientId}:${group.head.id}`} className="py-0.5">
+						<div
+							key={`${group.head.runId}:${group.head.clientId}:${group.head.seq}`}
+							className="py-0.5"
+						>
 							{group.head.kind === "send" ? (
 								<RequestGroup
 									request={group.head}
