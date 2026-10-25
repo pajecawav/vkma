@@ -56,7 +56,7 @@ export function useInflate(app: AppHandle, enabled = true): void {
 		select: state => {
 			let panelKey: string | null = null;
 			let panelPath: string | null = null;
-			let isModal = false;
+			const modalPaths: string[] = [];
 			for (let i = state.matches.length - 1; i >= 0; i--) {
 				const routeId = state.matches[i]?.routeId;
 				if (routeId === undefined) {
@@ -72,8 +72,11 @@ export function useInflate(app: AppHandle, enabled = true): void {
 					>
 				)[routeId];
 				const staticData = route?.options.staticData;
-				if (staticData?.modal !== undefined) {
-					isModal = true; // the deepest match is a route modal
+				if (staticData?.modal !== undefined && route !== undefined) {
+					// modal levels of the deep link, deepest first (reversed below)
+					if (route.fullPath !== undefined) {
+						modalPaths.push(route.fullPath);
+					}
 				}
 				if (staticData?.panel !== undefined) {
 					panelKey = staticData.panel;
@@ -89,7 +92,7 @@ export function useInflate(app: AppHandle, enabled = true): void {
 				href: state.location.href,
 				panelKey,
 				panelPath,
-				isModal,
+				modalPaths: modalPaths.reverse(),
 				deepestParams:
 					(
 						state.matches[state.matches.length - 1] as
@@ -115,13 +118,19 @@ export function useInflate(app: AppHandle, enabled = true): void {
 		}
 		const ordered = Object.values(app.panels).filter(panel => panel.viewId === target.viewId);
 		let chain = deriveInflateChain(ordered, target.routeId, snapshot.deepestParams);
-		// a deep link INTO A ROUTE MODAL: the parent panel must sit in history
-		// right below the modal, or back from the modal skips the panel the
-		// user is logically on (jumps straight to the view home)
-		if (snapshot.isModal && snapshot.panelPath !== null) {
+		// a deep link INTO A ROUTE MODAL: the full ancestor chain must sit in
+		// history below the target — the parent panel, then every modal level
+		// (outer → inner) — or back skips the screens the user is logically on
+		if (snapshot.panelPath !== null) {
 			const parentHref = interpolatePath(snapshot.panelPath, snapshot.deepestParams);
 			if (parentHref !== null && chain[chain.length - 1] !== parentHref) {
 				chain = [...chain, parentHref];
+			}
+		}
+		for (const modalPath of snapshot.modalPaths) {
+			const modalHref = interpolatePath(modalPath, snapshot.deepestParams);
+			if (modalHref !== null && chain[chain.length - 1] !== modalHref) {
+				chain = [...chain, modalHref];
 			}
 		}
 		if (chain.length === 0) {

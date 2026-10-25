@@ -60,16 +60,16 @@ export default function CommentsModal(): ReactElement {
 					Открыть тред
 				</CellButton>
 				<CellButton
-					subtitle="та же цепочка, но surface — ModalCard, с пропсами из showModal"
+					subtitle="child-роут: стекается ПОВЕРХ открытой модалки, back вернёт сюда"
 					onClick={() =>
 						void navigator.showModal({
-							to: "/post/$id/share",
+							to: "/post/$id/comments/share",
 							params: { id },
 							props: { note: "Переслать в чат — открыто из комментариев" },
 						})
 					}
 				>
-					Поделиться (карточка)
+					Поделиться (карточка поверх)
 				</CellButton>
 				<CellButton
 					subtitle="child-роут: стекается ПОВЕРХ открытой модалки"

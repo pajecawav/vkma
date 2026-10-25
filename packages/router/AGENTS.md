@@ -85,8 +85,10 @@ read it before touching anything here.
   sheet closes first and the new one opens only after the exit completes —
   never two sibling sheets at once (the user-reported bug from the first
   spike implementation). The host state is a stack + one exiting sheet;
-  the nested/sibling relation is a route-id prefix check. Exit completion
-  is EVENT-DRIVEN on the surface's
+  the nested/sibling relation is a route-id prefix check. Deep links into
+  (nested) modals inflate the FULL ancestor chain — parent panel + every
+  modal level, outer → inner — so back walks the natural stack. Exit
+  completion is EVENT-DRIVEN on the surface's
   `onClosed` — VKUI backs it with an internal timer computed from the
   element's real `transitionDuration` (useCSSTransition), so it beats any
   host-side constant; the host `exitDuration` is only a WATCHDOG for the
