@@ -1,7 +1,20 @@
-import type { ConnectionStatus } from "@vkma.dev/protocol";
+import type { CaptureMode, ConnectionStatus } from "@vkma.dev/protocol";
 import { useEffect, useState } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { MoonIcon, RefreshIcon, SunIcon, VkmaLogoIcon } from "./icons.tsx";
+
+const CAPTURE_META: Record<CaptureMode, { label: string; chip: string; title: string }> = {
+	direct: {
+		label: "vkma bridge",
+		chip: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+		title: "Connected directly to the app's own @vkma.dev/bridge (tap + execute)",
+	},
+	spy: {
+		label: "sniffer",
+		chip: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+		title: "No vkma bridge on the page — traffic is captured via the bridge sniffer",
+	},
+};
 
 const STATUS_META: Record<ConnectionStatus, { label: string; dot: string; text: string }> = {
 	connecting: { label: "Connecting", dot: "bg-neutral-400", text: "text-neutral-500" },
@@ -34,10 +47,14 @@ export function TopBar({
 	status,
 	onReconnect,
 	clientBadge,
+	capture,
 }: {
 	status: ConnectionStatus;
 	onReconnect: () => void;
 	clientBadge?: { clientId: string };
+	/** Capture-mode chip: only meaningful when the feed is one client's
+	 * (or uniform) — mixed feeds show the mode per client card instead. */
+	capture?: CaptureMode;
 }) {
 	const [dark, toggleTheme] = useTheme();
 	const meta = STATUS_META[status];
@@ -53,6 +70,18 @@ export function TopBar({
 			</div>
 
 			<div className="ml-auto flex items-center gap-3">
+				{capture &&
+					(() => {
+						const meta = CAPTURE_META[capture];
+						return (
+							<span
+								className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium leading-none ${meta.chip}`}
+								title={meta.title}
+							>
+								{meta.label}
+							</span>
+						);
+					})()}
 				{clientBadge &&
 					(() => {
 						const color = clientColor(clientBadge.clientId);
