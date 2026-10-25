@@ -132,9 +132,9 @@ chrome.action.onClicked.addListener(tab => {
 	if (typeof tab.id !== "number") {
 		return;
 	}
-	// The action icon is the "wide" surface: the full panel in a tab,
-	// bound to the clicked tab's collector.
-	void chrome.tabs.create({ url: `panel.html?tab=${tab.id}` });
+	// The action icon is the "wide" surface: every watched tab at once —
+	// the /__vkma/ standalone panel's counterpart.
+	void chrome.tabs.create({ url: "panel.html?view=all" });
 });
 
 // NOTE: sidePanel.open() requires a user gesture, and gestures do not

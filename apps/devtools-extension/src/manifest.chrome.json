@@ -5,7 +5,7 @@
 	"description": "VK Bridge devtools for VK Mini Apps — event timeline and execute on any vk.ru page",
 	"version": "0.0.0",
 	"minimum_chrome_version": "116",
-	"permissions": ["storage", "sidePanel"],
+	"permissions": ["storage", "sidePanel", "tabs"],
 	"action": {
 		"default_title": "vkma devtools — open the panel in a tab"
 	},

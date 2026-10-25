@@ -1,4 +1,4 @@
-import type { CaptureMode, ClientStatus } from "@vkma.dev/protocol";
+import type { CaptureMode, ClientStatus, WireEvent } from "@vkma.dev/protocol";
 import {
 	Clients,
 	Execute,
@@ -12,7 +12,7 @@ import {
 import { FabPositionControl } from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
-import { useVkmaExtension } from "./connection.ts";
+import { useVkmaAllTabs, useVkmaExtension, type ExtensionConnection } from "./connection.ts";
 import { useFabPosition } from "./fab-position.ts";
 import { useExtensionTheme } from "./theme.ts";
 
@@ -42,23 +42,36 @@ export function App() {
 	);
 }
 
+/**
+ * One panel page, three surfaces: the tab panel (?view=all) watches EVERY
+ * VK tab at once — the /__vkma/ standalone panel's counterpart — while
+ * the FAB iframe (?tab=…) and the side panel (no query, resolves its own
+ * tab) stay scoped to their tab.
+ */
 function PanelRoot() {
-	const [urlTabId] = useState(resolveTabId);
+	const [viewAll] = useState(
+		() => new URLSearchParams(window.location.search).get("view") === "all",
+	);
+	const [urlTabId] = useState(() => (viewAll ? undefined : resolveTabId()));
 	const [sidePanelTabId, setSidePanelTabId] = useState<number | undefined>(undefined);
-	const isSidePanel = urlTabId === undefined;
+	const isSidePanel = !viewAll && urlTabId === undefined;
 	// One theme subscription per surface, hoisted above every branch — a
 	// hook behind a conditional return flips the hook count and dies with
 	// React #310 (learned the hard way).
 	const theme = useExtensionTheme();
 
 	useEffect(() => {
-		if (!isSidePanel) {
+		if (viewAll || !isSidePanel) {
 			return;
 		}
 		void resolveSidePanelTabId().then(setSidePanelTabId);
-	}, [isSidePanel]);
+	}, [viewAll, isSidePanel]);
 
 	const tabId = urlTabId ?? sidePanelTabId;
+
+	if (viewAll) {
+		return <GlobalPanel theme={theme} />;
+	}
 
 	if (tabId === undefined) {
 		return (
@@ -73,6 +86,120 @@ function PanelRoot() {
 	}
 
 	return <TabPanel tabId={tabId} embeddedInSidePanel={isSidePanel} theme={theme} />;
+}
+
+/** The panel body shared by both modes: sections render whatever
+ * connection is handed in (tab-scoped or global). */
+function Sections({
+	events,
+	clients,
+	execute,
+}: {
+	events: WireEvent[];
+	clients: ClientStatus[];
+	execute: ExtensionConnection["execute"];
+}) {
+	const [section, setSection] = useState<Section>(() => {
+		const stored = localStorage.getItem(SECTION_KEY);
+		return stored === "execute" || stored === "clients" ? stored : "timeline";
+	});
+
+	useEffect(() => {
+		localStorage.setItem(SECTION_KEY, section);
+	}, [section]);
+
+	return (
+		<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+			<Rail
+				section={section}
+				sections={["timeline", "execute", "clients"]}
+				onSelect={setSection}
+			/>
+			<div
+				className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "timeline" ? "" : "hidden"}`}
+			>
+				<Timeline
+					events={events}
+					clients={clients}
+					emptyStateHint={
+						<>
+							Open a mini app — every request and event lands here, through the
+							app&rsquo;s own @vkma.dev/bridge when it has one, or through the traffic
+							sniffer when it doesn&rsquo;t.
+						</>
+					}
+				/>
+			</div>
+			<div
+				className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "execute" ? "" : "hidden"}`}
+			>
+				<Execute
+					clients={clients}
+					events={events}
+					execute={execute}
+					emptyState={
+						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
+							No mini app clients yet. Open one — then execute bridge events here.
+						</p>
+					}
+				/>
+			</div>
+			<div
+				className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "clients" ? "" : "hidden"}`}
+			>
+				<Clients
+					clients={clients}
+					emptyState={
+						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
+							No mini app frames yet — clients appear here as soon as one loads.
+						</p>
+					}
+					bridgeWarning="No vkma bridge on this page — traffic is captured via the sniffer (spy mode). Events and execute still work."
+				/>
+			</div>
+		</div>
+	);
+}
+
+function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }) {
+	const connection = useVkmaAllTabs();
+	const fabPosition = useFabPosition();
+
+	if (connection.status !== "connected") {
+		const nothingYet = connection.tabCount === 0 && connection.status === "error";
+		return (
+			<PanelFrame
+				status={connection.status}
+				onReconnect={connection.reconnect}
+				theme={theme}
+				heading={nothingYet ? "Nothing is being watched yet" : undefined}
+				hint={
+					nothingYet
+						? "Open a VK page with a mini app in any tab — it appears here automatically."
+						: undefined
+				}
+			/>
+		);
+	}
+
+	return (
+		<div className="flex h-dvh flex-col">
+			<TopBar
+				status={connection.status}
+				onReconnect={connection.reconnect}
+				capture={captureOf(connection.clients)}
+				theme={theme}
+				actions={
+					<FabPositionControl position={fabPosition.position} onPick={fabPosition.pick} />
+				}
+			/>
+			<Sections
+				events={connection.events}
+				clients={connection.clients}
+				execute={connection.execute}
+			/>
+		</div>
+	);
 }
 
 function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
@@ -102,14 +229,6 @@ function TabPanel({
 }) {
 	const connection = useVkmaExtension(tabId);
 	const fabPosition = useFabPosition();
-	const [section, setSection] = useState<Section>(() => {
-		const stored = localStorage.getItem(SECTION_KEY);
-		return stored === "execute" || stored === "clients" ? stored : "timeline";
-	});
-
-	useEffect(() => {
-		localStorage.setItem(SECTION_KEY, section);
-	}, [section]);
 
 	if (connection.status !== "connected") {
 		return (
@@ -163,57 +282,11 @@ function TabPanel({
 					</>
 				}
 			/>
-			<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-				<Rail
-					section={section}
-					sections={["timeline", "execute", "clients"]}
-					onSelect={setSection}
-				/>
-				<div
-					className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "timeline" ? "" : "hidden"}`}
-				>
-					<Timeline
-						events={connection.events}
-						clients={connection.clients}
-						emptyStateHint={
-							<>
-								Open a mini app on this page — every request and event lands here,
-								through the app&rsquo;s own @vkma.dev/bridge when it has one, or
-								through the traffic sniffer when it doesn&rsquo;t.
-							</>
-						}
-					/>
-				</div>
-				<div
-					className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "execute" ? "" : "hidden"}`}
-				>
-					<Execute
-						clients={connection.clients}
-						events={connection.events}
-						execute={connection.execute}
-						emptyState={
-							<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
-								No mini app clients on this page yet. Open one — then execute bridge
-								events here.
-							</p>
-						}
-					/>
-				</div>
-				<div
-					className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "clients" ? "" : "hidden"}`}
-				>
-					<Clients
-						clients={connection.clients}
-						emptyState={
-							<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
-								No mini app frames on this page yet — clients appear here as soon as
-								one loads.
-							</p>
-						}
-						bridgeWarning="No vkma bridge on this page — traffic is captured via the sniffer (spy mode). Events and execute still work."
-					/>
-				</div>
-			</div>
+			<Sections
+				events={connection.events}
+				clients={connection.clients}
+				execute={connection.execute}
+			/>
 		</div>
 	);
 }
@@ -225,12 +298,16 @@ function PanelFrame({
 	onReconnect,
 	lastError,
 	theme,
+	heading,
+	hint,
 	children,
 }: {
 	status: "connecting" | "error" | "disconnected";
 	onReconnect: () => void;
 	lastError?: string;
 	theme: { dark: boolean; toggle: () => void };
+	heading?: string;
+	hint?: string;
 	children?: React.ReactNode;
 }) {
 	return (
@@ -242,10 +319,12 @@ function PanelFrame({
 						<p className="text-sm text-neutral-500">Connecting to this tab…</p>
 					) : (
 						<>
-							<h1 className="text-sm font-semibold">No devtools host on this tab</h1>
-							<p className="mt-2 max-w-72 text-xs leading-relaxed text-neutral-500">
-								The panel watches one tab. Open a VK page with a mini app (vk.com,
-								vk.ru and friends), then reopen this panel.
+							<h1 className="text-sm font-semibold">
+								{heading ?? "No devtools host on this tab"}
+							</h1>
+							<p className="mt-2 max-w-72 text-center text-xs leading-relaxed text-neutral-500">
+								{hint ??
+									"The panel watches one tab. Open a VK page with a mini app (vk.com, vk.ru and friends), then reopen this panel."}
 							</p>
 							{lastError && (
 								<p className="mt-3 max-w-80 break-words rounded-md bg-neutral-100 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-500 dark:bg-neutral-800/60">

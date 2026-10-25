@@ -44,6 +44,245 @@ export interface ExtensionConnection {
 	reconnect: () => void;
 }
 
+// --- global mode: every VK tab at once ----------------------------------------
+
+import { HOST_MATCHES } from "../shared/hosts.ts";
+import { MergedTimeline } from "./merge.ts";
+
+/** Tabs whose URL sits on a VK host — exactly where host.js runs. */
+function useHostTabs(): number[] | undefined {
+	const [tabIds, setTabIds] = useState<number[] | undefined>(undefined);
+	useEffect(() => {
+		const refresh = () => {
+			void chrome.tabs.query({ url: [...HOST_MATCHES] }).then(tabs => {
+				setTabIds(
+					tabs.map(tab => tab.id).filter((id): id is number => typeof id === "number"),
+				);
+			});
+		};
+		refresh();
+		// onUpdated fires on every navigation tick — only URL/status flips
+		// change the host population
+		const onUpdated = (_tabId: number, change: { status?: string; url?: string }) => {
+			if (change.status === "loading" || change.url !== undefined) {
+				refresh();
+			}
+		};
+		chrome.tabs.onCreated.addListener(refresh);
+		chrome.tabs.onRemoved.addListener(refresh);
+		chrome.tabs.onUpdated.addListener(onUpdated);
+		return () => {
+			chrome.tabs.onCreated.removeListener(refresh);
+			chrome.tabs.onRemoved.removeListener(refresh);
+			chrome.tabs.onUpdated.removeListener(onUpdated);
+		};
+	}, []);
+	return tabIds;
+}
+
+interface TabFeed {
+	probe: WERPClient;
+	client: WERPClient;
+	/** By the HOST's seq — globally colliding, only the merger sees these. */
+	events: Map<number, WireEvent>;
+	clients: ClientStatus[];
+	/** probing → live (probe answered) → dead (probe failed: no host). */
+	state: "probing" | "live" | "dead";
+}
+
+export interface GlobalConnection {
+	status: ExtensionStatus;
+	events: WireEvent[];
+	clients: ClientStatus[];
+	tabCount: number;
+	execute: (
+		clientId: string,
+		name: string,
+		params: Record<string, unknown> | undefined,
+	) => Promise<ExecResult>;
+	reconnect: () => void;
+}
+
+/**
+ * The wide panel: one werpc client per VK tab (werpc's explicit-tabId
+ * routing — the same mechanism the side panel uses), merged into a single
+ * feed. All state stays with the per-tab hosts; this is a pure aggregate,
+ * the /__vkma/ standalone panel's counterpart.
+ */
+export function useVkmaAllTabs(): GlobalConnection {
+	const tabIds = useHostTabs();
+	const feedsRef = useRef(new Map<number, TabFeed>());
+	const mergerRef = useRef(new MergedTimeline());
+	const [reattach, setReattach] = useState(0);
+	const [derived, setDerived] = useState<{
+		events: WireEvent[];
+		clients: ClientStatus[];
+		live: number;
+		probing: number;
+	}>({ events: [], clients: [], live: 0, probing: 0 });
+
+	const publish = useCallback(() => {
+		const feeds = [...feedsRef.current.values()];
+		setDerived({
+			events: mergerRef.current.merge(feeds.map(feed => ({ events: feed.events.values() }))),
+			clients: feeds.flatMap(feed => feed.clients),
+			live: feeds.filter(feed => feed.state === "live").length,
+			probing: feeds.filter(feed => feed.state === "probing").length,
+		});
+	}, []);
+
+	// Attach/detach feeds as the host population changes. The diff runs on
+	// every tabIds refresh (navigations included) but only touches feeds
+	// that actually appeared/disappeared — surviving tabs keep their
+	// subscriptions and history.
+	useEffect(() => {
+		const feeds = feedsRef.current;
+
+		if (tabIds !== undefined) {
+			for (const id of Array.from(feeds.keys())) {
+				if (!tabIds.includes(id)) {
+					const feed = feeds.get(id);
+					feed?.probe.dispose();
+					feed?.client.dispose();
+					feeds.delete(id);
+				}
+			}
+			for (const tabId of tabIds) {
+				if (feeds.has(tabId)) {
+					continue;
+				}
+				// Short probe, long-working client — same contract as local mode.
+				const probe = createClient({
+					clientName: "panel",
+					tabId,
+					scopeToTab: true,
+					timeoutMs: 3_000,
+				});
+				const client = createClient({
+					clientName: "panel",
+					tabId,
+					scopeToTab: true,
+					timeoutMs: 30_000,
+				});
+				const feed: TabFeed = {
+					probe,
+					client,
+					events: new Map(),
+					clients: [],
+					state: "probing",
+				};
+				feeds.set(tabId, feed);
+
+				void probe.vkma.state
+					.query()
+					.then(state => {
+						if (feeds.get(tabId) !== feed) {
+							return;
+						}
+						feed.state = "live";
+						for (const event of state.events) {
+							feed.events.set(event.seq, event);
+						}
+						feed.clients = state.clients;
+						publish();
+					})
+					.catch(() => {
+						if (feeds.get(tabId) !== feed) {
+							return;
+						}
+						feed.state = "dead";
+						publish();
+					});
+
+				client.vkma.timeline.subscribe(undefined, {
+					onData: batch => {
+						if (feeds.get(tabId) !== feed) {
+							return;
+						}
+						for (const event of batch) {
+							feed.events.set(event.seq, event);
+						}
+						publish();
+					},
+				});
+				client.vkma.clientsChanged.subscribe(undefined, {
+					onData: next => {
+						if (feeds.get(tabId) !== feed) {
+							return;
+						}
+						feed.clients = next;
+						publish();
+					},
+				});
+				client.vkma.sessionReset.subscribe(undefined, {
+					onData: ({ clientId }) => {
+						if (feeds.get(tabId) !== feed) {
+							return;
+						}
+						for (const [seq, event] of feed.events) {
+							if (event.clientId === clientId) {
+								feed.events.delete(seq);
+							}
+						}
+						publish();
+					},
+				});
+			}
+			publish();
+		}
+	}, [tabIds, reattach, publish]);
+
+	// The page is going away for real: release every port.
+	useEffect(() => {
+		return () => {
+			for (const feed of feedsRef.current.values()) {
+				feed.probe.dispose();
+				feed.client.dispose();
+			}
+			feedsRef.current.clear();
+		};
+	}, []);
+
+	const reconnect = useCallback(() => {
+		for (const feed of feedsRef.current.values()) {
+			feed.probe.dispose();
+			feed.client.dispose();
+		}
+		feedsRef.current.clear();
+		setReattach(n => n + 1);
+	}, []);
+
+	const execute = useCallback<GlobalConnection["execute"]>(async (clientId, name, params) => {
+		for (const feed of feedsRef.current.values()) {
+			if (feed.clients.some(client => client.clientId === clientId)) {
+				// zod infers payload optional; ExecResult keeps it required
+				return (await feed.client.vkma.execute.mutate({
+					clientId,
+					name,
+					params,
+				})) as ExecResult;
+			}
+		}
+		return { status: "no-client", clientId };
+	}, []);
+
+	const status: ExtensionStatus =
+		derived.live > 0
+			? "connected"
+			: tabIds === undefined || derived.probing > 0
+				? "connecting"
+				: "error";
+
+	return {
+		status,
+		events: derived.events,
+		clients: derived.clients,
+		tabCount: tabIds?.length ?? 0,
+		execute,
+		reconnect,
+	};
+}
+
 export function useVkmaExtension(tabId: number): ExtensionConnection {
 	const [status, setStatus] = useState<ExtensionStatus>("connecting");
 	const [events, setEvents] = useState<WireEvent[]>([]);
