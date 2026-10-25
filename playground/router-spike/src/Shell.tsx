@@ -1,9 +1,10 @@
 import { Outlet } from "@tanstack/react-router";
 import { AppRoot, ConfigProvider, SplitCol, SplitLayout } from "@vkontakte/vkui";
 import { Hud } from "./Hud";
+import { Modals, modalEntries } from "./modals";
 
 /**
- * PROTOTYPE (spike 1) shell. Platform forced to iOS (parallax transitions)
+ * PROTOTYPE (spikes 1–2) shell. Platform forced to iOS (parallax transitions)
  * and SplitCol animate forced on so animations run on a desktop viewport.
  */
 export function Shell() {
@@ -15,6 +16,7 @@ export function Shell() {
 						<Outlet />
 					</SplitCol>
 				</SplitLayout>
+				<Modals entries={modalEntries} />
 				<Hud />
 			</AppRoot>
 		</ConfigProvider>

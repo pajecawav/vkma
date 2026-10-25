@@ -3,10 +3,10 @@ import { CellButton, Group, PanelHeader, PanelHeaderBack, Title } from "@vkontak
 import { usePanelParams } from "../VkuiView";
 
 /**
- * PROTOTYPE (spike 1) — the lazy panel chunk.
+ * PROTOTYPE (spikes 1–2) — the lazy panel chunk.
  * Loaded via `itemRoute.lazy()` in routes.tsx; proves code-based chunk
  * splitting works and lets us observe how a pending panel renders inside
- * the static-children model.
+ * the static-children model. Spike 2 adds the modal-route entry point.
  */
 
 export const itemLazy = createLazyRoute("/view-main/item/$id")({
@@ -14,7 +14,7 @@ export const itemLazy = createLazyRoute("/view-main/item/$id")({
 });
 
 function ItemPanel() {
-	const { id } = usePanelParams("/view-main/item/$id");
+	const { id = "?" } = usePanelParams("/view-main/item/$id");
 	return (
 		<>
 			<PanelHeader before={<PanelHeaderBack onClick={() => window.history.back()} />}>
@@ -27,6 +27,11 @@ function ItemPanel() {
 				<CellButton>
 					<Link to="/item/$id" params={{ id: String(Number(id) + 1) }}>
 						→ item {Number(id) + 1} (same panel, new param)
+					</Link>
+				</CellButton>
+				<CellButton>
+					<Link to="/item/$id/details" params={{ id }}>
+						◇ details (modal route, masked URL)
 					</Link>
 				</CellButton>
 				<CellButton>

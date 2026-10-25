@@ -1,15 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+	Button,
 	CellButton,
+	Div,
 	Group,
 	Header,
 	PanelHeader,
 	PanelHeaderBack,
 	Placeholder,
 } from "@vkontakte/vkui";
+import { useOpenGlobalModal } from "./modals";
 
 /**
- * PROTOTYPE (spike 1) panels. Every panel renders the CURRENT router
+ * PROTOTYPE (spikes 1–2) panels. Every panel renders the CURRENT router
  * location as text so the "prev-data of the departing panel" question is
  * observable during the back animation (does the leaving panel flash with
  * the new location's data?).
@@ -29,6 +32,7 @@ function LocationProbe({ label }: { label: string }) {
 }
 
 export function HomePanel() {
+	const openGlobalModal = useOpenGlobalModal();
 	return (
 		<>
 			<PanelHeader>Home</PanelHeader>
@@ -44,6 +48,13 @@ export function HomePanel() {
 				<CellButton>
 					<Link to="/about">→ about</Link>
 				</CellButton>
+			</Group>
+			<Group header={<Header>spike 2: overlays</Header>}>
+				<Div>
+					<Button size="l" stretched onClick={openGlobalModal}>
+						open settings (?modal= global)
+					</Button>
+				</Div>
 			</Group>
 			<Group>
 				<LocationProbe label="home@now" />
