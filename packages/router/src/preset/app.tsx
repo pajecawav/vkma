@@ -47,9 +47,10 @@ export function AppRootShell({ app, inflate = true }: { app: AppHandle; inflate?
  * Inflate (spike parity): a cold start (first history entry) on a panel
  * that is NOT the first of its view replays the panel flow before it, so
  * back walks the natural chain instead of closing the app. One-shot, waits
- * for the router to go idle, skips warm navigations.
+ * for the router to go idle, skips warm navigations. `AppRootShell` runs
+ * it automatically; custom shells (Epic/Tabbar) call the hook themselves.
  */
-function useInflate(app: AppHandle, enabled: boolean): void {
+export function useInflate(app: AppHandle, enabled = true): void {
 	const router = useRouter();
 	const snapshot = useRouterState({
 		select: state => {

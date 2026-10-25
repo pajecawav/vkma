@@ -105,9 +105,18 @@ export function createApp(options: AppOptions): AppHandle {
 		route: AnyRoute;
 		modals: Array<{ route: AnyRoute; Component: ComponentType }>;
 	}> = [];
+	/** full panel path → owning panel key, for the duplicate-path dev check */
+	const usedPaths = new Map<string, string>();
 
+	const customRoot = options.root;
 	const rootRoute = createRootRoute({
-		component: (options.root ?? (() => <AppRootShell app={handle} />)) as never,
+		// a custom root receives the app handle (plus the raw match props);
+		// the default is the auto-shell. Both close over the handle — the
+		// component only runs at render time, after the binding exists.
+		component: (customRoot
+			? (routeProps: Record<string, unknown>) =>
+					customRoot({ ...routeProps, app: handle }) as never
+			: () => <AppRootShell app={handle} />) as never,
 	});
 
 	for (const [viewKey, viewOptions] of Object.entries(options.views)) {
@@ -122,6 +131,17 @@ export function createApp(options: AppOptions): AppHandle {
 		for (const [panelKey, panelOptions] of Object.entries(viewPanels)) {
 			const { modals: panelModals, lazy, ...panelRest } = panelOptions;
 			const panelPath = panelKey === "index" ? "/" : panelKey;
+			// dev check: two panels with the same full path silently break
+			// matching (the router resolves the conflict arbitrarily) — a
+			// multi-view app must give every home panel its own segment
+			const pathOwner = usedPaths.get(panelPath);
+			if (pathOwner !== undefined) {
+				console.error(
+					`[vkma-router] duplicate panel path "${panelPath}" (${pathOwner} and ${viewKey}/${panelKey}); only one view may own "/" — give the other home panels distinct path segments (e.g. "feed")`,
+				);
+			} else {
+				usedPaths.set(panelPath, `${viewKey}/${panelKey}`);
+			}
 			const panelRoute = createRoute({
 				getParentRoute: () => viewRoute,
 				path: panelPath,
