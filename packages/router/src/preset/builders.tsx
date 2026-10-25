@@ -55,6 +55,11 @@ export interface AppOptions {
 	modals?: Record<string, ModalComponent>;
 	/** Global popout registry. */
 	popouts?: Record<string, PopoutEntry["Component"]>;
+	/**
+	 * Inflate (default `true`): a cold start on a deep-linked panel replays
+	 * the panel flow before it, so back walks the natural chain.
+	 */
+	inflate?: boolean;
 }
 
 export interface PanelHandle {
@@ -75,6 +80,8 @@ export interface AppHandle {
 	/** Panel handles keyed by `${viewKey}/${panelKey}`. */
 	panels: Record<string, PanelHandle>;
 	views: Record<string, AnyRoute>;
+	/** Inflate flag (see {@link AppOptions.inflate}). */
+	inflate: boolean;
 }
 
 export function createApp(options: AppOptions): AppHandle {
@@ -198,6 +205,7 @@ export function createApp(options: AppOptions): AppHandle {
 		popouts,
 		panels,
 		views,
+		inflate: options.inflate ?? true,
 	};
 	return handle;
 }

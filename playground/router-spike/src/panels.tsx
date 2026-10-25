@@ -1,4 +1,4 @@
-import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useNavigator } from "@vkma.dev/router/preset";
 import { usePanelLoaderData } from "@vkma.dev/router/react";
 import {
@@ -32,12 +32,9 @@ function LocationProbe({ label }: { label: string }) {
 }
 
 export function HomePanel() {
-	const router = useRouter();
+	const navigator = useNavigator();
 	const openGlobalModal = () => {
-		const { pathname, searchStr, hash } = router.state.location;
-		const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
-		params.set("modal", "settings");
-		void router.navigate({ href: `${pathname}?${params.toString()}${hash}` });
+		void navigator.showGlobalModal("settings");
 	};
 	return (
 		<>

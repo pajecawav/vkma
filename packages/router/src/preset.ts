@@ -2,10 +2,12 @@ export {
 	createApp,
 	type AppHandle,
 	type AppOptions,
+	type PanelHandle,
 	type PanelOptions,
 	type ViewOptions,
 } from "./preset/builders.tsx";
 export { AppRootShell } from "./preset/app.tsx";
+export { deriveInflateChain } from "./preset/inflate.ts";
 export { useNavigator, type VkNavigator } from "./preset/navigator.ts";
 
 // the batteries a mini app almost always needs, one import away

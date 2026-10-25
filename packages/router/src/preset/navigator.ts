@@ -25,8 +25,18 @@ export interface VkNavigator {
 	showModal(options: NavigateOptions): Promise<void>;
 	/** Close the current modal (back, or replace to the panel on first entry). */
 	hideModal(): void;
+	/**
+	 * Open a global (`?modal=<id>`) modal from any panel, masking the URL so
+	 * the visible path stays at the panel. Back closes it.
+	 */
+	showGlobalModal(id: string, options?: { state?: Record<string, unknown> }): Promise<void>;
 	showPopout(id: string, props?: Record<string, unknown>): void;
 	hidePopout(): void;
+	/**
+	 * Block navigation while `onLeave` returns true (old router's
+	 * `RouteNavigator.block`). Returns the unblock function.
+	 */
+	block(onLeave: (args: { action: string }) => boolean): () => void;
 }
 
 function isModalRouteId(router: ReturnType<typeof useRouter>, routeId: string): boolean {
@@ -74,6 +84,31 @@ export function useNavigator(): VkNavigator {
 		},
 		hidePopout: () => {
 			hidePopout();
+		},
+		showGlobalModal: (id, options) => {
+			const { pathname, searchStr, hash } = router.state.location;
+			const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
+			const already = params.get("modal") === id;
+			params.set("modal", id);
+			const href = `${pathname}?${params.toString()}${hash}`;
+			// the mask keeps the visible URL at the panel path while the modal
+			// is open (the modal param rides in history.state)
+			const maskParams = new URLSearchParams(params);
+			maskParams.delete("modal");
+			const maskQuery = maskParams.toString();
+			const maskHref = `${pathname}${maskQuery !== "" ? `?${maskQuery}` : ""}${hash}`;
+			return navigate({
+				href,
+				mask: { to: maskHref },
+				replace: already || modalOpen,
+				...(options as Record<string, unknown> | undefined),
+			}) as Promise<void>;
+		},
+		block: onLeave => {
+			const unblock = router.history.block({
+				blockerFn: () => onLeave({ action: "PUSH" }),
+			} as never);
+			return unblock;
 		},
 	};
 }
