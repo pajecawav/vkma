@@ -16,6 +16,10 @@
 		"./logo-path": "./src/logo-path.ts",
 		"./package.json": "./package.json"
 	},
+	"scripts": {
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
 	"peerDependencies": {
 		"@base-ui/react": ">=1.9.0",
 		"@vkma.dev/protocol": ">=0.0.0",
@@ -30,6 +34,7 @@
 		"lucide-react": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"tailwindcss": "catalog:"
+		"tailwindcss": "catalog:",
+		"vitest": "catalog:"
 	}
 }

@@ -1,6 +1,7 @@
 import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { compileNameFilter } from "../lib/name-filter.ts";
 import { ClientSelect } from "./ClientSelect.tsx";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
@@ -109,12 +110,12 @@ export function Timeline({
 		const base = events.filter(event => event.seq > clearSeq);
 		const frozen =
 			paused && anchorSeq !== null ? base.filter(event => event.seq <= anchorSeq) : base;
-		const needle = query.trim().toLowerCase();
+		const matchesName = compileNameFilter(query);
 		return frozen.filter(event => {
 			if (clientFilter !== "all" && event.clientId !== clientFilter) {
 				return false;
 			}
-			if (needle !== "" && !event.name.toLowerCase().includes(needle)) {
+			if (matchesName !== undefined && !matchesName(event.name)) {
 				return false;
 			}
 			return true;
@@ -151,6 +152,7 @@ export function Timeline({
 			value={query}
 			onChange={event => setQuery(event.target.value)}
 			placeholder="Filter by event name…"
+			title="Case-insensitive; accepts regex (foo|bar, Get.*Info)"
 			className={`h-7 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 ${className}`}
 		/>
 	);
