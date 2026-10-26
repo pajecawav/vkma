@@ -445,7 +445,12 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			},
 			path,
 			get viewId() {
-				return route.id.split("/")[0] ?? "";
+				// runtime ids carry a leading slash: "/view:feed" — split("/")[0]
+				// is ALWAYS "" (that silently broke the inflate view filter: every
+				// panel matched every view, so a cold home deep link replayed the
+				// first other view's panels before the target)
+				const match = String(route.id).match(/^\/?view:([^/]+)/);
+				return match?.[1] ?? String(route.id);
 			},
 		};
 	}

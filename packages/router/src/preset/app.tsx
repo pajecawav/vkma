@@ -135,8 +135,10 @@ export function useInflate(app: AppHandle, enabled = true): void {
 		let chain = deriveInflateChain(ordered, target.routeId, snapshot.deepestParams);
 		// a deep link INTO A ROUTE MODAL: the full ancestor chain must sit in
 		// history below the target — the parent panel, then every modal level
-		// (outer → inner) — or back skips the screens the user is logically on
-		if (snapshot.panelPath !== null) {
+		// (outer → inner) — or back skips the screens the user is logically
+		// on. Only modal targets: for a panel target the parentHref IS the
+		// current location and would replay a pointless no-op navigation
+		if (snapshot.modalPaths.length > 0 && snapshot.panelPath !== null) {
 			const parentHref = interpolatePath(snapshot.panelPath, snapshot.deepestParams);
 			if (parentHref !== null && chain[chain.length - 1] !== parentHref) {
 				chain = [...chain, parentHref];
