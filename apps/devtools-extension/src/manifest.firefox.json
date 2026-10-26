@@ -10,7 +10,8 @@
 	"version": "0.0.0",
 	"browser_specific_settings": {
 		"gecko": {
-			"id": "devtools@vkma.dev"
+			"id": "devtools@vkma.dev",
+			"strict_min_version": "128.0"
 		}
 	},
 	"permissions": ["storage", "tabs"],
