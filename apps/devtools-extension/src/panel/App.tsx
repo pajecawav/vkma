@@ -171,16 +171,28 @@ function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }
 
 	if (connection.status !== "connected") {
 		const nothingYet = connection.tabCount === 0 && connection.status === "error";
+		// Watched tabs exist but no host answered (e.g. the extension was
+		// installed while they were already open — content scripts inject
+		// on the next load). Distinct copy from the tab-scoped default.
+		const hostsPending = connection.tabCount > 0 && connection.status === "error";
 		return (
 			<PanelFrame
 				status={connection.status}
 				onReconnect={connection.reconnect}
 				theme={theme}
-				heading={nothingYet ? "Nothing is being watched yet" : undefined}
+				heading={
+					nothingYet
+						? "Nothing is being watched yet"
+						: hostsPending
+							? "The watched tabs host no devtools panel yet"
+							: undefined
+				}
 				hint={
 					nothingYet
 						? "Open a VK page with a mini app in any tab — it appears here automatically."
-						: undefined
+						: hostsPending
+							? "The host script injects on page load — reload a watched VK tab and its traffic appears here."
+							: undefined
 				}
 			/>
 		);
