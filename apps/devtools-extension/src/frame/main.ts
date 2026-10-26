@@ -214,7 +214,10 @@ async function main(): Promise<void> {
 		},
 	});
 
-	await hello();
+	// A host-less tab (a mini app embedded in a third-party page — the
+	// documented v1 gap) answers nothing: the hello times out, the
+	// heartbeat keeps retrying. Setup continues either way.
+	await hello().catch(() => {});
 	flush();
 
 	// The relay may legitimately resolve after us (the app imports its
