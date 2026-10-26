@@ -1,8 +1,8 @@
 /**
- * Panel-side view of the shared client palette: the djb2 hash lives in
- * `src/shared/colors.ts` (the FAB needs raw hex for its shadow DOM), here
- * indexes map to Tailwind classes. Keep the class lists in sync with the
- * shared palette's tone order.
+ * Panel-side view of the shared client palette: the djb2 hash and the raw
+ * hex tones live in `@vkma.dev/protocol` (the FABs need raw hex for their
+ * shadow DOMs); here indexes map to Tailwind classes. Keep the class
+ * lists in sync with the shared palette's tone order.
  */
 import { clientColorIndex } from "@vkma.dev/protocol";
 
