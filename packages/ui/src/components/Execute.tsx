@@ -84,8 +84,17 @@ export function Execute({
 	const [pending, setPending] = useState<Pending>();
 
 	const paramsError = useMemo(() => {
+		const text = paramsText.trim();
+		if (text === "") {
+			return undefined;
+		}
 		try {
-			JSON.parse(paramsText);
+			const parsed: unknown = JSON.parse(text);
+			// The wire contract is a params OBJECT — arrays and scalars would
+			// only die later at the werpc zod boundary, as a generic error.
+			if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+				return "Params must be a JSON object";
+			}
 			return undefined;
 		} catch (error) {
 			return error instanceof Error ? error.message : "Invalid JSON";
