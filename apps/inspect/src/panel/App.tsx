@@ -143,7 +143,7 @@ function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
 	if (clients.length === 0) {
 		return undefined;
 	}
-	const first = clients[0]!.bridge;
+	const first = clients[0].bridge;
 	return clients.every(client => client.bridge === first)
 		? first
 			? "direct"
