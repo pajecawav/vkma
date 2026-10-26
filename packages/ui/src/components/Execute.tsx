@@ -1,4 +1,4 @@
-import type { ClientInfo, ExecResult, WireEvent } from "@vkma.dev/protocol";
+import type { ClientStatus, ExecResult, WireEvent } from "@vkma.dev/protocol";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { shortId } from "../lib/format.ts";
@@ -42,7 +42,7 @@ export function Execute({
 	fixedClientId,
 	emptyState,
 }: {
-	clients: ClientInfo[];
+	clients: ClientStatus[];
 	events: WireEvent[];
 	execute: (
 		clientId: string,
@@ -62,7 +62,13 @@ export function Execute({
 		return [...names].toSorted();
 	}, [events]);
 
-	const latest = clients.length > 0 ? clients.at(-1) : undefined;
+	// Registry order is online-first, oldest → newest within each group,
+	// so the last ONLINE client is the newest live one. A bare `at(-1)`
+	// would land on the OLDEST offline client the moment one exists
+	// (backgrounded tab) and sends would die on the 20s exec timeout.
+	// With everyone offline, the newest offline entry is still the sanest
+	// default — it may just be throttled, not gone.
+	const latest = clients.toReversed().find(client => client.online) ?? clients.at(-1);
 	const latestClientId = latest?.clientId ?? "";
 	const [target, setTarget] = useState("");
 	// Derived, not stored: clients land after this component mounts (the
