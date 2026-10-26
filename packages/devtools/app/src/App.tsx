@@ -87,7 +87,7 @@ export function App() {
 								<Clients
 									clients={connection.clients}
 									onDeleteClient={clientId => {
-										void connection.deleteClients([clientId]);
+										void connection.deleteClients([clientId]).catch(() => {});
 									}}
 								/>
 							</div>
