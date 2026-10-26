@@ -1,0 +1,7 @@
+# The inspector is fetched cross-origin by console `import()` (a classic
+# <script> tag needs no CORS) — open it to every origin, it is a public
+# debug tool carrying no secrets (the peer id rides the query string).
+/inspector.js
+	Access-Control-Allow-Origin: *
+	Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+	Cache-Control: public, max-age=300
