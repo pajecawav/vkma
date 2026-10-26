@@ -96,6 +96,23 @@ test("the registry caps at 24 entries, dropping oldest offline first", () => {
 	expect(store.getClient("c6")).toBeDefined();
 });
 
+test("deleteClients removes offline entries, skips live and unknown ones", () => {
+	const store = new DevtoolsStore();
+	store.touchClient(client({ clientId: "live", lastSeenAt: 10_000 }));
+	store.touchClient(client({ clientId: "stale", lastSeenAt: 0, connectedAt: 0 }));
+
+	// now=20_000: live is inside the TTL, stale is past it
+	expect(store.deleteClients(["live", "stale", "ghost"], 20_000)).toEqual(["stale"]);
+	expect(store.getClient("stale")).toBeUndefined();
+	expect(store.getClient("live")).toBeDefined();
+	expect(store.getClient("ghost")).toBeUndefined();
+
+	// registry hygiene only: the ledger keeps its history
+	store.pushEvents("live", [event(1)]);
+	expect(store.deleteClients(["live"], 20_000)).toEqual([]);
+	expect(store.snapshotEvents()).toHaveLength(1);
+});
+
 test("execute round-trip settles via report and rejects late arrivals", async () => {
 	const store = new DevtoolsStore();
 	store.touchClient(client());

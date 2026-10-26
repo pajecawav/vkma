@@ -1,6 +1,6 @@
+import { CheckIcon } from "@vkma.dev/ui";
 import { useState } from "react";
 import type { VkmaConnection } from "../lib/rpc.ts";
-import { CheckIcon } from "./icons.tsx";
 
 /**
  * Full-panel gate for the states where the panel cannot work yet:

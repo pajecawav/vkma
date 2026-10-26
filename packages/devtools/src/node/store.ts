@@ -18,6 +18,12 @@ interface PendingExec {
 export class DevtoolsStore {
 	private events: WireEvent[] = [];
 	private seq = 0;
+	/**
+	 * Instance epoch, stamped on every event: the extension's host store
+	 * dies with its page, so a reload restarts `seq` — consumers dedupe
+	 * by (runId, seq) and treat other runs' events as ghosts.
+	 */
+	public readonly runId = crypto.randomUUID();
 	private readonly clients = new Map<string, ClientInfo>();
 	private readonly pendingExecs = new Map<number, PendingExec>();
 	private execCounter = 0;
@@ -85,6 +91,31 @@ export class DevtoolsStore {
 		return statuses;
 	}
 
+	/**
+	 * Manual registry cleanup (the Clients tab's delete affordance):
+	 * removes entries by id, skipping ONLINE clients — deleting an
+	 * offline-but-alive client is temporary (its next hello re-registers),
+	 * but deleting a live one would silently drop its traffic for up to a
+	 * heartbeat. Timeline events are NOT touched: the ledger is history,
+	 * the registry is hygiene.
+	 * @returns the ids actually removed.
+	 */
+	public deleteClients(clientIds: readonly string[], now = Date.now()): string[] {
+		const removed: string[] = [];
+		for (const id of clientIds) {
+			const client = this.clients.get(id);
+			if (client === undefined) {
+				continue;
+			}
+			if (now - client.lastSeenAt <= CLIENT_ONLINE_TTL_MS) {
+				continue;
+			}
+			this.clients.delete(id);
+			removed.push(id);
+		}
+		return removed;
+	}
+
 	public getClient(clientId: string): ClientInfo | undefined {
 		return this.clients.get(clientId);
 	}
@@ -92,7 +123,7 @@ export class DevtoolsStore {
 	/** Assigns global seq numbers; drops events from unknown clients. */
 	public pushEvents(
 		clientId: string,
-		events: Omit<WireEvent, "seq" | "clientId">[],
+		events: Omit<WireEvent, "seq" | "clientId" | "runId">[],
 	): WireEvent[] {
 		if (!this.clients.has(clientId)) {
 			return [];
@@ -101,6 +132,7 @@ export class DevtoolsStore {
 			...event,
 			clientId,
 			seq: ++this.seq,
+			runId: this.runId,
 		}));
 		this.events.push(...stamped);
 		if (this.events.length > RING_LIMIT) {

@@ -42,7 +42,13 @@ export const vkmaDevframe = defineDevframe({
 		// panels, seeded with that client's history on subscribe. An
 		// unsubscribed sink keeps buffering: losing every subscriber aborts
 		// the sink's signal but not the stream itself.
-		const timeline = ctx.rpc.streaming.create<WireEvent>("vkma:timeline", {
+		// The channel id carries the store's runId: the devframe instance
+		// survives dev-server restarts (globalThis in the rsbuild adapter),
+		// and its replay window would otherwise mix the previous store's
+		// chunks into the fresh run — panels flip-flop between epochs. A
+		// per-run channel starts empty; readers derive the id from
+		// `state.runId`.
+		const timeline = ctx.rpc.streaming.create<WireEvent>(`vkma:timeline:${store.runId}`, {
 			replayWindow: 500,
 		});
 		const live = timeline.start({ id: "live" });
@@ -197,9 +203,10 @@ export const vkmaDevframe = defineDevframe({
 				const clients = store.listClients();
 				const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
 				if (scope === undefined) {
-					return { events, clients };
+					return { runId: store.runId, events, clients };
 				}
 				return {
+					runId: store.runId,
 					events: events.filter(event => event.clientId === scope),
 					clients: clients.filter(client => client.clientId === scope),
 				};
@@ -216,6 +223,20 @@ export const vkmaDevframe = defineDevframe({
 				payload?: unknown;
 			}) => {
 				store.settleExec(report);
+			},
+		});
+
+		ctx.rpc.register({
+			name: VKMA_RPC.deleteClients,
+			type: "action",
+			// Registry hygiene only: live clients are skipped (see
+			// DevtoolsStore.deleteClients), history is not touched.
+			handler: (payload: { clientIds: string[] }) => {
+				const removed = store.deleteClients(payload?.clientIds ?? []);
+				if (removed.length > 0) {
+					broadcastClients();
+				}
+				return removed;
 			},
 		});
 
@@ -243,9 +264,10 @@ export const vkmaDevframe = defineDevframe({
 				const clients = store.listClients();
 				const scope = embedded.scopeOf(ctx.rpc.getCurrentRpcSession()?.meta);
 				if (scope === undefined) {
-					return { events, clients };
+					return { runId: store.runId, events, clients };
 				}
 				return {
+					runId: store.runId,
 					events: events.filter(event => event.clientId === scope),
 					clients: clients.filter(client => client.clientId === scope),
 				};

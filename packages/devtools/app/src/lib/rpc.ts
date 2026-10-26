@@ -28,12 +28,25 @@ const MAX_EVENTS = 500;
 /**
  * Absorb timeline chunks: the reader delivers the replay buffer after the
  * first live chunks can already have arrived, so dedupe by the globally
- * unique seq (assigned by the node side) and keep chronological order.
+ * unique (runId, seq) and keep chronological order. A chunk from an
+ * unknown run (dev-server restart reassigned seqs) resets the state.
+ * A runId-less collecting side (pre-epoch node build, e.g. a dev server
+ * still holding the old plugin in memory) forms its own legacy epoch —
+ * bare-seq absorb, not a drop.
  */
 function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
-	const merged = new Map(prev.map(event => [event.seq, event]));
+	const last = incoming.at(-1);
+	if (last === undefined) {
+		return prev;
+	}
+	const runId = last.runId;
+	const merged = new Map(
+		prev
+			.filter(event => event.runId === runId)
+			.map(event => [`${event.runId}:${event.seq}`, event]),
+	);
 	for (const event of incoming) {
-		merged.set(event.seq, event);
+		merged.set(`${event.runId}:${event.seq}`, event);
 	}
 	return [...merged.values()].toSorted((a, b) => a.seq - b.seq).slice(-MAX_EVENTS);
 }
@@ -51,6 +64,9 @@ export interface VkmaConnection {
 		name: string,
 		params: Record<string, unknown> | undefined,
 	) => Promise<ExecResult>;
+	/** Registry hygiene: removes the given offline clients (live ones are
+	 * skipped server-side). @returns the ids actually removed. */
+	deleteClients: (clientIds: string[]) => Promise<string[]>;
 	reconnect: () => void;
 }
 
@@ -127,6 +143,21 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 					return;
 				}
 				readerStarted = true;
+				// State first: the timeline channel id is run-scoped (the
+				// devframe instance survives dev-server restarts, its replay
+				// window must never mix store epochs), so the reader needs
+				// `runId` before subscribing. Chunks written between the
+				// snapshot and the subscribe land in the replay window — the
+				// (runId, seq) dedupe absorbs the overlap.
+				const state = (await call("state")) as DevtoolsState;
+				if (disposed) {
+					return;
+				}
+				setClients(
+					embeddedClientId
+						? state.clients.filter(client => client.clientId === embeddedClientId)
+						: state.clients,
+				);
 				const streamId = embeddedClientId
 					? (
 							(await call("subscribe", {
@@ -134,7 +165,13 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 							})) as { streamId: string }
 						).streamId
 					: "live";
-				const reader = scoped.rpc.streaming.subscribe<WireEvent>("timeline", streamId);
+				const reader = scoped.rpc.streaming.subscribe<WireEvent>(
+					// Fully qualified on purpose: qualifyName() passes names that
+					// already contain `:` through unscoped, and the bare
+					// `timeline:<runId>` would never reach `vkma:timeline:<runId>`.
+					`vkma:timeline:${state.runId}`,
+					streamId,
+				);
 				void (async () => {
 					for await (const event of reader) {
 						if (disposed) {
@@ -147,15 +184,6 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 					// on its own, the panel shows the gate and reconnect() makes
 					// a fresh client (and reader)
 				});
-				const state = (await call("state")) as DevtoolsState;
-				if (disposed) {
-					return;
-				}
-				setClients(
-					embeddedClientId
-						? state.clients.filter(client => client.clientId === embeddedClientId)
-						: state.clients,
-				);
 			};
 
 			if (client.status === "connected") {
@@ -209,6 +237,15 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		return call("execute", { clientId, name, params });
 	}, []);
 
+	const deleteClients = useCallback<VkmaConnection["deleteClients"]>(async clientIds => {
+		const scoped = scopedRef.current;
+		if (!scoped) {
+			throw new Error("not connected");
+		}
+		const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<string[]>;
+		return call("delete-clients", { clientIds });
+	}, []);
+
 	return {
 		status,
 		events,
@@ -217,6 +254,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		requestAuthCode,
 		submitAuthCode,
 		execute,
+		deleteClients,
 		reconnect,
 	};
 }
