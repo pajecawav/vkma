@@ -10,7 +10,9 @@ import type { RsbuildConfig } from "@rsbuild/core";
  */
 export const baseConfig: RsbuildConfig = {
 	output: {
-		filenameHash: false,
+		// Filenames stay hashable here: only the inspector pins its name
+		// (its URL is embedded in other people's HTML); the panel wants
+		// content hashes for immutable caching.
 		distPath: {
 			js: "./",
 			jsAsync: "./",

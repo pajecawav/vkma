@@ -27,6 +27,8 @@ export default defineConfig({
 	},
 	output: {
 		...baseConfig.output,
+		// The URL is embedded in other people's HTML — it must never rot.
+		filenameHash: false,
 		filename: {
 			js: "inspector.js",
 		},
