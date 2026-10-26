@@ -78,7 +78,7 @@ export default function AboutPanel(): ReactElement {
 			<PanelHeader before={<PanelHeaderBack onClick={() => navigator.back()} />}>
 				О приложении
 			</PanelHeader>
-			<Group header={<Header size="s">Витрина роутера — каждый пункт сам deep link</Header>}>
+			<Group header={<Header size="s">Витрина роутера — каждый пункт deep link</Header>}>
 				{SCENARIOS.map(scenario => (
 					<SimpleCell
 						key={scenario.title}
