@@ -53,62 +53,67 @@ function ClientCard({
 				client.online ? "" : "opacity-55"
 			}`}
 		>
-			<button
-				type="button"
-				onClick={() => setOpen(value => !value)}
-				aria-expanded={open}
-				className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
-			>
-				<PlatformIcon platform={client.platform} className="shrink-0 text-neutral-400" />
-				<span className="flex min-w-0 flex-col gap-0.5">
-					<span className="flex items-center gap-2 text-sm font-medium">
-						{platformLabel(client.platform)}
-						<span
-							className={`inline-flex items-center gap-1 font-mono text-[11px] font-normal ${clientColor(client.clientId).text}`}
-							title={client.clientId}
-						>
-							<span
-								className={`size-1.5 rounded-[2px] ${clientColor(client.clientId).dot}`}
-								aria-hidden="true"
-							/>
-							{shortId(client.clientId)}
-						</span>
-						{!client.online && (
-							<span className="rounded-[4px] bg-neutral-200 px-1.5 py-0.5 text-[10px] font-medium leading-none text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
-								offline
-							</span>
-						)}
-						{!client.bridge && (
-							<WarningIcon width={13} height={13} className="text-amber-500" />
-						)}
-					</span>
-					<span className="truncate text-xs text-neutral-400" title={client.url}>
-						{client.url}
-					</span>
-				</span>
-				<span className="ml-auto flex shrink-0 items-center gap-2 text-[11px] text-neutral-400">
-					{client.appId !== undefined && <span>app {client.appId}</span>}
-					{relativeTime(client.connectedAt)}
-					{onDelete && !client.online && (
-						<button
-							type="button"
-							title="Remove this client from the registry (its timeline history stays)"
-							onClick={event => {
-								event.stopPropagation();
-								onDelete(client.clientId);
-							}}
-							className="grid size-6 place-items-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
-						>
-							<CrossIcon width={12} height={12} />
-						</button>
-					)}
-					<ChevronIcon
-						width={13}
-						height={13}
-						className={`transition-transform ${open ? "rotate-90" : ""}`}
+			{/* The remove button must be a SIBLING of the toggle, not a
+			 * descendant — nested interactive elements are invalid HTML and
+			 * break activation routing in some AT/browser combos. */}
+			<div className="flex items-center">
+				<button
+					type="button"
+					onClick={() => setOpen(value => !value)}
+					aria-expanded={open}
+					className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-3 text-left"
+				>
+					<PlatformIcon
+						platform={client.platform}
+						className="shrink-0 text-neutral-400"
 					/>
-				</span>
-			</button>
+					<span className="flex min-w-0 flex-col gap-0.5">
+						<span className="flex items-center gap-2 text-sm font-medium">
+							{platformLabel(client.platform)}
+							<span
+								className={`inline-flex items-center gap-1 font-mono text-[11px] font-normal ${clientColor(client.clientId).text}`}
+								title={client.clientId}
+							>
+								<span
+									className={`size-1.5 rounded-[2px] ${clientColor(client.clientId).dot}`}
+									aria-hidden="true"
+								/>
+								{shortId(client.clientId)}
+							</span>
+							{!client.online && (
+								<span className="rounded-[4px] bg-neutral-200 px-1.5 py-0.5 text-[10px] font-medium leading-none text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
+									offline
+								</span>
+							)}
+							{!client.bridge && (
+								<WarningIcon width={13} height={13} className="text-amber-500" />
+							)}
+						</span>
+						<span className="truncate text-xs text-neutral-400" title={client.url}>
+							{client.url}
+						</span>
+					</span>
+					<span className="ml-auto flex shrink-0 items-center gap-2 pr-3 text-[11px] text-neutral-400">
+						{client.appId !== undefined && <span>app {client.appId}</span>}
+						{relativeTime(client.connectedAt)}
+						<ChevronIcon
+							width={13}
+							height={13}
+							className={`transition-transform ${open ? "rotate-90" : ""}`}
+						/>
+					</span>
+				</button>
+				{onDelete && !client.online && (
+					<button
+						type="button"
+						title="Remove this client from the registry (its timeline history stays)"
+						onClick={() => onDelete(client.clientId)}
+						className="mr-2 grid size-6 shrink-0 place-items-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+					>
+						<CrossIcon width={12} height={12} />
+					</button>
+				)}
+			</div>
 			{open && (
 				<div className="border-t border-neutral-100 py-1.5 dark:border-neutral-800">
 					{!client.bridge && (
