@@ -85,6 +85,20 @@ export class InspectHost {
 
 	public setGateEnabled(enabled: boolean): void {
 		this.gate.setEnabled(enabled);
+		// Turning the gate off lets every parked connection in right away —
+		// their parked messages replay in arrival order.
+		if (!enabled) {
+			const parked = [...this.conns].filter(state => state.pending !== undefined);
+			for (const state of parked) {
+				const messages = state.buffered;
+				state.pending = undefined;
+				state.buffered = [];
+				for (const message of messages) {
+					this.dispatch(state, message);
+				}
+			}
+		}
+		this.publishApprovals();
 	}
 
 	/** Approve a parked connection and replay everything it sent while

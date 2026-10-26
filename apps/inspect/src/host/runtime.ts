@@ -1,4 +1,5 @@
 import { InspectHost, type ApprovalRequest } from "./host.ts";
+import { Hub } from "./hub.ts";
 import { resolvePeerId, rotatePeerId } from "./peer-id.ts";
 import { InspectPeer, type PeerStatus } from "./peer.ts";
 
@@ -11,7 +12,8 @@ import { InspectPeer, type PeerStatus } from "./peer.ts";
 export interface InspectRuntime {
 	host: InspectHost;
 	peer: InspectPeer;
-	/** Latest snapshot of the broker-side state (never throws). */
+	/** Broker-side state, published on every change (panel subscribes). */
+	statusHub: Hub<PeerStatus>;
 	peerStatus(): PeerStatus;
 	/** The snippet base: this origin + the settled peer id. */
 	peerId(): string | undefined;
@@ -22,12 +24,14 @@ export interface InspectRuntime {
 
 export function createInspectRuntime(): InspectRuntime {
 	const host = new InspectHost();
+	const statusHub = new Hub<PeerStatus>();
 	let status: PeerStatus = { state: "starting" };
 	let currentId: string | undefined;
 
 	const peer = new InspectPeer({
 		onStatus(next) {
 			status = next;
+			statusHub.publish(next);
 		},
 		onChannel(channel) {
 			host.addChannel(channel);
@@ -43,11 +47,13 @@ export function createInspectRuntime(): InspectRuntime {
 		})
 		.catch(() => {
 			status = { state: "error", lastError: "Could not settle a peer id." };
+			statusHub.publish(status);
 		});
 
 	return {
 		host,
 		peer,
+		statusHub,
 		peerStatus: () => status,
 		peerId: () => currentId,
 		rotate() {
