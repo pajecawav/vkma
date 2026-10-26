@@ -8,6 +8,8 @@
 export { EventRow, RequestGroup } from "./components/EventRow.tsx";
 export type { RequestGroupProps } from "./components/EventRow.tsx";
 export { Timeline } from "./components/Timeline.tsx";
+export { ClientSelect } from "./components/ClientSelect.tsx";
+export type { ClientSelectProps } from "./components/ClientSelect.tsx";
 export { Execute } from "./components/Execute.tsx";
 export { Clients } from "./components/Clients.tsx";
 export { Rail } from "./components/Rail.tsx";

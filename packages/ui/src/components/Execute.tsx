@@ -1,8 +1,9 @@
 import type { ClientInfo, ExecResult, WireEvent } from "@vkma.dev/protocol";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { platformLabel, shortId } from "../lib/format.ts";
-import { CheckIcon, ChevronIcon, CrossIcon } from "./icons.tsx";
+import { shortId } from "../lib/format.ts";
+import { ClientSelect } from "./ClientSelect.tsx";
+import { CheckIcon, CrossIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 
 type Pending = { state: "pending" } | { state: "done"; result: ExecResult };
@@ -124,29 +125,16 @@ export function Execute({
 				) : (
 					<>
 						{!fixedClientId && (
-							<label className="flex flex-col gap-1.5">
+							<div className="flex flex-col gap-1.5">
 								<span className="text-xs font-medium text-neutral-500">Target</span>
-								<div className="relative">
-									<select
-										value={activeTarget}
-										onChange={event => setTarget(event.target.value)}
-										className="h-8 w-full cursor-pointer appearance-none rounded-md border border-neutral-200 bg-white pl-2 pr-7 text-sm dark:border-neutral-800 dark:bg-neutral-900"
-									>
-										{clients.map(client => (
-											<option key={client.clientId} value={client.clientId}>
-												{platformLabel(client.platform)} ·{" "}
-												{shortId(client.clientId)}
-											</option>
-										))}
-									</select>
-									<span
-										className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400"
-										aria-hidden="true"
-									>
-										<ChevronIcon width={12} height={12} className="rotate-90" />
-									</span>
-								</div>
-							</label>
+								<ClientSelect
+									className="w-full"
+									ariaLabel="Target"
+									clients={clients}
+									value={activeTarget}
+									onValueChange={setTarget}
+								/>
+							</div>
 						)}
 
 						<label className="flex flex-col gap-1.5">

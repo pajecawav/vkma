@@ -4,6 +4,7 @@ packages:
     - playground/*
 
 catalog:
+    "@base-ui/react": ^1.9.0
     "@pajecawav/json2code": ^0.2.0
     "@types/node": ^26.6.5
     "@types/react": ^19.3.0
