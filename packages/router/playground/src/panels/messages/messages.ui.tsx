@@ -1,22 +1,32 @@
 import { useNavigator } from "@vkma.dev/router/preset";
-import { Icon56MessageMissingOutline } from "@vkontakte/icons";
+import { usePanelSearch } from "@vkma.dev/router/react";
+import { Icon28ErrorOutline, Icon56MessageMissingOutline } from "@vkontakte/icons";
 import {
 	Group,
 	PanelHeader,
 	Search,
+	Snackbar,
 	Counter,
 	Caption,
 	SimpleCell,
 	Flex,
 	Placeholder,
 } from "@vkontakte/vkui";
-import { useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { chatTitleOf, chats, users } from "../../data";
 import { InitialsAvatar } from "../../ui";
+import { chatsPanel } from "./messages.panel";
 
-export default function ChatsPanel() {
+export default function ChatsPanel(): ReactElement {
 	const navigator = useNavigator();
+	const search = usePanelSearch(chatsPanel);
 	const [query, setQuery] = useState("");
+	// the redirect trace lives in typed search; the snackbar is local so it
+	// can be dismissed without rewriting the URL
+	const [redirectTrace, setRedirectTrace] = useState(search?.redirectedFrom);
+	useEffect(() => {
+		setRedirectTrace(search?.redirectedFrom);
+	}, [search?.redirectedFrom]);
 	const filtered = chats.filter(chat =>
 		chatTitleOf(chat).toLowerCase().includes(query.trim().toLowerCase()),
 	);
@@ -24,6 +34,16 @@ export default function ChatsPanel() {
 	return (
 		<>
 			<PanelHeader>Сообщения</PanelHeader>
+			{redirectTrace !== undefined && (
+				<Snackbar
+					placement="top"
+					before={<Icon28ErrorOutline fill="var(--vkui--color_icon_accent)" />}
+					onClose={() => setRedirectTrace(undefined)}
+					onClosed={() => {}}
+				>
+					Redirect из beforeLoad: /chat/{redirectTrace} → /messages
+				</Snackbar>
+			)}
 			<Group>
 				<Search
 					value={query}

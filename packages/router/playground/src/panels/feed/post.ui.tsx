@@ -57,18 +57,21 @@ export default function PostPanel(): ReactElement {
 					<Tabs withScrollToSelectedTab>
 						<TabsItem
 							selected={search?.tab === undefined}
+							aria-controls="post-tab-content"
 							onClick={() => setTab(undefined)}
 						>
 							Запись
 						</TabsItem>
 						<TabsItem
 							selected={search?.tab === "comments"}
+							aria-controls="post-tab-content"
 							onClick={() => setTab("comments")}
 						>
 							Комментарии
 						</TabsItem>
 						<TabsItem
 							selected={search?.tab === "likes"}
+							aria-controls="post-tab-content"
 							onClick={() => setTab("likes")}
 						>
 							Нравится
@@ -76,27 +79,82 @@ export default function PostPanel(): ReactElement {
 					</Tabs>
 				</HorizontalScroll>
 			</Group>
-			{search?.tab === undefined && (
-				<Group>
-					<div style={{ display: "flex", gap: 4, padding: "10px 8px" }}>
-						<Button
-							size="s"
-							mode={post.liked ? "secondary" : "tertiary"}
-							after={post.likes}
+			<div id="post-tab-content">
+				{search?.tab === undefined && (
+					<Group>
+						<div style={{ display: "flex", gap: 4, padding: "10px 8px" }}>
+							<Button
+								size="s"
+								mode={post.liked ? "secondary" : "tertiary"}
+								after={post.likes}
+							>
+								Нравится
+							</Button>
+							<Button
+								size="s"
+								mode="tertiary"
+								after={post.comments.length}
+								onClick={() => setTab("comments")}
+							>
+								Комментарии
+							</Button>
+							<Button
+								size="s"
+								mode="tertiary"
+								onClick={() =>
+									void navigator.showModal({
+										to: "/post/$id/share",
+										params: { id },
+										props: { note: "Выберите чат для пересылки" },
+									})
+								}
+							>
+								Поделиться
+							</Button>
+						</div>
+					</Group>
+				)}
+				{search?.tab === "comments" ? (
+					<Group
+						header={<Header size="s">Комментарии</Header>}
+						description="Типизированный ?tab=comments — содержимое панели меняет поиск"
+					>
+						{post.comments.map(comment => {
+							const commenter = users[comment.authorId]!;
+							return (
+								<RichCell
+									key={comment.id}
+									multiline
+									before={<InitialsAvatar name={commenter.name} size={36} />}
+									subtitle={comment.time}
+								>
+									{commenter.name}
+									<Text
+										style={{
+											marginTop: 4,
+											color: "var(--vkui--color_text_secondary)",
+										}}
+									>
+										{comment.text}
+									</Text>
+								</RichCell>
+							);
+						})}
+						<CellButton
+							before={<Icon24CommentOutline />}
+							subtitle="модалка поверх панели"
+							onClick={() =>
+								void navigator.showModal({
+									to: "/post/$id/comments",
+									params: { id },
+								})
+							}
 						>
-							Нравится
-						</Button>
-						<Button
-							size="s"
-							mode="tertiary"
-							after={post.comments.length}
-							onClick={() => setTab("comments")}
-						>
-							Комментарии
-						</Button>
-						<Button
-							size="s"
-							mode="tertiary"
+							Все комментарии
+						</CellButton>
+						<CellButton
+							before={<Icon24ShareOutline />}
+							subtitle="карточка с runtime-пропсами"
 							onClick={() =>
 								void navigator.showModal({
 									to: "/post/$id/share",
@@ -106,74 +164,21 @@ export default function PostPanel(): ReactElement {
 							}
 						>
 							Поделиться
-						</Button>
-					</div>
-				</Group>
-			)}
-			{search?.tab === "comments" ? (
-				<Group
-					header={<Header size="s">Комментарии</Header>}
-					description="Типизированный ?tab=comments — содержимое панели меняет поиск"
-				>
-					{post.comments.map(comment => {
-						const commenter = users[comment.authorId]!;
-						return (
-							<RichCell
-								key={comment.id}
-								multiline
-								before={<InitialsAvatar name={commenter.name} size={36} />}
-								subtitle={comment.time}
+						</CellButton>
+					</Group>
+				) : search?.tab === "likes" ? (
+					<Group header={<Header size="s">Нравится</Header>}>
+						{Object.values(users).map(user => (
+							<SimpleCell
+								key={user.id}
+								before={<InitialsAvatar name={user.name} size={40} />}
 							>
-								{commenter.name}
-								<Text
-									style={{
-										marginTop: 4,
-										color: "var(--vkui--color_text_secondary)",
-									}}
-								>
-									{comment.text}
-								</Text>
-							</RichCell>
-						);
-					})}
-					<CellButton
-						before={<Icon24CommentOutline />}
-						subtitle="модалка поверх панели"
-						onClick={() =>
-							void navigator.showModal({
-								to: "/post/$id/comments",
-								params: { id },
-							})
-						}
-					>
-						Все комментарии
-					</CellButton>
-					<CellButton
-						before={<Icon24ShareOutline />}
-						subtitle="карточка с runtime-пропсами"
-						onClick={() =>
-							void navigator.showModal({
-								to: "/post/$id/share",
-								params: { id },
-								props: { note: "Выберите чат для пересылки" },
-							})
-						}
-					>
-						Поделиться
-					</CellButton>
-				</Group>
-			) : search?.tab === "likes" ? (
-				<Group header={<Header size="s">Нравится</Header>}>
-					{Object.values(users).map(user => (
-						<SimpleCell
-							key={user.id}
-							before={<InitialsAvatar name={user.name} size={40} />}
-						>
-							{user.name}
-						</SimpleCell>
-					))}
-				</Group>
-			) : null}
+								{user.name}
+							</SimpleCell>
+						))}
+					</Group>
+				) : null}
+			</div>
 			<Group>
 				<CellButton
 					subtitle="та же панель, новый параметр"

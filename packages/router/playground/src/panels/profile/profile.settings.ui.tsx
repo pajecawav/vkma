@@ -28,12 +28,14 @@ export default function ProfileSettingsPanel(): ReactElement {
 				<Tabs>
 					<TabsItem
 						selected={!privacy}
+						aria-controls="settings-tab-content"
 						onClick={() => void navigator.replace({ to: "/settings", search: {} })}
 					>
 						Профиль
 					</TabsItem>
 					<TabsItem
 						selected={privacy}
+						aria-controls="settings-tab-content"
 						onClick={() =>
 							void navigator.replace({
 								to: "/settings",
@@ -45,37 +47,39 @@ export default function ProfileSettingsPanel(): ReactElement {
 					</TabsItem>
 				</Tabs>
 			</Group>
-			{privacy ? (
-				<Group header={<Header size="s">Кто видит мою страницу</Header>}>
-					<SimpleCell Component="label" after={<Switch defaultChecked />}>
-						Фотографии
-					</SimpleCell>
-					<SimpleCell Component="label" after={<Switch />}>
-						Друзья
-					</SimpleCell>
-					<SimpleCell Component="label" after={<Switch defaultChecked />}>
-						Статус «онлайн»
-					</SimpleCell>
+			<div id="settings-tab-content">
+				{privacy ? (
+					<Group header={<Header size="s">Кто видит мою страницу</Header>}>
+						<SimpleCell Component="label" after={<Switch defaultChecked />}>
+							Фотографии
+						</SimpleCell>
+						<SimpleCell Component="label" after={<Switch />}>
+							Друзья
+						</SimpleCell>
+						<SimpleCell Component="label" after={<Switch defaultChecked />}>
+							Статус «онлайн»
+						</SimpleCell>
+					</Group>
+				) : (
+					<Group header={<Header size="s">Основное</Header>}>
+						<SimpleCell Component="label" after={<Switch defaultChecked />}>
+							Показывать дату рождения
+						</SimpleCell>
+						<SimpleCell Component="label" after={<Switch />}>
+							Подписки на авторов
+						</SimpleCell>
+					</Group>
+				)}
+				<Group>
+					<CellButton
+						appearance="negative"
+						subtitle="попаут поверх панели"
+						onClick={() => navigator.showPopout("logout")}
+					>
+						Выйти из аккаунта
+					</CellButton>
 				</Group>
-			) : (
-				<Group header={<Header size="s">Основное</Header>}>
-					<SimpleCell Component="label" after={<Switch defaultChecked />}>
-						Показывать дату рождения
-					</SimpleCell>
-					<SimpleCell Component="label" after={<Switch />}>
-						Подписки на авторов
-					</SimpleCell>
-				</Group>
-			)}
-			<Group>
-				<CellButton
-					appearance="negative"
-					subtitle="попаут поверх панели"
-					onClick={() => navigator.showPopout("logout")}
-				>
-					Выйти из аккаунта
-				</CellButton>
-			</Group>
+			</div>
 		</>
 	);
 }
