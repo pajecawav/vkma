@@ -15,7 +15,7 @@
 		"build:inspector": "rsbuild build --config rsbuild.inspector.config.ts",
 		"preview": "rsbuild preview",
 		"deploy": "run-s build deploy:wrangler",
-		"deploy:wrangler": "npx wrangler deploy",
+		"deploy:wrangler": "pnpx wrangler deploy",
 		"test": "vitest run",
 		"test:watch": "vitest watch"
 	},

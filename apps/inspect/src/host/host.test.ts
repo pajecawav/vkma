@@ -93,9 +93,9 @@ describe("InspectHost", () => {
 		expect(batches).toHaveLength(1);
 		const rows = batches[0] as { seq: number; name: string; runId: string; clientId: string }[];
 		expect(rows.map(r => r.seq)).toEqual([1]); // vk-connect chatter filtered
-		expect(rows[0]!.name).toBe("VKWebAppInit");
-		expect(rows[0]!.runId).toBe(host.store.runId);
-		expect(rows[0]!.clientId).toBe("c1");
+		expect(rows[0].name).toBe("VKWebAppInit");
+		expect(rows[0].runId).toBe(host.store.runId);
+		expect(rows[0].clientId).toBe("c1");
 	});
 
 	it("a session change purges history and broadcasts the reset", () => {

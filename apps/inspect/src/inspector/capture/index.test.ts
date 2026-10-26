@@ -1,3 +1,4 @@
+import type { TapEvent } from "@vkma.dev/protocol/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 import { InspectorCapture, type BridgeHandle, type SpyBridge } from "./index.ts";
 
@@ -9,17 +10,17 @@ import { InspectorCapture, type BridgeHandle, type SpyBridge } from "./index.ts"
  */
 
 afterEach(() => {
-	delete (window as { AndroidBridge?: unknown }).AndroidBridge;
+	delete (window as unknown as { AndroidBridge?: unknown }).AndroidBridge;
 });
 
 function setAndroidBridge(methods: Record<string, (serialized: string) => unknown>): void {
-	(window as { AndroidBridge?: unknown }).AndroidBridge = methods;
+	(window as unknown as { AndroidBridge?: unknown }).AndroidBridge = methods;
 }
 
 function callAndroid(name: string, params: Record<string, unknown>): void {
-	(window as { AndroidBridge: Record<string, (s: string) => unknown> }).AndroidBridge[name](
-		JSON.stringify(params),
-	);
+	const bridge = (window as unknown as { AndroidBridge: Record<string, (s: string) => unknown> })
+		.AndroidBridge;
+	bridge[name](JSON.stringify(params));
 }
 
 function incoming(type: string, data: Record<string, unknown>): void {
@@ -27,19 +28,14 @@ function incoming(type: string, data: Record<string, unknown>): void {
 }
 
 interface FakeTap {
-	emit(event: {
-		id: number;
-		ts: number;
-		direction: "out" | "in";
-		kind: "send" | "response" | "event";
-		name: string;
-		payload?: unknown;
-	}): void;
-	subscribe(listener: (event: never) => void): () => void;
+	emit(event: Omit<TapEvent, never>): void;
 }
 
-function fakeTap(): FakeTap & { listeners: Set<(event: never) => void> } {
-	const listeners = new Set<(event: never) => void>();
+function fakeTap(): FakeTap & {
+	subscribe: (listener: (event: TapEvent) => void) => () => void;
+	listeners: Set<(event: TapEvent) => void>;
+} {
+	const listeners = new Set<(event: TapEvent) => void>();
 	return {
 		listeners,
 		subscribe(listener) {
@@ -48,7 +44,7 @@ function fakeTap(): FakeTap & { listeners: Set<(event: never) => void> } {
 		},
 		emit(event) {
 			for (const listener of listeners) {
-				(listener as (event: unknown) => void)(event);
+				listener(event);
 			}
 		},
 	};
@@ -64,15 +60,17 @@ describe("InspectorCapture", () => {
 			},
 		});
 
-		const rows: { kind: string; name: string; reqId?: number }[] = [];
+		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture(); // hooks go in now
 
 		// captured while still resolving → held in the buffer
 		callAndroid("VKWebAppGetUserInfo", { request_id: "1_a", user_id: 1 });
 		expect(rows).toHaveLength(0);
 
-		capture.finalize(undefined, event => rows.push(event as never));
-		expect(rows).toHaveLength(1);
+		capture.finalize(undefined, event => {
+			rows.push(event);
+		});
+		expect(rows).toHaveLength(1); // the buffered row flushed
 		expect(rows[0]).toMatchObject({
 			kind: "send",
 			name: "VKWebAppGetUserInfo",
@@ -88,7 +86,7 @@ describe("InspectorCapture", () => {
 		expect(rows[1]).toMatchObject({
 			kind: "response",
 			name: "VKWebAppGetUserInfoResult",
-			reqId: rows[0]!.id,
+			reqId: rows[0].id,
 			ok: true,
 		});
 		expect(rows[2]).toMatchObject({ kind: "event", name: "VKWebAppUpdateConfig" });
@@ -96,29 +94,33 @@ describe("InspectorCapture", () => {
 
 	it("an error_type response is ok:false with the request_id stripped", () => {
 		setAndroidBridge({ VKWebAppCall: () => {} });
-		const rows: { kind: string; ok?: boolean; payload?: unknown }[] = [];
+		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture();
-		capture.finalize(undefined, event => rows.push(event as never));
+		capture.finalize(undefined, event => {
+			rows.push(event);
+		});
 
 		callAndroid("VKWebAppCall", { request_id: "7_b" });
 		incoming("VKWebAppCallFailed", { request_id: "7_b", error_type: "some" });
 
 		expect(rows[1]).toMatchObject({ kind: "response", ok: false });
-		expect(rows[1]!.payload).toEqual({ error_type: "some" }); // request_id stripped
+		expect(rows[1].payload).toEqual({ error_type: "some" }); // request_id stripped
 	});
 
 	it("direct mode: the tap is authoritative, the buffer is discarded, raw layers muted", () => {
 		const tap = fakeTap();
 		const handle: BridgeHandle = {
-			tap: tap as unknown as BridgeHandle["tap"],
+			tap: tap,
 			send: async name => `direct:${name}`,
 		};
 
 		setAndroidBridge({ VKWebAppRun: () => "native" });
-		const rows: { name: string }[] = [];
+		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture();
 		callAndroid("VKWebAppRun", {}); // buffered — but the flip discards it
-		capture.finalize(handle, event => rows.push(event as never));
+		capture.finalize(handle, event => {
+			rows.push(event);
+		});
 		expect(rows).toHaveLength(0);
 
 		tap.emit({ id: 1, ts: 1, direction: "out", kind: "send", name: "VKWebAppInit" });
@@ -132,13 +134,15 @@ describe("InspectorCapture", () => {
 
 	it("the private execute bridge contributes out-rows; raw layers skip its prefix", () => {
 		setAndroidBridge({ VKWebAppGetAuthToken: () => {} });
-		const rows: { direction: string; kind: string; name: string; payload?: unknown }[] = [];
+		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture();
-		capture.finalize(undefined, event => rows.push(event as never));
+		capture.finalize(undefined, event => {
+			rows.push(event);
+		});
 
 		const tap = fakeTap();
 		capture.hookSpyBridge({
-			tap: tap as unknown as BridgeHandle["tap"],
+			tap: tap,
 			send: async () => "ok",
 		});
 
@@ -171,21 +175,21 @@ describe("InspectorCapture", () => {
 			kind: "response",
 			name: "VKWebAppAccessTokenReceived",
 			ok: true,
-			reqId: rows[0]!.id,
+			reqId: rows[0].id,
 		});
 	});
 
 	it("execute prefers the direct handle, falls back to the spy bridge", async () => {
 		const capture = new InspectorCapture();
 		const spyBridge: SpyBridge = {
-			tap: { subscribe: () => () => {} } as unknown as BridgeHandle["tap"],
+			tap: fakeTap(),
 			send: async name => `spy:${name}`,
 		};
 		capture.hookSpyBridge(spyBridge);
 		await expect(capture.execute("A")).resolves.toBe("spy:A");
 
 		const handle: BridgeHandle = {
-			tap: { subscribe: () => () => {} },
+			tap: fakeTap(),
 			send: async name => `direct:${name}`,
 		};
 		capture.finalize(handle, () => {});

@@ -9,26 +9,34 @@ import { installNativeCapture } from "./native.ts";
  * (the window-level Proxy) see the wrap.
  */
 
+type BridgeWindow = {
+	AndroidBridge?: Record<string, unknown>;
+	webkit?: { messageHandlers?: Record<string, unknown> };
+};
+
+const bridgeWindow = (): BridgeWindow => window as unknown as BridgeWindow;
+
+const android = (): Record<string, (serialized: string) => unknown> =>
+	bridgeWindow().AndroidBridge as Record<string, (serialized: string) => unknown>;
+
 afterEach(() => {
-	delete (window as { AndroidBridge?: unknown }).AndroidBridge;
-	delete (window as { webkit?: unknown }).webkit;
+	delete bridgeWindow().AndroidBridge;
+	delete bridgeWindow().webkit;
 });
 
 describe("installNativeCapture", () => {
 	it("forwards Android calls first, then reports them", () => {
 		const forwarded: string[] = [];
 		const calls: { name: string; params: Record<string, unknown> }[] = [];
-		const original = {
+		bridgeWindow().AndroidBridge = {
 			VKWebAppGetUserInfo: (serialized: string) => {
 				forwarded.push(serialized);
 				return "native-result";
 			},
 		};
-		(window as { AndroidBridge?: unknown }).AndroidBridge = original;
 
 		expect(installNativeCapture(call => calls.push(call))).toBe(true);
-		const result = (window as { AndroidBridge: Record<string, (s: string) => unknown> })
-			.AndroidBridge["VKWebAppGetUserInfo"]!(JSON.stringify({ user_id: 1 }));
+		const result = android()["VKWebAppGetUserInfo"]?.(JSON.stringify({ user_id: 1 }));
 
 		expect(result).toBe("native-result"); // forwarded to the real handler
 		expect(forwarded).toEqual([JSON.stringify({ user_id: 1 })]); // untouched wire data
@@ -37,16 +45,14 @@ describe("installNativeCapture", () => {
 
 	it("an already-captured reference sees the wrap (in-place mutation)", () => {
 		const calls: string[] = [];
-		const original = {
+		bridgeWindow().AndroidBridge = {
 			VKWebAppRun: (serialized: string) => `ran:${serialized}`,
 		};
-		(window as { AndroidBridge?: unknown }).AndroidBridge = original;
 		// the app's bridge module captured this BEFORE the inspector loaded
-		const captured = (window as { AndroidBridge: Record<string, (s: string) => unknown> })
-			.AndroidBridge;
+		const captured = android();
 
 		installNativeCapture(call => calls.push(call.name));
-		captured["VKWebAppRun"]!(JSON.stringify({}));
+		captured["VKWebAppRun"]?.(JSON.stringify({}));
 
 		expect(calls).toEqual(["VKWebAppRun"]);
 	});
@@ -56,30 +62,25 @@ describe("installNativeCapture", () => {
 		const original: Record<string, (serialized: string) => void> = {
 			VKWebAppRun: () => {},
 		};
-		(window as { AndroidBridge?: unknown }).AndroidBridge = original;
+		bridgeWindow().AndroidBridge = original;
 		installNativeCapture(call => calls.push(call.name));
 
 		original["VKWebAppNewThing"] = () => {}; // added after the inspector
-		const proxied = (window as { AndroidBridge: Record<string, (s: string) => void> })
-			.AndroidBridge;
-		proxied["VKWebAppNewThing"]!(JSON.stringify({ request_id: "9" }));
+		android()["VKWebAppNewThing"]?.(JSON.stringify({ request_id: "9" }));
 
 		expect(calls).toEqual(["VKWebAppNewThing"]);
 	});
 
 	it("never touches constructor or dunder members", () => {
 		const calls: string[] = [];
-		const original: Record<string, unknown> = {
+		bridgeWindow().AndroidBridge = {
 			VKWebAppRun: () => {},
 			__internal: (serialized: string) => serialized,
 		};
-		(window as { AndroidBridge?: unknown }).AndroidBridge = original;
 		installNativeCapture(call => calls.push(call.name));
 
 		expect(() => {
-			const proxied = (window as { AndroidBridge: Record<string, (s: string) => unknown> })
-				.AndroidBridge;
-			proxied["__internal"]?.("{}");
+			android()["__internal"]?.("{}");
 		}).not.toThrow();
 		expect(calls).toEqual([]);
 	});
@@ -90,16 +91,19 @@ describe("installNativeCapture", () => {
 		const handlers: Record<string, { postMessage: (data: unknown) => void }> = {
 			VKWebAppClose: { postMessage: data => forwarded.push(data) },
 		};
-		(window as { webkit?: unknown }).webkit = { messageHandlers: handlers };
+		bridgeWindow().webkit = { messageHandlers: handlers };
 
 		expect(installNativeCapture(call => calls.push(call))).toBe(true);
 
 		// vk-bridge's iOS detection stays intact through the proxy…
-		const webkit = (window as { webkit: { messageHandlers: Record<string, unknown> } }).webkit;
-		expect(typeof webkit.messageHandlers["VKWebAppClose"]).toBe("object");
-		// …and a captured reference to the collection sees the wrap too
-		const captured = handlers["VKWebAppClose"] as unknown as { postMessage(d: unknown): void };
-		captured.postMessage({ request_id: "1_a" });
+		const webkit = bridgeWindow().webkit;
+		expect(typeof webkit?.messageHandlers?.["VKWebAppClose"]).toBe("object");
+		// …and a reference captured before the install sees the wrap too
+		// (the collection entry was replaced with the proxy in place).
+		// The handler's postMessage is NOT window.postMessage — the rule
+		// is a false positive here.
+		// oxlint-disable-next-line unicorn/require-post-message-target-origin
+		handlers["VKWebAppClose"].postMessage({ request_id: "1_a" });
 
 		expect(forwarded).toEqual([{ request_id: "1_a" }]);
 		expect(calls).toEqual([{ name: "VKWebAppClose", params: { request_id: "1_a" } }]);
@@ -113,13 +117,12 @@ describe("installNativeCapture", () => {
 
 	it("non-JSON Android payloads are skipped", () => {
 		const calls: string[] = [];
-		const original = { something: (serialized: string) => serialized };
-		(window as { AndroidBridge?: unknown }).AndroidBridge = original;
+		bridgeWindow().AndroidBridge = {
+			something: (serialized: string) => serialized,
+		};
 		installNativeCapture(() => calls.push("x"));
 
-		const proxied = (window as { AndroidBridge: Record<string, (s: string) => unknown> })
-			.AndroidBridge;
-		proxied["something"]!("not json");
+		android()["something"]?.("not json");
 		expect(calls).toEqual([]);
 	});
 });
