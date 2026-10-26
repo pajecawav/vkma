@@ -1,6 +1,6 @@
 import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
-import { version } from "./src/manifest.chrome.json";
+import { version as pkgVersion } from "./package.json";
 
 const browser = process.env.BROWSER === "firefox" ? "firefox" : "chrome";
 
@@ -26,7 +26,7 @@ export default defineConfig({
 			panel: "./src/panel/main.tsx",
 		},
 		define: {
-			__APP_VERSION__: JSON.stringify(version),
+			__APP_VERSION__: JSON.stringify(pkgVersion),
 		},
 	},
 	html: {
@@ -41,7 +41,17 @@ export default defineConfig({
 		},
 		legalComments: "none",
 		copy: [
-			{ from: `src/manifest.${browser}.json`, to: "manifest.json" },
+			{
+				from: `src/manifest.${browser}.json`,
+				to: "manifest.json",
+				// The version lives in package.json — the source manifests keep a
+				// schema-valid placeholder that the build always overwrites.
+				transform: content => {
+					const manifest = JSON.parse(content.toString()) as { version: string };
+					manifest.version = pkgVersion;
+					return `${JSON.stringify(manifest, null, "\t")}\n`;
+				},
+			},
 			{ from: "src/icons", to: "icons" },
 		],
 	},
