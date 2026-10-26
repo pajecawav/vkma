@@ -80,6 +80,22 @@ function useModalSurface(): ModalSurfaceApi {
 	return api;
 }
 
+/**
+ * The host-owned keys VKUI actually accepts. Everything else in the api
+ * (`stacked` today, future host keys tomorrow) must NOT reach the spread —
+ * VKUI forwards unknown props to the DOM and React warns on booleans
+ * ("Received `false` for a non-boolean attribute `stacked`").
+ */
+export function hostProps(api: ModalSurfaceApi): {
+	nav: string;
+	open: boolean;
+	onClose: () => void;
+	onClosed: () => void;
+} {
+	const { nav, open, onClose, onClosed } = api;
+	return { nav, open, onClose, onClosed };
+}
+
 /** ModalPage surface for a modal entry — the host owns nav/open/close choreography. */
 export function ModalPageSurface({
 	children,
@@ -87,7 +103,12 @@ export function ModalPageSurface({
 }: Omit<ModalPageProps, "nav" | "open" | "onClose" | "onClosed" | "keepMounted">) {
 	const api = useModalSurface();
 	return (
-		<ModalPage {...api} keepMounted disableFocusTrap={api.stacked || undefined} {...surface}>
+		<ModalPage
+			{...hostProps(api)}
+			keepMounted
+			disableFocusTrap={api.stacked || undefined}
+			{...surface}
+		>
 			{children}
 		</ModalPage>
 	);
@@ -104,7 +125,12 @@ export function ModalCardSurface({
 }: Omit<ModalCardProps, "nav" | "open" | "onClose" | "onClosed" | "keepMounted">) {
 	const api = useModalSurface();
 	return (
-		<ModalCard {...api} keepMounted disableFocusTrap={api.stacked || undefined} {...surface}>
+		<ModalCard
+			{...hostProps(api)}
+			keepMounted
+			disableFocusTrap={api.stacked || undefined}
+			{...surface}
+		>
 			{children}
 		</ModalCard>
 	);
