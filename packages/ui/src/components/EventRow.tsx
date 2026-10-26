@@ -1,5 +1,5 @@
 import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
@@ -23,12 +23,17 @@ function ClientBadge({ clientId, clients }: { clientId: string; clients: ClientI
 
 function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
+	const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+	// the "copied" flash outlives the row's unmount otherwise
+	useEffect(() => () => clearTimeout(resetTimer.current), []);
 
 	const copy = (event: React.MouseEvent) => {
 		event.stopPropagation();
 		const done = () => {
 			setCopied(true);
-			setTimeout(() => setCopied(false), 1200);
+			clearTimeout(resetTimer.current);
+			resetTimer.current = setTimeout(() => setCopied(false), 1200);
 		};
 		// Inside the FAB iframe the async clipboard API can be unavailable
 		// (unfocused document / missing permission policy) — fall back to a
