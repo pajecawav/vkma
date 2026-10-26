@@ -1,6 +1,6 @@
 import { notFound } from "@tanstack/react-router";
 import { defineView } from "@vkma.dev/router/preset";
-import { ScreenSpinner } from "@vkontakte/vkui";
+import { PanelHeader, ScreenSpinner } from "@vkontakte/vkui";
 import { lazy } from "react";
 import { posts } from "../../data";
 
@@ -11,10 +11,15 @@ export const feedPanel = feedView.panel(
 	"feed",
 	{
 		loader: async () => {
-			await new Promise(resolve => setTimeout(resolve, 700));
+			await new Promise(resolve => setTimeout(resolve, 2000));
 			return { posts };
 		},
-		pendingComponent: () => <ScreenSpinner />,
+		pendingComponent: () => (
+			<>
+				<PanelHeader />
+				<ScreenSpinner />
+			</>
+		),
 		staleTime: 30_000,
 	},
 	() => import("./feed.ui"),

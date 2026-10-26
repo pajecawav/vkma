@@ -15,7 +15,7 @@ createSwipeBackManager({ history: router.history, bridge: fakeBridge });
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
 		<ConfigProvider platform="android">
-			<AppRoot>
+			<AppRoot disableSettingVKUIClassesInRuntime>
 				<RouterProvider router={router} />
 			</AppRoot>
 		</ConfigProvider>

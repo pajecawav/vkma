@@ -1,6 +1,7 @@
 import { createRouter } from "@tanstack/react-router";
 import { createApp, createVkHistory, NotFound } from "@vkma.dev/router/preset";
-import { SettingsGlobalModal, LogoutPopout } from "./overlays";
+import { ScreenSpinner } from "@vkontakte/vkui";
+import { LogoutPopout, SettingsGlobalModal } from "./overlays";
 import { feedView } from "./panels/feed/feed.panel";
 import { messagesView } from "./panels/messages/messages.panel";
 import { moreView } from "./panels/more/more.panel";
@@ -30,6 +31,12 @@ export const router = createRouter({
 	routeTree: app.routeTree,
 	history: createVkHistory().history,
 	defaultNotFoundComponent: NotFound,
+	// the initial load gates the FIRST render on the root match — without a
+	// pending component the cold start is a blank screen for the whole feed
+	// loader (700ms); pendingMs default (1000) would suppress the pending
+	// state entirely for such a short loader
+	defaultPendingComponent: ScreenSpinner,
+	defaultPendingMs: 200,
 });
 
 declare module "@tanstack/react-router" {
