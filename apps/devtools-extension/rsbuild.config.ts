@@ -25,9 +25,6 @@ export default defineConfig({
 			},
 			panel: "./src/panel/main.tsx",
 		},
-		define: {
-			__APP_VERSION__: JSON.stringify(pkgVersion),
-		},
 	},
 	html: {
 		template: "./src/panel/index.html",

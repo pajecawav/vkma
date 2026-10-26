@@ -64,7 +64,7 @@
 	],
 	"web_accessible_resources": [
 		{
-			"resources": ["panel.html", "static/*"],
+			"resources": ["panel.html"],
 			"matches": [
 				"*://vk.com/*",
 				"*://vk.ru/*",
