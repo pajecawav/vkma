@@ -1,5 +1,4 @@
-import { CheckIcon, CrossIcon, RefreshIcon, WarningIcon } from "@vkma.dev/ui";
-import { useState } from "react";
+import { CopyInput, CrossIcon, RefreshIcon, WarningIcon } from "@vkma.dev/ui";
 import type { InspectConnection } from "./connection.ts";
 
 /**
@@ -47,7 +46,7 @@ export function SetupPanel({
 							references at import, and the inspector wraps the native bridge first.
 							Works on the phone (VK webview), in iframes and in production builds.
 						</p>
-						<CopyRow label={snippet} copy={snippet} />
+						<CopyInput value={snippet} ariaLabel="Script tag snippet" />
 					</section>
 
 					<section className="flex flex-col gap-2">
@@ -59,7 +58,7 @@ export function SetupPanel({
 							vk.com's CSP may block console imports). Loaded late, it sees less: only
 							bridge methods that already exist.
 						</p>
-						<CopyRow label={importLine} copy={importLine} />
+						<CopyInput value={importLine} ariaLabel="Console import snippet" />
 					</section>
 
 					<section className="flex flex-col gap-2">
@@ -155,33 +154,5 @@ function PeerRow({ connection }: { connection: InspectConnection }) {
 			<span className={meta.tone}>{meta.label}</span>
 			<span className="text-neutral-400">· WebRTC direct, no relays</span>
 		</p>
-	);
-}
-
-function CopyRow({ label, copy }: { label: string; copy: string }) {
-	const [copied, setCopied] = useState(false);
-	return (
-		<div className="flex items-center gap-2">
-			<code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md bg-neutral-100 px-2.5 py-1.5 font-mono text-[11px] text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
-				{label}
-			</code>
-			<button
-				type="button"
-				onClick={() => {
-					void navigator.clipboard
-						.writeText(copy)
-						.then(() => {
-							setCopied(true);
-							setTimeout(() => setCopied(false), 1500);
-						})
-						.catch(() => {});
-				}}
-				className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-neutral-200 px-2.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
-				title="Copy"
-			>
-				{copied ? <CheckIcon /> : null}
-				{copied ? "Copied" : "Copy"}
-			</button>
-		</div>
 	);
 }
