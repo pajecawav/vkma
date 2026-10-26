@@ -28,6 +28,7 @@ import {
 	useAdaptivityConditionalRender,
 } from "@vkontakte/vkui";
 import type { ComponentType } from "react";
+import { chats } from "./data";
 import { DebugOverlay } from "./debug";
 
 /**
@@ -45,10 +46,18 @@ interface TabConfig {
 	badge?: number;
 }
 
+const unread = chats.reduce((sum, chat) => sum + chat.unread, 0);
+
 const TABS: TabConfig[] = [
 	{ id: "profile", label: "Профиль", to: "/", Icon: Icon28UserCircleOutline },
 	{ id: "feed", label: "Лента", to: "/feed", Icon: Icon28NewsfeedOutline },
-	{ id: "messages", label: "Сообщения", to: "/messages", Icon: Icon28MessageOutline, badge: 3 },
+	{
+		id: "messages",
+		label: "Сообщения",
+		to: "/messages",
+		Icon: Icon28MessageOutline,
+		badge: unread,
+	},
 	{ id: "more", label: "Ещё", to: "/more", Icon: Icon28MoreHorizontal },
 ];
 

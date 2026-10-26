@@ -59,7 +59,7 @@ export default function CommentsModal(): ReactElement {
 			</Group>
 			<Group>
 				<CellButton
-					subtitle="модалка на модалке: назад — сразу на панель"
+					subtitle="replace-шаг цепочки: назад — сразу на панель"
 					onClick={() =>
 						void navigator.showModal({ to: "/post/$id/thread", params: { id } })
 					}
@@ -67,7 +67,7 @@ export default function CommentsModal(): ReactElement {
 					Открыть тред
 				</CellButton>
 				<CellButton
-					subtitle="child-роут: стекается ПОВЕРХ открытой модалки, back вернёт сюда"
+					subtitle="child-роут: стекается поверх, back вернёт сюда"
 					onClick={() =>
 						void navigator.showModal({
 							to: "/post/$id/comments/share",
@@ -79,7 +79,7 @@ export default function CommentsModal(): ReactElement {
 					Поделиться (карточка поверх)
 				</CellButton>
 				<CellButton
-					subtitle="child-роут: стекается ПОВЕРХ открытой модалки"
+					subtitle="вложенный child-роут — стекается поверх"
 					onClick={() =>
 						void navigator.showModal({
 							to: "/post/$id/comments/report",

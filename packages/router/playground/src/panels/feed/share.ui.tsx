@@ -46,8 +46,7 @@ export default function ShareCard(): ReactElement {
 			<Box padding="m" style={{ textAlign: "center" }}>
 				<Text weight="2">«{post.text}»</Text>
 				<Footnote style={{ marginTop: 8, color: "var(--vkui--color_text_secondary)" }}>
-					параметры панели резолвятся и в{"\u00A0"}карточке · пост{"\u00A0"}
-					{id}
+					параметры панели резолвятся и в карточке
 				</Footnote>
 			</Box>
 		</ModalCardSurface>
