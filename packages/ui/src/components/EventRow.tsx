@@ -1,5 +1,6 @@
 import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
 import { memo, useEffect, useRef, useState } from "react";
+import { copyText } from "../lib/clipboard.ts";
 import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
@@ -30,35 +31,14 @@ function CopyButton({ text }: { text: string }) {
 
 	const copy = (event: React.MouseEvent) => {
 		event.stopPropagation();
-		const done = () => {
+		void copyText(text).then(ok => {
+			if (!ok) {
+				return;
+			}
 			setCopied(true);
 			clearTimeout(resetTimer.current);
 			resetTimer.current = setTimeout(() => setCopied(false), 1200);
-		};
-		// Inside the FAB iframe the async clipboard API can be unavailable
-		// (unfocused document / missing permission policy) — fall back to a
-		// hidden textarea + execCommand, which works in same-origin frames.
-		const fallback = () => {
-			const area = document.createElement("textarea");
-			area.value = text;
-			area.style.position = "fixed";
-			area.style.opacity = "0";
-			document.body.append(area);
-			area.select();
-			try {
-				document.execCommand("copy");
-				done();
-			} catch {
-				// give up quietly; the user can still select the raw JSON
-			} finally {
-				area.remove();
-			}
-		};
-		if (navigator.clipboard?.writeText) {
-			void navigator.clipboard.writeText(text).then(done, fallback);
-		} else {
-			fallback();
-		}
+		});
 	};
 
 	return (
