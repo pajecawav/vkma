@@ -1,5 +1,5 @@
 import { useNavigator } from "@vkma.dev/router/preset";
-import { Icon24InfoCircleOutline, Icon28SettingsOutline } from "@vkontakte/icons";
+import { Icon28InfoOutline, Icon28Notifications, Icon28SettingsOutline } from "@vkontakte/icons";
 import { Cell, CellButton, Footer, Group, PanelHeader } from "@vkontakte/vkui";
 
 export default function MorePanel() {
@@ -9,7 +9,7 @@ export default function MorePanel() {
 			<PanelHeader>Ещё</PanelHeader>
 			<Group>
 				<Cell
-					before={<Icon24InfoCircleOutline />}
+					before={<Icon28Notifications />}
 					chevron="always"
 					onClick={() => void navigator.push({ to: "/notifications" })}
 				>
@@ -17,12 +17,13 @@ export default function MorePanel() {
 				</Cell>
 				<CellButton
 					before={<Icon28SettingsOutline />}
+					subtitle="глобальная модалка — с любой панели"
 					onClick={() => void navigator.showGlobalModal("settings")}
 				>
-					Настройки (глобальная модалка)
+					Настройки
 				</CellButton>
 				<Cell
-					before={<Icon24InfoCircleOutline />}
+					before={<Icon28InfoOutline />}
 					chevron="always"
 					onClick={() => void navigator.push({ to: "/about" })}
 				>

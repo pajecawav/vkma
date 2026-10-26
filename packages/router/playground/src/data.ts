@@ -46,7 +46,7 @@ export const posts: Post[] = [
 				text: "Инфлейт — это магия, наконец-то back не закрывает приложение",
 				time: "12 мин",
 			},
-			{ id: 2, authorId: "gleb", text: "А тайпд-серч пробрасывается? ", time: "8 мин" },
+			{ id: 2, authorId: "gleb", text: "А тайпд-серч пробрасывается?", time: "8 мин" },
 			{ id: 3, authorId: "dasha", text: "Забрала в проект, спасибо!", time: "3 мин" },
 		],
 	},
@@ -159,7 +159,7 @@ export const chats: Chat[] = [
 		unread: 5,
 		messages: [
 			{ out: false, text: "Глеб: кто ревьюит PR?", time: "13:10" },
-			{ out: false, text: "Дашя: стенд обновила, модалки не конфликтуют", time: "13:24" },
+			{ out: false, text: "Даша: стенд обновила, модалки не конфликтуют", time: "13:24" },
 		],
 	},
 	{

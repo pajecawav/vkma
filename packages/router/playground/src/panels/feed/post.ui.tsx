@@ -1,11 +1,6 @@
 import { useNavigator } from "@vkma.dev/router/preset";
 import { usePanelParams, usePanelSearch } from "@vkma.dev/router/react";
-import {
-	Icon24CommentOutline,
-	Icon24LikeOutline,
-	Icon24ShareOutline,
-	Icon28UserCircleOutline,
-} from "@vkontakte/icons";
+import { Icon24CommentOutline, Icon24ShareOutline } from "@vkontakte/icons";
 import {
 	Button,
 	CellButton,
@@ -48,30 +43,9 @@ export default function PostPanel(): ReactElement {
 				>
 					{author.name}
 				</RichCell>
-				<div style={{ padding: "0 16px 4px" }}>
+				<div style={{ padding: "0 16px 12px" }}>
 					<Text>{post.text}</Text>
 				</div>
-				{search?.tab === undefined && (
-					<div style={{ display: "flex", gap: 4, padding: "8px 8px 0" }}>
-						<Button
-							size="s"
-							mode={post.liked ? "secondary" : "tertiary"}
-							before={<Icon24LikeOutline />}
-							after={post.likes}
-						>
-							Нравится
-						</Button>
-						<Button
-							size="s"
-							mode="tertiary"
-							before={<Icon24CommentOutline />}
-							after={post.comments.length}
-							onClick={() => setTab("comments")}
-						>
-							Комментарии
-						</Button>
-					</div>
-				)}
 			</Group>
 			<Group>
 				<HorizontalScroll>
@@ -97,6 +71,40 @@ export default function PostPanel(): ReactElement {
 					</Tabs>
 				</HorizontalScroll>
 			</Group>
+			{search?.tab === undefined && (
+				<Group>
+					<div style={{ display: "flex", gap: 4, padding: "10px 8px" }}>
+						<Button
+							size="s"
+							mode={post.liked ? "secondary" : "tertiary"}
+							after={post.likes}
+						>
+							Нравится
+						</Button>
+						<Button
+							size="s"
+							mode="tertiary"
+							after={post.comments.length}
+							onClick={() => setTab("comments")}
+						>
+							Комментарии
+						</Button>
+						<Button
+							size="s"
+							mode="tertiary"
+							onClick={() =>
+								void navigator.showModal({
+									to: "/post/$id/share",
+									params: { id },
+									props: { note: "Выберите чат для пересылки" },
+								})
+							}
+						>
+							Поделиться
+						</Button>
+					</div>
+				</Group>
+			)}
 			{search?.tab === "comments" ? (
 				<Group
 					header={<Header size="s">Комментарии</Header>}
@@ -107,6 +115,7 @@ export default function PostPanel(): ReactElement {
 						return (
 							<RichCell
 								key={comment.id}
+								multiline
 								before={<InitialsAvatar name={commenter.name} size={36} />}
 								subtitle={comment.time}
 							>
@@ -124,6 +133,7 @@ export default function PostPanel(): ReactElement {
 					})}
 					<CellButton
 						before={<Icon24CommentOutline />}
+						subtitle="модалка поверх панели"
 						onClick={() =>
 							void navigator.showModal({
 								to: "/post/$id/comments",
@@ -131,10 +141,11 @@ export default function PostPanel(): ReactElement {
 							})
 						}
 					>
-						Все комментарии (модалка)
+						Все комментарии
 					</CellButton>
 					<CellButton
 						before={<Icon24ShareOutline />}
+						subtitle="карточка с runtime-пропсами"
 						onClick={() =>
 							void navigator.showModal({
 								to: "/post/$id/share",
@@ -143,13 +154,16 @@ export default function PostPanel(): ReactElement {
 							})
 						}
 					>
-						Поделиться (карточка)
+						Поделиться
 					</CellButton>
 				</Group>
 			) : search?.tab === "likes" ? (
 				<Group header={<Header size="s">Нравится</Header>}>
 					{Object.values(users).map(user => (
-						<SimpleCell key={user.id} before={<Icon28UserCircleOutline />}>
+						<SimpleCell
+							key={user.id}
+							before={<InitialsAvatar name={user.name} size={40} />}
+						>
 							{user.name}
 						</SimpleCell>
 					))}
@@ -157,6 +171,7 @@ export default function PostPanel(): ReactElement {
 			) : null}
 			<Group>
 				<CellButton
+					subtitle="та же панель, новый параметр"
 					onClick={() =>
 						void navigator.push({
 							to: "/post/$id",
@@ -164,10 +179,13 @@ export default function PostPanel(): ReactElement {
 						})
 					}
 				>
-					Следующая запись → (та же панель, новый параметр)
+					Следующая запись
 				</CellButton>
-				<CellButton onClick={() => navigator.backToFirst()}>
-					На первый экран (backToFirst)
+				<CellButton
+					subtitle="backToFirst — схлопнуть весь стек"
+					onClick={() => navigator.backToFirst()}
+				>
+					На первый экран
 				</CellButton>
 			</Group>
 		</>

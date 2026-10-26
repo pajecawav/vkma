@@ -41,19 +41,21 @@ export default function ProfilePanel() {
 				</CellButton>
 				<CellButton
 					before={<Icon28UserCircleOutline />}
+					subtitle="типизированный ?section=privacy"
 					onClick={() =>
 						void navigator.push({ to: "/settings", search: { section: "privacy" } })
 					}
 				>
-					Приватность (?section=privacy)
+					Приватность
 				</CellButton>
 			</Group>
 			<Group header={<Header size="s">Приложение</Header>}>
 				<CellButton
 					before={<Icon28SettingsOutline />}
+					subtitle="глобальная модалка — с любой панели"
 					onClick={() => void navigator.showGlobalModal("settings")}
 				>
-					Настройки (глобальная модалка)
+					Настройки
 				</CellButton>
 			</Group>
 		</>

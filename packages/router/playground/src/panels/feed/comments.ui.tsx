@@ -36,6 +36,7 @@ export default function CommentsModal(): ReactElement {
 					return (
 						<RichCell
 							key={comment.id}
+							multiline
 							before={<InitialsAvatar name={commenter.name} size={36} />}
 							subtitle={comment.time}
 						>

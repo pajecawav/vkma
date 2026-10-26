@@ -80,22 +80,25 @@ export default function ChatPanel() {
 				<Footer style={{ paddingTop: 8 }}>
 					глубокая ссылка #/chat/{chat.id} — инфлейт цепочки
 				</Footer>
-
-				<WriteBar
-					placeholder="Сообщение"
-					aria-label="Сообщение"
-					before={<WriteBarIcon mode="attach" />}
-					after={<WriteBarIcon mode="send" />}
-				/>
 			</Group>
 			<Group>
 				<CellButton
 					before={<Icon28BlockOutline />}
+					subtitle="redirect из beforeLoad"
 					onClick={() => void navigator.push({ to: "/chat/$id", params: { id: "bot" } })}
 				>
-					Пожаловаться (redirect из beforeLoad)
+					Пожаловаться
 				</CellButton>
 			</Group>
+			{/* VKUI Panel is a flex column — margin-top:auto pins the bar above
+			    the tabbar while the content is shorter than the viewport. */}
+			<WriteBar
+				style={{ marginTop: "auto" }}
+				placeholder="Сообщение"
+				aria-label="Сообщение"
+				before={<WriteBarIcon mode="attach" />}
+				after={<WriteBarIcon mode="send" />}
+			/>
 		</>
 	);
 }

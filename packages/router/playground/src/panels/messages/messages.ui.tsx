@@ -1,13 +1,14 @@
 import { useNavigator } from "@vkma.dev/router/preset";
+import { Icon56MessageMissingOutline } from "@vkontakte/icons";
 import {
 	Group,
 	PanelHeader,
 	Search,
-	Footer,
 	Counter,
 	Caption,
 	SimpleCell,
 	Flex,
+	Placeholder,
 } from "@vkontakte/vkui";
 import { useState } from "react";
 import { chatTitleOf, chats, users } from "../../data";
@@ -57,7 +58,11 @@ export default function ChatsPanel() {
 						</SimpleCell>
 					);
 				})}
-				{filtered.length === 0 && <Footer>Никого не нашли</Footer>}
+				{filtered.length === 0 && (
+					<Placeholder icon={<Icon56MessageMissingOutline />} title="Никого не нашли">
+						Попробуйте изменить запрос
+					</Placeholder>
+				)}
 			</Group>
 		</>
 	);

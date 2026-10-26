@@ -6,11 +6,11 @@ import {
 	Header,
 	IconButton,
 	PanelHeader,
-	PanelHeaderBack,
 	Separator,
 	SimpleCell,
 	Text,
 } from "@vkontakte/vkui";
+import { useState } from "react";
 import { users, type Post } from "../../data";
 import { InitialsAvatar } from "../../ui";
 import { feedPanel } from "./feed.panel";
@@ -21,9 +21,7 @@ export default function FeedPanel() {
 
 	return (
 		<>
-			<PanelHeader before={<PanelHeaderBack onClick={() => navigator.back()} />}>
-				Лента
-			</PanelHeader>
+			<PanelHeader>Лента</PanelHeader>
 			<Group header={<Header size="s">Свежее</Header>}>
 				{(data?.posts ?? []).map((post, i) => (
 					<div key={post.id}>
@@ -61,6 +59,7 @@ function PostCard({
 	onComments: () => void;
 }) {
 	const author = users[post.authorId]!;
+	const [liked, setLiked] = useState(post.liked);
 	return (
 		<div style={{ padding: "4px 0 10px" }}>
 			<SimpleCell
@@ -74,14 +73,19 @@ function PostCard({
 				<Text>{post.text}</Text>
 			</div>
 			<div style={{ display: "flex", gap: 4, padding: "8px 8px 0" }}>
-				<IconButton>
-					{post.liked ? (
+				<IconButton
+					aria-label={
+						liked ? "Убрать отметку «нравится»" : "Поставить отметку «нравится»"
+					}
+					onClick={() => setLiked(value => !value)}
+				>
+					{liked ? (
 						<Icon24Like fill="var(--vkui--color_accent_red)" />
 					) : (
 						<Icon24LikeOutline />
 					)}
 				</IconButton>
-				<IconButton onClick={onComments}>
+				<IconButton aria-label="Комментарии" onClick={onComments}>
 					<Icon24CommentOutline />
 				</IconButton>
 			</div>

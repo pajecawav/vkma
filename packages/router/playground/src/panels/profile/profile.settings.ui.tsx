@@ -68,8 +68,12 @@ export default function ProfileSettingsPanel(): ReactElement {
 				</Group>
 			)}
 			<Group>
-				<CellButton appearance="negative" onClick={() => navigator.showPopout("logout")}>
-					Выйти из аккаунта (попаут)
+				<CellButton
+					appearance="negative"
+					subtitle="попаут поверх панели"
+					onClick={() => navigator.showPopout("logout")}
+				>
+					Выйти из аккаунта
 				</CellButton>
 			</Group>
 		</>

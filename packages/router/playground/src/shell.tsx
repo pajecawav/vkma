@@ -51,6 +51,16 @@ const TABS: TabConfig[] = [
 	{ id: "more", label: "Ещё", to: "/more", Icon: Icon28MoreHorizontal },
 ];
 
+/**
+ * The story key behind a view route id: "/view:feed" → "feed". Route ids
+ * carry a leading slash at runtime, so raw ids never equal the tab ids —
+ * the Epic nav and the tab/sidebar highlighting must compare the same key.
+ */
+function storyKey(routeId: unknown): string {
+	const id = String(routeId);
+	return id.split(":")[1] ?? id;
+}
+
 /** The active story is the view containing the deepest matched route. */
 function useActiveStory(app: AppHandle) {
 	return useRouterState({
@@ -62,10 +72,10 @@ function useActiveStory(app: AppHandle) {
 					view => routeId === view.id || routeId.startsWith(`${view.id}/`),
 				);
 				if (view !== undefined) {
-					return view.id as string;
+					return storyKey(view.id);
 				}
 			}
-			return (views[0]?.id as string | undefined) ?? "";
+			return views[0] !== undefined ? storyKey(views[0].id) : "";
 		},
 	});
 }
@@ -149,7 +159,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 						}
 					>
 						{Object.values(app.views).map(view => (
-							<VkView key={view.id} view={view} nav={view.id} />
+							<VkView key={view.id} view={view} nav={storyKey(view.id)} />
 						))}
 					</Epic>
 				</SplitCol>
