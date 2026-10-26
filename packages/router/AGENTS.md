@@ -26,8 +26,14 @@ read it before touching anything here.
   It CONSUMES the package (`pnpm --filter @vkma.dev/router build` before
   its dev server — it resolves `dist`). Manual-e2e observability (bridge
   payloads, host stack, `__TSR_index`) hides behind `?debug=1` in the
-  router search (`#/?debug=1`). New design questions still get answered by
-  spikes here, and every answer lands back in DESIGN.md.
+  router search (`#/?debug=1`) — the flag LATCHES in localStorage (the
+  panel exists to be watched while navigating); disarm via the panel's
+  hide button or `?debug=0`. Unknown URLs and `notFound()` throws render
+  the VKUI NotFound — never a first-story fallback (an unmatched lazy
+  panel would spin forever). The feature index in «О приложении» is the
+  manual e2e script: every row is a deep link to one scenario. New design
+  questions still get answered by spikes here, and every answer lands
+  back in DESIGN.md.
 
 ## Non-obvious invariants (from the spikes — do not rediscover them)
 
