@@ -45,4 +45,16 @@ describe("MergedTimeline", () => {
 		// the merger never mutates the feed's own events
 		expect(feedA.events.map(e => e.seq)).toEqual([1, 2]);
 	});
+
+	it("evicts memoized seqs of events that left the feeds", () => {
+		const merger = new MergedTimeline();
+		const feedA = { events: [event("a", 1, 10)] };
+		const first = merger.merge([feedA]);
+		expect(first.map(e => e.seq)).toEqual([1]);
+		// the feed disappears (tab closed / host reloaded) — empty merge
+		expect(merger.merge([])).toEqual([]);
+		// a reappearing key draws a FRESH seq; no collision with the past
+		const second = merger.merge([feedA]);
+		expect(second.map(e => e.seq)).toEqual([2]);
+	});
 });
