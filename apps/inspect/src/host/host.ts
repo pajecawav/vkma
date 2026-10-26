@@ -40,6 +40,9 @@ interface ConnState {
 	pending?: ApprovalRequest;
 	/** Messages parked behind the gate (hello included), bounded. */
 	buffered: ParsedInspectorMessage[];
+	/** This connection passed the gate (allow-once or replay after
+	 * approval) — dispatch must not re-park its own hello. */
+	admitted?: boolean;
 }
 
 export class InspectHost {
@@ -110,6 +113,7 @@ export class InspectHost {
 			const parked = state.buffered;
 			state.pending = undefined;
 			state.buffered = [];
+			state.admitted = true;
 			for (const message of parked) {
 				this.dispatch(state, message);
 			}
@@ -233,12 +237,17 @@ export class InspectHost {
 					this.dropChannel(state.channel);
 					return;
 				}
-				if (this.gate.isEnabled() && !this.gate.isApproved(info.clientId)) {
+				if (
+					!state.admitted &&
+					this.gate.isEnabled() &&
+					!this.gate.isApproved(info.clientId)
+				) {
 					state.pending = { clientId: info.clientId, info, receivedAt: Date.now() };
 					state.buffered.push(message);
 					this.publishApprovals();
 					return;
 				}
+				state.admitted = true;
 				this.register(state, info);
 				return;
 			}

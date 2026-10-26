@@ -13,7 +13,7 @@ export default defineConfig({
 	plugins: [pluginReact()],
 	source: {
 		entry: {
-			panel: "./src/panel/main.tsx",
+			index: "./src/panel/main.tsx",
 			inspector: { import: "./src/inspector/index.ts", html: false },
 		},
 	},

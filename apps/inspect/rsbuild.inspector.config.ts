@@ -16,6 +16,10 @@ export default defineConfig({
 			inspector: "./src/inspector/index.ts",
 		},
 	},
+	tools: {
+		// JS only — no HTML page for this pass (the spy's vercel-env trick).
+		htmlPlugin: false,
+	},
 	performance: {
 		chunkSplit: {
 			strategy: "all-in-one",

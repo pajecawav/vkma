@@ -9,9 +9,6 @@ import type { RsbuildConfig } from "@rsbuild/core";
  * a plain classic <script> and as a console `import()` on foreign pages).
  */
 export const baseConfig: RsbuildConfig = {
-	tools: {
-		htmlPlugin: false,
-	},
 	output: {
 		filenameHash: false,
 		distPath: {
