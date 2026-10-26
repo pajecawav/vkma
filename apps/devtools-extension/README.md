@@ -24,7 +24,7 @@ The TopBar chip shows which: `vkma bridge` (direct) vs `sniffer` (spy).
 - **FAB** on every VK host page (vk.com/vk.ru and friends) — opens the
   panel inline, yields to the side panel when that is open.
 - **Action icon** — the full panel in a tab, bound to the clicked tab.
-- **Side panel** (Chrome 116+) — opened from the FAB panel's toolbar.
+- **Side panel** (Chrome 142+) — opened from the FAB panel's toolbar.
 
 ## Develop
 
