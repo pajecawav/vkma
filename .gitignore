@@ -14,3 +14,6 @@ packages/bridge-schema/src/generated
 packages/bridge-schema/src/index.ts
 packages/bridge-schema/.bootstrap
 packages/bridge-schema/src/index.d.ts*
+
+# agent/browser audit artifacts — local only
+.playwright-mcp/
