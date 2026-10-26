@@ -9,14 +9,6 @@ const MAX_EVENTS = 500;
  * `subscription.start` until acked) restarts `seq` from zero, so a batch
  * from an unknown run resets the absorb state and other runs' events are
  * dropped as ghosts (they used to resurface mid-list and never leave).
- */
-/**
- * Absorb timeline batches: dedupe by (runId, seq). The collecting side's
- * store dies with its page (extension host) or dev server — after a
- * restart the resurrected subscription (werpc retries
- * `subscription.start` until acked) restarts `seq` from zero, so a batch
- * from an unknown run resets the absorb state and other runs' events are
- * dropped as ghosts (they used to resurface mid-list and never leave).
  * A runId-less collecting side forms its own legacy epoch — bare-seq
  * absorb, not a drop.
  */
