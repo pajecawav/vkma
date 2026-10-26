@@ -16,6 +16,7 @@
 		"preview": "rsbuild preview",
 		"deploy": "run-s build deploy:wrangler",
 		"deploy:wrangler": "pnpx wrangler deploy",
+		"gen:favicon": "node scripts/generate-favicon.ts",
 		"test": "vitest run",
 		"test:watch": "vitest watch"
 	},

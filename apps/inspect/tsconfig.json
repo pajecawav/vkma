@@ -30,6 +30,7 @@
 	},
 	"include": [
 		"src",
+		"scripts",
 		"rsbuild.config.ts",
 		"rsbuild.dev.config.ts",
 		"rsbuild.panel.config.ts",
