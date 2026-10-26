@@ -49,12 +49,25 @@ export interface VkViewProps {
  * the animation direction from the children order — a plain <Outlet>
  * breaks both. A lazy panel's `options.component` is undefined until its
  * chunk resolves (TanStack merges loaded options in place), so the panel
- * renders a spinner fallback until then.
+ * renders a spinner fallback until then. For the same reason TanStack's
+ * Outlet-driven `pendingComponent` swap never happens on its own — while
+ * the panel's match is pending (loader/beforeLoad), the route's
+ * `pendingComponent` renders instead of the component.
  */
 export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 	useMatchSummaries();
 	const matchedRouteIds = useRouterState({
 		select: state => state.matches.map(match => match.routeId),
+	});
+	// stable string — TanStack's Outlet would swap in the route's
+	// pendingComponent itself, but static children render the component
+	// directly, so the swap is ours to make while the loader runs
+	const pendingRouteIds = useRouterState({
+		select: state =>
+			state.matches
+				.filter(match => (match as { status?: string }).status === "pending")
+				.map(match => match.routeId)
+				.join("|"),
 	});
 	const activeRouteId = deepestPanelMatchId(view, matchedRouteIds);
 	const activeChild =
@@ -73,9 +86,17 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 			{view.children.map((child: AnyRoute) => {
 				const id = panelIdOf(child);
 				const Component = child.options.component as ComponentType | undefined;
+				const Pending = child.options.pendingComponent as ComponentType | undefined;
+				const isPending = pendingRouteIds.split("|").includes(String(child.id));
 				return (
 					<Panel key={id} nav={id}>
-						{Component ? <Component /> : <PanelSpinnerFallback />}
+						{isPending && Pending !== undefined ? (
+							<Pending />
+						) : Component ? (
+							<Component />
+						) : (
+							<PanelSpinnerFallback />
+						)}
 					</Panel>
 				);
 			})}
