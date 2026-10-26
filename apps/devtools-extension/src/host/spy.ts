@@ -33,7 +33,7 @@ export class SpyTracker {
 		clientId: string,
 		envelope: VkConnectEnvelope,
 		ts = Date.now(),
-	): Omit<WireEvent, "seq" | "clientId"> {
+	): Omit<WireEvent, "seq" | "clientId" | "runId"> {
 		const state = this.state(clientId);
 		const id = --state.nextSyntheticId;
 		const requestId = envelope.params["request_id"];
@@ -58,7 +58,10 @@ export class SpyTracker {
 	 * sniffed request's wire `request_id` is that request's `response`;
 	 * everything else passes through untouched.
 	 */
-	public reclassify(clientId: string, event: TapEvent): Omit<WireEvent, "seq" | "clientId"> {
+	public reclassify(
+		clientId: string,
+		event: TapEvent,
+	): Omit<WireEvent, "seq" | "clientId" | "runId"> {
 		if (event.kind !== "event" || !isPlainObject(event.payload)) {
 			return event;
 		}
