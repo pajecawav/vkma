@@ -18,7 +18,13 @@ import { postPanel } from "./feed.panel";
 export default function CommentsModal(): ReactElement {
 	const navigator = useNavigator();
 	const { id } = usePanelParams(postPanel);
-	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
+	const post = posts.find(candidate => candidate.id === Number(id));
+	if (post === undefined) {
+		// the parent panel's beforeLoad rejects unknown ids — this narrows the type
+		throw new Error(
+			`[playground] unknown post "${id}" — the panel guard should have caught it`,
+		);
+	}
 
 	return (
 		<ModalPageSurface

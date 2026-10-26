@@ -1,6 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import {
 	Modals,
+	NotFound,
 	Popouts,
 	VkView,
 	useInflate,
@@ -61,10 +62,18 @@ function storyKey(routeId: unknown): string {
 	return id.split(":")[1] ?? id;
 }
 
-/** The active story is the view containing the deepest matched route. */
+/** The active story is the view containing the deepest matched route; `null` = 404. */
 function useActiveStory(app: AppHandle) {
 	return useRouterState({
-		select: (state): string => {
+		select: (state): string | null => {
+			const notFound = state.matches.some(
+				match =>
+					(match as { status?: string }).status === "notFound" ||
+					(match as { _notFound?: boolean })._notFound === true,
+			);
+			if (notFound) {
+				return null;
+			}
 			const views = Object.values(app.views);
 			for (let i = state.matches.length - 1; i >= 0; i--) {
 				const routeId = state.matches[i]?.routeId ?? "";
@@ -75,7 +84,7 @@ function useActiveStory(app: AppHandle) {
 					return storyKey(view.id);
 				}
 			}
-			return views[0] !== undefined ? storyKey(views[0].id) : "";
+			return null;
 		},
 	});
 }
@@ -88,6 +97,18 @@ export function AppShell({ app }: { app: AppHandle }) {
 	const onTab = (to: TabConfig["to"]) => {
 		void navigator.replace({ to });
 	};
+
+	if (activeStory === null) {
+		// an unmatched URL must show the NotFound screen — falling back to the
+		// first story here renders its lazy panel as an eternal spinner (the
+		// chunk of an unmatched route is never fetched)
+		return (
+			<>
+				<NotFound />
+				<DebugOverlay />
+			</>
+		);
+	}
 
 	return (
 		<>

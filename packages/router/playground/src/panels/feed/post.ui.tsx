@@ -25,7 +25,12 @@ export default function PostPanel(): ReactElement {
 	const navigator = useNavigator();
 	const { id } = usePanelParams(postPanel);
 	const search = usePanelSearch(postPanel);
-	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
+	const post = posts.find(candidate => candidate.id === Number(id));
+	if (post === undefined) {
+		// beforeLoad rejects unknown ids (including warm param swaps) — this
+		// branch only narrows the type
+		throw new Error(`[playground] unknown post "${id}" — beforeLoad should have caught it`);
+	}
 	const author = users[post.authorId]!;
 	const setTab = (tab: PostSearch["tab"]) => {
 		void navigator.replace({ to: "/post/$id", params: { id }, search: { tab } });

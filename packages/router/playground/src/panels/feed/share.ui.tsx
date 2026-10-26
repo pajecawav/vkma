@@ -14,7 +14,14 @@ export default function ShareCard(): ReactElement {
 	const { id } = usePanelParams(postPanel);
 	const { note } = useModalProps<{ note?: string }>() ?? {};
 	const navigator = useNavigator();
-	const post = posts.find(candidate => candidate.id === Number(id)) ?? posts[0]!;
+	const post = posts.find(candidate => candidate.id === Number(id));
+	if (post === undefined) {
+		// the parent panel's beforeLoad rejects unknown ids — the modal route
+		// can only be matched under a valid one; this narrows the type
+		throw new Error(
+			`[playground] unknown post "${id}" — the panel guard should have caught it`,
+		);
+	}
 
 	return (
 		<ModalCardSurface

@@ -1,3 +1,4 @@
+import { notFound } from "@tanstack/react-router";
 import { defineView } from "@vkma.dev/router/preset";
 import { ScreenSpinner } from "@vkontakte/vkui";
 import { lazy } from "react";
@@ -27,6 +28,13 @@ export type PostSearch = {
 export const postPanel = feedView.panel(
 	"post/$id",
 	{
+		// unknown ids are a 404, not "post №1" — the shell renders the VKUI
+		// NotFound for the thrown error
+		beforeLoad: ({ params }: { params: { id: string } }) => {
+			if (!posts.some(post => post.id === Number(params.id))) {
+				throw notFound();
+			}
+		},
 		validateSearch: (search: Record<string, unknown>): PostSearch => ({
 			tab:
 				search["tab"] === "comments" || search["tab"] === "likes"
