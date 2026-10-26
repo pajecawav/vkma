@@ -156,6 +156,11 @@ const handler = createHandler({
 			const { info, webFrameId, origin } = input;
 			const previous = store.getClient(info.clientId);
 			const sessionChanged = previous !== undefined && previous.sessionId !== info.sessionId;
+			// Spy → direct flip: the page bridge's tap replays the whole page
+			// load from scratch, so the spy-era reconstruction of the same
+			// traffic (sniffed sends + the spy tap's events) must not survive
+			// next to it as duplicates.
+			const captureFlipped = previous !== undefined && !previous.bridge && info.bridge;
 			const changed = store.touchClient(info);
 
 			if (webFrameId !== undefined) {
@@ -163,8 +168,9 @@ const handler = createHandler({
 			}
 			clientByOrigin.set(origin, info.clientId);
 
-			if (sessionChanged) {
-				// The page reloaded: this session's history is dead everywhere.
+			if (sessionChanged || captureFlipped) {
+				// The page reloaded (or the direct tap took over): the old
+				// history is dead everywhere and gets rebuilt from the replay.
 				store.purgeEvents(info.clientId);
 				spy.reset(info.clientId);
 				sessionResetHub.publish({ clientId: info.clientId });
