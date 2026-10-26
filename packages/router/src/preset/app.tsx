@@ -1,6 +1,7 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { Modals } from "../vkui/modals.tsx";
+import { NotFound } from "../vkui/not-found.tsx";
 import { Popouts } from "../vkui/popouts.tsx";
 import { VkView } from "../vkui/vk-view.tsx";
 import type { AppHandle } from "./builders.tsx";
@@ -11,12 +12,25 @@ import { deriveInflateChain, interpolatePath } from "./inflate.ts";
  * The active view is the one containing the deepest matched route
  * (single-view apps always get their only view). Multi-story apps with
  * Epic/Root are built with a custom `root` shell out of the same pieces.
+ *
+ * An unmatched URL (global 404 or a `notFound()` thrown by `beforeLoad`)
+ * renders the VKUI `NotFound` instead of a view — falling back to the
+ * first view here would show its lazy panel as a spinner that never
+ * resolves, because an unmatched panel's chunk is never loaded.
  */
 export function AppRootShell({ app, inflate = true }: { app: AppHandle; inflate?: boolean }) {
 	useInflate(app, inflate);
 
 	const activeViewId = useRouterState({
 		select: state => {
+			const notFound = state.matches.some(
+				match =>
+					(match as { status?: string }).status === "notFound" ||
+					(match as { _notFound?: boolean })._notFound === true,
+			);
+			if (notFound) {
+				return null;
+			}
 			const views = Object.values(app.views);
 			for (let i = state.matches.length - 1; i >= 0; i--) {
 				const routeId = state.matches[i]?.routeId ?? "";
@@ -27,16 +41,17 @@ export function AppRootShell({ app, inflate = true }: { app: AppHandle; inflate?
 					return view.id;
 				}
 			}
-			return views[0]?.id ?? "";
+			return null;
 		},
 	});
 	const activeView =
-		Object.values(app.views).find(view => view.id === activeViewId) ??
-		Object.values(app.views)[0];
+		activeViewId === null
+			? undefined
+			: Object.values(app.views).find(view => view.id === activeViewId);
 
 	return (
 		<>
-			{activeView !== undefined ? <VkView view={activeView} /> : null}
+			{activeView !== undefined ? <VkView view={activeView} /> : <NotFound />}
 			<Modals entries={app.modals} />
 			<Popouts entries={app.popouts} />
 		</>
