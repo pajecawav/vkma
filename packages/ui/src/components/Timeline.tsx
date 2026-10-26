@@ -139,86 +139,133 @@ export function Timeline({
 
 	const empty = ordered.length === 0 && query === "" && buffered === 0;
 
-	return (
-		<section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Timeline">
-			<div className="flex h-11 shrink-0 items-center gap-2 border-b border-neutral-200 px-3 dark:border-neutral-800">
-				<input
-					type="search"
-					value={query}
-					onChange={event => setQuery(event.target.value)}
-					placeholder="Filter by event name…"
-					className="h-7 w-40 min-w-0 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 sm:w-56 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500"
-				/>
-				{!hideClient && clients.length > 1 && (
-					<ClientSelect
-						size="sm"
-						className="max-w-44"
-						ariaLabel="Client"
-						title="Show events of one client"
-						clients={clients}
-						value={clientFilter}
-						onValueChange={setClientFilter}
-						allValue={{ value: "all", label: "All clients" }}
-					/>
-				)}
-				<div
-					className="flex h-7 items-center rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800"
-					role="tablist"
-					aria-label="Event type"
+	// The filter chrome renders twice — a single row for wide containers and
+	// a stacked variant for narrow ones (side panel, FAB iframe). Container
+	// queries pick the visible copy; display:none keeps the hidden one out
+	// of the a11y tree. The collapse point depends on whether the client
+	// filter rides along: with it one row needs ~576px, without — ~384px.
+	const showClientFilter = !hideClient && clients.length > 1;
+	const search = (className: string) => (
+		<input
+			type="search"
+			value={query}
+			onChange={event => setQuery(event.target.value)}
+			placeholder="Filter by event name…"
+			className={`h-7 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 ${className}`}
+		/>
+	);
+	const clientSelect = (className: string) => (
+		<ClientSelect
+			size="sm"
+			className={className}
+			ariaLabel="Client"
+			title="Show events of one client"
+			clients={clients}
+			value={clientFilter}
+			onValueChange={setClientFilter}
+			allValue={{ value: "all", label: "All clients" }}
+		/>
+	);
+	const tabs = (
+		<div
+			className="flex h-7 shrink-0 items-center rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800"
+			role="tablist"
+			aria-label="Event type"
+		>
+			{FILTER_TABS.map(tab => (
+				<button
+					key={tab.id}
+					type="button"
+					role="tab"
+					aria-selected={filter === tab.id}
+					onClick={() => setFilter(tab.id)}
+					className={`h-6 rounded-[4px] px-2.5 text-xs font-medium ${
+						filter === tab.id
+							? "bg-neutral-800 text-white dark:bg-neutral-100 dark:text-neutral-900"
+							: "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+					}`}
 				>
-					{FILTER_TABS.map(tab => (
-						<button
-							key={tab.id}
-							type="button"
-							role="tab"
-							aria-selected={filter === tab.id}
-							onClick={() => setFilter(tab.id)}
-							className={`h-6 rounded-[4px] px-2.5 text-xs font-medium ${
-								filter === tab.id
-									? "bg-neutral-800 text-white dark:bg-neutral-100 dark:text-neutral-900"
-									: "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
-							}`}
-						>
-							{tab.label}
-						</button>
-					))}
-				</div>
-				<div className="ml-auto flex items-center gap-1">
-					{paused && buffered > 0 && (
-						<button
-							type="button"
-							onClick={() => setPaused(false)}
-							className="h-7 rounded-md bg-neutral-800 px-2.5 text-xs font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
-						>
-							{buffered} new — resume
-						</button>
-					)}
-					<button
-						type="button"
-						onClick={() => setPaused(value => !value)}
-						aria-pressed={paused}
-						title={paused ? "Resume live tail" : "Pause live tail"}
-						className={`grid size-7 place-items-center rounded-md ${
-							paused
-								? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
-								: "text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
-						}`}
-					>
-						{paused ? (
-							<PlayIcon width={14} height={14} />
-						) : (
-							<PauseIcon width={14} height={14} />
-						)}
-					</button>
-					<button
-						type="button"
-						title="Clear timeline"
-						onClick={() => setClearSeq(maxSeq)}
-						className="grid size-7 place-items-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
-					>
-						<TrashIcon width={14} height={14} />
-					</button>
-				</div>
+					{tab.label}
+				</button>
+			))}
+		</div>
+	);
+	const actions = (
+		<div className="ml-auto flex shrink-0 items-center gap-1">
+			{paused && buffered > 0 && (
+				<button
+					type="button"
+					onClick={() => setPaused(false)}
+					className="h-7 rounded-md bg-neutral-800 px-2.5 text-xs font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+				>
+					{buffered} new — resume
+				</button>
+			)}
+			<button
+				type="button"
+				onClick={() => setPaused(value => !value)}
+				aria-pressed={paused}
+				title={paused ? "Resume live tail" : "Pause live tail"}
+				className={`grid size-7 place-items-center rounded-md ${
+					paused
+						? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
+						: "text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+				}`}
+			>
+				{paused ? (
+					<PlayIcon width={14} height={14} />
+				) : (
+					<PauseIcon width={14} height={14} />
+				)}
+			</button>
+			<button
+				type="button"
+				title="Clear timeline"
+				onClick={() => setClearSeq(maxSeq)}
+				className="grid size-7 place-items-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+			>
+				<TrashIcon width={14} height={14} />
+			</button>
+		</div>
+	);
+
+	return (
+		<section className="@container flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Timeline">
+			<div
+				className={`hidden h-11 shrink-0 items-center gap-2 border-b border-neutral-200 px-3 dark:border-neutral-800 ${
+					showClientFilter ? "@xl:flex" : "@sm:flex"
+				}`}
+			>
+				{search("w-40 min-w-24 @2xl:w-56")}
+				{showClientFilter && clientSelect("max-w-44")}
+				{tabs}
+				{actions}
+			</div>
+			<div
+				className={`flex shrink-0 flex-col gap-1.5 border-b border-neutral-200 px-2 py-1.5 dark:border-neutral-800 ${
+					showClientFilter ? "@xl:hidden" : "@sm:hidden"
+				}`}
+			>
+				{showClientFilter ? (
+					<>
+						<div className="flex items-center gap-2">
+							{search("min-w-0 flex-1")}
+							{actions}
+						</div>
+						<div className="flex min-w-0 items-center gap-2">
+							{clientSelect("max-w-40")}
+							{tabs}
+						</div>
+					</>
+				) : (
+					<>
+						{search("min-w-0 flex-1")}
+						<div className="flex items-center gap-2">
+							{tabs}
+							{actions}
+						</div>
+					</>
+				)}
 			</div>
 
 			<div
