@@ -113,6 +113,12 @@ export function useNavigator(): VkNavigator {
 					: {};
 			return navigate({
 				...options,
+				// a modal open never changes the panel behind it — carry the
+				// panel's search (?tab=…) onto the modal entry, or the covered
+				// panel would snap to its default search for the whole time the
+				// modal is open (and snap back on close). An explicit `search`
+				// from the caller always wins.
+				search: options.search ?? true,
 				replace: nested ? false : modalOpen,
 				...withProps,
 			}) as Promise<void>;
