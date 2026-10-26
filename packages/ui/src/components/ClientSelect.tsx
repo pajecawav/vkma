@@ -56,9 +56,7 @@ export function ClientSelect({
 	const selected = options.find(option => option.value === value);
 
 	const triggerSize =
-		size === "sm"
-			? "h-7 gap-1.5 rounded-md pl-1.5 pr-2 text-xs"
-			: "h-8 gap-2 rounded-md pl-2 pr-2.5 text-sm";
+		size === "sm" ? "h-7 gap-2 rounded-md px-2 text-xs" : "h-8 gap-2 rounded-md px-2 text-sm";
 	const itemSize = size === "sm" ? "text-xs" : "text-sm";
 
 	return (
@@ -78,12 +76,14 @@ export function ClientSelect({
 				title={title}
 				className={`flex min-w-0 cursor-pointer items-center rounded-md border border-neutral-200 bg-white text-left text-neutral-800 outline-none focus-visible:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 ${triggerSize} ${className ?? ""}`}
 			>
-				{selected?.clientId !== undefined && (
-					<span
-						aria-hidden="true"
-						className={`size-1.5 shrink-0 rounded-[2px] ${clientColor(selected.clientId).dot}`}
-					/>
-				)}
+				{/* The dot slot is always reserved: alignItemWithTrigger aligns
+				    the selected item's text with the Value's edge, so the chain
+				    [padding][dot][gap] must be identical in the trigger and the
+				    items — otherwise the popup shifts horizontally. */}
+				<span
+					aria-hidden="true"
+					className={`size-1.5 shrink-0 rounded-[2px] ${selected?.clientId === undefined ? "bg-transparent" : clientColor(selected.clientId).dot}`}
+				/>
 				<BaseSelect.Value className="min-w-0 flex-1 truncate">
 					{selected?.label}
 				</BaseSelect.Value>
@@ -93,7 +93,7 @@ export function ClientSelect({
 			</BaseSelect.Trigger>
 			<BaseSelect.Portal>
 				<BaseSelect.Positioner alignItemWithTrigger className="z-50">
-					<BaseSelect.Popup className="scroll-area z-50 max-h-72 min-w-(--positioner-width) overflow-y-auto rounded-md border border-neutral-200 bg-white p-0.5 shadow-lg outline-none dark:border-neutral-800 dark:bg-neutral-900">
+					<BaseSelect.Popup className="scroll-area z-50 max-h-72 min-w-(--positioner-width) overflow-y-auto rounded-md bg-white py-0.5 shadow-lg ring-1 ring-neutral-200 outline-none dark:bg-neutral-900 dark:ring-neutral-800">
 						<BaseSelect.List>
 							{options.map(option => (
 								<BaseSelect.Item
