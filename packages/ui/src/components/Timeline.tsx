@@ -93,7 +93,6 @@ export function Timeline({
 	const [paused, setPaused] = useState(false);
 	const [anchorSeq, setAnchorSeq] = useState<number | null>(null);
 	const [clearSeq, setClearSeq] = useState(0);
-	const listRef = useRef<HTMLDivElement>(null);
 
 	const maxSeq = events.length > 0 ? (events.at(-1)?.seq ?? 0) : 0;
 
@@ -145,7 +144,10 @@ export function Timeline({
 	// queries pick the visible copy; display:none keeps the hidden one out
 	// of the a11y tree. The collapse point depends on whether the client
 	// filter rides along: with it one row needs ~576px, without — ~384px.
-	const showClientFilter = !hideClient && clients.length > 1;
+	// The select also stays rendered while a non-`all` filter is active
+	// even with a single client left — otherwise the filter would pin the
+	// feed to a departed client with no control to reset it.
+	const showClientFilter = !hideClient && (clients.length > 1 || clientFilter !== "all");
 	const search = (className: string) => (
 		<input
 			type="search"
@@ -270,10 +272,7 @@ export function Timeline({
 				)}
 			</div>
 
-			<div
-				ref={listRef}
-				className="scroll-area relative min-h-0 flex-1 divide-y divide-neutral-100 overflow-y-auto overflow-x-hidden dark:divide-neutral-800/60"
-			>
+			<div className="scroll-area relative min-h-0 flex-1 divide-y divide-neutral-100 overflow-y-auto overflow-x-hidden dark:divide-neutral-800/60">
 				{empty ? (
 					<div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 px-6 text-center">
 						<p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
