@@ -202,6 +202,11 @@ export function useVkmaAllTabs(): GlobalConnection {
 						for (const event of batch) {
 							feed.events.set(event.seq, event);
 						}
+						// Data is proof of a host — covers a probe that raced a
+						// not-yet-injected host script (extension installed while
+						// the tab was already open): without this the feed would
+						// stay "dead" with events flowing into it unseen.
+						feed.state = "live";
 						publish();
 					},
 				});
@@ -210,6 +215,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 						if (feeds.get(tabId) !== feed) {
 							return;
 						}
+						feed.state = "live";
 						feed.clients = next;
 						publish();
 					},
