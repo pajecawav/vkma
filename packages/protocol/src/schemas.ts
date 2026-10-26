@@ -67,15 +67,6 @@ export const executeInputSchema = z.object({
 });
 export type ExecuteInput = z.infer<typeof executeInputSchema>;
 
-export const execResultSchema = z.discriminatedUnion("status", [
-	z.object({ status: z.literal("ok"), payload: z.unknown() }),
-	z.object({ status: z.literal("error"), payload: z.unknown() }),
-	z.object({ status: z.literal("no-client"), clientId: z.string() }),
-	z.object({ status: z.literal("forbidden"), clientId: z.string() }),
-	z.object({ status: z.literal("timeout") }),
-]);
-export type ExecResultParsed = z.infer<typeof execResultSchema>;
-
 /**
  * The MAIN-world relay's window.postMessage payloads. `__vkmaExt` is the
  * reserved channel name (constant in the zod-free package root — the
