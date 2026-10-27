@@ -18,7 +18,17 @@ import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
  */
 
 export interface VkNavigator {
+	push<TParams extends Record<string, string>>(
+		page: PanelPage<TParams>,
+		params: TParams,
+		options?: Omit<NavigateOptions, "to" | "params">,
+	): Promise<void>;
 	push(options: NavigateOptions): Promise<void>;
+	replace<TParams extends Record<string, string>>(
+		page: PanelPage<TParams>,
+		params: TParams,
+		options?: Omit<NavigateOptions, "to" | "params">,
+	): Promise<void>;
 	replace(options: NavigateOptions): Promise<void>;
 	back(): void;
 	/** Pop all the way to the first history entry. */
@@ -62,6 +72,18 @@ export interface BlockerArgs {
 	action: "PUSH" | "REPLACE" | "POP";
 }
 
+/**
+ * A typed page object — a panel definition (`defineView().panel(...)`) or
+ * a panel handle (`app.panels[...]`). The params type flows from the
+ * definition's phantom `types`, so `navigator.push(postPanel, { id })`
+ * type-checks the params (old-router `Page`/`PageWithParams` parity,
+ * without the `hasParams` discriminator quirk).
+ */
+export interface PanelPage<TParams = Record<string, string>> {
+	path: string;
+	types?: { params: TParams };
+}
+
 export function useNavigator(): VkNavigator {
 	const router = useRouter();
 	const navigate = useNavigate();
@@ -72,9 +94,43 @@ export function useNavigator(): VkNavigator {
 	const showPopout = useShowPopout();
 	const hidePopout = useHidePopout();
 
+	/** `"index"` and an optional leading slash normalize to the full path. */
+	const pageTo = (page: PanelPage): string =>
+		page.path === "index" ? "/" : `/${page.path.replace(/^\//, "")}`;
+
 	return {
-		push: options => navigate({ ...options, replace: false }) as Promise<void>,
-		replace: options => navigate({ ...options, replace: true }) as Promise<void>,
+		push: ((
+			pageOrOptions: NavigateOptions | PanelPage,
+			params?: Record<string, string>,
+			rest?: Omit<NavigateOptions, "to" | "params">,
+		) =>
+			params === undefined
+				? (navigate({
+						...(pageOrOptions as NavigateOptions),
+						replace: false,
+					}) as Promise<void>)
+				: (navigate({
+						to: pageTo(pageOrOptions as PanelPage),
+						params,
+						replace: false,
+						...rest,
+					}) as Promise<void>)) as VkNavigator["push"],
+		replace: ((
+			pageOrOptions: NavigateOptions | PanelPage,
+			params?: Record<string, string>,
+			rest?: Omit<NavigateOptions, "to" | "params">,
+		) =>
+			params === undefined
+				? (navigate({
+						...(pageOrOptions as NavigateOptions),
+						replace: true,
+					}) as Promise<void>)
+				: (navigate({
+						to: pageTo(pageOrOptions as PanelPage),
+						params,
+						replace: true,
+						...rest,
+					}) as Promise<void>)) as VkNavigator["replace"],
 		back: () => {
 			router.history.back();
 		},

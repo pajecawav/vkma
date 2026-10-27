@@ -15,7 +15,7 @@ import {
 import { useEffect, useState, type ReactElement } from "react";
 import { chatTitleOf, chats, users } from "../../data";
 import { InitialsAvatar } from "../../ui";
-import { chatsPanel } from "./messages.panel";
+import { chatPanel, chatsPanel } from "./messages.panel";
 
 export default function ChatsPanel(): ReactElement {
 	const navigator = useNavigator();
@@ -58,9 +58,7 @@ export default function ChatsPanel(): ReactElement {
 							key={chat.id}
 							before={<InitialsAvatar name={user.name} size={48} />}
 							subtitle={chat.lastMessage}
-							onClick={() =>
-								void navigator.push({ to: "/chat/$id", params: { id: chat.id } })
-							}
+							onClick={() => void navigator.push(chatPanel, { id: chat.id })}
 							after={
 								<Flex direction="column" align="end">
 									<Caption style={{ color: "var(--vkui--color_text_secondary)" }}>

@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 import { users, type Post } from "../../data";
 import { InitialsAvatar } from "../../ui";
-import { feedPanel } from "./feed.panel";
+import { feedPanel, postPanel } from "./feed.panel";
 
 export default function FeedPanel() {
 	const navigator = useNavigator();
@@ -28,18 +28,13 @@ export default function FeedPanel() {
 						{i > 0 && <Separator />}
 						<PostCard
 							post={post}
-							onOpen={() =>
-								void navigator.push({
-									to: "/post/$id",
-									params: { id: String(post.id) },
-								})
-							}
+							onOpen={() => void navigator.push(postPanel, { id: String(post.id) })}
 							onComments={() =>
-								void navigator.push({
-									to: "/post/$id",
-									params: { id: String(post.id) },
-									search: { tab: "comments" },
-								})
+								void navigator.push(
+									postPanel,
+									{ id: String(post.id) },
+									{ search: { tab: "comments" } },
+								)
 							}
 						/>
 					</div>

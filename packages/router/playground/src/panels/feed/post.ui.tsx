@@ -28,7 +28,7 @@ export default function PostPanel(): ReactElement {
 	const post = postOf(id);
 	const author = users[post.authorId]!;
 	const setTab = (tab: PostSearch["tab"]) => {
-		void navigator.replace({ to: "/post/$id", params: { id }, search: { tab } });
+		void navigator.replace(postPanel, { id }, { search: { tab } });
 	};
 
 	return (

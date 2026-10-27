@@ -154,7 +154,10 @@ hard-won invariants; `AGENTS.md` distills them for agents.
   available for custom shells.
 - **Parity navigator**: `useNavigator()` → `{ push, replace, back,
   backToFirst, showModal, hideModal, showPopout, hidePopout }` on top of
-  TanStack `navigate`/history; the router instance stays reachable.
+  TanStack `navigate`/history; the router instance stays reachable. A
+  typed page object (the panel definition or handle) is accepted in place
+  of `to` — `push(panelDef, params)` — with the params type flowing from
+  the definition's phantom.
 
 ## v1 scope
 
