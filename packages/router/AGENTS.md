@@ -195,11 +195,10 @@ read it before touching anything here.
 
 ## Definition of done for v1
 
-Remaining before the first release: inflate (synthetic parent chain after
-deep links, auto-derived from the route tree), navigation blockers
-parity-check, masked global modals (imperative `mask` on the open action),
-typed Page-object sugar for the navigator (TanStack's registered-tree
-typing already covers raw navigate), migration guide, changesets version.
-Full environment matrix (web iframe / mobile webview / standalone) — fake
+Remaining before the first release: navigation blockers parity-check (the
+`block()` sugar still hardcodes the PUSH action), typed Page-object sugar
+for the navigator (TanStack's registered-tree typing already covers raw
+navigate). Full environment matrix (web iframe / mobile webview /
+standalone) — fake
 transports in unit tests + the manual device checklist gates the release
 (same ritual as `packages/bridge`).

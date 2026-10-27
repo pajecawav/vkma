@@ -130,7 +130,7 @@ VKUI component's `onClosed`.
 | `useHistoryManager`                            | internal (panels mirror); expose on request                                                 |
 | `useBlocker` / `routeNavigator.block`          | `navigator.block(onLeave)` or TanStack `useBlocker`                                         |
 | `useEnableSwipeBack`                           | automatic (managed by history position); disable via `createApp({ inflate })`-style options |
-| `RouterLink`                                   | TanStack `Link` (re-exported from `/react`)                                                 |
+| `RouterLink`                                   | TanStack `Link` (import from `@tanstack/react-router`)                                      |
 
 ## Deep links & inflate
 
