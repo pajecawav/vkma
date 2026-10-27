@@ -10,7 +10,7 @@ const CAPTURE_META: Record<CaptureMode, { label: string; chip: string; title: st
 	direct: {
 		label: "vkma bridge",
 		chip: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-		title: "Connected directly to the app's own @vkma.dev/bridge (tap + execute)",
+		title: "A @vkma.dev/bridge tap is published on the page (unverified provenance — raw capture stays live as a cross-check)",
 	},
 	spy: {
 		label: "sniffer",

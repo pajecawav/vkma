@@ -3,11 +3,10 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
+import { SENSITIVE_PARAMS, scrubUrl } from "../lib/sensitive.ts";
 import { ClientDot } from "./ClientDot.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { ChevronIcon, CrossIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
-
-const SENSITIVE_PARAMS = new Set(["sign", "access_token", "auth_key", "sid"]);
 
 function LaunchParams({ params }: { params: Record<string, string> }) {
 	const entries = Object.entries(params).toSorted(([a], [b]) => a.localeCompare(b));
@@ -88,8 +87,11 @@ function ClientCard({
 								<WarningIcon width={13} height={13} className="text-amber-500" />
 							)}
 						</span>
-						<span className="truncate text-xs text-neutral-400" title={client.url}>
-							{client.url}
+						<span
+							className="truncate text-xs text-neutral-400"
+							title={scrubUrl(client.url)}
+						>
+							{scrubUrl(client.url)}
 						</span>
 					</span>
 					<span className="ml-auto flex shrink-0 items-center gap-2 pr-3 text-[11px] text-neutral-400">

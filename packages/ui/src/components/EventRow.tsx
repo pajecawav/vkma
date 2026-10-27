@@ -3,6 +3,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { copyText } from "../lib/clipboard.ts";
 import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
+import { scrubUrl } from "../lib/sensitive.ts";
 import { ClientDot } from "./ClientDot.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
@@ -13,13 +14,20 @@ function ClientBadge({ clientId, clients }: { clientId: string; clients: ClientI
 	return (
 		<span
 			className={`inline-flex shrink-0 items-center gap-1 font-mono text-[11px] leading-none ${clientColor(clientId).text}`}
-			title={client ? client.url : "client disconnected"}
+			title={client ? scrubUrl(client.url) : "client disconnected"}
 		>
 			<ClientDot clientId={clientId} />
 			{shortId(clientId)}
 		</span>
 	);
 }
+
+/** Remote ts is foreign input: an out-of-range value must degrade to an
+ * absent attribute, never throw `RangeError: Invalid time value` through
+ * the render (one hostile row would unmount the whole panel tree). */
+const ISO_MAX = 8.64e15;
+const isoDateTime = (ts: number): string | undefined =>
+	Number.isFinite(ts) && Math.abs(ts) <= ISO_MAX ? new Date(ts).toISOString() : undefined;
 
 function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
@@ -113,7 +121,7 @@ const EventRow = memo(function Row({
 			>
 				<time
 					className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-500 dark:text-neutral-400"
-					dateTime={new Date(event.ts).toISOString()}
+					dateTime={isoDateTime(event.ts)}
 				>
 					{formatTime(event.ts)}
 				</time>
