@@ -107,7 +107,7 @@ describe("InspectorCapture", () => {
 		expect(rows[1].payload).toEqual({ error_type: "some" }); // request_id stripped
 	});
 
-	it("direct mode: the tap is authoritative, the buffer is discarded, raw layers muted", () => {
+	it("direct mode: the tap adds out-rows, raw layers stay live, the buffer merges", () => {
 		const tap = fakeTap();
 		const handle: BridgeHandle = {
 			tap: tap,
@@ -117,22 +117,51 @@ describe("InspectorCapture", () => {
 		setAndroidBridge({ VKWebAppRun: () => "native" });
 		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture();
-		callAndroid("VKWebAppRun", {}); // buffered — but the flip discards it
+		callAndroid("VKWebAppRun", { request_id: "r1" }); // buffered while resolving
 		capture.finalize(handle, event => {
 			rows.push(event);
 		});
-		expect(rows).toHaveLength(0);
 
-		tap.emit({ id: 1, ts: 1, direction: "out", kind: "send", name: "VKWebAppInit" });
-		tap.emit({ id: 2, ts: 2, direction: "out", kind: "send", name: "vk-connect" }); // chatter
-		callAndroid("VKWebAppRun", {}); // muted in direct mode
-		incoming("VKWebAppUpdateConfig", {}); // muted in direct mode
-
+		// the spy-era row was NOT discarded — the tap's (empty) replay
+		// does not cover it, so it merges in
 		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({ name: "VKWebAppInit" });
+		expect(rows[0]).toMatchObject({ kind: "send", name: "VKWebAppRun" });
+
+		// the tap contributes outgoing rows (one row-id space for all
+		// sources — reqId pairing depends on it)
+		tap.emit({ id: 9001, ts: 1, direction: "out", kind: "send", name: "VKWebAppInit" });
+		tap.emit({ id: 9002, ts: 2, direction: "out", kind: "send", name: "vk-connect" }); // chatter
+		tap.emit({ id: 9003, ts: 3, direction: "in", kind: "event", name: "TapOnlyEvent" }); // raw owns incoming
+		expect(rows).toHaveLength(2);
+		expect(rows[1]).toMatchObject({ name: "VKWebAppInit" });
+		expect(rows[1].id).not.toBe(9001);
+
+		// a raw send the tap already reported (same wire request_id) does not double
+		tap.emit({
+			id: 9004,
+			ts: 4,
+			direction: "out",
+			kind: "send",
+			name: "VKWebAppPay",
+			payload: { request_id: "r2" },
+		});
+		callAndroid("VKWebAppRun", { request_id: "r2" });
+		expect(rows).toHaveLength(3);
+
+		// the raw layers are NOT muted in direct mode — a page-planted
+		// handle must not be able to blind the independent capture
+		callAndroid("VKWebAppRun", { request_id: "r3" });
+		incoming("VKWebAppUpdateConfig", { appearance: "light" });
+		expect(rows).toHaveLength(5);
+		expect(rows[3]).toMatchObject({ name: "VKWebAppRun", payload: { request_id: "r3" } });
+		expect(rows[4]).toMatchObject({ kind: "event", name: "VKWebAppUpdateConfig" });
+
+		// pairing works across the sources: the raw response joins the tap's send
+		incoming("VKWebAppPayResult", { request_id: "r2", ok: 1 });
+		expect(rows.at(-1)).toMatchObject({ kind: "response", reqId: rows[2].id, ok: true });
 	});
 
-	it("the private execute bridge contributes out-rows; raw layers skip its prefix", () => {
+	it("the private bridge's prefix license is issuer-scoped: spoofed prefixes are reported", () => {
 		setAndroidBridge({ VKWebAppGetAuthToken: () => {} });
 		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture();
@@ -160,10 +189,15 @@ describe("InspectorCapture", () => {
 			request_id: "__vkma_inspect_1",
 			access_token: "t",
 		});
-		// a raw native call with the reserved prefix is NOT reported again
+		// a raw native call SPOOFING the public reserved prefix: the page
+		// never issued that id, so the call is reported like any other
 		callAndroid("VKWebAppGetAuthToken", { request_id: "__vkma_inspect_2" });
+		// the license is one-shot: the first raw replay of the ISSUED id is
+		// skipped (the tap row already covers it), the second is reported
+		callAndroid("VKWebAppGetAuthToken", { request_id: "__vkma_inspect_1" });
+		callAndroid("VKWebAppGetAuthToken", { request_id: "__vkma_inspect_1" });
 
-		expect(rows).toHaveLength(2);
+		expect(rows).toHaveLength(4);
 		expect(rows[0]).toMatchObject({
 			direction: "out",
 			kind: "send",
@@ -177,22 +211,32 @@ describe("InspectorCapture", () => {
 			ok: true,
 			reqId: rows[0].id,
 		});
+		expect(rows[2]).toMatchObject({
+			direction: "out",
+			kind: "send",
+			payload: { request_id: "__vkma_inspect_2" },
+		});
+		expect(rows[3]).toMatchObject({
+			direction: "out",
+			kind: "send",
+			payload: { request_id: "__vkma_inspect_1" },
+		});
 	});
 
-	it("execute prefers the direct handle, falls back to the spy bridge", async () => {
+	it("execute rides the private bridge even in direct mode (unforgeable route)", async () => {
 		const capture = new InspectorCapture();
 		const spyBridge: SpyBridge = {
 			tap: fakeTap(),
-			send: async name => `spy:${name}`,
+			send: async name => `private:${name}`,
 		};
 		capture.hookSpyBridge(spyBridge);
-		await expect(capture.execute("A")).resolves.toBe("spy:A");
+		await expect(capture.execute("A")).resolves.toBe("private:A");
 
 		const handle: BridgeHandle = {
 			tap: fakeTap(),
-			send: async name => `direct:${name}`,
+			send: async name => `page-handle:${name}`,
 		};
 		capture.finalize(handle, () => {});
-		await expect(capture.execute("B")).resolves.toBe("direct:B");
+		await expect(capture.execute("B")).resolves.toBe("private:B");
 	});
 });

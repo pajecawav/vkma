@@ -154,18 +154,50 @@ async function main(): Promise<void> {
  * import time, but the app may import it later than this script — the
  * handle can legitimately appear for up to BRIDGE_WAIT_MS. The tap's
  * replay buffer covers anything sent before we subscribe.
+ *
+ * The global is page-writable and first-writer-wins, so presence alone
+ * proves nothing: only a handle shaped like a genuine @vkma.dev/bridge
+ * tap (subscribe + emit + drain, drain returning rows) is adopted. This
+ * raises the bar for page-planted fakes — and combined with finalize
+ * never muting the raw layers, a mimic can add rows but cannot blind
+ * the independent capture.
  */
 async function waitForBridge(timeoutMs = BRIDGE_WAIT_MS): Promise<BridgeHandle | undefined> {
 	const started = Date.now();
 	for (;;) {
-		const handle = (globalThis as typeof globalThis & { __vkmaDevtoolsBridge?: BridgeHandle })
+		const handle = (globalThis as typeof globalThis & { __vkmaDevtoolsBridge?: unknown })
 			.__vkmaDevtoolsBridge;
-		if (handle !== undefined) {
+		if (handle !== undefined && looksLikeGenuineHandle(handle)) {
 			return handle;
 		}
 		if (Date.now() - started > timeoutMs) {
 			return undefined;
 		}
 		await new Promise(resolve => setTimeout(resolve, 50));
+	}
+}
+
+/** Structural check against the genuine @vkma.dev/bridge publication
+ * (packages/bridge tap: subscribe/emit/drain, drain returning rows). */
+function looksLikeGenuineHandle(handle: unknown): handle is BridgeHandle {
+	if (typeof handle !== "object" || handle === null) {
+		return false;
+	}
+	const tap = (handle as { tap?: unknown }).tap;
+	if (typeof tap !== "object" || tap === null) {
+		return false;
+	}
+	const { subscribe, emit, drain } = tap as Record<string, unknown>;
+	if (
+		typeof subscribe !== "function" ||
+		typeof emit !== "function" ||
+		typeof drain !== "function"
+	) {
+		return false;
+	}
+	try {
+		return Array.isArray((drain as () => unknown)());
+	} catch {
+		return false;
 	}
 }
