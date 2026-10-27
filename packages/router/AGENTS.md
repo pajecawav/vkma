@@ -204,10 +204,11 @@ read it before touching anything here.
 
 ## Definition of done for v1
 
-Remaining before the first release: navigation blockers parity-check (the
-`block()` sugar still hardcodes the PUSH action), typed Page-object sugar
-for the navigator (TanStack's registered-tree typing already covers raw
-navigate). Full environment matrix (web iframe / mobile webview /
-standalone) — fake
-transports in unit tests + the manual device checklist gates the release
-(same ritual as `packages/bridge`).
+Remaining before the first release: the environment matrix — fake
+transports in unit tests (mobile bridge-sync / swipe-back paths) + the
+manual device checklist gates the release (same ritual as
+`packages/bridge`). The navigator surface is complete: blockers carry
+the old-router context (`{ currentLocation, nextLocation, action }`,
+back/forward/go = POP), typed Page-object sugar is in
+(`navigator.push(panelDefinition, params)`), per-panel popouts and the
+swipe-back opt-out + `useEnableSwipeBack` hook shipped.
