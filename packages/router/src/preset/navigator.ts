@@ -41,13 +41,25 @@ export interface VkNavigator {
 	hidePopout(): void;
 	/**
 	 * Block navigation while `onLeave` returns true (old router's
-	 * `RouteNavigator.block`). Returns the unblock function.
+	 * `RouteNavigator.block`). The callback receives the current and the
+	 * next location plus the action — PUSH/REPLACE as-is, back/forward/go
+	 * mapped to POP (old-router `BlockerFunction` parity). Returns the
+	 * unblock function.
 	 */
-	block(onLeave: (args: { action: string }) => boolean): () => void;
+	block(onLeave: (args: BlockerArgs) => boolean): () => void;
 }
 
 function isModalRouteId(router: ReturnType<typeof useRouter>, routeId: string): boolean {
 	return looseRouteOf(router, routeId)?.options.staticData?.modal !== undefined;
+}
+
+export interface BlockerArgs {
+	/** The location the navigation starts from (TanStack history location). */
+	currentLocation: { href: string; pathname: string };
+	/** The location the navigation is heading to. */
+	nextLocation: { href: string; pathname: string };
+	/** PUSH/REPLACE as-is; back, forward and go are one POP (old-router parity). */
+	action: "PUSH" | "REPLACE" | "POP";
 }
 
 export function useNavigator(): VkNavigator {
@@ -162,7 +174,21 @@ export function useNavigator(): VkNavigator {
 		},
 		block: onLeave => {
 			const unblock = router.history.block({
-				blockerFn: () => onLeave({ action: "PUSH" }),
+				blockerFn: (args: {
+					currentLocation: never;
+					nextLocation: never;
+					action: string;
+				}) =>
+					onLeave({
+						currentLocation: args.currentLocation,
+						nextLocation: args.nextLocation,
+						// TanStack distinguishes BACK/FORWARD/GO; the old router's
+						// BlockerFunction saw one POP — keep the parity
+						action:
+							args.action === "PUSH" || args.action === "REPLACE"
+								? args.action
+								: "POP",
+					}),
 			} as never);
 			return unblock;
 		},

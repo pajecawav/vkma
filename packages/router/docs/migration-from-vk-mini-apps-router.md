@@ -120,17 +120,17 @@ VKUI component's `onClosed`.
 
 ## Hooks
 
-| Old                                            | New                                                                                                                     |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `useParams({ panel: id })`                     | `usePanelParams(panelHandle.routeId)` (freeze-safe during back animations)                                              |
-| `useSearchParams`                              | `usePanelSearch` / TanStack `useSearch` + `validateSearch`                                                              |
-| `useMetaParams`                                | `location.state` (`useRouterState`)                                                                                     |
-| `useActiveVkuiLocation` / `useGetPanelForView` | not needed — `VkView` drives VKUI directly; position via VKUI `useNavId`                                                |
-| `useFirstPageCheck`                            | `!router.history.canGoBack()`                                                                                           |
-| `useHistoryManager`                            | internal (panels mirror); expose on request                                                                             |
-| `useBlocker` / `routeNavigator.block`          | `navigator.block(onLeave)` or TanStack `useBlocker`                                                                     |
-| `useEnableSwipeBack`                           | `useEnableSwipeBack(enabled, panelRef)` — per-panel override; hard opt-out `createSwipeBackManager({ enabled: false })` |
-| `RouterLink`                                   | TanStack `Link` (import from `@tanstack/react-router`)                                                                  |
+| Old                                            | New                                                                                                                                       |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `useParams({ panel: id })`                     | `usePanelParams(panelHandle.routeId)` (freeze-safe during back animations)                                                                |
+| `useSearchParams`                              | `usePanelSearch` / TanStack `useSearch` + `validateSearch`                                                                                |
+| `useMetaParams`                                | `location.state` (`useRouterState`)                                                                                                       |
+| `useActiveVkuiLocation` / `useGetPanelForView` | not needed — `VkView` drives VKUI directly; position via VKUI `useNavId`                                                                  |
+| `useFirstPageCheck`                            | `!router.history.canGoBack()`                                                                                                             |
+| `useHistoryManager`                            | internal (panels mirror); expose on request                                                                                               |
+| `useBlocker` / `routeNavigator.block`          | `navigator.block(onLeave)` — `onLeave` gets `{ currentLocation, nextLocation, action }` (back/forward/go = POP); or TanStack `useBlocker` |
+| `useEnableSwipeBack`                           | `useEnableSwipeBack(enabled, panelRef)` — per-panel override; hard opt-out `createSwipeBackManager({ enabled: false })`                   |
+| `RouterLink`                                   | TanStack `Link` (import from `@tanstack/react-router`)                                                                                    |
 
 ## Deep links & inflate
 
