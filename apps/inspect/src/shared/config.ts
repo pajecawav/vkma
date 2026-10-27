@@ -35,6 +35,12 @@ export const RECONNECT_MIN_MS = 500;
 export const RECONNECT_MAX_MS = 10_000;
 /** Messages parked while a connection awaits gate approval. */
 export const MAX_PENDING_BUFFER = 200;
+/** Ceiling on simultaneously parked DataConnections — no admission
+ * capacity without an operator to answer the approval cards. */
+export const MAX_CONNS = 24;
+/** Byte budget for one connection's parked messages (the message-count
+ * cap alone lets a single oversized hello park megabytes). */
+export const MAX_PARKED_BYTES = 256 * 1024;
 
 /** Peer id shape: `vkma-inspect-` + 26 URL-safe chars (~128 bits). The id
  * IS the capability — anyone holding it can connect as an inspector. */

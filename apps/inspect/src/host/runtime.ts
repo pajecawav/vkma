@@ -59,6 +59,9 @@ export function createInspectRuntime(): InspectRuntime {
 		rotate() {
 			currentId = rotatePeerId();
 			peer.start(currentId);
+			// Trust is re-anchored to a fresh capability: remembered
+			// approvals granted under the old id must not survive it.
+			host.clearApprovals();
 		},
 		reconnect() {
 			peer.restart();

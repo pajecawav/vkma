@@ -44,7 +44,12 @@ export class BatchedHub<T> {
 		if (values.length === 0) {
 			return;
 		}
-		this.queue.push(...values);
+		// Plain loop, never a spread: the values array is wire-controlled
+		// in size and a spread push past the engine's argument limit
+		// throws synchronously through the caller.
+		for (const value of values) {
+			this.queue.push(value);
+		}
 		this.schedule();
 	}
 

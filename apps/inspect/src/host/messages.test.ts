@@ -75,3 +75,39 @@ describe("inspect message boundary", () => {
 		).toBe(false);
 	});
 });
+
+describe("inspect message boundary bounds", () => {
+	it("rejects an oversized events batch (cardinality cap)", () => {
+		const batch = Array.from({ length: 201 }, (_, i) => ({ ...tapEvent, id: i + 1 }));
+		expect(
+			parseInspectorMessage({ v: 1, t: "events", clientId: "c1", events: batch }),
+		).toBeUndefined();
+		expect(
+			parseInspectorMessage({
+				v: 1,
+				t: "events",
+				clientId: "c1",
+				events: batch.slice(0, 200),
+			}),
+		).toBeDefined();
+	});
+
+	it("rejects an oversized clientId and an out-of-range ts", () => {
+		expect(
+			parseInspectorMessage({
+				v: 1,
+				t: "events",
+				clientId: "x".repeat(257),
+				events: [tapEvent],
+			}),
+		).toBeUndefined();
+		expect(
+			parseInspectorMessage({
+				v: 1,
+				t: "events",
+				clientId: "c1",
+				events: [{ ...tapEvent, ts: 1e16 }],
+			}),
+		).toBeUndefined();
+	});
+});

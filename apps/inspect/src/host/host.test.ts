@@ -264,13 +264,150 @@ describe("InspectHost", () => {
 	it("deleteClients removes only offline clients", () => {
 		const host = new InspectHost();
 		host.setGateEnabled(false);
-		const channel = new FakeChannel();
-		host.addChannel(channel);
 		const now = Date.now();
-		host.handleMessage(channel, hello(info("online", { lastSeenAt: now })));
-		host.handleMessage(channel, hello(info("stale", { lastSeenAt: now - 60_000 })));
+		// one connection, one identity — two clients ride two channels
+		const online = new FakeChannel();
+		host.addChannel(online);
+		host.handleMessage(online, hello(info("online", { lastSeenAt: now })));
+		const stale = new FakeChannel();
+		host.addChannel(stale);
+		host.handleMessage(stale, hello(info("stale", { lastSeenAt: now - 60_000 })));
 
 		expect(host.deleteClients(["online", "stale"])).toEqual(["stale"]);
 		expect(host.store.listClients().map(c => c.clientId)).toEqual(["online"]);
+	});
+
+	// --- admission is a property of the connection ----------------------------------
+
+	it("a connection that never says hello cannot reach the store at all", () => {
+		const host = new InspectHost(); // gate ON
+		const victim = new FakeChannel();
+		host.addChannel(victim);
+		host.handleMessage(victim, hello(info("victim")));
+		host.approve("victim", false);
+
+		// the operator executes against the victim; a rogue connection that
+		// skips hello must neither settle it nor inject timeline rows —
+		// and must never surface an approval card of its own
+		const promise = host.execute("victim", "VKWebAppGetUserInfo", {});
+		const rogue = new FakeChannel();
+		host.addChannel(rogue);
+		host.handleMessage(rogue, events("victim", [tapSend(1)]));
+		host.handleMessage(rogue, {
+			v: 1,
+			t: "exec-result",
+			execId: 1,
+			clientId: "victim",
+			ok: true,
+			payload: { forged: true },
+		});
+
+		expect(host.store.snapshotEvents()).toHaveLength(0);
+		expect(host.pendingApprovals()).toHaveLength(0);
+		host.timelineHub.flush();
+		expect(host.store.snapshotEvents()).toHaveLength(0);
+		// the pending exec survives the forgery attempt (times out later)
+		const rogueClosed = rogue.closed;
+		expect(rogueClosed).toBe(false); // parked silently, invisible
+		void promise;
+	});
+
+	it("an exec-result settles only on the connection the execute was routed to", async () => {
+		const host = new InspectHost();
+		host.setGateEnabled(false);
+		const victim = new FakeChannel();
+		host.addChannel(victim);
+		host.handleMessage(victim, hello(info("c1")));
+		const attacker = new FakeChannel();
+		host.addChannel(attacker);
+		host.handleMessage(attacker, hello(info("c2")));
+
+		const promise = host.execute("c1", "VKWebAppGetUserInfo", {});
+		const request = victim.sent.find(m => m.t === "execute") as { execId: number };
+		expect(attacker.sent).toHaveLength(0); // routed to the owner only
+
+		// the attacker forges a settlement for the victim's execId
+		host.handleMessage(attacker, {
+			v: 1,
+			t: "exec-result",
+			execId: request.execId,
+			clientId: "c1",
+			ok: true,
+			payload: { forged: true },
+		});
+		// ...and so does the victim's own connection (the genuine answer)
+		host.handleMessage(victim, {
+			v: 1,
+			t: "exec-result",
+			execId: request.execId,
+			clientId: "c1",
+			ok: true,
+			payload: { response: [] },
+		});
+		await expect(promise).resolves.toEqual({ status: "ok", payload: { response: [] } });
+	});
+
+	it("an admitted connection reports events only under its own clientId", () => {
+		const host = new InspectHost();
+		host.setGateEnabled(false);
+		const phone = new FakeChannel();
+		host.addChannel(phone);
+		host.handleMessage(phone, hello(info("phone")));
+		const tablet = new FakeChannel();
+		host.addChannel(tablet);
+		host.handleMessage(tablet, hello(info("tablet")));
+
+		host.handleMessage(phone, events("tablet", [tapSend(1)])); // cross-client injection
+		host.handleMessage(phone, events("phone", [tapSend(2)])); // own identity — fine
+		host.timelineHub.flush();
+
+		const rows = host.store.snapshotEvents();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({ clientId: "phone", name: "VKWebAppInit" });
+	});
+
+	it("one connection, one identity: a later hello may not re-claim a different id", () => {
+		const host = new InspectHost();
+		host.setGateEnabled(false);
+		const channel = new FakeChannel();
+		host.addChannel(channel);
+		host.handleMessage(channel, hello(info("c1")));
+		host.handleMessage(channel, hello(info("c2"))); // identity swap attempt
+
+		expect(host.store.listClients().map(c => c.clientId)).toEqual(["c1"]);
+	});
+
+	it("a second connection claiming a live client's id is closed, not bound", () => {
+		const host = new InspectHost();
+		// "always allow" c1 so the claimant would auto-admit
+		localStorage.setItem("vkma:inspect:approved", JSON.stringify(["c1"]));
+		const victim = new FakeChannel();
+		host.addChannel(victim);
+		host.handleMessage(victim, hello(info("c1")));
+
+		const claimant = new FakeChannel();
+		host.addChannel(claimant);
+		host.handleMessage(claimant, hello(info("c1", { sessionId: "rogue" })));
+
+		expect(claimant.closed).toBe(true); // the claim dies, not the incumbent
+		expect(victim.closed).toBe(false);
+		// the victim's history survived (no claimant-triggered purge)
+		const promise = host.execute("c1", "VKWebAppInit", {});
+		const request = victim.sent.find(m => m.t === "execute");
+		expect(request).toMatchObject({ clientId: "c1" });
+		void promise;
+	});
+
+	it("caps the number of simultaneously parked connections", () => {
+		const host = new InspectHost(); // gate ON
+		for (let i = 0; i < 24; i++) {
+			const channel = new FakeChannel();
+			host.addChannel(channel);
+			host.handleMessage(channel, hello(info(`c-${i}`)));
+			expect(channel.closed).toBe(false);
+		}
+		const overflow = new FakeChannel();
+		host.addChannel(overflow);
+		expect(overflow.closed).toBe(true); // no admission capacity left
 	});
 });

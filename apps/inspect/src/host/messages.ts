@@ -19,15 +19,15 @@ export const helloMessageSchema = z.object({
 export const eventsMessageSchema = z.object({
 	v,
 	t: z.literal("events"),
-	clientId: z.string(),
-	events: z.array(tapEventSchema),
+	clientId: z.string().max(256),
+	events: z.array(tapEventSchema).max(200),
 });
 
 export const execResultMessageSchema = z.object({
 	v,
 	t: z.literal("exec-result"),
 	execId: z.number(),
-	clientId: z.string(),
+	clientId: z.string().max(256),
 	ok: z.boolean(),
 	payload: z.unknown().optional(),
 });

@@ -39,4 +39,25 @@ describe("the approve gate", () => {
 		expect(gate.isDenied("c1")).toBe(true);
 		expect(new Gate().isDenied("c1")).toBe(false);
 	});
+
+	it("denying a remembered id revokes its persisted approval", () => {
+		const gate = new Gate();
+		gate.approve("c1", true);
+		gate.deny("c1");
+		// within the load the denial masks (isDenied is checked first);
+		// across loads the grant is gone — deny survives reloads exactly
+		// like the grant does
+		expect(gate.isDenied("c1")).toBe(true);
+		expect(new Gate().isDenied("c1")).toBe(false);
+		expect(new Gate().isApproved("c1")).toBe(false);
+	});
+
+	it("clearApproved forgets every remembered id (rotate)", () => {
+		const gate = new Gate();
+		gate.approve("c1", true);
+		gate.approve("c2", true);
+		gate.clearApproved();
+		expect(new Gate().isApproved("c1")).toBe(false);
+		expect(new Gate().isApproved("c2")).toBe(false);
+	});
 });

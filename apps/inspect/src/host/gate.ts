@@ -8,7 +8,9 @@
  * "Always allow" remembers a clientId (the phone keeps it in
  * sessionStorage across reloads, so the friction is once per page
  * lifetime); denials live for this panel load only — a denied page that
- * reconnects just re-appears as pending.
+ * reconnects just re-appears as pending. Denying a remembered id also
+ * revokes its persisted grant: the deny gesture must survive reloads
+ * exactly like the grant does.
  */
 
 const GATE_KEY = "vkma:inspect:gate";
@@ -70,8 +72,21 @@ export class Gate {
 		writeStore(APPROVED_KEY, JSON.stringify(next));
 	}
 
+	/**
+	 * A denial is a revocation: the persisted "Always allow" grant must
+	 * die with it, or a reload re-admits the denied principal silently
+	 * (the in-memory set below masks it for this panel load only).
+	 */
 	public deny(clientId: string): void {
 		this.denied.add(clientId);
+		const next = readApproved().filter(id => id !== clientId);
+		writeStore(APPROVED_KEY, JSON.stringify(next));
+	}
+
+	/** Rotate: trust is re-anchored to a fresh capability — remembered
+	 * approvals from the old world must not survive it. */
+	public clearApproved(): void {
+		writeStore(APPROVED_KEY, "[]");
 	}
 
 	public isDenied(clientId: string): boolean {

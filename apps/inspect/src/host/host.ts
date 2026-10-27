@@ -6,7 +6,7 @@ import type {
 	ExecResult,
 	WireEvent,
 } from "@vkma.dev/protocol";
-import { MAX_PENDING_BUFFER } from "../shared/config.ts";
+import { MAX_CONNS, MAX_PARKED_BYTES, MAX_PENDING_BUFFER } from "../shared/config.ts";
 import type { HostMessage } from "../shared/protocol.ts";
 import { Gate } from "./gate.ts";
 import { BatchedHub, Hub } from "./hub.ts";
@@ -34,14 +34,19 @@ export interface ApprovalRequest {
 
 interface ConnState {
 	channel: HostChannel;
-	/** Set by the first hello; heartbeats re-use it. */
+	/** Set by the first hello; frozen afterwards — one connection, one
+	 * identity (heartbeats may not re-claim a different clientId). */
 	clientId?: string;
 	/** Gate verdict while the human has not answered yet. */
 	pending?: ApprovalRequest;
-	/** Messages parked behind the gate (hello included), bounded. */
+	/** Messages parked behind the gate (hello included), bounded by count
+	 * AND bytes; replayed in arrival order once the connection is
+	 * admitted. */
 	buffered: ParsedInspectorMessage[];
-	/** This connection passed the gate (allow-once or replay after
-	 * approval) — dispatch must not re-park its own hello. */
+	parkedBytes: number;
+	/** This connection passed the gate (allow-once, always-allow, or the
+	 * gate being off). Admission is a property of the CONNECTION: until
+	 * it is set, every message type parks — not only hello. */
 	admitted?: boolean;
 }
 
@@ -88,14 +93,19 @@ export class InspectHost {
 
 	public setGateEnabled(enabled: boolean): void {
 		this.gate.setEnabled(enabled);
-		// Turning the gate off lets every parked connection in right away —
-		// their parked messages replay in arrival order.
+		// Turning the gate off lets every undecided connection in right
+		// away — every parked connection, not only those with a pending
+		// hello — and their parked messages replay in arrival order.
 		if (!enabled) {
-			const parked = [...this.conns].filter(state => state.pending !== undefined);
-			for (const state of parked) {
+			for (const state of this.conns) {
+				if (state.admitted) {
+					continue;
+				}
 				const messages = state.buffered;
 				state.pending = undefined;
 				state.buffered = [];
+				state.parkedBytes = 0;
+				state.admitted = true;
 				for (const message of messages) {
 					this.dispatch(state, message);
 				}
@@ -113,6 +123,7 @@ export class InspectHost {
 			const parked = state.buffered;
 			state.pending = undefined;
 			state.buffered = [];
+			state.parkedBytes = 0;
 			state.admitted = true;
 			for (const message of parked) {
 				this.dispatch(state, message);
@@ -122,7 +133,8 @@ export class InspectHost {
 	}
 
 	/** Deny a parked connection: close it and stay silent if it returns
-	 * (for this panel load). */
+	 * (for this panel load). A denial also revokes any persisted
+	 * "Always allow" grant for the id. */
 	public deny(clientId: string): void {
 		this.gate.deny(clientId);
 		for (const state of this.conns) {
@@ -133,10 +145,23 @@ export class InspectHost {
 		this.publishApprovals();
 	}
 
+	/** Rotate: trust is re-anchored to a fresh capability — remembered
+	 * approvals from the old id's world must not survive it. */
+	public clearApprovals(): void {
+		this.gate.clearApproved();
+		this.publishApprovals();
+	}
+
 	// --- connections ---------------------------------------------------------------
 
 	public addChannel(channel: HostChannel): void {
-		this.conns.add({ channel, buffered: [] });
+		// Bounded connection set: every parked connection waits for a
+		// human answer, so admission capacity is operator-owned.
+		if (this.conns.size >= MAX_CONNS) {
+			channel.close();
+			return;
+		}
+		this.conns.add({ channel, buffered: [], parkedBytes: 0 });
 	}
 
 	public dropChannel(channel: HostChannel): void {
@@ -164,11 +189,18 @@ export class InspectHost {
 		if (message === undefined) {
 			return; // malformed foreign input drops silently
 		}
-		if (state.pending !== undefined) {
-			if (state.buffered.length < MAX_PENDING_BUFFER) {
-				state.buffered.push(message);
-			}
+		// Admission is a property of the CONNECTION, not of the hello
+		// branch: an undecided connection parks EVERY message type
+		// (bounded), so a peer that never says hello — and therefore never
+		// faces an approval card — cannot reach the store at all. The
+		// hello itself still flows to dispatch: it is the message that
+		// decides (deny / park behind a card / auto-admit a remembered id).
+		if (!state.admitted && this.gate.isEnabled() && message.t !== "hello") {
+			this.park(state, message);
 			return;
+		}
+		if (!this.gate.isEnabled()) {
+			state.admitted = true; // gate off: admission is implicit
 		}
 		this.dispatch(state, message);
 	}
@@ -194,11 +226,14 @@ export class InspectHost {
 		name: string,
 		params: Record<string, unknown> | undefined,
 	): Promise<ExecResult> {
-		if (this.store.getClient(clientId) === undefined) {
+		const bound = this.byClient.get(clientId);
+		if (this.store.getClient(clientId) === undefined || bound === undefined) {
 			return { status: "no-client", clientId };
 		}
-		const { execId, promise } = this.store.beginExec();
-		this.byClient.get(clientId)?.channel.send({
+		// The pending exec remembers the channel it was routed to: an
+		// exec-result settles it only when it returns on that connection.
+		const { execId, promise } = this.store.beginExec(bound.channel);
+		bound.channel.send({
 			v: 1,
 			t: "execute",
 			execId,
@@ -229,6 +264,20 @@ export class InspectHost {
 		return undefined;
 	}
 
+	/** Park a message behind the gate: bounded by count AND bytes (a
+	 * count-only cap lets one oversized message park megabytes). */
+	private park(state: ConnState, message: ParsedInspectorMessage): void {
+		if (state.buffered.length >= MAX_PENDING_BUFFER) {
+			return; // drop-newest, bounded
+		}
+		const size = JSON.stringify(message)?.length ?? 0;
+		if (state.parkedBytes + size > MAX_PARKED_BYTES) {
+			return; // byte budget exhausted — the card still surfaces
+		}
+		state.buffered.push(message);
+		state.parkedBytes += size;
+	}
+
 	private dispatch(state: ConnState, message: ParsedInspectorMessage): void {
 		switch (message.t) {
 			case "hello": {
@@ -243,7 +292,7 @@ export class InspectHost {
 					!this.gate.isApproved(info.clientId)
 				) {
 					state.pending = { clientId: info.clientId, info, receivedAt: Date.now() };
-					state.buffered.push(message);
+					this.park(state, message);
 					this.publishApprovals();
 					return;
 				}
@@ -252,6 +301,12 @@ export class InspectHost {
 				return;
 			}
 			case "events": {
+				// Identity is the connection's, not the message's: an
+				// admitted connection may report events only for the
+				// clientId it registered with.
+				if (state.clientId === undefined || state.clientId !== message.clientId) {
+					return;
+				}
 				const client = this.store.getClient(message.clientId);
 				if (client === undefined) {
 					return; // hello must precede — the store drops unknowns anyway
@@ -264,14 +319,33 @@ export class InspectHost {
 				return;
 			}
 			case "exec-result": {
-				this.store.settleExec(message);
+				// Same identity binding, plus the store's owner check: the
+				// report must come back on the connection the execute was
+				// routed to.
+				if (state.clientId === undefined || state.clientId !== message.clientId) {
+					return;
+				}
+				this.store.settleExec(message, state.channel);
 				return;
 			}
 		}
 	}
 
-	/** hello semantics — the devtools/extension contract verbatim. */
+	/** hello semantics — the devtools/extension contract verbatim, plus
+	 * the one-connection-one-identity freeze. */
 	private register(state: ConnState, info: ClientInfo): void {
+		if (state.clientId !== undefined && state.clientId !== info.clientId) {
+			return; // one connection, one identity — heartbeats only
+		}
+		const incumbent = this.byClient.get(info.clientId);
+		if (incumbent !== undefined && incumbent !== state) {
+			// A second live connection claiming a known id: the incumbent
+			// keeps it, the claimant is closed — never a silent takeover
+			// (the operator's executes must not reroute to an unapproved
+			// peer that learned the id).
+			this.dropChannel(state.channel);
+			return;
+		}
 		if (state.clientId === undefined) {
 			state.clientId = info.clientId;
 		}
