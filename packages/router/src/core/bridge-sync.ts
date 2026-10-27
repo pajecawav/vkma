@@ -75,7 +75,10 @@ export function createBridgeSync(options: BridgeSyncOptions): { destroy(): void 
 			return;
 		}
 		const data = event.data as { location?: string } | undefined;
-		const incoming = parsePayload(data?.location ?? "");
+		if (!data?.location) {
+			return; // malformed — the host always sends a location; never act on it
+		}
+		const incoming = parsePayload(data.location);
 		const current = `${options.history.location.pathname}${options.history.location.search}`;
 		if (incoming === current) {
 			return; // echo of our own location — loop protection
