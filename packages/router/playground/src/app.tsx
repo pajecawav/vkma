@@ -1,7 +1,7 @@
 import { createRouter } from "@tanstack/react-router";
 import { createApp, createVkHistory, NotFound } from "@vkma.dev/router/preset";
 import { ScreenSpinner } from "@vkontakte/vkui";
-import { LogoutPopout, SettingsGlobalModal } from "./overlays";
+import { SettingsGlobalModal } from "./overlays";
 import { feedView } from "./panels/feed/feed.panel";
 import { messagesView } from "./panels/messages/messages.panel";
 import { moreView } from "./panels/more/more.panel";
@@ -24,7 +24,8 @@ export const app = createApp({
 	root: props => <AppShell {...props} />,
 	views: [profileView, feedView, messagesView, moreView],
 	modals: { settings: SettingsGlobalModal },
-	popouts: { logout: LogoutPopout },
+	// `logout` is a PANEL-LOCAL popout of profile/settings (see
+	// profile.panel.ts) — the global registry holds only app-wide popouts
 });
 
 export const router = createRouter({

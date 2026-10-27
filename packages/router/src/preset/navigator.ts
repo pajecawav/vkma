@@ -4,9 +4,9 @@ import {
 	useRouterState,
 	type NavigateOptions,
 } from "@tanstack/react-router";
+import { looseRouteOf } from "../core/loose-route.ts";
 import { MODAL_STATE_KEY } from "../core/state-keys.ts";
 import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
-import { looseRouteOf } from "./loose-route.ts";
 
 /**
  * The parity navigator over TanStack primitives: push/replace/back/

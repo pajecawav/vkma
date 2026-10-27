@@ -1,12 +1,12 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { looseRouteOf } from "../core/loose-route.ts";
 import { Modals } from "../vkui/modals.tsx";
 import { NotFound } from "../vkui/not-found.tsx";
 import { Popouts } from "../vkui/popouts.tsx";
 import { VkView } from "../vkui/vk-view.tsx";
 import type { AppHandle } from "./builders.tsx";
 import { deriveInflateChain, interpolatePath } from "./inflate.ts";
-import { looseRouteOf } from "./loose-route.ts";
 
 /**
  * Default root shell: the active view + the modal/popout hosts + inflate.

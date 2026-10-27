@@ -65,6 +65,12 @@ export interface PanelOptions extends LooseRouteOptions {
 	lazy?: PanelLazy;
 	/** Route-level modals: sibling child routes of this panel (recursible). */
 	modals?: Record<string, ModalComponent>;
+	/**
+	 * Panel-local popouts: resolved BEFORE the global registry while this
+	 * panel is the deepest matched one. The same id declared globally is a
+	 * dev-time error.
+	 */
+	popouts?: Record<string, PopoutEntry["Component"]>;
 }
 
 /**
@@ -363,6 +369,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 		id,
 		Component: Component as PopoutEntry["Component"],
 	}));
+	const globalPopoutIds = new Set(Object.keys(options.popouts ?? {}));
 
 	const views: Record<string, AnyRoute> = {};
 	const panels: Record<string, PanelHandle> = {};
@@ -416,7 +423,27 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 					`[vkma-router] panel "${panelKey}" is defined for view "${declared.view}" but nested under "views.${viewKey}"; its handle route id and the tree would disagree`,
 				);
 			}
-			const { modals: panelModals, lazy, ...panelRest } = panelOptions;
+			const { modals: panelModals, lazy, popouts: panelPopouts, ...panelRest } = panelOptions;
+			// panel-local popouts: resolved before the global registry while
+			// this panel is the deepest matched one; a global id collision is
+			// a dev-time error (the local declaration would shadow it)
+			const panelRegistryKey = `${viewKey}/${panelKey}`;
+			const localPopoutIds = new Set<string>();
+			for (const [popoutId, Component] of Object.entries(panelPopouts ?? {})) {
+				if (globalPopoutIds.has(popoutId)) {
+					console.error(
+						`[vkma-router] popout "${popoutId}" is declared both globally and on panel "${panelRegistryKey}"; the local one shadows the global — rename one of them`,
+					);
+				}
+				if (localPopoutIds.has(popoutId)) {
+					console.error(
+						`[vkma-router] duplicate popout "${popoutId}" on panel "${panelRegistryKey}"`,
+					);
+					continue;
+				}
+				localPopoutIds.add(popoutId);
+				popouts.push({ id: popoutId, Component, panel: panelRegistryKey });
+			}
 			const panelPath = panelKey === "index" ? "/" : panelKey;
 			// dev check: two panels with the same full path silently break
 			// matching (the router resolves the conflict arbitrarily) — a

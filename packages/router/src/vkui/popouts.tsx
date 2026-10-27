@@ -1,5 +1,6 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { type ComponentType } from "react";
+import { looseRouteOf } from "../core/loose-route.ts";
 import { POPOUT_STATE_KEY, readPopoutState } from "../core/state-keys.ts";
 
 /**
@@ -13,6 +14,12 @@ import { POPOUT_STATE_KEY, readPopoutState } from "../core/state-keys.ts";
 export interface PopoutEntry {
 	id: string;
 	Component: ComponentType<{ onClose: () => void }>;
+	/**
+	 * The owning panel key (`${view}/${panel}`) for a panel-local popout —
+	 * it resolves only while that panel is the deepest matched one.
+	 * Undefined = global (resolves from any panel).
+	 */
+	panel?: string;
 }
 
 export function usePopoutState(): { id: string; props?: Record<string, unknown> } | undefined {
@@ -56,13 +63,42 @@ export function useHidePopout(): () => void {
 	};
 }
 
+/** The deepest matched panel's registry key (`${view}/${panel}`), or null. */
+function useActivePanelKey(): string | null {
+	const router = useRouter();
+	return useRouterState({
+		select: (state): string | null => {
+			for (let i = state.matches.length - 1; i >= 0; i--) {
+				const routeId = state.matches[i]?.routeId;
+				if (routeId === undefined) {
+					continue;
+				}
+				const panel = looseRouteOf(router, routeId)?.options.staticData?.panel;
+				if (panel !== undefined) {
+					return panel;
+				}
+			}
+			return null;
+		},
+	});
+}
+
 export function Popouts({ entries }: { entries: PopoutEntry[] }) {
 	const popout = usePopoutState();
 	const hide = useHidePopout();
+	const activePanelKey = useActivePanelKey();
 	if (popout === undefined) {
 		return null;
 	}
-	const entry = entries.find(candidate => candidate.id === popout.id);
+	// resolution local → global: the current panel's own popouts shadow the
+	// global registry
+	const entry =
+		entries.find(
+			candidate =>
+				candidate.panel !== undefined &&
+				candidate.panel === activePanelKey &&
+				candidate.id === popout.id,
+		) ?? entries.find(candidate => candidate.panel === undefined && candidate.id === popout.id);
 	if (!entry) {
 		return null;
 	}

@@ -112,9 +112,10 @@ read it before touching anything here.
   is a host-initiated jump (navigate replace, echo-suppressed) — "host
   back" is `VKWebAppClose` territory, not a fragment pop.
 - **Popouts** are transient overlays: `{ popout: id, props }` in
-  `history.state`, components from per-panel/global registries (resolution
-  local → global, id collision in both is a dev error), `onClose`
-  injected. Never store React elements in history state.
+  `history.state`, components from per-panel (`PanelOptions.popouts`) /
+  global registries — the current panel's own registry resolves first, a
+  global id collision is a dev-time console error, `onClose` injected.
+  Never store React elements in history state.
 - **Search params DX**: prefer Standard Schema validators (zod v4 /
   valibot + TanStack adapters); a function `validateSearch` must return an
   explicitly all-optional shape or `Link`/`navigate` demand `search`.
