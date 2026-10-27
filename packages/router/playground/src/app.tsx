@@ -29,6 +29,9 @@ export const app = createApp({
 
 export const router = createRouter({
 	routeTree: app.routeTree,
+	// local route modals are URL-masked back to their panel — without this
+	// a modal open would put its own path in the address bar
+	routeMasks: app.routeMasks,
 	history: createVkHistory().history,
 	defaultNotFoundComponent: NotFound,
 	// the initial load gates the FIRST render on the root match — without a

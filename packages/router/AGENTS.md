@@ -74,8 +74,11 @@ read it before touching anything here.
   pushes. The bridge sync is initialized after the router exists (module
   cycle ⇒ TDZ crash). `"browser"` → TanStack's default history (old
   `createBrowserRouter`).
-- **Modals are routes** (masked child routes; global ones via `?modal=` —
-  deep-linkable, unmasked in v0.1), never `ModalRoot` (deprecated, gone in
+- **Modals are routes** (masked child routes — `createApp` builds
+  declarative masks to the owning panel; pass `app.routeMasks` into
+  `createRouter({ routeMasks })` or a modal open puts its own path in the
+  address bar. Global ones via `?modal=` — deep-linkable, masked by the
+  imperative open), never `ModalRoot` (deprecated, gone in
   VKUI v10). The Modals host drives the choreography through CONTEXT and
   the ENTRY COMPONENT renders its own surface — `ModalPageSurface` or
   `ModalCardSurface` (the component owns header/card chrome/size as

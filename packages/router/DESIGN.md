@@ -88,10 +88,15 @@ hard-won invariants; `AGENTS.md` distills them for agents.
   back closes for free, deep links work.
     - Local modals: SIBLING child routes of a panel (chain steps are
       siblings — nesting modal routes inside each other keeps the parent
-      matched and stacks two open sheets, the user-reported bug).
+      matched and stacks two open sheets, the user-reported bug). URL-
+      masked back to the owning panel via declarative `routeMasks`
+      (`app.routeMasks` → `createRouter`): the address stays at the panel
+      while any level is open, the raw modal path still deep-links
+      (parsing is never masked) and the mask survives reload
+      (`history.state.__tempLocation`).
     - Global modals: rendered by the host from `?modal=<id>` on any panel
-      (deep-linkable; masking them is a v0.1 TODO — needs an imperative
-      `mask` on the open action).
+      (deep-linkable; the imperative open carries its own `mask` so the
+      URL stays at the panel).
     - Resolution local → global; the same `id` declared in both places is a
       dev-time error.
     - **Sequential choreography**: when the matched modal changes, the host

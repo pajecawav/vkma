@@ -1,4 +1,10 @@
-import { createRootRoute, createRoute, type AnyRoute } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	createRoute,
+	createRouteMask,
+	type AnyRoute,
+	type RouteMask,
+} from "@tanstack/react-router";
 import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
 import type { ModalEntry } from "../vkui/modals.tsx";
 import type { PopoutEntry } from "../vkui/popouts.tsx";
@@ -10,11 +16,16 @@ import { VIEW_DEFINITION, type ViewDefinition } from "./define-view.ts";
  * Typed builders that generate the TanStack route tree in the /vkui
  * convention: view = pathless layout route, panels = path children, modals
  * = sibling child routes of their panel (chained modals are siblings — the
- * host closes one before opening the next). Global modals are rendered by
- * the host from `?modal=<id>` on any panel (deep-linkable, unmasked in
- * v0.1). Every node accepts raw TanStack options (`loader`, `beforeLoad`,
- * `validateSearch`, `lazy`, …) passed through untouched, and the underlying
- * routes stay reachable for escape hatches.
+ * host closes one before opening the next). Local route modals are
+ * URL-masked back to their panel (`app.routeMasks` → `createRouter`'s
+ * `routeMasks`): the address stays at the panel while any modal level is
+ * open, the raw modal path still deep-links (parsing is never masked), and
+ * the mask survives reload (history.state.__tempLocation). Global modals
+ * are rendered by the host from `?modal=<id>` on any panel (deep-linkable;
+ * the imperative open carries its own mask). Every node accepts raw
+ * TanStack options (`loader`, `beforeLoad`, `validateSearch`, `lazy`, …)
+ * passed through untouched, and the underlying routes stay reachable for
+ * escape hatches.
  */
 
 /**
@@ -150,6 +161,12 @@ export interface AppHandle {
 	routeTree: AnyRoute;
 	/** Modal entries for the `<Modals>` host. */
 	modals: ModalEntry[];
+	/**
+	 * Declarative URL masks for the local route modals — pass into
+	 * `createRouter({ routeMasks })`, or a modal open puts its own path in
+	 * the address bar.
+	 */
+	routeMasks: RouteMask<any>[];
 	/** Popout registry for the `<Popouts>` host. */
 	popouts: PopoutEntry[];
 	/** Panel handles keyed by `${viewKey}/${panelKey}`. */
@@ -168,6 +185,7 @@ export interface AppHandle {
 export interface TypedAppHandle<TViews extends Record<string, ViewOptions>> {
 	routeTree: AnyRoute;
 	modals: ModalEntry[];
+	routeMasks: RouteMask<any>[];
 	popouts: PopoutEntry[];
 	panels: PanelHandlesOf<TViews>;
 	views: Record<string, AnyRoute>;
@@ -281,6 +299,12 @@ function createModalTree(
 	modals: Record<string, ModalComponent>,
 	registry: ModalEntry[],
 	baseKey: string,
+	/** Full path of the OWNING panel — every level's mask displays it. */
+	panelFullPath: string,
+	/** Full path of the parent in the modal chain (panel or parent modal). */
+	parentFullPath: string,
+	/** Mask pairs collected for the whole app, mapped to RouteMask later. */
+	masks: Array<{ from: string; to: string }>,
 ): AnyRoute[] {
 	const routes: AnyRoute[] = [];
 	for (const [modalKey, declared] of Object.entries(modals)) {
@@ -290,6 +314,13 @@ function createModalTree(
 			path: modalKey,
 			staticData: { modal: `${baseKey}/${modalKey}` },
 		});
+		const modalFullPath =
+			parentFullPath === "/" ? `/${modalKey}` : `${parentFullPath}/${modalKey}`;
+		// while ANY level of the chain is open the URL keeps showing the
+		// OWNING panel's path — nested levels mask to the panel too, so the
+		// display never leaks a modal segment (the raw modal path still
+		// deep-links: parsing is never masked)
+		masks.push({ from: modalFullPath, to: panelFullPath });
 		registry.push({
 			get routeId() {
 				return modalRoute.id;
@@ -306,6 +337,9 @@ function createModalTree(
 				nested,
 				registry,
 				`${baseKey}/${modalKey}`,
+				panelFullPath,
+				modalFullPath,
+				masks,
 			);
 			if (children.length > 0) {
 				// addChildren REPLACES the children array — one call per route
@@ -324,6 +358,7 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 ): TypedAppHandle<TViews>;
 export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const modals: ModalEntry[] = [];
+	const pendingMasks: Array<{ from: string; to: string }> = [];
 	const popouts: PopoutEntry[] = Object.entries(options.popouts ?? {}).map(([id, Component]) => ({
 		id,
 		Component: Component as PopoutEntry["Component"],
@@ -414,12 +449,18 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 				);
 			}
 			// the modal subtree (nested modals are child routes of their
-			// parent modal); entries register flat into the host registry
+			// parent modal); entries register flat into the host registry.
+			// The view is a pathless layout route — the panel's full path is
+			// just its declared path rooted at "/"
+			const panelFullPath = panelPath === "/" ? "/" : `/${panelPath.replace(/^\//, "")}`;
 			const modalRoutes = createModalTree(
 				panelRoute,
 				panelModals ?? {},
 				modals,
 				`${viewKey}/${panelKey}`,
+				panelFullPath,
+				panelFullPath,
+				pendingMasks,
 			);
 			// addChildren REPLACES the children array — one call after the loop
 			// (per-modal calls would orphan every modal but the last)
@@ -437,6 +478,23 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	}
 
 	rootRoute.addChildren(Object.values(views));
+
+	// Declarative masks for the local route modals: while a modal is open
+	// the router displays the owning panel's path (createRouteMask is
+	// identity — the router matches `from` at navigation time and stores
+	// the real location in history.state.__tempLocation, so the raw modal
+	// path still deep-links and the mask survives reload)
+	const routeMasks = pendingMasks.map(
+		mask =>
+			createRouteMask({
+				routeTree: rootRoute as never,
+				from: mask.from,
+				to: mask.to,
+				// modal routes are children of their panel — the params ($id, …)
+				// are shared, forward them to the displayed location wholesale
+				params: true,
+			} as never) as RouteMask<any>,
+	);
 
 	for (const { key, path, route } of deferredPanels) {
 		panels[key] = {
@@ -456,7 +514,8 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	}
 
 	// global modals: no route — the Modals host opens them from the
-	// `?modal=<id>` search param on any panel (deep-linkable, unmasked in v0.1)
+	// `?modal=<id>` search param on any panel (deep-linkable; the
+	// imperative open in useNavigator masks the URL back to the panel)
 	for (const [modalKey, Modal] of Object.entries(options.modals ?? {})) {
 		modals.push({
 			routeId: `?modal=${modalKey}`,
@@ -468,6 +527,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const handle: AppHandle = {
 		routeTree: rootRoute,
 		modals,
+		routeMasks,
 		popouts,
 		panels,
 		views,
