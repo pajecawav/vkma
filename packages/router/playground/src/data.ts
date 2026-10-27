@@ -173,3 +173,19 @@ export const chats: Chat[] = [
 ];
 
 export const chatTitleOf = (chat: Chat): string => users[chat.userId]?.name ?? "Чат";
+
+/**
+ * The post by id — the post panel's `beforeLoad` rejects unknown ids
+ * (including warm param swaps), so every chunk under that panel can only
+ * be matched with a valid one; this narrows the type and fails loudly if
+ * the guard is ever removed.
+ */
+export function postOf(id: string): Post {
+	const post = posts.find(candidate => candidate.id === Number(id));
+	if (post === undefined) {
+		throw new Error(
+			`[playground] unknown post "${id}" — the panel guard should have caught it`,
+		);
+	}
+	return post;
+}

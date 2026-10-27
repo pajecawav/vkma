@@ -36,7 +36,8 @@ export const router = createRouter({
 	defaultNotFoundComponent: NotFound,
 	// the initial load gates the FIRST render on the root match — without a
 	// pending component the cold start is a blank screen for the whole feed
-	// loader (700ms). pendingMs: 0 shows the pending state from the very
+	// loader (an artificial 2s here). pendingMs: 0 shows the pending state
+	// from the very
 	// first committed frame — any positive value opens a blank window
 	// between React mounting and the pending UI appearing
 	defaultPendingComponent: ScreenSpinner,

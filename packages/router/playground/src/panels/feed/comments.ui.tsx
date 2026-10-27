@@ -10,7 +10,7 @@ import {
 	Text,
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
-import { posts, users } from "../../data";
+import { postOf, users } from "../../data";
 import { InitialsAvatar } from "../../ui";
 import { postPanel } from "./feed.panel";
 
@@ -18,13 +18,7 @@ import { postPanel } from "./feed.panel";
 export default function CommentsModal(): ReactElement {
 	const navigator = useNavigator();
 	const { id } = usePanelParams(postPanel);
-	const post = posts.find(candidate => candidate.id === Number(id));
-	if (post === undefined) {
-		// the parent panel's beforeLoad rejects unknown ids — this narrows the type
-		throw new Error(
-			`[playground] unknown post "${id}" — the panel guard should have caught it`,
-		);
-	}
+	const post = postOf(id);
 
 	return (
 		<ModalPageSurface

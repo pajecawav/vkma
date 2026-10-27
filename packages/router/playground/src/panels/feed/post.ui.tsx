@@ -16,7 +16,7 @@ import {
 	Text,
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
-import { posts, users } from "../../data";
+import { postOf, users } from "../../data";
 import { InitialsAvatar } from "../../ui";
 import { postPanel, type PostSearch } from "./feed.panel";
 
@@ -25,12 +25,7 @@ export default function PostPanel(): ReactElement {
 	const navigator = useNavigator();
 	const { id } = usePanelParams(postPanel);
 	const search = usePanelSearch(postPanel);
-	const post = posts.find(candidate => candidate.id === Number(id));
-	if (post === undefined) {
-		// beforeLoad rejects unknown ids (including warm param swaps) — this
-		// branch only narrows the type
-		throw new Error(`[playground] unknown post "${id}" — beforeLoad should have caught it`);
-	}
+	const post = postOf(id);
 	const author = users[post.authorId]!;
 	const setTab = (tab: PostSearch["tab"]) => {
 		void navigator.replace({ to: "/post/$id", params: { id }, search: { tab } });
