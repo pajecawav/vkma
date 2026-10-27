@@ -110,13 +110,26 @@ export function createIdentity(onClientIdChange: () => void): CollectorIdentity 
 		launchParams,
 		platform,
 		clientInfo(bridge: boolean): ClientInfo {
+			// Only the curated launch params ever leave the page as the
+			// url's query — the complete href (OAuth codes, emails,
+			// fragment tokens) must not ride along beside the filtered
+			// launchParams.
+			let url: string;
+			try {
+				const minimized = new URL(window.location.href);
+				minimized.search = new URLSearchParams(launchParams).toString();
+				minimized.hash = "";
+				url = minimized.toString();
+			} catch {
+				url = window.location.origin + window.location.pathname;
+			}
 			return {
 				clientId,
 				sessionId,
 				connectedAt,
 				lastSeenAt: Date.now(),
 				ua: navigator.userAgent,
-				url: window.location.href,
+				url,
 				platform,
 				bridge,
 				appId: launchParams["vk_app_id"],
