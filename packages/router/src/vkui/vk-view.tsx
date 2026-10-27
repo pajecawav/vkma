@@ -69,6 +69,17 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				.filter(match => (match as { status?: string }).status === "pending")
 				.map(match => String(match.routeId)),
 	});
+	// a notFound match (notFound() from beforeLoad/validateSearch) must NOT
+	// render its panel component: the component's data guards assume a valid
+	// match, and the shell renders the NotFound screen for this navigation —
+	// the panel itself stays invisible. Without the gate the component would
+	// throw in a transient render and dirty the console on every cold 404
+	const notFoundRouteIds = useRouterState({
+		select: state =>
+			state.matches
+				.filter(match => (match as { status?: string }).status === "notFound")
+				.map(match => String(match.routeId)),
+	});
 	const activeRouteId = deepestPanelMatchId(view, matchedRouteIds);
 	const activeChild =
 		view.children.find((child: AnyRoute) => child.id === activeRouteId) ?? view.children[0];
@@ -88,10 +99,22 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				const Component = child.options.component as ComponentType | undefined;
 				const Pending = child.options.pendingComponent as ComponentType | undefined;
 				const isPending = pendingRouteIds.includes(String(child.id));
+				const isNotFound = notFoundRouteIds.includes(String(child.id));
+				// pending without a pendingComponent renders the FALLBACK, never
+				// the component: a lazy chunk may have already merged its
+				// component while the match is still pending (or parked on a
+				// notFound boundary up the tree) — the component's data guards
+				// assume a resolvable match and would throw in a hidden panel
 				return (
 					<Panel key={id} nav={id}>
-						{isPending && Pending !== undefined ? (
-							<Pending />
+						{isPending ? (
+							Pending !== undefined ? (
+								<Pending />
+							) : (
+								<PanelSpinnerFallback />
+							)
+						) : isNotFound ? (
+							<PanelSpinnerFallback />
 						) : Component ? (
 							<Component />
 						) : (
