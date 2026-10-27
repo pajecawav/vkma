@@ -9,27 +9,19 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { idleChoreography, reconcile, type ChoreographyState } from "./choreography.ts";
 
 /**
- * Modal choreography. A modal is a child route of a panel (or of another
- * modal); the host keeps exactly the matched chain open:
- *
- * - a SIBLING retarget (comments → share) closes the displayed sheet first
- *   and opens the new one only after the exit completes — never two sibling
- *   sheets at once (the user-reported bug from the first spike);
- * - a NESTED open (the target is a child route of the displayed modal)
- *   keeps the displayed sheet open and stacks the child ON TOP of it — two
- *   open sheets by design; back unwinds the stack one level per entry;
- * - back to the parent modal closes the top and reveals the parent.
- *
- * Exit completion is EVENT-DRIVEN: VKUI fires `onClosed` at the transition
- * end and backs it with an internal timer computed from the element's real
- * `transitionDuration` (adapts to platform/theme/reduced-motion — more
- * accurate than any host-side constant). The host `exitDuration` is only a
- * WATCHDOG for the one case VKUI cannot report: the modal unmounting before
- * the exit finishes (its entry vanished from `entries`). Re-targeting the
- * displayed modal while it is exiting CANCELS the exit — VKUI reverses the
- * transition mid-flight, so there is no close-then-reopen bounce.
+ * Modal choreography host. The state machine lives in `choreography.ts`
+ * (pure — sibling closes first, nested stacks on top, back reveals the
+ * parent, retarget-during-exit cancels or queues). This host binds it to
+ * VKUI: exit completion is EVENT-DRIVEN — VKUI fires `onClosed` at the
+ * transition end and backs it with an internal timer computed from the
+ * element's real `transitionDuration` (adapts to platform/theme/reduced-
+ * motion — more accurate than any host-side constant). The host
+ * `exitDuration` is only a WATCHDOG for the one case VKUI cannot report:
+ * the modal unmounting before the exit finishes (its entry vanished from
+ * `entries`).
  */
 
 /** A renderable modal entry component — plain or React.lazy. */
@@ -136,69 +128,6 @@ export function ModalCardSurface({
 	);
 }
 
-interface ChoreographyState {
-	/** the modal route that should be open on top right now */
-	target: ModalEntry | null;
-	/** open entries, bottom → top (nested modals stack) */
-	stack: ModalEntry[];
-	/** the entry animating out (mounted with open=false) */
-	exiting: ModalEntry | null;
-	/** the exiting id whose `onClosed` completes the transition */
-	awaitingExitId: string | null;
-}
-
-const IDLE: ChoreographyState = {
-	target: null,
-	stack: [],
-	exiting: null,
-	awaitingExitId: null,
-};
-
-/**
- * Reconcile the open stack against the matched modal. One step per call:
- * every close is an animated exit whose `onClosed` triggers the next step.
- * Route ids are hierarchical (`/view:feed/post/$id/comments`), so the
- * nested/sibling relation is a string prefix check.
- */
-function reconcile(previous: ChoreographyState, target: ModalEntry | null): ChoreographyState {
-	if (previous.awaitingExitId !== null) {
-		return previous; // mid-exit — the exit's completion re-reconciles
-	}
-	const top = previous.stack[previous.stack.length - 1] ?? null;
-	if (top === null) {
-		return target === null
-			? { ...previous, target: null }
-			: { ...previous, target, stack: [target] };
-	}
-	if (target !== null && target.id === top.id) {
-		return { ...previous, target }; // already on top — settle
-	}
-	if (target !== null && target.routeId.startsWith(`${top.routeId}/`)) {
-		// NESTED open: the target is a child route of the displayed modal —
-		// keep it open and stack the child on top
-		return { ...previous, target, stack: [...previous.stack, target] };
-	}
-	if (target !== null && top.routeId.startsWith(`${target.routeId}/`)) {
-		// back to an ANCESTOR modal: close the top, the parent stays open
-		return {
-			...previous,
-			target,
-			stack: previous.stack.slice(0, -1),
-			exiting: top,
-			awaitingExitId: top.id,
-		};
-	}
-	// sibling/unrelated modal or close-everything: close the top first —
-	// the target opens when the exit completes
-	return {
-		...previous,
-		target,
-		stack: previous.stack.slice(0, -1),
-		exiting: top,
-		awaitingExitId: top.id,
-	};
-}
-
 export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 	const routeIds = new Set(entries.map(entry => entry.routeId));
 	const matchedModalEntry = useRouterState({
@@ -219,7 +148,9 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 		globalModalId !== null ? (entries.find(entry => entry.id === globalModalId) ?? null) : null;
 	const target = matchedModalEntry ?? globalEntry;
 
-	const [state, setState] = useState<ChoreographyState>(() => reconcile(IDLE, target));
+	const [state, setState] = useState<ChoreographyState<ModalEntry>>(() =>
+		reconcile(idleChoreography<ModalEntry>(), target),
+	);
 
 	// choreograph target changes (see reconcile)
 	useEffect(() => {
@@ -231,7 +162,7 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 			if (previous.awaitingExitId !== closedId) {
 				return previous; // stale or unexpected callback
 			}
-			const settled: ChoreographyState = {
+			const settled: ChoreographyState<ModalEntry> = {
 				...previous,
 				exiting: null,
 				awaitingExitId: null,
