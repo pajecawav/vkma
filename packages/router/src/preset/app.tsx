@@ -6,6 +6,7 @@ import { Popouts } from "../vkui/popouts.tsx";
 import { VkView } from "../vkui/vk-view.tsx";
 import type { AppHandle } from "./builders.tsx";
 import { deriveInflateChain, interpolatePath } from "./inflate.ts";
+import { looseRouteOf } from "./loose-route.ts";
 
 /**
  * Default root shell: the active view + the modal/popout hosts + inflate.
@@ -77,15 +78,7 @@ export function useInflate(app: AppHandle, enabled = true): void {
 				if (routeId === undefined) {
 					continue;
 				}
-				const route = (
-					router.routesById as Record<
-						string,
-						{
-							options: { staticData?: { panel?: string; modal?: string } };
-							fullPath?: string;
-						}
-					>
-				)[routeId];
+				const route = looseRouteOf(router, routeId);
 				const staticData = route?.options.staticData;
 				if (staticData?.modal !== undefined && route !== undefined) {
 					// modal levels of the deep link, deepest first (reversed below)

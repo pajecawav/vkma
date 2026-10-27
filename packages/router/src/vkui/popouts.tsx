@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { type ComponentType, type ReactNode } from "react";
+import { type ComponentType } from "react";
 import { POPOUT_STATE_KEY, readPopoutState } from "../core/state-keys.ts";
 
 /**
@@ -56,13 +56,7 @@ export function useHidePopout(): () => void {
 	};
 }
 
-export function Popouts({
-	entries,
-	renderContainer,
-}: {
-	entries: PopoutEntry[];
-	renderContainer?: (children: ReactNode) => ReactNode;
-}) {
+export function Popouts({ entries }: { entries: PopoutEntry[] }) {
 	const popout = usePopoutState();
 	const hide = useHidePopout();
 	if (popout === undefined) {
@@ -72,6 +66,5 @@ export function Popouts({
 	if (!entry) {
 		return null;
 	}
-	const content = <entry.Component onClose={hide} />;
-	return renderContainer !== undefined ? renderContainer(content) : content;
+	return <entry.Component onClose={hide} />;
 }

@@ -44,30 +44,36 @@ export function useLastWhileUndefined<T>(value: T | undefined): T | undefined {
 	return value === undefined ? ref.current : value;
 }
 
+/** Shared body of the panel data hooks — they differ only in the match field. */
+function usePanelMatchField(
+	refOrFrom: PanelRef | string,
+	field: "params" | "search" | "loaderData",
+): unknown {
+	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
+	const match = useMatch({ from: routeId, shouldThrow: false } as never);
+	return useLastWhileUndefined(
+		(match as unknown as Record<string, unknown> | undefined)?.[field],
+	);
+}
+
 export function usePanelParams<P extends Record<string, string>>(
 	ref: PanelRef<P | undefined, any, any>,
 ): P;
 export function usePanelParams(from: string): Record<string, string>;
 export function usePanelParams(refOrFrom: PanelRef | string): unknown {
-	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
-	const match = useMatch({ from: routeId, shouldThrow: false } as never);
-	return useLastWhileUndefined((match as { params?: unknown } | undefined)?.params) ?? {};
+	return usePanelMatchField(refOrFrom, "params") ?? {};
 }
 
 export function usePanelSearch<S>(ref: PanelRef<any, S | undefined, any>): S | undefined;
 export function usePanelSearch(from: string): Record<string, unknown>;
 export function usePanelSearch(refOrFrom: PanelRef | string): unknown {
-	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
-	const match = useMatch({ from: routeId, shouldThrow: false } as never);
-	return useLastWhileUndefined((match as { search?: unknown } | undefined)?.search);
+	return usePanelMatchField(refOrFrom, "search");
 }
 
 export function usePanelLoaderData<D>(ref: PanelRef<any, any, D | undefined>): D | undefined;
 export function usePanelLoaderData(from: string): unknown;
 export function usePanelLoaderData(refOrFrom: PanelRef | string): unknown {
-	const routeId = typeof refOrFrom === "string" ? refOrFrom : refOrFrom.routeId;
-	const match = useMatch({ from: routeId, shouldThrow: false } as never);
-	return useLastWhileUndefined((match as { loaderData?: unknown } | undefined)?.loaderData);
+	return usePanelMatchField(refOrFrom, "loaderData");
 }
 
 /**

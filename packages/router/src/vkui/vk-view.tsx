@@ -59,15 +59,15 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 	const matchedRouteIds = useRouterState({
 		select: state => state.matches.map(match => match.routeId),
 	});
-	// stable string — TanStack's Outlet would swap in the route's
-	// pendingComponent itself, but static children render the component
-	// directly, so the swap is ours to make while the loader runs
+	// structurally-compared array — TanStack keeps the reference stable when
+	// the selection is deep-equal. TanStack's Outlet would swap in the
+	// route's pendingComponent itself, but static children render the
+	// component directly, so the swap is ours to make while the loader runs
 	const pendingRouteIds = useRouterState({
 		select: state =>
 			state.matches
 				.filter(match => (match as { status?: string }).status === "pending")
-				.map(match => match.routeId)
-				.join("|"),
+				.map(match => String(match.routeId)),
 	});
 	const activeRouteId = deepestPanelMatchId(view, matchedRouteIds);
 	const activeChild =
@@ -87,7 +87,7 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				const id = panelIdOf(child);
 				const Component = child.options.component as ComponentType | undefined;
 				const Pending = child.options.pendingComponent as ComponentType | undefined;
-				const isPending = pendingRouteIds.split("|").includes(String(child.id));
+				const isPending = pendingRouteIds.includes(String(child.id));
 				return (
 					<Panel key={id} nav={id}>
 						{isPending && Pending !== undefined ? (

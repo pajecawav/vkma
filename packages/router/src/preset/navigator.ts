@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { MODAL_STATE_KEY } from "../core/state-keys.ts";
 import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
+import { looseRouteOf } from "./loose-route.ts";
 
 /**
  * The parity navigator over TanStack primitives: push/replace/back/
@@ -46,10 +47,7 @@ export interface VkNavigator {
 }
 
 function isModalRouteId(router: ReturnType<typeof useRouter>, routeId: string): boolean {
-	const route = (
-		router.routesById as Record<string, { options: { staticData?: { modal?: string } } }>
-	)[routeId];
-	return route?.options.staticData?.modal !== undefined;
+	return looseRouteOf(router, routeId)?.options.staticData?.modal !== undefined;
 }
 
 export function useNavigator(): VkNavigator {
@@ -86,12 +84,7 @@ export function useNavigator(): VkNavigator {
 					if (matchRouteId === undefined) {
 						continue;
 					}
-					const route = (
-						router.routesById as Record<
-							string,
-							{ options: { staticData?: { modal?: string } }; fullPath?: string }
-						>
-					)[matchRouteId];
+					const route = looseRouteOf(router, matchRouteId);
 					if (route?.options.staticData?.modal === undefined) {
 						continue;
 					}
