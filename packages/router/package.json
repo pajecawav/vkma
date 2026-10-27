@@ -46,7 +46,7 @@
 		"test:watch": "vitest watch"
 	},
 	"dependencies": {
-		"@tanstack/history": "^1.162.0"
+		"@tanstack/history": "catalog:"
 	},
 	"peerDependencies": {
 		"@tanstack/react-router": "^1.170.0",
@@ -59,10 +59,10 @@
 		}
 	},
 	"devDependencies": {
-		"@tanstack/react-router": "^1.170.46",
+		"@tanstack/react-router": "catalog:",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
-		"@vkontakte/vkui": "^8.4.0",
+		"@vkontakte/vkui": "catalog:",
 		"happy-dom": "catalog:",
 		"publint": "catalog:",
 		"react": "catalog:",

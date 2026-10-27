@@ -9,11 +9,10 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@tanstack/react-router": "^1.170.46",
+		"@tanstack/react-router": "catalog:",
 		"@vkma.dev/router": "workspace:*",
-		"@vkontakte/icons": "^3.78.0",
-		"@vkontakte/vk-bridge": "catalog:",
-		"@vkontakte/vkui": "^8.4.0"
+		"@vkontakte/icons": "catalog:",
+		"@vkontakte/vkui": "catalog:"
 	},
 	"devDependencies": {
 		"@types/react": "catalog:",
