@@ -107,16 +107,17 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 	}
 
 	// hash mode: the hash IS the location; legacy `#?path=` links resolve too
-	const parseLocation = () => {
-		const state = initStamp();
+	const hrefFromHash = (): string => {
 		const hash = win.location.hash;
-		let href: string;
 		if (hash.startsWith("#?")) {
 			// legacy hash-param deep link — resolve the path param out of it
-			href = new URLSearchParams(hash.slice(2)).get(pathParam) ?? "/";
-		} else {
-			href = hash.length > 1 ? hash.slice(1) : "/";
+			return new URLSearchParams(hash.slice(2)).get(pathParam) ?? "/";
 		}
+		return hash.length > 1 ? hash.slice(1) : "/";
+	};
+	const parseLocation = () => {
+		const state = initStamp();
+		const href = hrefFromHash();
 		const url = new URL(href, win.location.origin);
 		return {
 			href,
@@ -138,7 +139,7 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 		/** Router href from a SetLocation/ChangeFragment payload. */
 		parsePayload: (payload: string) => parseHashLocation(payload),
 		/** Router href from the current document hash. */
-		parseCurrentHash: () => (win.location.hash.length > 1 ? win.location.hash.slice(1) : "/"),
+		parseCurrentHash: hrefFromHash,
 	};
 }
 
