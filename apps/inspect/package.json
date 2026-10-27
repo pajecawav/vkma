@@ -13,7 +13,7 @@
 		"build": "run-s build:panel build:inspector",
 		"build:panel": "rsbuild build --config rsbuild.panel.config.ts",
 		"build:inspector": "rsbuild build --config rsbuild.inspector.config.ts",
-		"preview": "rsbuild preview",
+		"preview": "rsbuild preview --config rsbuild.panel.config.ts",
 		"deploy": "run-s build deploy:wrangler",
 		"deploy:wrangler": "pnpx wrangler deploy",
 		"gen:favicon": "node scripts/generate-favicon.ts",
