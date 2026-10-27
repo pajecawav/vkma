@@ -1,6 +1,6 @@
 import { InspectHost, type ApprovalRequest } from "./host.ts";
 import { Hub } from "./hub.ts";
-import { resolvePeerId, rotatePeerId } from "./peer-id.ts";
+import { resolvePeerId, rotatePeerId, stopClaimGuard } from "./peer-id.ts";
 import { InspectPeer, type PeerStatus } from "./peer.ts";
 
 /**
@@ -66,6 +66,7 @@ export function createInspectRuntime(): InspectRuntime {
 		dispose() {
 			peer.stopPeer();
 			host.dispose();
+			stopClaimGuard();
 		},
 	};
 }

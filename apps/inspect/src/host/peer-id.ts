@@ -3,15 +3,19 @@ import { CLAIM_WINDOW_MS, PEER_ID_PREFIX, PEER_ID_RANDOM_LENGTH } from "../share
 /**
  * The UI's peer id lifecycle. The id is the capability every inspector
  * URL embeds, so it must survive reloads of THIS tab (the phone's script
- * tag points at it) while never being shared by two live tabs (two peers
- * registering one id on the broker is an error).
+ * tag points at it) while never being held by two live tabs (two peers
+ * cannot register one id on the broker).
  *
  * sessionStorage keeps the per-tab id across reloads; localStorage is
- * only the SEED for fresh tabs (never read back by an already-living
- * tab). "Duplicate Tab" copies sessionStorage — the BroadcastChannel
- * claim handshake (the devtools collector's) resolves that: an incumbent
- * answers `taken`, the claimant mints fresh. Claims settle before the
- * Peer is created, so the handshake never has to rotate a live peer.
+ * only the SEED for fresh tabs — that seed is what keeps a snippet cut
+ * yesterday working tomorrow, so it is written by first settles and by
+ * Rotate ONLY. A fresh tab adopting the seed claims it first: the living
+ * incumbent answers `taken` (each tab speaks for its id for its whole
+ * lifetime, not just during settling) and the claimant mints a
+ * session-local replacement — the seed keeps naming the incumbent's id,
+ * which is exactly what the already-distributed snippets reference. Two
+ * tabs settling at once (browser session restore) tie-break on the
+ * smaller claim token, so exactly one of them keeps the seeded id.
  */
 
 const PEER_ID_KEY = "vkma:inspect:peer-id";
@@ -57,59 +61,118 @@ interface IdMessage {
 	token: string;
 }
 
+let guard: BroadcastChannel | undefined;
+/** The id this tab currently speaks for (the incumbent side). */
+let heldId = "";
+/** True while resolvePeerId's claim loop is running. */
+let settling = false;
+let activeToken = "";
+let lost = false;
+
+function newClaimToken(): string {
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function post(message: IdMessage): void {
+	// BroadcastChannel.postMessage takes only the message — there is
+	// no targetOrigin (the rule is a false positive here).
+	// oxlint-disable-next-line unicorn/require-post-message-target-origin
+	guard?.postMessage(message);
+}
+
+function armGuard(): boolean {
+	if (typeof BroadcastChannel === "undefined") {
+		return false;
+	}
+	if (guard !== undefined) {
+		return true;
+	}
+	guard = new BroadcastChannel(PEER_ID_CHANNEL);
+	guard.addEventListener("message", (event: MessageEvent<IdMessage | undefined>) => {
+		const message = event.data;
+		if (message === undefined) {
+			return;
+		}
+		if (message.type === "claim") {
+			if (message.id !== heldId || message.token === activeToken) {
+				return;
+			}
+			if (settling && message.token < activeToken) {
+				// a concurrent settle claimed the same seeded id: the
+				// smaller token keeps it — both sides compute the same
+				// winner, so exactly one tab ends up holding the id the
+				// seed (and the snippets) name
+				lost = true;
+				return;
+			}
+			post({ type: "taken", id: message.id, token: message.token });
+			return;
+		}
+		if (message.type === "taken" && message.token === activeToken && message.id === heldId) {
+			lost = true;
+		}
+	});
+	return true;
+}
+
 /**
  * Settles the id for this tab: session-stored → seeded → minted, with
- * the claim handshake running inside the claim window (a duplicate tab
- * holding the same id makes us mint a fresh one, up to three rounds).
+ * the claim handshake running inside the claim window (an incumbent or
+ * a tie-break loss makes us mint a session-local replacement, up to
+ * three rounds). Leaves the claim guard armed for the tab's lifetime.
  */
 export async function resolvePeerId(): Promise<string> {
-	let id = readStorage(sessionStorage, PEER_ID_KEY) ?? readStorage(localStorage, PEER_ID_KEY);
+	const session = readStorage(sessionStorage, PEER_ID_KEY);
+	let id = looksLikePeerId(session) ? session : readStorage(localStorage, PEER_ID_KEY);
 	if (!looksLikePeerId(id)) {
 		id = mintPeerId();
+		// the first panel on this origin — the seed starts here, every
+		// snippet cut from now on embeds this id
+		persist(localStorage, PEER_ID_KEY, id);
 	}
 	persist(sessionStorage, PEER_ID_KEY, id);
-	persist(localStorage, PEER_ID_KEY, id);
 
-	if (typeof BroadcastChannel === "undefined") {
+	if (!armGuard()) {
 		return id;
 	}
+	heldId = id;
 
-	const channel = new BroadcastChannel(PEER_ID_CHANNEL);
-	const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+	settling = true;
 	try {
 		for (let round = 0; round < 3; round++) {
-			let lost = false;
-			channel.addEventListener("message", (event: MessageEvent<IdMessage | undefined>) => {
-				const message = event.data;
-				if (message?.type === "taken" && message.token === token && message.id === id) {
-					lost = true;
-				}
-			});
-			// BroadcastChannel.postMessage takes only the message — there is
-			// no targetOrigin (the rule is a false positive here).
-			// oxlint-disable-next-line unicorn/require-post-message-target-origin
-			channel.postMessage({ type: "claim", id, token });
+			lost = false;
+			activeToken = newClaimToken();
+			post({ type: "claim", id, token: activeToken });
 			await new Promise(resolve => setTimeout(resolve, CLAIM_WINDOW_MS));
 			if (!lost) {
 				return id;
 			}
 			id = mintPeerId();
+			heldId = id;
 			persist(sessionStorage, PEER_ID_KEY, id);
-			persist(localStorage, PEER_ID_KEY, id);
 		}
 		return id;
 	} finally {
-		channel.close();
+		settling = false;
+		activeToken = "";
 	}
 }
 
 /** The explicit "this id leaked, burn it" action: a fresh id persisted
- * for this tab (and as the seed). Phone pages still holding the old id
- * in their script tag keep retrying a dead peer until the tag is
- * updated — the panel says so. */
+ * for this tab AND as the seed — the old id must never be adopted
+ * again. Phone pages still holding the old id in their script tag keep
+ * retrying a dead peer until the tag is updated — the panel says so. */
 export function rotatePeerId(): string {
 	const id = mintPeerId();
 	persist(sessionStorage, PEER_ID_KEY, id);
 	persist(localStorage, PEER_ID_KEY, id);
+	heldId = id;
 	return id;
+}
+
+/** Drop the claim guard (runtime dispose — the page teardown closes it
+ * anyway; this is for clean tests and explicit disposal). */
+export function stopClaimGuard(): void {
+	guard?.close();
+	guard = undefined;
 }
