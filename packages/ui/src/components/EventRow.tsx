@@ -3,6 +3,8 @@ import { memo, useEffect, useRef, useState } from "react";
 import { copyText } from "../lib/clipboard.ts";
 import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
+import { ClientDot } from "./ClientDot.tsx";
+import { IconButton } from "./IconButton.tsx";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 
@@ -13,10 +15,7 @@ function ClientBadge({ clientId, clients }: { clientId: string; clients: ClientI
 			className={`inline-flex shrink-0 items-center gap-1 font-mono text-[11px] leading-none ${clientColor(clientId).text}`}
 			title={client ? client.url : "client disconnected"}
 		>
-			<span
-				className={`size-1.5 rounded-[2px] ${clientColor(clientId).dot}`}
-				aria-hidden="true"
-			/>
+			<ClientDot clientId={clientId} />
 			{shortId(clientId)}
 		</span>
 	);
@@ -42,14 +41,9 @@ function CopyButton({ text }: { text: string }) {
 	};
 
 	return (
-		<button
-			type="button"
-			className="grid size-6 shrink-0 place-items-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
-			title="Copy JSON"
-			onClick={copy}
-		>
+		<IconButton size="sm" label="Copy JSON" onClick={copy}>
 			{copied ? <CheckIcon width={13} height={13} /> : <CopyIcon width={13} height={13} />}
-		</button>
+		</IconButton>
 	);
 }
 

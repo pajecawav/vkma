@@ -3,6 +3,8 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
+import { ClientDot } from "./ClientDot.tsx";
+import { IconButton } from "./IconButton.tsx";
 import { ChevronIcon, CrossIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
 
 const SENSITIVE_PARAMS = new Set(["sign", "access_token", "auth_key", "sid"]);
@@ -74,10 +76,7 @@ function ClientCard({
 								className={`inline-flex items-center gap-1 font-mono text-[11px] font-normal ${clientColor(client.clientId).text}`}
 								title={client.clientId}
 							>
-								<span
-									className={`size-1.5 rounded-[2px] ${clientColor(client.clientId).dot}`}
-									aria-hidden="true"
-								/>
+								<ClientDot clientId={client.clientId} />
 								{shortId(client.clientId)}
 							</span>
 							{!client.online && (
@@ -104,14 +103,14 @@ function ClientCard({
 					</span>
 				</button>
 				{onDelete && !client.online && (
-					<button
-						type="button"
-						title="Remove this client from the registry (its timeline history stays)"
+					<IconButton
+						size="sm"
+						className="mr-2"
+						label="Remove this client from the registry (its timeline history stays)"
 						onClick={() => onDelete(client.clientId)}
-						className="mr-2 grid size-6 shrink-0 place-items-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
 					>
 						<CrossIcon width={12} height={12} />
-					</button>
+					</IconButton>
 				)}
 			</div>
 			{open && (

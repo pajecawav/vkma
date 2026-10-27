@@ -8,6 +8,10 @@
 export { EventRow, RequestGroup } from "./components/EventRow.tsx";
 export type { RequestGroupProps } from "./components/EventRow.tsx";
 export { CopyInput } from "./components/CopyInput.tsx";
+export { Button } from "./components/Button.tsx";
+export { IconButton } from "./components/IconButton.tsx";
+export { ClientDot } from "./components/ClientDot.tsx";
+export { StatusLine, STATUS_META } from "./components/StatusLine.tsx";
 export { Timeline } from "./components/Timeline.tsx";
 export { ClientSelect } from "./components/ClientSelect.tsx";
 export type { ClientSelectProps } from "./components/ClientSelect.tsx";
