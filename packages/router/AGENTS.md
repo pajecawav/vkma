@@ -116,6 +116,14 @@ read it before touching anything here.
   global registries — the current panel's own registry resolves first, a
   global id collision is a dev-time console error, `onClose` injected.
   Never store React elements in history state.
+- **Swipe-back**: the manager mirrors the history position to
+  `VKWebAppSetSwipeSettings` / `VKWebAppEnable/DisableSwipeBack` — disabled
+  on the first entry (system back must close the app), web error 6
+  silenced. Hard opt-out: `createSwipeBackManager({ enabled: false })`.
+  Panels override per activation via `useEnableSwipeBack(enabled,
+  panelRef)` — the hook MUST be panel-gated: static children are forever
+  mounted, an ungated override would stick to whichever panel mounted
+  last.
 - **Search params DX**: prefer Standard Schema validators (zod v4 /
   valibot + TanStack adapters); a function `validateSearch` must return an
   explicitly all-optional shape or `Link`/`navigate` demand `search`.

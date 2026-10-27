@@ -1,5 +1,5 @@
 import { useNavigator } from "@vkma.dev/router/preset";
-import { usePanelParams } from "@vkma.dev/router/react";
+import { useEnableSwipeBack, usePanelParams } from "@vkma.dev/router/react";
 import { Icon28BlockOutline } from "@vkontakte/icons";
 import {
 	CellButton,
@@ -18,6 +18,9 @@ import { chatPanel } from "./messages.panel";
 /** Lazy chat screen — deep-linkable (#/chat/anna inflates the chain). */
 export default function ChatPanel() {
 	const navigator = useNavigator();
+	// a typing screen must not swipe away mid-word — the native gesture is
+	// disabled for as long as this panel is the active one
+	useEnableSwipeBack(false, chatPanel);
 	const { id } = usePanelParams(chatPanel);
 	const chat = chats.find(candidate => candidate.id === id);
 

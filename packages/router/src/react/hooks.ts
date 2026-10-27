@@ -1,5 +1,6 @@
-import { useMatch, useRouterState } from "@tanstack/react-router";
-import { useRef } from "react";
+import { useMatch, useRouter, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import { looseRouteOf } from "../core/loose-route.ts";
 import {
 	applyLocation,
 	initialPanelsStack,
@@ -7,6 +8,7 @@ import {
 	panelsHistoryOf,
 } from "../core/panels-stack.ts";
 import { readModalState } from "../core/state-keys.ts";
+import { setSwipeBackOverride } from "../core/swipe-back.ts";
 
 /**
  * The departing-panel freeze (spike 1): raw TanStack data hooks throw
@@ -116,4 +118,51 @@ export function usePanelsStack(activePanel: string): PanelsStackState {
 /** VKUI `View.history` prop: panels in open order. */
 export function usePanelsHistory(activePanel: string): string[] {
 	return panelsHistoryOf(usePanelsStack(activePanel));
+}
+
+/**
+ * The deepest matched panel's route id — what "the active panel" means
+ * when every panel is a permanently mounted static child.
+ */
+function useActivePanelRouteId(): string | null {
+	const router = useRouter();
+	return useRouterState({
+		select: (state): string | null => {
+			for (let i = state.matches.length - 1; i >= 0; i--) {
+				const routeId = state.matches[i]?.routeId;
+				if (routeId === undefined) {
+					continue;
+				}
+				if (looseRouteOf(router, routeId)?.options.staticData?.panel !== undefined) {
+					return routeId;
+				}
+			}
+			return null;
+		},
+	});
+}
+
+/**
+ * The old router's `useEnableSwipeBack`: override the automatic
+ * swipe-back decision while it applies. Panels are permanently mounted
+ * static children here, so pass the panel ref — the override applies only
+ * while that panel is the deepest matched one and is released when the
+ * user navigates away. Without a ref the override is app-global.
+ *
+ * `false` turns the native gesture off (drawing pads, drag surfaces);
+ * `true` forces it on even on the first entry (the system back then
+ * closes the app — you asked for it). `createSwipeBackManager({
+ * enabled: false })` is the hard opt-out that wins over this hook.
+ */
+export function useEnableSwipeBack(enabled: boolean, ref?: PanelRef | string): void {
+	const activeRouteId = useActivePanelRouteId();
+	const routeId = typeof ref === "string" ? ref : ref?.routeId;
+	const applies = ref === undefined ? true : routeId !== undefined && routeId === activeRouteId;
+	useEffect(() => {
+		if (!applies) {
+			return;
+		}
+		setSwipeBackOverride(enabled);
+		return () => setSwipeBackOverride(null);
+	}, [applies, enabled]);
 }

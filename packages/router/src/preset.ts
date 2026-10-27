@@ -46,5 +46,6 @@ export {
 	usePanelLoaderData,
 	useModalProps,
 	usePanelsHistory,
+	useEnableSwipeBack,
 	type PanelRef,
 } from "./react.ts";
