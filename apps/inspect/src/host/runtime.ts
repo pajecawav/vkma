@@ -1,6 +1,13 @@
 import { InspectHost, type ApprovalRequest } from "./host.ts";
 import { Hub } from "./hub.ts";
-import { resolvePeerId, rotatePeerId, stopClaimGuard } from "./peer-id.ts";
+import {
+	isPeerIdPinned,
+	pinPeerId,
+	resolvePeerId,
+	rotatePeerId,
+	stopClaimGuard,
+	unpinPeerId,
+} from "./peer-id.ts";
 import { InspectPeer, type PeerStatus } from "./peer.ts";
 
 /**
@@ -17,6 +24,9 @@ export interface InspectRuntime {
 	peerStatus(): PeerStatus;
 	/** The snippet base: this origin + the settled peer id. */
 	peerId(): string | undefined;
+	/** Whether fresh tabs adopt this id (the snippet-stability pin). */
+	pinned(): boolean;
+	setPinned(pinned: boolean): void;
 	rotate(): void;
 	reconnect(): void;
 	dispose(): void;
@@ -56,6 +66,17 @@ export function createInspectRuntime(): InspectRuntime {
 		statusHub,
 		peerStatus: () => status,
 		peerId: () => currentId,
+		pinned: () => isPeerIdPinned(),
+		setPinned(pin) {
+			if (currentId === undefined) {
+				return;
+			}
+			if (pin) {
+				pinPeerId(currentId);
+			} else {
+				unpinPeerId();
+			}
+		},
 		rotate() {
 			currentId = rotatePeerId();
 			peer.start(currentId);

@@ -33,6 +33,9 @@ export interface InspectConnection {
 	/** Setup screen inputs. */
 	peerId: string | undefined;
 	scriptUrl: string;
+	/** Whether fresh tabs adopt this id (snippet stability, opt-in). */
+	pinned: boolean;
+	setPinned: (pinned: boolean) => void;
 	rotate: () => void;
 	reconnect: () => void;
 }
@@ -46,6 +49,7 @@ export function useInspect(runtime: InspectRuntime): InspectConnection {
 	const [gateEnabled, setGateEnabledState] = useState(() => host.isGateEnabled());
 	const [peerStatus, setPeerStatus] = useState(() => runtime.peerStatus());
 	const [peerId, setPeerId] = useState(() => runtime.peerId());
+	const [pinned, setPinnedState] = useState(() => runtime.pinned());
 
 	// The id settles before the peer starts — pick it up once.
 	useEffect(() => {
@@ -111,6 +115,14 @@ export function useInspect(runtime: InspectRuntime): InspectConnection {
 		setPeerId(runtime.peerId());
 	}, [runtime]);
 
+	const setPinned = useCallback(
+		(pin: boolean) => {
+			runtime.setPinned(pin);
+			setPinnedState(pin);
+		},
+		[runtime],
+	);
+
 	const reconnect = useCallback(() => runtime.reconnect(), [runtime]);
 
 	const status: InspectStatus =
@@ -139,6 +151,8 @@ export function useInspect(runtime: InspectRuntime): InspectConnection {
 		setGateEnabled,
 		peerId,
 		scriptUrl,
+		pinned,
+		setPinned,
 		rotate,
 		reconnect,
 	};

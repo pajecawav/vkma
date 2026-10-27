@@ -6,19 +6,24 @@ import { CLAIM_WINDOW_MS, PEER_ID_PREFIX, PEER_ID_RANDOM_LENGTH } from "../share
  * tag points at it) while never being held by two live tabs (two peers
  * cannot register one id on the broker).
  *
- * sessionStorage keeps the per-tab id across reloads; localStorage is
- * only the SEED for fresh tabs — that seed is what keeps a snippet cut
- * yesterday working tomorrow, so it is written by first settles and by
- * Rotate ONLY. A fresh tab adopting the seed claims it first: the living
- * incumbent answers `taken` (each tab speaks for its id for its whole
- * lifetime, not just during settling) and the claimant mints a
- * session-local replacement — the seed keeps naming the incumbent's id,
- * which is exactly what the already-distributed snippets reference. Two
- * tabs settling at once (browser session restore) tie-break on the
- * smaller claim token, so exactly one of them keeps the seeded id.
+ * The DEFAULT lifetime is this tab: sessionStorage only. The broker
+ * hands a stopped id to whoever registers it first (verified against
+ * the public cloud — re-grant lands within ~300 ms of the holder's
+ * socket dying, and the registration token proves nothing), so a leaked
+ * id must not outlive the session it leaked from: a fresh tab mints a
+ * fresh id, and snippets cut under a session-local id die with it.
+ * Stability across tabs is an explicit opt-in — PINNING. A pinned id is
+ * adopted by fresh tabs and claimed first (the living incumbent answers
+ * `taken`, each tab speaks for its id for its whole lifetime); two tabs
+ * settling at once (browser session restore) tie-break on the smaller
+ * claim token. Rotate re-pins the replacement — a burned id must never
+ * be revived by the pin.
  */
 
 const PEER_ID_KEY = "vkma:inspect:peer-id";
+/** The explicit pin lives under its own key: an upgrade-era seed must
+ * not count as one — the switch reads false until the operator pins. */
+const PEER_ID_PIN_KEY = "vkma:inspect:peer-id-pin";
 const PEER_ID_CHANNEL = "vkma:inspect:peer-id";
 const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -116,19 +121,21 @@ function armGuard(): boolean {
 }
 
 /**
- * Settles the id for this tab: session-stored → seeded → minted, with
+ * Settles the id for this tab: session-stored → pinned → minted, with
  * the claim handshake running inside the claim window (an incumbent or
  * a tie-break loss makes us mint a session-local replacement, up to
  * three rounds). Leaves the claim guard armed for the tab's lifetime.
  */
 export async function resolvePeerId(): Promise<string> {
 	const session = readStorage(sessionStorage, PEER_ID_KEY);
-	let id = looksLikePeerId(session) ? session : readStorage(localStorage, PEER_ID_KEY);
+	let id = looksLikePeerId(session) ? session : readStorage(localStorage, PEER_ID_PIN_KEY);
 	if (!looksLikePeerId(id)) {
 		id = mintPeerId();
-		// the first panel on this origin — the seed starts here, every
-		// snippet cut from now on embeds this id
-		persist(localStorage, PEER_ID_KEY, id);
+		// session-local by default: only an explicit pin writes the id
+		// into localStorage, because the pin is exactly the decision to
+		// keep answering this id across tabs. The pre-pin seed key is
+		// deliberately NOT read anymore — an upgrade must land pinned
+		// off, snippets cut under the old id included.
 	}
 	persist(sessionStorage, PEER_ID_KEY, id);
 
@@ -159,15 +166,46 @@ export async function resolvePeerId(): Promise<string> {
 }
 
 /** The explicit "this id leaked, burn it" action: a fresh id persisted
- * for this tab AND as the seed — the old id must never be adopted
- * again. Phone pages still holding the old id in their script tag keep
+ * for this tab, and for fresh tabs too when the id was pinned — the pin
+ * follows the rotation, so a burned id never revives from localStorage.
+ * Phone pages still holding the old id in their script tag keep
  * retrying a dead peer until the tag is updated — the panel says so. */
 export function rotatePeerId(): string {
 	const id = mintPeerId();
 	persist(sessionStorage, PEER_ID_KEY, id);
-	persist(localStorage, PEER_ID_KEY, id);
+	if (isPeerIdPinned()) {
+		persist(localStorage, PEER_ID_PIN_KEY, id);
+	} else {
+		// a stale pre-pin seed must not linger: nothing reads it, and
+		// leaving it behind would make the state lie about the switch
+		unpinPeerId();
+	}
 	heldId = id;
 	return id;
+}
+
+/** Whether fresh tabs of this origin adopt the current id (snippet
+ * stability across tabs is opt-in — see the module doc). */
+export function isPeerIdPinned(): boolean {
+	return looksLikePeerId(readStorage(localStorage, PEER_ID_PIN_KEY));
+}
+
+/** The explicit opt-in: keep answering this id in fresh tabs. */
+export function pinPeerId(id: string): void {
+	persist(localStorage, PEER_ID_PIN_KEY, id);
+}
+
+/** Back to session-local: fresh tabs will mint their own ids. Also
+ * clears the upgrade-era seed key — it is no longer read, and stale
+ * copies would only confuse a future migration. */
+export function unpinPeerId(): void {
+	for (const key of [PEER_ID_PIN_KEY, PEER_ID_KEY]) {
+		try {
+			localStorage.removeItem(key);
+		} catch {
+			// best effort only
+		}
+	}
 }
 
 /** Drop the claim guard (runtime dispose — the page teardown closes it

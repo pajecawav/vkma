@@ -107,9 +107,11 @@ export function SetupPanel({
 						<p className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 							<WarningIcon />
 							<span>
-								The id in the snippet is the access key: anyone holding it can read
-								this panel's traffic and launch params. Never commit the snippet to
-								a public repo — or rotate the id below.
+								The id in the snippet is the access key. The signaling broker hands
+								a stopped id to whoever registers it first, so a page that learned
+								the id can keep answering its connections while this panel is
+								closed. Paste the snippet only on pages you trust — and rotate the
+								id below after one you didn't.
 							</span>
 						</p>
 					</section>
@@ -137,6 +139,36 @@ export function SetupPanel({
 							hijack or a stale registration). Pages already holding the old snippet
 							keep retrying a dead id until you update it.
 						</p>
+						<div className="flex items-center justify-between gap-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+							<div>
+								<h3 className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+									Keep this id across tabs
+								</h3>
+								<p className="text-xs text-neutral-500">
+									Pinned: new tabs of this panel answer the same id — earlier
+									snippets keep working. Unpinned: the id lives in this tab only,
+									a fresh tab mints a fresh one.
+								</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => connection.setPinned(!connection.pinned)}
+								role="switch"
+								aria-checked={connection.pinned}
+								className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+									connection.pinned
+										? "bg-emerald-500"
+										: "bg-neutral-300 dark:bg-neutral-700"
+								}`}
+								title="Pin the id to this origin — snippets survive tab restarts; a leaked id lives longer too"
+							>
+								<span
+									className={`absolute top-0.5 size-5 rounded-full bg-white transition-all ${
+										connection.pinned ? "left-[22px]" : "left-0.5"
+									}`}
+								/>
+							</button>
+						</div>
 					</section>
 				</div>
 			</div>
