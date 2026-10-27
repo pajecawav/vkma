@@ -1,6 +1,8 @@
 import type { CaptureMode, ClientStatus } from "@vkma.dev/protocol";
 import {
+	Button,
 	Clients,
+	ClientDot,
 	Execute,
 	GlobeIcon,
 	Rail,
@@ -9,7 +11,7 @@ import {
 	UiProvider,
 	type Section,
 } from "@vkma.dev/ui";
-import { clientColor, platformLabel, shortId } from "@vkma.dev/ui";
+import { platformLabel, shortId } from "@vkma.dev/ui";
 import { useState } from "react";
 import type { InspectRuntime } from "../host/runtime.ts";
 import { useInspect, type InspectConnection } from "./connection.ts";
@@ -38,15 +40,15 @@ function PanelBody({ runtime }: { runtime: InspectRuntime }) {
 				onReconnect={connection.reconnect}
 				capture={captureOf(connection.clients)}
 				actions={
-					<button
-						type="button"
+					<Button
+						variant="outline"
+						size="sm"
 						onClick={() => setSetupOpen(true)}
-						className="inline-flex h-7 items-center gap-1.5 rounded-md border border-neutral-200 px-2 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
 						title="How to connect a mini app"
 					>
 						<GlobeIcon />
 						Connect
-					</button>
+					</Button>
 				}
 			/>
 			{(connection.approvals.length > 0 || connection.status === "error") && (
@@ -92,11 +94,10 @@ function ApprovalCard({
 	onDeny: (clientId: string) => void;
 }) {
 	const info = request.info;
-	const color = clientColor(info.clientId);
 	const host = safeHost(info.url);
 	return (
 		<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-			<span className={`size-1.5 rounded-[2px] ${color.dot}`} aria-hidden="true" />
+			<ClientDot clientId={info.clientId} />
 			<span className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
 				{info.appId ? `app ${info.appId}` : "unknown app"}
 				{host ? <span className="font-normal text-neutral-400"> · {host}</span> : null}
@@ -105,27 +106,15 @@ function ApprovalCard({
 				{platformLabel(info.platform)} · {shortId(info.clientId)}
 			</span>
 			<span className="ml-auto flex items-center gap-1.5">
-				<button
-					type="button"
-					onClick={() => onDeny(info.clientId)}
-					className="h-7 rounded-md px-2.5 text-[11px] font-medium text-neutral-500 hover:bg-neutral-200/70 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-				>
+				<Button variant="ghost" size="sm" onClick={() => onDeny(info.clientId)}>
 					Deny
-				</button>
-				<button
-					type="button"
-					onClick={() => onApprove(info.clientId, true)}
-					className="h-7 rounded-md border border-neutral-200 px-2.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
-				>
+				</Button>
+				<Button variant="outline" size="sm" onClick={() => onApprove(info.clientId, true)}>
 					Always allow
-				</button>
-				<button
-					type="button"
-					onClick={() => onApprove(info.clientId, false)}
-					className="h-7 rounded-md bg-neutral-900 px-2.5 text-[11px] font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-				>
+				</Button>
+				<Button variant="solid" size="sm" onClick={() => onApprove(info.clientId, false)}>
 					Allow
-				</button>
+				</Button>
 			</span>
 		</div>
 	);

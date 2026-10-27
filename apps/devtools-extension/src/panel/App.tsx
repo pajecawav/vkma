@@ -1,7 +1,9 @@
 import type { CaptureMode, ClientStatus, WireEvent } from "@vkma.dev/protocol";
 import {
+	Button,
 	Clients,
 	Execute,
+	IconButton,
 	PanelRightIcon,
 	Rail,
 	Timeline,
@@ -283,14 +285,12 @@ function TabPanel({
 							onPick={fabPosition.pick}
 						/>
 						{openSidePanel && (
-							<button
-								type="button"
+							<IconButton
+								label="Open the side panel for this tab"
 								onClick={openSidePanel}
-								className="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-								title="Open the side panel for this tab"
 							>
 								<PanelRightIcon />
-							</button>
+							</IconButton>
 						)}
 					</>
 				}
@@ -345,13 +345,14 @@ function PanelFrame({
 									{lastError}
 								</p>
 							)}
-							<button
-								type="button"
+							<Button
+								variant="solid"
+								size="md"
 								onClick={onReconnect}
-								className="mt-5 h-8 rounded-md bg-neutral-900 px-4 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+								className="mt-5"
 							>
 								Retry
-							</button>
+							</Button>
 						</>
 					)}
 					{children}

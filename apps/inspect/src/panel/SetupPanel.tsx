@@ -1,4 +1,12 @@
-import { CopyInput, CrossIcon, RefreshIcon, WarningIcon } from "@vkma.dev/ui";
+import {
+	Button,
+	CopyInput,
+	CrossIcon,
+	IconButton,
+	RefreshIcon,
+	StatusLine,
+	WarningIcon,
+} from "@vkma.dev/ui";
 import type { InspectConnection } from "./connection.ts";
 
 /**
@@ -23,18 +31,24 @@ export function SetupPanel({
 			<div className="flex max-h-dvh w-full max-w-lg flex-col overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
 				<header className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 py-3.5 dark:border-neutral-800">
 					<h2 className="text-sm font-semibold">Connect a mini app</h2>
-					<button
-						type="button"
-						onClick={onClose}
-						className="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-						title="Close"
-					>
+					<IconButton label="Close" onClick={onClose}>
 						<CrossIcon />
-					</button>
+					</IconButton>
 				</header>
 
 				<div className="flex flex-col gap-5 px-5 py-4">
-					<PeerRow connection={connection} />
+					<StatusLine
+						status={connection.status}
+						label={
+							connection.status === "connected"
+								? "Signaling online"
+								: connection.status === "connecting"
+									? "Connecting to signaling…"
+									: "Signaling error"
+						}
+						extra="· WebRTC direct, no relays"
+						title="Peer-to-peer: STUN only, no TURN relay exists in the config"
+					/>
 
 					<section className="flex flex-col gap-2">
 						<h3 className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
@@ -108,15 +122,15 @@ export function SetupPanel({
 							<code className="min-w-0 flex-1 truncate rounded-md bg-neutral-100 px-2.5 py-1.5 font-mono text-[11px] text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
 								{connection.peerId ?? "settling…"}
 							</code>
-							<button
-								type="button"
+							<Button
+								variant="outline"
+								size="md"
 								onClick={connection.rotate}
-								className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
 								title="Mint a fresh peer id — pages holding the old one stop connecting until their snippet is updated"
 							>
 								<RefreshIcon />
 								Rotate
-							</button>
+							</Button>
 						</div>
 						<p className="text-[11px] leading-relaxed text-neutral-500">
 							Rotating also frees an id the signaling server refuses to hand back (a
@@ -127,32 +141,5 @@ export function SetupPanel({
 				</div>
 			</div>
 		</div>
-	);
-}
-
-function PeerRow({ connection }: { connection: InspectConnection }) {
-	const meta =
-		connection.status === "connected"
-			? { dot: "bg-emerald-500", label: "Signaling online", tone: "text-neutral-500" }
-			: connection.status === "connecting"
-				? {
-						dot: "bg-neutral-400",
-						label: "Connecting to signaling…",
-						tone: "text-neutral-500",
-					}
-				: {
-						dot: "bg-red-500",
-						label: "Signaling error",
-						tone: "text-red-600 dark:text-red-400",
-					};
-	return (
-		<p
-			className="flex items-center gap-2 text-xs"
-			title="Peer-to-peer: STUN only, no TURN relay exists in the config"
-		>
-			<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
-			<span className={meta.tone}>{meta.label}</span>
-			<span className="text-neutral-400">· WebRTC direct, no relays</span>
-		</p>
 	);
 }
