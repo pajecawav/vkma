@@ -204,11 +204,11 @@ read it before touching anything here.
 
 ## Definition of done for v1
 
-Remaining before the first release: the environment matrix — fake
-transports in unit tests (mobile bridge-sync / swipe-back paths) + the
-manual device checklist gates the release (same ritual as
-`packages/bridge`). The navigator surface is complete: blockers carry
-the old-router context (`{ currentLocation, nextLocation, action }`,
-back/forward/go = POP), typed Page-object sugar is in
-(`navigator.push(panelDefinition, params)`), per-panel popouts and the
-swipe-back opt-out + `useEnableSwipeBack` hook shipped.
+The navigator surface is complete: blockers carry the old-router context
+(`{ currentLocation, nextLocation, action }`, back/forward/go = POP),
+typed Page-object sugar is in (`navigator.push(panelDefinition,
+params)`), per-panel popouts and the swipe-back opt-out +
+`useEnableSwipeBack` hook shipped. The environment matrix unit-test half
+is done: bridge-sync and swipe-back run against fake transports. The
+remaining gate is the manual device checklist (web iframe / iOS /
+Android webviews / standalone browser history) before the release.
