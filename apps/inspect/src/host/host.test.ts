@@ -55,6 +55,45 @@ afterEach(() => {
 });
 
 describe("InspectHost", () => {
+	it("answers a challenge before admission — verification precedes credentials", async () => {
+		const host = new InspectHost();
+		host.setSigner(async nonce => `sig(${nonce})`);
+		const channel = new FakeChannel();
+		host.addChannel(channel);
+
+		// the inspector must not ship its hello until the answering peer
+		// signs — so the challenge is answered even while undecided (and
+		// answering it discloses nothing: the public half is public)
+		const nonce = "a".repeat(43);
+		host.handleMessage(channel, { v: 1, t: "challenge", nonce });
+		await Promise.resolve();
+		expect(channel.sent).toEqual([{ v: 1, t: "challenge-proof", nonce, sig: `sig(${nonce})` }]);
+		// the challenge proves nothing about the sender — no admission
+		expect(host.pendingApprovals()).toEqual([]);
+		expect(host.snapshot().clients).toEqual([]);
+	});
+
+	it("a malformed challenge drops silently", async () => {
+		const host = new InspectHost();
+		host.setSigner(async nonce => `sig(${nonce})`);
+		const channel = new FakeChannel();
+		host.addChannel(channel);
+
+		host.handleMessage(channel, { v: 1, t: "challenge", nonce: "short" });
+		await Promise.resolve();
+		expect(channel.sent).toEqual([]);
+	});
+
+	it("without a signer (key still loading) challenges go unanswered", async () => {
+		const host = new InspectHost();
+		const channel = new FakeChannel();
+		host.addChannel(channel);
+
+		host.handleMessage(channel, { v: 1, t: "challenge", nonce: "a".repeat(43) });
+		await Promise.resolve();
+		expect(channel.sent).toEqual([]);
+	});
+
 	it("registers a client on hello and broadcasts the registry", () => {
 		const host = new InspectHost();
 		host.setGateEnabled(false);

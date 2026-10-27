@@ -8,8 +8,9 @@ import {
 } from "../shared/protocol.ts";
 import type { BridgeHandle } from "./capture/index.ts";
 import { InspectorCapture } from "./capture/index.ts";
+import { DialTrust } from "./dial-trust.ts";
 import { claimWindow, createIdentity } from "./identity.ts";
-import { peerIdFromUrl, resolveInspectorSourceUrl } from "./own-url.ts";
+import { peerIdFromUrl, resolveInspectorSourceUrl, signingKeyFromUrl } from "./own-url.ts";
 import { InspectorTransport } from "./transport.ts";
 
 /**
@@ -36,13 +37,16 @@ async function main(): Promise<void> {
 		);
 		return;
 	}
+	// The panel's public key rides the snippet (`k=`): the answering
+	// peer must sign our challenge before anything sensitive ships.
+	const verifyKey = sourceUrl !== undefined ? signingKeyFromUrl(sourceUrl) : undefined;
 
 	// Hooks go in BEFORE anything else: the app's bridge module may be
 	// the very next script tag, and it freezes transport refs at import.
 	const capture = new InspectorCapture();
 	const identity = createIdentity(() => {
 		// a duplicate tab lost the client-id claim — re-register at once
-		void sayHello();
+		sayHello();
 	});
 
 	// The private execute bridge: request ids carry the reserved prefix,
@@ -60,10 +64,10 @@ async function main(): Promise<void> {
 
 	const queue: TapEvent[] = [];
 	const flush = (): void => {
-		if (queue.length === 0 || !transport.isOpen()) {
+		if (queue.length === 0) {
 			return;
 		}
-		transport.send({
+		link.enqueue({
 			v: PROTOCOL_VERSION,
 			t: "events",
 			clientId: identity.clientId,
@@ -71,30 +75,43 @@ async function main(): Promise<void> {
 		});
 	};
 
-	const transport = new InspectorTransport(targetId, {
-		onOpen: () => {
-			void sayHello();
+	// The dial-direction gate: challenge first, credentials only after
+	// the answering peer proves it holds the panel's signing key.
+	const link = new DialTrust(verifyKey, {
+		send: message => transport.send(message),
+		isOpen: () => transport.isOpen(),
+		drop: () => transport.drop(),
+		onVerified: () => {
+			sayHello();
 			flush();
 		},
-		onMessage: message => {
-			if (message.t === "execute" && message.clientId === identity.clientId) {
-				void execute(message);
-			}
+		onExecute: request => {
+			void execute(request);
 		},
 	});
 
-	const sayHello = (): Promise<void> =>
-		Promise.resolve(
-			transport.send({
-				v: PROTOCOL_VERSION,
-				t: "hello",
-				info: identity.clientInfo(capture.mode === "direct"),
-			}),
-		);
+	const transport = new InspectorTransport(targetId, {
+		onOpen: () => {
+			link.channelOpened();
+		},
+		onMessage: message => {
+			link.onMessage(message);
+		},
+		onDown: () => {
+			link.channelClosed();
+		},
+	});
+
+	const sayHello = (): void =>
+		link.enqueue({
+			v: PROTOCOL_VERSION,
+			t: "hello",
+			info: identity.clientInfo(capture.mode === "direct"),
+		});
 
 	async function execute(request: InspectExecuteMessage): Promise<void> {
 		const report = (ok: boolean, payload: unknown) =>
-			transport.send({
+			link.enqueue({
 				v: PROTOCOL_VERSION,
 				t: "exec-result",
 				execId: request.execId,
@@ -127,7 +144,7 @@ async function main(): Promise<void> {
 	// Give the duplicate-tab claim handshake its window before the first
 	// hello, so a regenerated id registers under itself right away.
 	await claimWindow();
-	await sayHello();
+	sayHello();
 	flush();
 
 	// Heartbeat + batched flush + instant re-hello on focus (the panel's
@@ -138,12 +155,12 @@ async function main(): Promise<void> {
 		if (heartbeats % 6 === 0) {
 			identity.reassertClaim(); // a frozen twin may answer late
 		}
-		void sayHello();
+		sayHello();
 	}, HEARTBEAT_MS);
 	setInterval(flush, FLUSH_MS);
 	document.addEventListener("visibilitychange", () => {
 		if (document.visibilityState === "visible") {
-			void sayHello();
+			sayHello();
 			flush();
 		}
 	});

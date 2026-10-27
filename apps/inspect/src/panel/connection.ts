@@ -49,22 +49,30 @@ export function useInspect(runtime: InspectRuntime): InspectConnection {
 	const [gateEnabled, setGateEnabledState] = useState(() => host.isGateEnabled());
 	const [peerStatus, setPeerStatus] = useState(() => runtime.peerStatus());
 	const [peerId, setPeerId] = useState(() => runtime.peerId());
+	const [publicKey, setPublicKey] = useState(() => runtime.publicKey());
 	const [pinned, setPinnedState] = useState(() => runtime.pinned());
 
-	// The id settles before the peer starts — pick it up once.
+	// The id and the signing key settle before the peer starts — pick
+	// them up once.
 	useEffect(() => {
-		if (peerId === undefined) {
+		if (peerId === undefined || publicKey === undefined) {
 			const timer = setInterval(() => {
 				const id = runtime.peerId();
+				const key = runtime.publicKey();
 				if (id !== undefined) {
 					setPeerId(id);
+				}
+				if (key !== undefined) {
+					setPublicKey(key);
+				}
+				if (id !== undefined && key !== undefined) {
 					clearInterval(timer);
 				}
 			}, 100);
 			return () => clearInterval(timer);
 		}
 		return undefined;
-	}, [peerId, runtime]);
+	}, [peerId, publicKey, runtime]);
 
 	useEffect(() => {
 		const offTimeline = host.timelineHub.subscribe(batch => {
@@ -133,9 +141,9 @@ export function useInspect(runtime: InspectRuntime): InspectConnection {
 				: "error";
 
 	const scriptUrl =
-		peerId === undefined
+		peerId === undefined || publicKey === undefined
 			? "/inspector.js"
-			: `${window.location.origin}/inspector.js?id=${peerId}`;
+			: `${window.location.origin}/inspector.js?id=${peerId}&k=${publicKey}`;
 
 	return {
 		status,

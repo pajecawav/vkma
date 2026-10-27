@@ -10,6 +10,12 @@ import { PROTOCOL_VERSION } from "../shared/protocol.ts";
 
 const v = z.literal(PROTOCOL_VERSION);
 
+export const challengeMessageSchema = z.object({
+	v,
+	t: z.literal("challenge"),
+	nonce: z.string().regex(/^[A-Za-z0-9_-]{40,512}$/),
+});
+
 export const helloMessageSchema = z.object({
 	v,
 	t: z.literal("hello"),
@@ -33,15 +39,21 @@ export const execResultMessageSchema = z.object({
 });
 
 export const inspectorMessageSchema = z.discriminatedUnion("t", [
+	challengeMessageSchema,
 	helloMessageSchema,
 	eventsMessageSchema,
 	execResultMessageSchema,
 ]);
 
+export type ParsedChallenge = z.infer<typeof challengeMessageSchema>;
 export type ParsedHello = z.infer<typeof helloMessageSchema>;
 export type ParsedEvents = z.infer<typeof eventsMessageSchema>;
 export type ParsedExecResult = z.infer<typeof execResultMessageSchema>;
-export type ParsedInspectorMessage = ParsedHello | ParsedEvents | ParsedExecResult;
+export type ParsedInspectorMessage =
+	| ParsedChallenge
+	| ParsedHello
+	| ParsedEvents
+	| ParsedExecResult;
 
 /** @returns the message, or undefined for anything malformed. */
 export function parseInspectorMessage(data: unknown): ParsedInspectorMessage | undefined {

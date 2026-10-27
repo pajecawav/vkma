@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { peerIdFromUrl, resolveInspectorSourceUrl } from "./own-url.ts";
+import { peerIdFromUrl, resolveInspectorSourceUrl, signingKeyFromUrl } from "./own-url.ts";
 
 const INSPECTOR_URL = "https://inspect.vkma.dev/inspector.js?id=vkma-inspect-abc123def456";
 
@@ -70,5 +70,20 @@ describe("peerIdFromUrl", () => {
 
 	it("rejects broken URLs", () => {
 		expect(peerIdFromUrl("not a url")).toBeUndefined();
+	});
+});
+
+describe("signingKeyFromUrl", () => {
+	const key = "a".repeat(122); // SPKI P-256, base64url
+
+	it("extracts the snippet's `k=` value", () => {
+		expect(signingKeyFromUrl(`https://x/inspector.js?id=vkma-inspect-ab&k=${key}`)).toBe(key);
+	});
+
+	it("rejects missing and ill-shaped keys", () => {
+		expect(signingKeyFromUrl("https://x/inspector.js?id=vkma-inspect-ab")).toBeUndefined();
+		expect(signingKeyFromUrl("https://x/inspector.js?k=short")).toBeUndefined();
+		expect(signingKeyFromUrl(`https://x/inspector.js?k=${"a".repeat(401)}`)).toBeUndefined();
+		expect(signingKeyFromUrl("https://x/inspector.js?k=with%20space")).toBeUndefined();
 	});
 });

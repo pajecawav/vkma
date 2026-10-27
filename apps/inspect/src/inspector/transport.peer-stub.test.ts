@@ -1,18 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
+import { signNonce } from "../shared/signing.ts";
+import { DialTrust } from "./dial-trust.ts";
 import { InspectorTransport } from "./transport.ts";
 
 /**
  * The dial-direction trust boundary, inspector half (audit record
- * `dial.no-answerer-auth`): whoever completes the DataChannel handshake
- * receives the credential-bearing hello and the queued backlog, and its
- * `execute` messages are handed to the collector's onMessage — the
- * transport performs no verification of the answering peer because none
- * exists in the protocol (the peer id is the only capability, and the
- * broker's grant policy is server-side; see NEEDS-VALIDATION.md for the
- * owner's broker probe).
+ * `dial.no-answerer-auth`, now FIXED): the answering peer must sign a
+ * fresh challenge with the panel's key before ANY credential moves —
+ * no hello, no backlog, no execute acceptance otherwise. The broker
+ * hands a stopped peer id to whoever registers it first (probed
+ * against the public cloud: re-grant within ~300 ms, the registration
+ * token proves nothing), so the signature is the only accepted proof.
  *
- * The peerjs module is stubbed: the "answering peer" below is an
- * attacker-controlled fake with no signaling involvement at all.
+ * The peerjs module is stubbed: the "answering peer" below is
+ * attacker- or panel-controlled, with no signaling involved at all.
  */
 
 const { FakePeer, peers } = vi.hoisted(() => {
@@ -47,7 +48,7 @@ const { FakePeer, peers } = vi.hoisted(() => {
 			this.emit("close", undefined);
 		}
 
-		/** The attacker "completes the handshake". */
+		/** The answering peer "completes the handshake". */
 		public accept(): void {
 			this.open = true;
 			this.emit("open", undefined);
@@ -96,76 +97,146 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
 interface StubConn {
 	sent: unknown[];
 	open: boolean;
+	closed: boolean;
 	accept(): void;
 	emit(event: string, value: unknown): void;
 }
 
-const helloOf = (sent: unknown[]) =>
-	sent.find(message => (message as { t?: string }).t === "hello") as
-		| {
-				t: "hello";
-				info: { clientId: string; launchParams: Record<string, string>; url: string };
-		  }
-		| undefined;
+const byType = (sent: unknown[], t: string) =>
+	sent.filter(message => (message as { t?: string }).t === t) as Array<Record<string, unknown>>;
+
+/** The collector's wiring (index.ts) over the transport + gate. */
+function wireInspector(verifyKey: string | undefined) {
+	const transport = new InspectorTransport("vkma-inspect-target", {
+		onOpen: () => link.channelOpened(),
+		onMessage: message => link.onMessage(message),
+		onDown: () => link.channelClosed(),
+	});
+	const inbound: unknown[] = [];
+	let verified = false;
+	const link = new DialTrust(verifyKey, {
+		send: message => transport.send(message),
+		isOpen: () => transport.isOpen(),
+		drop: () => transport.drop(),
+		onVerified: () => {
+			verified = true;
+			link.enqueue({
+				v: 1,
+				t: "hello",
+				info: {
+					clientId: "c-phone",
+					sessionId: "s1",
+					connectedAt: 1,
+					lastSeenAt: 1,
+					ua: "ua",
+					url: "https://app.example.com/?sign=SECRET",
+					platform: "android",
+					bridge: false,
+					launchParams: { sign: "SECRET", vk_app_id: "42" },
+				},
+			});
+			link.enqueue({
+				v: 1,
+				t: "events",
+				clientId: "c-phone",
+				events: [{ id: 1, ts: 1, direction: "out", kind: "send", name: "VKWebAppInit" }],
+			});
+		},
+		onExecute: request => {
+			inbound.push(request);
+		},
+	});
+	const conn = () => (transport as unknown as { conn?: StubConn }).conn!;
+	return { transport, link, inbound, conn, isVerified: () => verified };
+}
 
 describe("InspectorTransport dial trust (stubbed signaling)", () => {
-	it("hands the credential-bearing hello and backlog to ANY peer that opens", () => {
-		const inbound: unknown[] = [];
-		const transport = new InspectorTransport("vkma-inspect-target", {
-			onOpen: () => {
-				// the collector's own wiring (index.ts): hello first, then
-				// everything captured while disconnected
-				transport.send({
-					v: 1,
-					t: "hello",
-					info: {
-						clientId: "c-phone",
-						sessionId: "s1",
-						connectedAt: 1,
-						lastSeenAt: 1,
-						ua: "ua",
-						url: "https://app.example.com/?sign=SECRET",
-						platform: "android",
-						bridge: false,
-						launchParams: { sign: "SECRET", vk_app_id: "42" },
-					},
-				});
-				transport.send({
-					v: 1,
-					t: "events",
-					clientId: "c-phone",
-					events: [
-						{ id: 1, ts: 1, direction: "out", kind: "send", name: "VKWebAppInit" },
-					],
-				});
-			},
-			onMessage: message => {
-				inbound.push(message);
-			},
+	it("a silent answerer gets a challenge and NOTHING credential-bearing", () => {
+		const app = wireInspector("a".repeat(122));
+		app.transport.start();
+		peers.at(-1)!.emit("open", undefined);
+		const conn = app.conn();
+		conn.accept();
+
+		// the challenge went out; no hello, no backlog — the answerer
+		// proved nothing yet
+		expect(byType(conn.sent, "challenge")).toHaveLength(1);
+		expect(byType(conn.sent, "hello")).toHaveLength(0);
+		expect(byType(conn.sent, "events")).toHaveLength(0);
+		expect(app.isVerified()).toBe(false);
+
+		// its execute is not honored either — unverified drop
+		conn.emit("data", {
+			v: 1,
+			t: "execute",
+			execId: 1,
+			clientId: "c-phone",
+			name: "VKWebAppGetAuthToken",
 		});
+		expect(app.inbound).toEqual([]);
+		app.transport.stop();
+	});
 
-		// backlog queued while "disconnected"
-		transport.start();
-		expect(peers).toHaveLength(1);
-		expect(peers[0]?.connectTarget).toBeUndefined(); // dial happens on open
-		peers[0]!.emit("open", undefined); // broker assigns the anonymous id
-		expect(peers[0]?.connectTarget).toBe("vkma-inspect-target");
+	it("a forged proof is dropped — the squatter never sees credentials", async () => {
+		const app = wireInspector("a".repeat(122));
+		app.transport.start();
+		peers.at(-1)!.emit("open", undefined);
+		const conn = app.conn();
+		conn.accept();
 
-		// the attacker's fake DataConnection "opens" — no signaling, no
-		// identity, no challenge anywhere on this path
-		const conn = (transport as unknown as { conn?: StubConn }).conn;
-		expect(conn).toBeDefined();
-		conn!.accept();
+		const challenge = byType(conn.sent, "challenge")[0]!;
+		conn.emit("data", {
+			v: 1,
+			t: "challenge-proof",
+			nonce: challenge.nonce,
+			sig: "forged-by-the-squatter",
+		});
+		// the verify path is real crypto: importKey + subtle.verify take
+		// more than a microtask
+		await new Promise(resolve => setTimeout(resolve, 20));
 
-		const hello = helloOf(conn!.sent);
+		// the connection is closed (drop → redial), nothing shipped
+		expect(conn.closed).toBe(true);
+		expect(byType(conn.sent, "hello")).toHaveLength(0);
+		app.transport.stop();
+	});
+
+	it("the honest panel signs — only then do credentials flow", async () => {
+		const key = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+			"sign",
+			"verify",
+		]);
+		const spki = await crypto.subtle.exportKey("spki", key.publicKey);
+		const publicKey = btoa(String.fromCharCode(...new Uint8Array(spki)))
+			.replaceAll("+", "-")
+			.replaceAll("/", "_")
+			.replaceAll("=", "");
+		const app = wireInspector(publicKey);
+		app.transport.start();
+		peers.at(-1)!.emit("open", undefined);
+		const conn = app.conn();
+		conn.accept();
+
+		const challenge = byType(conn.sent, "challenge")[0]!;
+		conn.emit("data", {
+			v: 1,
+			t: "challenge-proof",
+			nonce: challenge.nonce,
+			sig: await signNonce(key.privateKey, challenge.nonce as string),
+		});
+		await new Promise(resolve => setTimeout(resolve, 20));
+
+		// NOW the hello (launch params included) and the backlog ship
+		const hello = byType(conn.sent, "hello")[0] as
+			| { info: { launchParams: Record<string, string>; clientId: string } }
+			| undefined;
 		expect(hello).toBeDefined();
 		expect(hello!.info.launchParams).toEqual({ sign: "SECRET", vk_app_id: "42" });
-		// the queued backlog flushed to the same attacker connection
-		expect(conn!.sent.some((m: unknown) => (m as { t?: string }).t === "events")).toBe(true);
+		expect(byType(conn.sent, "events")).toHaveLength(1);
+		expect(app.isVerified()).toBe(true);
 
-		// and the attacker's execute is handed straight to the collector —
-		// the only gate is the clientId the hello itself just disclosed
-		conn!.emit("data", {
+		// and the verified panel's execute reaches the collector
+		conn.emit("data", {
 			v: 1,
 			t: "execute",
 			execId: 1,
@@ -173,7 +244,7 @@ describe("InspectorTransport dial trust (stubbed signaling)", () => {
 			name: "VKWebAppGetAuthToken",
 			params: { scope: "friends" },
 		});
-		expect(inbound).toEqual([
+		expect(app.inbound).toEqual([
 			{
 				v: 1,
 				t: "execute",
@@ -183,7 +254,16 @@ describe("InspectorTransport dial trust (stubbed signaling)", () => {
 				params: { scope: "friends" },
 			},
 		]);
+		app.transport.stop();
+	});
 
-		transport.stop();
+	it("a stale snippet without `k=` ships nothing at all", () => {
+		const app = wireInspector(undefined);
+		app.transport.start();
+		peers.at(-1)!.emit("open", undefined);
+		const conn = app.conn();
+		conn.accept();
+		expect(conn.sent).toHaveLength(0);
+		app.transport.stop();
 	});
 });

@@ -6,10 +6,10 @@ import type { HostMessage, InspectorMessage } from "../shared/protocol.ts";
 /**
  * The inspector side of the WebRTC link: one anonymous peer dialing the
  * panel's id forever (the page outlives any panel reload — a stable id
- * reconnects without touching the snippet). Sends queue until the
- * DataChannel opens; a dead channel redials with backoff. Direct or
- * nothing: no TURN server exists in the config, an unpierceable pair
- * just keeps retrying.
+ * reconnects without touching the snippet). This layer is transport
+ * only — the challenge-response gate (dial-trust.ts) owns what may
+ * travel on the channel. Direct or nothing: no TURN server exists in
+ * the config, an unpierceable pair just keeps retrying.
  */
 
 /** Cap on the ICE dance before we hang up and redial. */
@@ -31,6 +31,8 @@ export class InspectorTransport {
 		private readonly handlers: {
 			onMessage(message: HostMessage): void;
 			onOpen(): void;
+			/** The channel went down (also fires for our own drop()). */
+			onDown(): void;
 		},
 	) {}
 
@@ -50,6 +52,12 @@ export class InspectorTransport {
 
 	public isOpen(): boolean {
 		return this.conn?.open ?? false;
+	}
+
+	/** Drop the live connection (failed verification): the close event
+	 * triggers the ordinary redial-with-backoff. */
+	public drop(): void {
+		this.conn?.close();
 	}
 
 	public send(message: InspectorMessage): void {
@@ -102,6 +110,7 @@ export class InspectorTransport {
 				if (this.conn === conn) {
 					this.conn = undefined;
 				}
+				this.handlers.onDown();
 				this.scheduleRedial();
 			};
 			conn.on("close", down);

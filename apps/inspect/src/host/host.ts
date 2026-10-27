@@ -7,10 +7,14 @@ import type {
 	WireEvent,
 } from "@vkma.dev/protocol";
 import { MAX_CONNS, MAX_PARKED_BYTES, MAX_PENDING_BUFFER } from "../shared/config.ts";
-import type { HostMessage } from "../shared/protocol.ts";
+import { PROTOCOL_VERSION, type HostMessage } from "../shared/protocol.ts";
 import { Gate } from "./gate.ts";
 import { BatchedHub, Hub } from "./hub.ts";
-import { parseInspectorMessage, type ParsedInspectorMessage } from "./messages.ts";
+import {
+	parseInspectorMessage,
+	type ParsedChallenge,
+	type ParsedInspectorMessage,
+} from "./messages.ts";
 
 /**
  * The inspect "node side" — the extension host script's counterpart,
@@ -61,6 +65,9 @@ export class InspectHost {
 	private readonly conns = new Set<ConnState>();
 	private readonly byClient = new Map<string, ConnState>();
 	private fingerprintTimer: ReturnType<typeof setInterval> | undefined;
+	/** Signs the inspectors' challenges — the dial-direction trust anchor
+	 * (shared/signing.ts). Set once the key pair has loaded. */
+	private signer?: (nonce: string) => Promise<string>;
 
 	public constructor() {
 		// The registry's online/offline fingerprint flips on a timer, not
@@ -154,6 +161,13 @@ export class InspectHost {
 
 	// --- connections ---------------------------------------------------------------
 
+	/** The dial-direction trust anchor: an inspector ships credentials
+	 * only after this signature verifies (until the key has loaded the
+	 * challenges go unanswered and dials redial — self-healing). */
+	public setSigner(signer: (nonce: string) => Promise<string>): void {
+		this.signer = signer;
+	}
+
 	public addChannel(channel: HostChannel): void {
 		// Bounded connection set: every parked connection waits for a
 		// human answer, so admission capacity is operator-owned.
@@ -188,6 +202,14 @@ export class InspectHost {
 		const message = parseInspectorMessage(data);
 		if (message === undefined) {
 			return; // malformed foreign input drops silently
+		}
+		// The challenge is answered BEFORE any admission logic, by design:
+		// the proof discloses nothing (the public key ships in the
+		// snippet), and without it the inspector never sends the hello —
+		// no approval card could ever surface.
+		if (message.t === "challenge") {
+			void this.answerChallenge(state, message);
+			return;
 		}
 		// Admission is a property of the CONNECTION, not of the hello
 		// branch: an undecided connection parks EVERY message type
@@ -254,6 +276,24 @@ export class InspectHost {
 	}
 
 	// --- internals -------------------------------------------------------------------
+
+	private async answerChallenge(state: ConnState, message: ParsedChallenge): Promise<void> {
+		const signer = this.signer;
+		if (signer === undefined) {
+			return; // key still loading — the inspector redials
+		}
+		try {
+			const sig = await signer(message.nonce);
+			state.channel.send({
+				v: PROTOCOL_VERSION,
+				t: "challenge-proof",
+				nonce: message.nonce,
+				sig,
+			});
+		} catch {
+			return; // signing failure is silence — the dial redials
+		}
+	}
 
 	private find(channel: HostChannel): ConnState | undefined {
 		for (const state of this.conns) {

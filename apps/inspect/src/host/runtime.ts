@@ -1,3 +1,4 @@
+import { loadOrCreateSigningKey, signNonce } from "../shared/signing.ts";
 import { InspectHost, type ApprovalRequest } from "./host.ts";
 import { Hub } from "./hub.ts";
 import {
@@ -24,6 +25,9 @@ export interface InspectRuntime {
 	peerStatus(): PeerStatus;
 	/** The snippet base: this origin + the settled peer id. */
 	peerId(): string | undefined;
+	/** The snippet's `k=` value — the public half of the signing key
+	 * the panel answers challenges with. */
+	publicKey(): string | undefined;
 	/** Whether fresh tabs adopt this id (the snippet-stability pin). */
 	pinned(): boolean;
 	setPinned(pinned: boolean): void;
@@ -37,6 +41,21 @@ export function createInspectRuntime(): InspectRuntime {
 	const statusHub = new Hub<PeerStatus>();
 	let status: PeerStatus = { state: "starting" };
 	let currentId: string | undefined;
+	let currentPublicKey: string | undefined;
+
+	// The dial-direction trust anchor: load (or mint) the signing key,
+	// answer the inspectors' challenges with it, publish the public half
+	// for the snippet. Until it loads, challenges go unanswered and the
+	// dials redial — no credentials ever travel unverified.
+	void loadOrCreateSigningKey()
+		.then(key => {
+			host.setSigner(nonce => signNonce(key.privateKey, nonce));
+			currentPublicKey = key.publicKey;
+		})
+		.catch(() => {
+			status = { state: "error", lastError: "Could not create the signing key." };
+			statusHub.publish(status);
+		});
 
 	const peer = new InspectPeer({
 		onStatus(next) {
@@ -66,6 +85,7 @@ export function createInspectRuntime(): InspectRuntime {
 		statusHub,
 		peerStatus: () => status,
 		peerId: () => currentId,
+		publicKey: () => currentPublicKey,
 		pinned: () => isPeerIdPinned(),
 		setPinned(pin) {
 			if (currentId === undefined) {

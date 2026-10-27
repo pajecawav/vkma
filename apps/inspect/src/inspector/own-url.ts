@@ -46,3 +46,15 @@ export function peerIdFromUrl(url: string): string | undefined {
 		return undefined;
 	}
 }
+
+/** The `?k=` signing key of the answering panel (the public half,
+ * SPKI base64url). A snippet without it cannot verify anyone — the
+ * collector refuses to ship credentials over such a connection. */
+export function signingKeyFromUrl(url: string): string | undefined {
+	try {
+		const key = new URL(url).searchParams.get("k");
+		return key !== null && /^[A-Za-z0-9_-]{100,400}$/.test(key) ? key : undefined;
+	} catch {
+		return undefined;
+	}
+}
