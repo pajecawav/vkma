@@ -93,9 +93,9 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 		let liveClient: RpcClient | undefined;
 
 		void connectDevframe({
-			// Above the node side's 20s exec timeout so a slow execute
+			// Above the store's 60s exec timeout so a slow execute
 			// resolves with { status: "timeout" } instead of rejecting.
-			callTimeout: 30_000,
+			callTimeout: 70_000,
 		}).then(client => {
 			if (disposed) {
 				client.close?.();

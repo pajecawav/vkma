@@ -8,7 +8,10 @@ import { EventNameField } from "./EventNameField.tsx";
 import { CheckIcon, CrossIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 
-type Pending = { state: "pending" } | { state: "done"; result: ExecResult };
+type Pending =
+	| { state: "pending" }
+	| { state: "done"; result: ExecResult }
+	| { state: "cancelled" };
 
 function resultPanel(result: ExecResult) {
 	switch (result.status) {
@@ -20,7 +23,7 @@ function resultPanel(result: ExecResult) {
 			return {
 				tone: "warn" as const,
 				title: "Timeout",
-				payload: "No client answered within 20s — is the target app still open?",
+				payload: "No client answered within 60s — is the target app still open?",
 			};
 		case "no-client":
 			return {
@@ -96,6 +99,10 @@ export function Execute({
 	// later pick is safe; anything else may be the user's work and stays.
 	const lastAutoFillRef = useRef<string | undefined>(undefined);
 	const [pending, setPending] = useState<Pending>();
+	// Identifies the in-flight execute: Cancel bumps it, so the abandoned
+	// call's late settlement (real result or the store's 60s timeout) finds
+	// a stale token and is ignored.
+	const pendingTokenRef = useRef(0);
 
 	const pickName = (next: string) => {
 		setName(next);
@@ -137,6 +144,7 @@ export function Execute({
 		if (!activeTarget || name.trim() === "" || paramsError) {
 			return;
 		}
+		const token = ++pendingTokenRef.current;
 		setPending({ state: "pending" });
 		try {
 			const result = await execute(
@@ -144,8 +152,14 @@ export function Execute({
 				name.trim(),
 				paramsText.trim() === "" ? undefined : JSON.parse(paramsText),
 			);
+			if (pendingTokenRef.current !== token) {
+				return;
+			}
 			setPending({ state: "done", result });
 		} catch (error) {
+			if (pendingTokenRef.current !== token) {
+				return;
+			}
 			setPending({
 				state: "done",
 				result: {
@@ -154,6 +168,15 @@ export function Execute({
 				},
 			});
 		}
+	};
+
+	// A cancel stops the WAIT, not the request: the bridge call cannot be
+	// unsent, and a late answer still lands in the timeline. The store keeps
+	// its pending entry until its own timeout — harmless, the result is
+	// dropped by the token guard above.
+	const cancel = () => {
+		pendingTokenRef.current++;
+		setPending({ state: "cancelled" });
 	};
 
 	return (
@@ -225,17 +248,41 @@ export function Execute({
 							>
 								{pending?.state === "pending" ? "Sending…" : "Send"}
 							</button>
+							{pending?.state === "pending" && (
+								<button
+									type="button"
+									onClick={cancel}
+									className="h-8 rounded-md border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-800"
+								>
+									Cancel
+								</button>
+							)}
 							<span className="text-[11px] text-neutral-400">
 								The request also appears in the timeline.
 							</span>
 						</div>
+
+						{pending?.state === "cancelled" && (
+							<div
+								className="rounded-lg border border-neutral-200 bg-neutral-500/[0.04] p-3 dark:border-neutral-800"
+								role="status"
+							>
+								<p className="text-xs font-medium text-neutral-700 dark:text-neutral-200">
+									Cancelled
+								</p>
+								<p className="mt-1 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+									Stopped waiting — the request cannot be unsent. If the app
+									answers late, it still lands in the timeline.
+								</p>
+							</div>
+						)}
 
 						{pending?.state === "done" &&
 							(() => {
 								const panel = resultPanel(pending.result);
 								return (
 									<div
-										className={`flex min-h-40 flex-col rounded-lg border p-3 ${
+										className={`flex flex-col rounded-lg border p-3 ${
 											panel.tone === "ok"
 												? "border-emerald-600/30 bg-emerald-500/[0.06]"
 												: panel.tone === "error"

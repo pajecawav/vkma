@@ -323,7 +323,7 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 		let disposed = false;
 		// Short-timeout probe client (a tab without a host script must not
 		// hang the panel for the full call timeout) and a working client
-		// whose timeout comfortably covers the store's 20s exec guard.
+		// whose timeout comfortably covers the store's 60s exec guard.
 		const probe = createClient({
 			clientName: "panel",
 			tabId,
@@ -334,7 +334,7 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 			clientName: "panel",
 			tabId,
 			scopeToTab: true,
-			timeoutMs: 30_000,
+			timeoutMs: 70_000,
 		});
 		clientRef.current = client;
 

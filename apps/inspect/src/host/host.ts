@@ -265,7 +265,7 @@ export class InspectHost {
 			name,
 			params,
 		});
-		// A dropped connection settles through the store's 20 s guard.
+		// A dropped connection settles through the store's 60 s guard.
 		return promise;
 	}
 

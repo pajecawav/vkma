@@ -7,7 +7,7 @@ const RING_LIMIT = 500;
 const RING_BYTES = 8 * 1024 * 1024;
 const CLIENT_ONLINE_TTL_MS = 15_000;
 const REGISTRY_CAP = 24;
-const EXEC_TIMEOUT_MS = 20_000;
+const EXEC_TIMEOUT_MS = 60_000;
 
 /** Cheap upper-bound size of a wire event for byte-budget accounting. */
 const approxBytes = (event: Omit<WireEvent, "seq" | "clientId" | "runId">): number => {
