@@ -79,6 +79,7 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@vkma.dev/bridge-schema": "workspace:*",
 		"@vkma.dev/protocol": "workspace:*",
 		"@vkma.dev/ui": "workspace:*",
 		"@vitejs/devtools-kit": "catalog:",

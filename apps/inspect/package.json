@@ -34,6 +34,7 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@vkma.dev/bridge-schema": "workspace:*",
 		"@vkma.dev/ui": "workspace:*",
 		"happy-dom": "catalog:",
 		"lucide-react": "catalog:",

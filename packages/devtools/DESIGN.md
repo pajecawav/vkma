@@ -64,10 +64,12 @@ event, matching the wire.
   control, client switcher once more than one client is connected, pause,
   clear) over the ledger: request groups with nested responses,
   standalone event rows, payload expands into a JsonTree with copy.
-- **Execute** — target select (hidden in embedded mode), event datalist
-  input, JSON params with live validation, result panel (tonal
-  emerald/red/amber at 6% opacity) with a collapsible JsonTree that grows
-  on large screens.
+- **Execute** — target select (hidden in embedded mode), event name input
+  with the Base UI Autocomplete popup (bridge catalogue + session-seen
+  names; picking a catalogue event prefills Params with its generated
+  stub unless the textarea holds user input), JSON params with live
+  validation, result panel (tonal emerald/red/amber at 6% opacity) with a
+  collapsible JsonTree that grows on large screens.
 - **JsonTree** — Chrome-DevTools-style collapsible viewer on CSS modules:
   colored keys/strings/numbers/booleans/null (DevTools light palette,
   Catppuccin dark), collapsed containers preview their first entries

@@ -1,3 +1,4 @@
+import { catalogue, stubs } from "@vkma.dev/bridge-schema/catalogue";
 import {
 	Clients,
 	Execute,
@@ -12,6 +13,9 @@ import { useEffect, useState } from "react";
 import { StatusGate } from "./components/StatusGate.tsx";
 import { useFabPosition } from "./lib/fab-position.ts";
 import { useVkma } from "./lib/rpc.ts";
+
+// Sorted once at module scope — the catalogue is frozen data.
+const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
 
 const SECTION_KEY = "vkma:section";
 
@@ -78,6 +82,8 @@ export function App() {
 									clients={connection.clients}
 									events={connection.events}
 									execute={connection.execute}
+									suggestedEvents={SUGGESTED_EVENTS}
+									paramsStub={name => stubs[name]}
 									fixedClientId={embeddedClientId}
 								/>
 							</div>

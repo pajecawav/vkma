@@ -1,3 +1,4 @@
+import { catalogue, stubs } from "@vkma.dev/bridge-schema/catalogue";
 import type { CaptureMode, ClientStatus } from "@vkma.dev/protocol";
 import {
 	Button,
@@ -19,6 +20,9 @@ import { useInspect, type InspectConnection } from "./connection.ts";
 import { SetupPanel } from "./SetupPanel.tsx";
 
 const SECTION_KEY = "vkma:section";
+
+// Sorted once at module scope — the catalogue is frozen data.
+const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
 
 export function App({ runtime }: { runtime: InspectRuntime }) {
 	return (
@@ -173,6 +177,8 @@ function Sections({ connection }: { connection: InspectConnection }) {
 					clients={connection.clients}
 					events={connection.events}
 					execute={connection.execute}
+					suggestedEvents={SUGGESTED_EVENTS}
+					paramsStub={name => stubs[name]}
 					emptyState={
 						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
 							No mini app pages connected yet — allow one in, then execute bridge
