@@ -51,6 +51,23 @@ function fakeTap(): FakeTap & {
 }
 
 describe("InspectorCapture", () => {
+	it("bounds the resolving buffer: hostile spam drops oldest", () => {
+		setAndroidBridge({ VKWebAppPing: () => "native" });
+		const rows: TapEvent[] = [];
+		const capture = new InspectorCapture();
+
+		// 1_050 raw calls while resolving — the buffer caps at 1_000
+		for (let i = 0; i < 1_050; i++) {
+			callAndroid("VKWebAppPing", { request_id: `spam_${i}` });
+		}
+
+		capture.finalize(undefined, event => rows.push(event));
+		expect(rows).toHaveLength(1_000);
+		const ids = rows.map(row => (row.payload as { request_id: string }).request_id);
+		expect(ids[0]).toBe("spam_50"); // the oldest 50 dropped
+		expect(ids.at(-1)).toBe("spam_1049");
+	});
+
 	it("buffers while resolving, flushes once spy is final, joins responses", () => {
 		const androidCalls: string[] = [];
 		setAndroidBridge({

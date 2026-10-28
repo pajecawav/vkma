@@ -6,6 +6,7 @@ import {
 	PROTOCOL_VERSION,
 	type InspectExecuteMessage,
 } from "../shared/protocol.ts";
+import { eventBatches } from "./batches.ts";
 import type { BridgeHandle } from "./capture/index.ts";
 import { InspectorCapture } from "./capture/index.ts";
 import { DialTrust } from "./dial-trust.ts";
@@ -67,12 +68,11 @@ async function main(): Promise<void> {
 		if (queue.length === 0) {
 			return;
 		}
-		link.enqueue({
-			v: PROTOCOL_VERSION,
-			t: "events",
-			clientId: identity.clientId,
-			events: queue.splice(0),
-		});
+		// Chunk to the wire bound — the host silently drops whole batches
+		// over it, so one giant splice would blind the timeline.
+		for (const batch of eventBatches(queue.splice(0), identity.clientId)) {
+			link.enqueue(batch);
+		}
 	};
 
 	// The dial-direction gate: challenge first, credentials only after

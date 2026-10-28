@@ -45,6 +45,10 @@ export class DialTrust {
 	private pendingNonce?: string;
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private warnedStale = false;
+	/** Connection generation: proofs are bound to the channel they were
+	 * challenged on — an async verify landing after a close+redial must
+	 * not admit the NEW channel (its nonce was never signed). */
+	private epoch = 0;
 	private readonly credentials: InspectorMessage[] = [];
 
 	public constructor(
@@ -59,6 +63,7 @@ export class DialTrust {
 
 	/** The DataChannel opened: credentials stay locked, challenge out. */
 	public channelOpened(): void {
+		this.epoch++;
 		this.verified = false;
 		clearTimeout(this.timer);
 		if (this.verifyKey === undefined) {
@@ -88,6 +93,7 @@ export class DialTrust {
 	/** The DataChannel went down: every proof is bound to one nonce and
 	 * one connection — the next open starts over. */
 	public channelClosed(): void {
+		this.epoch++;
 		this.verified = false;
 		this.pendingNonce = undefined;
 		clearTimeout(this.timer);
@@ -130,11 +136,17 @@ export class DialTrust {
 
 	private async onProof(message: InspectChallengeProofMessage): Promise<void> {
 		const nonce = this.pendingNonce;
+		const generation = this.epoch;
 		if (nonce === undefined || message.nonce !== nonce || this.verifyKey === undefined) {
 			return; // unsolicited, stale, or a cross-connection replay
 		}
 		this.pendingNonce = undefined;
 		const ok = await verifyNonce(this.verifyKey, nonce, message.sig);
+		if (this.epoch !== generation) {
+			// The channel died (or a new one opened) while the crypto ran:
+			// this proof names a nonce the CURRENT channel never challenged.
+			return;
+		}
 		if (!ok) {
 			this.links.drop(); // the signer is not the panel — drop, redial
 			return;

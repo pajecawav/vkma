@@ -5,11 +5,22 @@
  * join key between a synthesized `send` row and the raw incoming event
  * that answers it.
  */
+
+/** Bound on pending pairings: a page spamming unique request_ids that
+ * never get answers must not grow the map forever (drop-oldest). */
+const MAX_PENDING = 1_000;
+
 export class RequestJoiner {
 	private readonly sends = new Map<string, number>();
 
 	/** Remember which synthesized send id a wire request_id belongs to. */
 	public record(requestId: string, sendId: number): void {
+		if (this.sends.size >= MAX_PENDING) {
+			const oldest = this.sends.keys().next().value;
+			if (oldest !== undefined) {
+				this.sends.delete(oldest);
+			}
+		}
 		this.sends.set(requestId, sendId);
 	}
 

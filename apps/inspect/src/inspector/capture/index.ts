@@ -54,8 +54,15 @@ export class InspectorCapture {
 	private readonly joiner = new RequestJoiner();
 	private counter = 0;
 	private buffer: TapEvent[] = [];
+	/** Bound on resolving-phase rows: ten seconds of hostile native
+	 * spam must not grow the page's memory unchecked (drop-oldest —
+	 * the newest traffic is what an operator opens the panel for). */
+	private static readonly BUFFER_CAP = 1_000;
 	private sink: (event: TapEvent) => void = event => {
 		this.buffer.push(event);
+		if (this.buffer.length > InspectorCapture.BUFFER_CAP) {
+			this.buffer.shift();
+		}
 	};
 	private handle: BridgeHandle | undefined;
 	private bridge: SpyBridge | undefined;

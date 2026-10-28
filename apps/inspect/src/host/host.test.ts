@@ -251,6 +251,25 @@ describe("InspectHost", () => {
 		expect(host.store.listClients()).toHaveLength(0);
 	});
 
+	it("deny disconnects an already admitted connection too", () => {
+		const host = new InspectHost();
+		host.setGateEnabled(false); // admission is implicit
+		const channel = new FakeChannel();
+		host.addChannel(channel);
+		host.handleMessage(channel, hello(info("c-live")));
+
+		// the page turned hostile AFTER it was admitted: deny must cut
+		// the live stream, not just revoke the future grant
+		host.deny("c-live");
+		expect(channel.closed).toBe(true);
+
+		// and nothing flows back on a re-connect either
+		const second = new FakeChannel();
+		host.addChannel(second);
+		host.handleMessage(second, hello(info("c-live")));
+		expect(second.closed).toBe(true);
+	});
+
 	it("turning the gate off lets parked connections in immediately", () => {
 		const host = new InspectHost();
 		const channel = new FakeChannel();

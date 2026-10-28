@@ -6,6 +6,7 @@
  */
 import { clientInfoSchema, tapEventSchema } from "@vkma.dev/protocol/schemas";
 import { z } from "zod";
+import { MAX_EVENTS } from "../shared/config.ts";
 import { PROTOCOL_VERSION } from "../shared/protocol.ts";
 
 const v = z.literal(PROTOCOL_VERSION);
@@ -26,7 +27,7 @@ export const eventsMessageSchema = z.object({
 	v,
 	t: z.literal("events"),
 	clientId: z.string().max(256),
-	events: z.array(tapEventSchema).max(200),
+	events: z.array(tapEventSchema).max(MAX_EVENTS),
 });
 
 export const execResultMessageSchema = z.object({

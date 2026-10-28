@@ -35,6 +35,9 @@ export const RECONNECT_MIN_MS = 500;
 export const RECONNECT_MAX_MS = 10_000;
 /** Messages parked while a connection awaits gate approval. */
 export const MAX_PENDING_BUFFER = 200;
+/** The wire bound on one events batch — the host drops whole batches
+ * over it (a flush must chunk, never splice-and-hope). */
+export const MAX_EVENTS = 200;
 /** How long the inspector waits for the panel's challenge-proof before
  * dropping the dial (the answerer cannot sign — it is not the panel). */
 export const VERIFICATION_TIMEOUT_MS = 5_000;
