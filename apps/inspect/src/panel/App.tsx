@@ -76,9 +76,7 @@ function PanelBody({ runtime }: { runtime: InspectRuntime }) {
 				</div>
 			)}
 			<Sections connection={connection} />
-			{setupOpen && (
-				<SetupPanel connection={connection} onClose={() => setSetupOpen(false)} />
-			)}
+			<SetupPanel connection={connection} open={setupOpen} onOpenChange={setSetupOpen} />
 		</div>
 	);
 }
