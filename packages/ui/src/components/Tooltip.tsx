@@ -27,6 +27,8 @@ export interface TooltipProps {
 	content: ReactNode;
 	placement?: TooltipPlacement;
 	disabled?: boolean;
+	/** Per-trigger open delay override (ms) — dense lists want more than the shared 200. */
+	delay?: number;
 	open?: boolean;
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
@@ -49,6 +51,7 @@ export function Tooltip({
 	content,
 	placement = "top",
 	disabled,
+	delay,
 	open,
 	defaultOpen,
 	onOpenChange,
@@ -68,7 +71,7 @@ export function Tooltip({
 				onOpenChange?.(next);
 			}}
 		>
-			<BaseTooltip.Trigger render={children} />
+			<BaseTooltip.Trigger render={children} delay={delay} />
 			<BaseTooltip.Portal>
 				<BaseTooltip.Positioner
 					side={side}

@@ -8,6 +8,7 @@ import { ClientDot } from "./ClientDot.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 function ClientBadge({ clientId, clients }: { clientId: string; clients: ClientInfo[] }) {
 	const client = clients.find(c => c.clientId === clientId);
@@ -55,32 +56,33 @@ function CopyButton({ text }: { text: string }) {
 	);
 }
 
-/** Small type chip: → request, ↳ response, ◇ event. */
+/** Small type chip: → request, ↳ response, ◇ event. Lives in every
+ * timeline row, so its hint waits longer than the shared 200ms — the
+ * pointer sweeps whole stacks of these in one move. */
 function KindChip({ kind, title }: { kind: "request" | "response" | "event"; title: string }) {
 	return (
-		<span
-			className="grid size-4 shrink-0 place-items-center rounded-[4px] bg-neutral-800/[0.06] text-neutral-500 dark:bg-neutral-100/10 dark:text-neutral-400"
-			title={title}
-		>
-			{kind === "request" && <ArrowOutIcon width={11} height={11} />}
-			{kind === "response" && (
-				<svg
-					viewBox="0 0 24 24"
-					width={11}
-					height={11}
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="1.75"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M9 15 4 10l5-5" />
-					<path d="M4 10h9a7 7 0 0 1 7 7v3" />
-				</svg>
-			)}
-			{kind === "event" && <DiamondIcon width={10} height={10} />}
-		</span>
+		<Tooltip content={title} delay={600}>
+			<span className="grid size-4 shrink-0 place-items-center rounded-[4px] bg-neutral-800/[0.06] text-neutral-500 dark:bg-neutral-100/10 dark:text-neutral-400">
+				{kind === "request" && <ArrowOutIcon width={11} height={11} />}
+				{kind === "response" && (
+					<svg
+						viewBox="0 0 24 24"
+						width={11}
+						height={11}
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.75"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M9 15 4 10l5-5" />
+						<path d="M4 10h9a7 7 0 0 1 7 7v3" />
+					</svg>
+				)}
+				{kind === "event" && <DiamondIcon width={10} height={10} />}
+			</span>
+		</Tooltip>
 	);
 }
 

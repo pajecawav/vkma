@@ -7,6 +7,7 @@ import { ClientSelect } from "./ClientSelect.tsx";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 type EventFilter = "all" | "requests" | "events";
 
@@ -151,26 +152,29 @@ export function Timeline({
 	// feed to a departed client with no control to reset it.
 	const showClientFilter = !hideClient && (clients.length > 1 || clientFilter !== "all");
 	const search = (className: string) => (
-		<input
-			type="search"
-			value={query}
-			onChange={event => setQuery(event.target.value)}
-			placeholder="Filter by event name…"
-			title="Case-insensitive; accepts regex (foo|bar, Get.*Info)"
-			className={`h-7 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 ${className}`}
-		/>
+		<Tooltip content="Case-insensitive; accepts regex (foo|bar, Get.*Info)">
+			<input
+				type="search"
+				value={query}
+				onChange={event => setQuery(event.target.value)}
+				placeholder="Filter by event name…"
+				aria-label="Filter by event name"
+				className={`h-7 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 ${className}`}
+			/>
+		</Tooltip>
 	);
 	const clientSelect = (className: string) => (
-		<ClientSelect
-			size="sm"
-			className={className}
-			ariaLabel="Client"
-			title="Show events of one client"
-			clients={clients}
-			value={clientFilter}
-			onValueChange={setClientFilter}
-			allValue={{ value: "all", label: "All clients" }}
-		/>
+		<Tooltip content="Show events of one client">
+			<ClientSelect
+				size="sm"
+				className={className}
+				ariaLabel="Client"
+				clients={clients}
+				value={clientFilter}
+				onValueChange={setClientFilter}
+				allValue={{ value: "all", label: "All clients" }}
+			/>
+		</Tooltip>
 	);
 	const tabs = (
 		<div

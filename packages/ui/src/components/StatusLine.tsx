@@ -1,5 +1,6 @@
 import type { ConnectionStatus } from "@vkma.dev/protocol";
 import type { ReactNode } from "react";
+import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * The one color semantics of connection states — dot + tone per status.
@@ -22,7 +23,10 @@ export const STATUS_META: Record<ConnectionStatus, { label: string; dot: string;
 	error: { label: "Connection error", dot: "bg-red-500", text: "text-red-600 dark:text-red-400" },
 };
 
-/** The status row: colored dot + label, with an optional muted tail. */
+/**
+ * The status row: colored dot + label, with an optional muted tail.
+ * The `title` hint rides a Tooltip (the shared delay profile applies).
+ */
 export function StatusLine({
 	status,
 	label,
@@ -38,10 +42,12 @@ export function StatusLine({
 }) {
 	const meta = STATUS_META[status];
 	return (
-		<span className="flex items-center gap-2 text-xs" title={title ?? `RPC: ${meta.label}`}>
-			<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
-			<span className={meta.text}>{label ?? meta.label}</span>
-			{extra !== undefined && <span className="text-neutral-400">{extra}</span>}
-		</span>
+		<Tooltip content={title ?? `RPC: ${meta.label}`}>
+			<span className="flex items-center gap-2 text-xs">
+				<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
+				<span className={meta.text}>{label ?? meta.label}</span>
+				{extra !== undefined && <span className="text-neutral-400">{extra}</span>}
+			</span>
+		</Tooltip>
 	);
 }

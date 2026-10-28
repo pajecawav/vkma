@@ -5,6 +5,7 @@ import { ClientDot } from "./ClientDot.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { MoonIcon, RefreshIcon, SunIcon, VkmaLogoIcon } from "./icons.tsx";
 import { StatusLine } from "./StatusLine.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 const CAPTURE_META: Record<CaptureMode, { label: string; chip: string; title: string }> = {
 	direct: {
@@ -70,25 +71,27 @@ export function TopBar({
 					(() => {
 						const meta = CAPTURE_META[capture];
 						return (
-							<span
-								className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium leading-none ${meta.chip}`}
-								title={meta.title}
-							>
-								{meta.label}
-							</span>
+							<Tooltip content={meta.title}>
+								<span
+									className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium leading-none ${meta.chip}`}
+								>
+									{meta.label}
+								</span>
+							</Tooltip>
 						);
 					})()}
 				{clientBadge &&
 					(() => {
 						const color = clientColor(clientBadge.clientId);
 						return (
-							<span
-								className={`inline-flex items-center gap-1.5 rounded-md bg-neutral-100 px-2 py-1 font-mono text-[11px] leading-none ${color.text} dark:bg-neutral-800`}
-								title="This panel is scoped to this client"
-							>
-								<ClientDot clientId={clientBadge.clientId} />
-								{clientBadge.clientId.slice(0, 8)}
-							</span>
+							<Tooltip content="This panel is scoped to this client">
+								<span
+									className={`inline-flex items-center gap-1.5 rounded-md bg-neutral-100 px-2 py-1 font-mono text-[11px] leading-none ${color.text} dark:bg-neutral-800`}
+								>
+									<ClientDot clientId={clientBadge.clientId} />
+									{clientBadge.clientId.slice(0, 8)}
+								</span>
+							</Tooltip>
 						);
 					})()}
 				<StatusLine status={status} />
