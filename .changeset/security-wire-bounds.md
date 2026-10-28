@@ -1,4 +1,5 @@
-***
+---
+"@vkma.dev/protocol": patch
+---
 
-"@vkma.dev/protocol":
-patch: bound the wire schemas — ts range, string maxima, launch-params cardinality
+Bound the wire schemas — ts range, string maxima, launch-params cardinality
