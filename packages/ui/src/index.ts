@@ -10,6 +10,8 @@ export type { RequestGroupProps } from "./components/EventRow.tsx";
 export { CopyInput } from "./components/CopyInput.tsx";
 export { Button } from "./components/Button.tsx";
 export { IconButton } from "./components/IconButton.tsx";
+export { Modal } from "./components/Modal.tsx";
+export type { ModalProps } from "./components/Modal.tsx";
 export { ClientDot } from "./components/ClientDot.tsx";
 export { StatusLine, STATUS_META } from "./components/StatusLine.tsx";
 export { Timeline } from "./components/Timeline.tsx";
