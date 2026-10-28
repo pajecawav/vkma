@@ -1,12 +1,21 @@
-import { LucideProvider } from "lucide-react";
+import { catalogue, stubs } from "@vkma.dev/bridge-schema/catalogue";
+import {
+	Clients,
+	Execute,
+	FabPositionControl,
+	Rail,
+	type Section,
+	Timeline,
+	TopBar,
+	UiProvider,
+} from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
-import { Clients } from "./components/Clients.tsx";
-import { Execute } from "./components/Execute.tsx";
-import { Rail, type Section } from "./components/Rail.tsx";
 import { StatusGate } from "./components/StatusGate.tsx";
-import { Timeline } from "./components/Timeline.tsx";
-import { TopBar } from "./components/TopBar.tsx";
+import { useFabPosition } from "./lib/fab-position.ts";
 import { useVkma } from "./lib/rpc.ts";
+
+// Sorted once at module scope — the catalogue is frozen data.
+const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
 
 const SECTION_KEY = "vkma:section";
 
@@ -16,6 +25,7 @@ export function App() {
 	const embeddedClientId = new URLSearchParams(window.location.search).get("client") ?? undefined;
 
 	const connection = useVkma(embeddedClientId);
+	const fabPosition = useFabPosition();
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
@@ -32,14 +42,22 @@ export function App() {
 	const gate = connection.status !== "connected" ? <StatusGate connection={connection} /> : null;
 
 	return (
-		// House lucide defaults: 16px, the stroke weight the panel always
-		// drew its icons with (lucide's own default is 2).
-		<LucideProvider size={16} strokeWidth={1.75}>
+		<UiProvider>
 			<div className="flex h-dvh flex-col">
 				<TopBar
 					status={connection.status}
 					onReconnect={connection.reconnect}
 					clientBadge={embeddedClientId ? { clientId: embeddedClientId } : undefined}
+					actions={
+						// The placement controls the in-page FAB — only the
+						// embedded panel (mounted by that FAB) shows it.
+						embeddedClientId ? (
+							<FabPositionControl
+								position={fabPosition.position}
+								onPick={fabPosition.pick}
+							/>
+						) : undefined
+					}
 				/>
 				<div className="flex min-h-0 flex-1 flex-col sm:flex-row">
 					<Rail section={section} sections={sections} onSelect={setSection} />
@@ -64,18 +82,25 @@ export function App() {
 									clients={connection.clients}
 									events={connection.events}
 									execute={connection.execute}
+									suggestedEvents={SUGGESTED_EVENTS}
+									paramsStub={name => stubs[name]}
 									fixedClientId={embeddedClientId}
 								/>
 							</div>
 							<div
 								className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "clients" ? "" : "hidden"}`}
 							>
-								<Clients clients={connection.clients} />
+								<Clients
+									clients={connection.clients}
+									onDeleteClient={clientId => {
+										void connection.deleteClients([clientId]).catch(() => {});
+									}}
+								/>
 							</div>
 						</>
 					)}
 				</div>
 			</div>
-		</LucideProvider>
+		</UiProvider>
 	);
 }

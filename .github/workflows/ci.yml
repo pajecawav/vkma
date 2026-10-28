@@ -27,8 +27,8 @@ jobs:
             - name: Build
               run: pnpm build
 
-            - name: Build inspector (firefox)
-              run: pnpm --filter @vkma.dev/inspector build:firefox
+            - name: Build extension (firefox)
+              run: pnpm --filter @vkma.dev/devtools-extension build:firefox
 
             - name: Lint
               run: pnpm lint
@@ -36,11 +36,11 @@ jobs:
             - name: Test
               run: pnpm test
 
-            - name: Upload inspector artifacts
+            - name: Upload extension artifacts
               uses: actions/upload-artifact@v7
               with:
-                  name: inspector
-                  path: apps/inspector/web-ext-artifacts/
+                  name: devtools-extension
+                  path: apps/devtools-extension/web-ext-artifacts/
                   if-no-files-found: error
 
             - name: Upload web artifact

@@ -9,13 +9,19 @@ import { defineConfig } from "vite";
  *
  * `VKMA_HUB=1 pnpm dev` runs the panel as a Vite DevTools dock instead
  * of standalone (needs @vitejs/devtools, kept in devDependencies);
- * `VKMA_MCP=1` turns the coding-agent MCP route on.
+ * `VKMA_MCP=1` turns the coding-agent MCP route on; `VKMA_FAB=1` mounts
+ * the FAB at bottom-left via the plugin's fabPosition option.
  */
 export default defineConfig({
 	plugins: [
 		react(),
 		...(process.env.VKMA_HUB === "1"
 			? [(await import("@vitejs/devtools")).DevTools(), vkmaDevtools({ hub: true })]
-			: [vkmaDevtools({ mcp: process.env.VKMA_MCP === "1" })]),
+			: [
+					vkmaDevtools({
+						mcp: process.env.VKMA_MCP === "1",
+						fabPosition: process.env.VKMA_FAB === "1" ? "bottom-left" : undefined,
+					}),
+				]),
 	],
 });

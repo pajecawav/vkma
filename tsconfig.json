@@ -6,6 +6,8 @@
 		{ "path": "./packages/bridge-schema" },
 		{ "path": "./packages/bridge" },
 		{ "path": "./packages/deploy" },
-		{ "path": "./packages/devtools" }
+		{ "path": "./packages/devtools" },
+		{ "path": "./packages/protocol" },
+		{ "path": "./packages/ui" }
 	]
 }

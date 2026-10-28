@@ -1,66 +1,25 @@
 /**
  * Wire protocol shared by the node side, the inject collector and the SPA.
- * Kept structurally identical to `BridgeTapEvent` from `@vkma.dev/bridge`
- * but declared here so this package never depends on the bridge at runtime.
+ * The types themselves live in `@vkma.dev/protocol` (shared with the
+ * devtools-extension); this module keeps the devframe-specific surface —
+ * wire names and the `devframe` RPC augmentation — next to them.
  */
+import type { ClientStatus } from "@vkma.dev/protocol";
 
-export type BridgeDirection = "out" | "in";
-export type BridgeEventKind = "send" | "response" | "event";
+export type {
+	BridgeDirection,
+	BridgeEventKind,
+	ClientInfo,
+	ClientStatus,
+	ConnectionStatus,
+	CaptureMode,
+	DevtoolsState,
+	ExecResult,
+	ExecResultReport,
+	WireEvent,
+} from "@vkma.dev/protocol";
 
-export interface WireEvent {
-	/** Tap-local id; unique per client, pairs responses with sends. */
-	id: number;
-	ts: number;
-	clientId: string;
-	direction: BridgeDirection;
-	kind: BridgeEventKind;
-	name: string;
-	payload?: unknown;
-	reqId?: number;
-	ok?: boolean;
-	/** Global sequence assigned by the node side. */
-	seq: number;
-}
-
-export interface ClientInfo {
-	clientId: string;
-	/** Fresh per page load: a reload starts a new session and wipes history. */
-	sessionId: string;
-	connectedAt: number;
-	lastSeenAt: number;
-	ua: string;
-	url: string;
-	/** `iframe` | `mobile-web` | `desktop-web` | `android` | `ios` | `standalone` */
-	platform: string;
-	/** Whether the devtools bridge handle was found on the page. */
-	bridge: boolean;
-	appId?: string;
-	launchParams?: Record<string, string>;
-}
-
-export type ClientStatus = ClientInfo & {
-	/** Computed by the node side: heartbeat within the online TTL. */
-	online: boolean;
-};
-
-export type ExecResult =
-	| { status: "ok"; payload: unknown }
-	| { status: "error"; payload: unknown }
-	| { status: "no-client"; clientId: string }
-	| { status: "forbidden"; clientId: string }
-	| { status: "timeout" };
-
-export interface ExecResultReport {
-	execId: number;
-	clientId: string;
-	ok: boolean;
-	payload?: unknown;
-}
-
-export interface DevtoolsState {
-	events: WireEvent[];
-	clients: ClientStatus[];
-}
+export { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
 
 /**
  * Wire names, `vkma`-namespaced by hand on the node side (the panel and
@@ -78,6 +37,8 @@ export const VKMA_RPC = {
 	subscribe: "vkma:subscribe",
 	execute: "vkma:execute",
 	execResult: "vkma:exec-result",
+	/** Panel → node: manual registry cleanup of offline entries. */
+	deleteClients: "vkma:delete-clients",
 	/** client-side (browser-registered) functions */
 	clientExecute: "vkma:client-execute",
 	onClients: "vkma:on-clients",

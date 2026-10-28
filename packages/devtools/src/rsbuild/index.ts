@@ -32,6 +32,13 @@ export interface VkmaRsbuildOptions {
 	 * origins to lock down.
 	 */
 	allowedOrigins?: false | readonly string[];
+	/**
+	 * Initial placement of the in-page FAB. Default `bottom-right`. A
+	 * placement picked in the panel is stored per origin (localStorage)
+	 * and wins over this initial value. Mirrors `FabPosition` of
+	 * `@vkma.dev/ui/fab-position`.
+	 */
+	fabPosition?: "bottom-left" | "bottom" | "bottom-right";
 }
 
 const BRIDGE_PACKAGE = "@vkontakte/vk-bridge";
@@ -109,7 +116,7 @@ export function vkmaDevtoolsRsbuild(options: VkmaRsbuildOptions = {}): RsbuildPl
 				config.html ??= {};
 				const tag = {
 					tag: "script",
-					children: injectSnippet(base),
+					children: injectSnippet(base, { fabPosition: options.fabPosition }),
 					append: true,
 				};
 				if (config.html.tags === undefined) {

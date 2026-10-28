@@ -1,3 +1,8 @@
+import {
+	FAB_POSITION_STORAGE_KEY,
+	normalizeFabPosition,
+	type FabPosition,
+} from "@vkma.dev/ui/fab-position";
 import { defineRpcFunction } from "devframe";
 import { connectDevframe } from "devframe/client";
 import { VKMA_RPC, type ClientInfo } from "../shared/protocol.ts";
@@ -59,6 +64,18 @@ async function waitForBridge(timeoutMs = 10_000): Promise<BridgeHandle | undefin
 const base =
 	(globalThis as typeof globalThis & { __VKMA_DEVTOOLS_BASE__?: string })
 		.__VKMA_DEVTOOLS_BASE__ ?? "/__vkma/";
+
+/**
+ * Plugin options carried alongside the base (`__VKMA_DEVTOOLS_CONFIG__`,
+ * emitted only when non-default). Values are untrusted page-reachable
+ * JSON — everything flows through normalizers before use.
+ */
+const pluginConfig =
+	(
+		globalThis as typeof globalThis & {
+			__VKMA_DEVTOOLS_CONFIG__?: { fabPosition?: unknown };
+		}
+	).__VKMA_DEVTOOLS_CONFIG__ ?? {};
 
 const CLIENT_ID_KEY = "vkma:clientId";
 const CLIENT_ID_CHANNEL = "vkma:client-ids";
@@ -392,6 +409,35 @@ document.addEventListener("visibilitychange", () => {
 	}
 });
 
+const storedPosition = (): unknown => {
+	try {
+		return localStorage.getItem(FAB_POSITION_STORAGE_KEY);
+	} catch {
+		return undefined;
+	}
+};
+
+/** Stored preference (picked in the panel) → plugin config → default. */
+const currentPosition = (): FabPosition =>
+	normalizeFabPosition(storedPosition() ?? pluginConfig.fabPosition);
+
 void import("./fab.ts").then(({ mountFab }) => {
-	retintFab = mountFab({ base, getClientId: () => clientId });
+	const fab = mountFab({
+		base,
+		getClientId: () => clientId,
+		// Synchronous localStorage read — the FAB first appears at its
+		// saved spot instead of gliding over from the default corner.
+		position: currentPosition(),
+	});
+	retintFab = fab.retint;
+
+	// The FAB placement is a localStorage preference of this dev server
+	// origin — the (same-origin) panel writes it, the storage event
+	// reaches this page and moves the FAB live. No RPC involved.
+	fab.setPosition(currentPosition());
+	window.addEventListener("storage", event => {
+		if (event.key === FAB_POSITION_STORAGE_KEY) {
+			fab.setPosition(normalizeFabPosition(event.newValue));
+		}
+	});
 });

@@ -96,6 +96,23 @@ test("the registry caps at 24 entries, dropping oldest offline first", () => {
 	expect(store.getClient("c6")).toBeDefined();
 });
 
+test("deleteClients removes offline entries, skips live and unknown ones", () => {
+	const store = new DevtoolsStore();
+	store.touchClient(client({ clientId: "live", lastSeenAt: 10_000 }));
+	store.touchClient(client({ clientId: "stale", lastSeenAt: 0, connectedAt: 0 }));
+
+	// now=20_000: live is inside the TTL, stale is past it
+	expect(store.deleteClients(["live", "stale", "ghost"], 20_000)).toEqual(["stale"]);
+	expect(store.getClient("stale")).toBeUndefined();
+	expect(store.getClient("live")).toBeDefined();
+	expect(store.getClient("ghost")).toBeUndefined();
+
+	// registry hygiene only: the ledger keeps its history
+	store.pushEvents("live", [event(1)]);
+	expect(store.deleteClients(["live"], 20_000)).toEqual([]);
+	expect(store.snapshotEvents()).toHaveLength(1);
+});
+
 test("execute round-trip settles via report and rejects late arrivals", async () => {
 	const store = new DevtoolsStore();
 	store.touchClient(client());
@@ -107,4 +124,70 @@ test("execute round-trip settles via report and rejects late arrivals", async ()
 
 	// late duplicate is ignored
 	expect(store.settleExec({ execId: 2, clientId: "c1", ok: false })).toBe(false);
+});
+
+test("an owned exec settles only from its owning channel", async () => {
+	const store = new DevtoolsStore();
+	store.touchClient(client());
+	const ownerA = { tag: "a" };
+	const ownerB = { tag: "b" };
+	const execA = store.beginExec(ownerA);
+	const execNoOwner = store.beginExec();
+
+	// a different connection's report is a forgery attempt — it drops
+	expect(
+		store.settleExec(
+			{ execId: execA.execId, clientId: "c1", ok: true, payload: "forged" },
+			ownerB,
+		),
+	).toBe(false);
+	// the owning connection settles it
+	expect(
+		store.settleExec({ execId: execA.execId, clientId: "c1", ok: true, payload: 42 }, ownerA),
+	).toBe(true);
+	await expect(execA.promise).resolves.toEqual({ status: "ok", payload: 42 });
+
+	// owner-less execs (legacy callers) keep the old behavior
+	expect(
+		store.settleExec({ execId: execNoOwner.execId, clientId: "c1", ok: true, payload: 1 }),
+	).toBe(true);
+	await expect(execNoOwner.promise).resolves.toEqual({ status: "ok", payload: 1 });
+});
+
+test("the ring budget is bytes as well as count", () => {
+	const store = new DevtoolsStore();
+	store.touchClient(client());
+	const blob = "x".repeat(1024 * 1024);
+	// 3 events x 1 MiB: far under the 500-event count cap, past nothing
+	// byte-wise individually — but the budget trims the OLDEST once the
+	// total crosses RING_BYTES (8 MiB): 9 pushes of 3 MiB keep only the
+	// newest ~8.
+	for (let round = 0; round < 9; round++) {
+		store.pushEvents("c1", [
+			{
+				id: round,
+				ts: 1_000,
+				direction: "out",
+				kind: "send",
+				name: `n${round}`,
+				payload: { blob },
+			},
+		]);
+	}
+	const snapshot = store.snapshotEvents();
+	expect(snapshot.length).toBeLessThan(9); // byte budget evicted the oldest
+	expect(snapshot.at(-1)?.name).toBe("n8"); // newest survives
+});
+
+test("the registry refuses new entries at the cap even when every entry is online", () => {
+	const store = new DevtoolsStore();
+	const now = Date.now(); // real clock: every entry below is ONLINE
+	for (let i = 0; i < 24; i++) {
+		store.touchClient(client({ clientId: `c${i}`, lastSeenAt: now }));
+	}
+	// all online — yet the 25th distinct id must not insert
+	expect(store.touchClient(client({ clientId: "c25", lastSeenAt: now }))).toBe(false);
+	expect(store.getClient("c25")).toBeUndefined();
+	// heartbeats of existing entries keep working
+	expect(store.touchClient(client({ clientId: "c0", lastSeenAt: now + 1 }))).toBe(true);
 });

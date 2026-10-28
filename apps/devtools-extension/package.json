@@ -1,0 +1,53 @@
+{
+	"name": "@vkma.dev/devtools-extension",
+	"version": "0.0.0",
+	"description": "Browser devtools extension for VK Mini Apps — the vkma.dev panel on any vk.ru page",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"dev": "rsbuild build --watch",
+		"start": "web-ext run --source-dir dist --target chromium",
+		"start:firefox": "web-ext run --source-dir dist --target firefox",
+		"gen:icons": "node scripts/generate-icons.ts",
+		"build": "run-s build:rsbuild build:webext",
+		"build:rsbuild": "rsbuild build",
+		"build:webext": "web-ext build --source-dir dist --overwrite-dest",
+		"build:chrome": "cross-env BROWSER=chrome run-s build:rsbuild build:webext:chrome",
+		"build:firefox": "cross-env BROWSER=firefox run-s build:rsbuild build:webext:firefox",
+		"build:webext:chrome": "web-ext build --source-dir dist --overwrite-dest --filename vkma-devtools-chrome-{version}.zip",
+		"build:webext:firefox": "web-ext build --source-dir dist --overwrite-dest --filename vkma-devtools-firefox-{version}.zip",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"dependencies": {
+		"@vkma.dev/bridge": "workspace:*",
+		"@vkma.dev/devtools": "workspace:*",
+		"@vkma.dev/protocol": "workspace:*",
+		"werpc": "^0.0.9"
+	},
+	"devDependencies": {
+		"@rsbuild/core": "catalog:",
+		"@rsbuild/plugin-react": "catalog:",
+		"@resvg/resvg-js": "^2.6.2",
+		"@tailwindcss/postcss": "^4.3.3",
+		"@types/chrome": "^0.3.5",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vkma.dev/ui": "workspace:*",
+		"cross-env": "catalog:",
+		"lucide-react": "catalog:",
+		"npm-run-all2": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"tailwindcss": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:",
+		"web-ext": "^10.8.0",
+		"zod": "catalog:"
+	}
+}

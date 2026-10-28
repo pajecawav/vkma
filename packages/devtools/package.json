@@ -21,6 +21,10 @@
 		"./rsbuild": {
 			"types": "./dist/rsbuild/index.d.ts",
 			"import": "./dist/rsbuild/index.js"
+		},
+		"./store": {
+			"types": "./dist/node/store.d.ts",
+			"import": "./dist/node/store.js"
 		}
 	},
 	"files": [
@@ -75,6 +79,9 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@vkma.dev/bridge-schema": "workspace:*",
+		"@vkma.dev/protocol": "workspace:*",
+		"@vkma.dev/ui": "workspace:*",
 		"@vitejs/devtools-kit": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
 		"@vkma.dev/bridge": "workspace:*",

@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/* The design system ships as source; consumers import this stylesheet from
+ * their own entries, so the component classes must be scanned explicitly
+ * (automatic detection skips linked packages). */
+@source "./**/*.{ts,tsx}";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	--font-mono:
+		ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
+}
+
+/* ── browser surfaces ─────────────────────────────────────────────── */
+
+/* Selection must be OPAQUE: a translucent tint gets double-composited
+   over the panel's animated (transformed) rows — glyphs visibly ghost.
+   Solid neutrals, text color untouched (DevTools-style). */
+::selection {
+	background: var(--color-neutral-300);
+}
+
+html.dark ::selection {
+	background: var(--color-neutral-600);
+}
+
+html {
+	color-scheme: light;
+}
+html.dark {
+	color-scheme: dark;
+}
+
+body {
+	@apply bg-neutral-50 text-neutral-900 antialiased;
+	font-family: var(--font-sans);
+}
+
+html.dark body {
+	@apply bg-neutral-950 text-neutral-100;
+}
+
+*:focus-visible {
+	outline: 2px solid var(--color-neutral-500);
+	outline-offset: 1px;
+	border-radius: 2px;
+}
+
+/* Listbox options highlight via data-highlighted — the global focus ring
+   doubles it up. Unlayered rules beat utility overrides, so the opt-out
+   lives here rather than in the component's classes. */
+[role="option"]:focus-visible {
+	outline: none;
+}
+
+.scroll-area {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-neutral-300) transparent;
+}
+html.dark .scroll-area {
+	scrollbar-color: var(--color-neutral-700) transparent;
+}
+.scroll-area::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+	background: var(--color-neutral-300);
+	border-radius: 4px;
+}
+html.dark .scroll-area::-webkit-scrollbar-thumb {
+	background: var(--color-neutral-700);
+}
+.scroll-area::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+/* one authored motion: new rows surface from below, 160ms, already visible */
+@keyframes vkma-row-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+.row-in {
+	animation: vkma-row-in 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+	.row-in {
+		animation: none;
+	}
+}
