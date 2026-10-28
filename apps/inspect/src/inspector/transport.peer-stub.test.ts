@@ -184,7 +184,7 @@ describe("InspectorTransport dial trust (stubbed signaling)", () => {
 		const conn = app.conn();
 		conn.accept();
 
-		const challenge = byType(conn.sent, "challenge")[0]!;
+		const challenge = byType(conn.sent, "challenge")[0];
 		conn.emit("data", {
 			v: 1,
 			t: "challenge-proof",
@@ -217,7 +217,7 @@ describe("InspectorTransport dial trust (stubbed signaling)", () => {
 		const conn = app.conn();
 		conn.accept();
 
-		const challenge = byType(conn.sent, "challenge")[0]!;
+		const challenge = byType(conn.sent, "challenge")[0];
 		conn.emit("data", {
 			v: 1,
 			t: "challenge-proof",

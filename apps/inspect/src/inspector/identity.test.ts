@@ -12,7 +12,11 @@ describe("identity url minimization", () => {
 		window.location.href =
 			"https://app.example.com/app/?vk_app_id=1&sign=LEAKED&api_url=https%3A%2F%2Fapi.vk.com&code=OAUTH&email=x%40y.z#access_token=TOKEN";
 		const identity = createIdentity(() => {});
-		expect(Object.keys(identity.launchParams).sort()).toEqual(["api_url", "sign", "vk_app_id"]);
+		expect(Object.keys(identity.launchParams).toSorted()).toEqual([
+			"api_url",
+			"sign",
+			"vk_app_id",
+		]);
 	});
 
 	it("clientInfo.url carries only the filtered params and no fragment", () => {
