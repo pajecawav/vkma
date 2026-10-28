@@ -12,6 +12,8 @@ export { Button } from "./components/Button.tsx";
 export { IconButton } from "./components/IconButton.tsx";
 export { Modal } from "./components/Modal.tsx";
 export type { ModalProps } from "./components/Modal.tsx";
+export { Switch } from "./components/Switch.tsx";
+export type { SwitchProps } from "./components/Switch.tsx";
 export { Tooltip } from "./components/Tooltip.tsx";
 export type { TooltipProps, TooltipPlacement } from "./components/Tooltip.tsx";
 export { ClientDot } from "./components/ClientDot.tsx";
