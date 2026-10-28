@@ -21,6 +21,8 @@ export { StatusLine, STATUS_META } from "./components/StatusLine.tsx";
 export { Timeline } from "./components/Timeline.tsx";
 export { ClientSelect } from "./components/ClientSelect.tsx";
 export type { ClientSelectProps } from "./components/ClientSelect.tsx";
+export { EventNameField } from "./components/EventNameField.tsx";
+export type { EventNameFieldProps } from "./components/EventNameField.tsx";
 export { Execute } from "./components/Execute.tsx";
 export { Clients } from "./components/Clients.tsx";
 export { Rail } from "./components/Rail.tsx";

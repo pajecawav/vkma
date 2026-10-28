@@ -1,8 +1,10 @@
 import type { ClientStatus, ExecResult, WireEvent } from "@vkma.dev/protocol";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { shortId } from "../lib/format.ts";
+import { nextParamsText } from "../lib/params-prefill.ts";
 import { ClientSelect } from "./ClientSelect.tsx";
+import { EventNameField } from "./EventNameField.tsx";
 import { CheckIcon, CrossIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 
@@ -39,6 +41,8 @@ export function Execute({
 	clients,
 	events,
 	execute,
+	suggestedEvents,
+	paramsStub,
 	fixedClientId,
 	emptyState,
 }: {
@@ -49,18 +53,25 @@ export function Execute({
 		name: string,
 		params: Record<string, unknown> | undefined,
 	) => Promise<ExecResult>;
+	/** Catalogue event names to suggest beyond what the session has seen. */
+	suggestedEvents?: readonly string[];
+	/**
+	 * Payload stub for a catalogue event, prefilled into Params when the name
+	 * is picked. Only consulted for names absent from the timeline.
+	 */
+	paramsStub?: (name: string) => Record<string, unknown> | undefined;
 	/** Embedded mode: the panel is bound to this client only. */
 	fixedClientId?: string;
 	/** Overrides the "no clients" card (surfaces with other capture modes). */
 	emptyState?: ReactNode;
 }) {
 	const knownNames = useMemo(() => {
-		const names = new Set<string>();
+		const names = new Set<string>(suggestedEvents);
 		for (const event of events) {
 			names.add(event.name);
 		}
 		return [...names].toSorted();
-	}, [events]);
+	}, [suggestedEvents, events]);
 
 	// Registry order is online-first, oldest → newest within each group,
 	// so the last ONLINE client is the newest live one. A bare `at(-1)`
@@ -81,7 +92,28 @@ export function Execute({
 		(clients.some(client => client.clientId === target) ? target : latestClientId);
 	const [name, setName] = useState("");
 	const [paramsText, setParamsText] = useState("{\n  \n}");
+	// The params text this component last wrote itself — replacing THAT on a
+	// later pick is safe; anything else may be the user's work and stays.
+	const lastAutoFillRef = useRef<string | undefined>(undefined);
 	const [pending, setPending] = useState<Pending>();
+
+	const pickName = (next: string) => {
+		setName(next);
+		const stub = paramsStub?.(next.trim());
+		if (!stub) {
+			return;
+		}
+		setParamsText(prev => {
+			const text = nextParamsText(prev, stub, lastAutoFillRef.current);
+			if (text === undefined) {
+				return prev;
+			}
+			// Idempotent under StrictMode's double-invoked updaters: same prev,
+			// same stub → same text.
+			lastAutoFillRef.current = text;
+			return text;
+		});
+	};
 
 	const paramsError = useMemo(() => {
 		const text = paramsText.trim();
@@ -154,20 +186,13 @@ export function Execute({
 
 						<label className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-neutral-500">Event</span>
-							<input
-								type="text"
+							<EventNameField
+								events={knownNames}
 								value={name}
-								onChange={event => setName(event.target.value)}
-								list="vkma-known-events"
+								onValueChange={pickName}
 								placeholder="VKWebAppGetUserInfo"
-								spellCheck={false}
-								className="h-8 rounded-md border border-neutral-200 bg-white px-2.5 font-mono text-sm dark:border-neutral-800 dark:bg-neutral-900"
+								ariaLabel="Event"
 							/>
-							<datalist id="vkma-known-events">
-								{knownNames.map(known => (
-									<option key={known} value={known} />
-								))}
-							</datalist>
 						</label>
 
 						<label className="flex flex-col gap-1.5">
