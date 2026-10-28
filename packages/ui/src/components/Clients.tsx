@@ -24,11 +24,12 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 					<dt className="truncate font-mono text-[11px] text-neutral-400" title={key}>
 						{key}
 					</dt>
+					{/* The value renders in full (break-all) — no reveal hint.
+					    Sensitive values stay blurred and hinted nowhere. */}
 					<dd
 						className={`break-all font-mono text-[11px] text-neutral-600 dark:text-neutral-300 ${
 							SENSITIVE_PARAMS.has(key) ? "blur-sm" : ""
 						}`}
-						title={SENSITIVE_PARAMS.has(key) ? undefined : value}
 					>
 						{value}
 					</dd>
