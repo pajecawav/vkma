@@ -5,6 +5,7 @@
 		"types": ["node"],
 		"paths": {
 			"@vkma.dev/bridge-schema": ["./src/index.ts"],
+			"@vkma.dev/bridge-schema/catalogue": ["./src/catalogue.ts"],
 			"@vkma.dev/bridge-schema/schema": ["./src/schema.ts"]
 		}
 	},

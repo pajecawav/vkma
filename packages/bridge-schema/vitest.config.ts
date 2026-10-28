@@ -14,6 +14,10 @@ export default defineConfig({
 	resolve: {
 		alias: [
 			{
+				find: /^@vkma\.dev\/bridge-schema\/catalogue$/,
+				replacement: path.resolve(packageRoot, "src/catalogue.ts"),
+			},
+			{
 				find: /^@vkma\.dev\/bridge-schema\/schema$/,
 				replacement: path.resolve(packageRoot, "src/schema.ts"),
 			},

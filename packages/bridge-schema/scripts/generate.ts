@@ -5,7 +5,11 @@
  *    entry into `src/generated/typescript/events.ts`.
  * 2. Emits `src/generated/schema-data.ts` — the catalogue document as typed
  *    data behind the `./schema` entrypoint.
- * 3. Emits `src/index.ts` — the package root. The three catalogue maps are
+ * 3. Emits `src/generated/catalogue-data.ts` — the wiring tables plus the
+ *    precomputed payload stubs behind the light `./catalogue` entrypoint
+ *    (bundle-sensitive consumers get names and prefill data without
+ *    dragging the whole `$defs` document in).
+ * 4. Emits `src/index.ts` — the package root. The three catalogue maps are
  *    declared as `interface`s IN THIS MODULE on purpose: declaration merging
  *    (`declare module "@vkma.dev/bridge-schema"`) only works against the
  *    module that declares the interface, so consumers can extend the
@@ -19,6 +23,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { generate } from "@pajecawav/json2code";
+import { computeStubs } from "./stubs.ts";
 
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const schemaFile = path.join(pkgRoot, "schema", "events.json");
@@ -61,13 +66,18 @@ async function main(): Promise<void> {
 	}
 
 	await writeFile(path.join(generatedDir, "schema-data.ts"), renderSchemaData(doc));
+	const stubs = computeStubs(doc);
+	await writeFile(
+		path.join(generatedDir, "catalogue-data.ts"),
+		renderCatalogueData(props, receive, events, stubs),
+	);
 	await writeFile(
 		path.join(pkgRoot, "src", "index.ts"),
 		renderIndex(defNames, props, receive, events),
 	);
 
 	console.log(
-		`generate: ${String(written)} files written (${String(deleted)} cleaned) — defs: ${defNames.length}, methods: ${Object.keys(props).length}, receive: ${Object.keys(receive).length}, wiring: ${Object.keys(events).length}`,
+		`generate: ${String(written)} files written (${String(deleted)} cleaned) — defs: ${defNames.length}, methods: ${Object.keys(props).length}, receive: ${Object.keys(receive).length}, wiring: ${Object.keys(events).length}, stubs: ${Object.keys(stubs).length}`,
 	);
 }
 
@@ -97,6 +107,40 @@ function renderSchemaData(doc: CatalogueDoc): string {
 		`export const eventsSchema: EventsSchemaDocument = ${JSON.stringify(doc, null, "\t")};`,
 		"",
 		'export const catalogue: EventsCatalogue = eventsSchema["x-vkma-catalogue"];',
+		"",
+	].join("\n");
+}
+
+/** `src/generated/catalogue-data.ts` — wiring tables + payload stubs, the
+ * light `./catalogue` entrypoint. Standalone values (not slices of
+ * `eventsSchema`) so light consumers never pull the `$defs` document in. */
+function renderCatalogueData(
+	props: Readonly<Record<string, string>>,
+	receive: Readonly<Record<string, string>>,
+	events: Readonly<Record<string, WiringEntry>>,
+	stubs: Readonly<Record<string, Record<string, unknown>>>,
+): string {
+	const sorted = <T>(record: Readonly<Record<string, T>>): Record<string, T> =>
+		Object.fromEntries(Object.entries(record).toSorted(([a], [b]) => a.localeCompare(b)));
+	return [
+		HEADER,
+		"",
+		'import type { EventsCatalogue } from "./schema-data.js";',
+		"",
+		"/** Payload stubs: method → a minimal JSON object of the method's required",
+		" * props, precomputed from `$defs` at generation time (required keys only,",
+		" * depth-capped, first-branch of anyOf). Everything underivable is simply",
+		" * absent. */",
+		"export type EventStubs = Readonly<Record<string, Record<string, unknown> | undefined>>;",
+		"",
+		"/** The wiring tables of `x-vkma-catalogue`, standalone. */",
+		`export const catalogue: EventsCatalogue = ${JSON.stringify(
+			{ props: sorted(props), receive: sorted(receive), events: sorted(events) },
+			null,
+			"\t",
+		)};`,
+		"",
+		`export const stubs: EventStubs = ${JSON.stringify(sorted(stubs), null, "\t")};`,
 		"",
 	].join("\n");
 }
