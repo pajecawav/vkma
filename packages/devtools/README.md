@@ -35,7 +35,12 @@ One line gives the mini app:
   don't need it), so every importer — dependencies included — runs through
   the devtools tap.
 - **The FAB** — a floating button on the app page opening the same panel as
-  an overlay.
+  an overlay. Its initial placement is configurable:
+  `vkmaDevtools({ fabPosition: "bottom-left" })` (`bottom-left`, `bottom`
+  or `bottom-right`, default `bottom-right`); a placement picked in the
+  panel is remembered per origin and wins over the configured initial
+  value. The Rsbuild adapter (`@vkma.dev/devtools/rsbuild`) accepts the
+  same option.
 
 ## What you get
 

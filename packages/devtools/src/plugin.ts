@@ -43,6 +43,13 @@ export interface VkmaDevtoolsOptions {
 	 * LAN. Pass explicit origins to lock down.
 	 */
 	allowedOrigins?: DevframeViteBridgeOptions["allowedOrigins"];
+	/**
+	 * Initial placement of the in-page FAB. Default `bottom-right`. A
+	 * placement picked in the panel is stored per origin (localStorage)
+	 * and wins over this initial value. Mirrors `FabPosition` of
+	 * `@vkma.dev/ui/fab-position`.
+	 */
+	fabPosition?: "bottom-left" | "bottom" | "bottom-right";
 	/** Extra options forwarded verbatim to the RPC bridge. */
 	bridge?: Omit<DevframeViteBridgeOptions, "base" | "allowedOrigins" | "mcp">;
 }
@@ -200,7 +207,7 @@ function vkmaCorePlugin(base: string, options: VkmaDevtoolsOptions): Plugin {
 			return [
 				{
 					tag: "script",
-					children: injectSnippet(base),
+					children: injectSnippet(base, { fabPosition: options.fabPosition }),
 					injectTo: "body",
 				},
 			];
