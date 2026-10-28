@@ -1,4 +1,4 @@
-import { CheckIcon } from "@vkma.dev/ui";
+import { Button, CheckIcon } from "@vkma.dev/ui";
 import { useState } from "react";
 import type { VkmaConnection } from "../lib/rpc.ts";
 
@@ -45,8 +45,9 @@ export function StatusGate({ connection }: { connection: VkmaConnection }) {
 						/>
 					</div>
 					<div className="flex gap-2">
-						<button
-							type="button"
+						<Button
+							variant="outline"
+							size="md"
 							disabled={requesting}
 							onClick={() => {
 								setRequesting(true);
@@ -54,12 +55,12 @@ export function StatusGate({ connection }: { connection: VkmaConnection }) {
 									.requestAuthCode()
 									.finally(() => setRequesting(false));
 							}}
-							className="h-8 rounded-md border border-neutral-200 px-3 text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-800"
 						>
 							{requesting ? "Requested…" : "Request a code"}
-						</button>
-						<button
-							type="button"
+						</Button>
+						<Button
+							variant="solid"
+							size="md"
 							disabled={code.length < 4 || submitting}
 							onClick={() => {
 								setSubmitting(true);
@@ -72,10 +73,9 @@ export function StatusGate({ connection }: { connection: VkmaConnection }) {
 									})
 									.finally(() => setSubmitting(false));
 							}}
-							className="h-8 rounded-md bg-neutral-900 px-3 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
 						>
 							{submitting ? "Checking…" : "Trust this browser"}
-						</button>
+						</Button>
 					</div>
 					{wrong && (
 						<p className="text-xs text-red-500">
@@ -107,13 +107,9 @@ export function StatusGate({ connection }: { connection: VkmaConnection }) {
 						{connection.lastError}
 					</p>
 				)}
-				<button
-					type="button"
-					onClick={connection.reconnect}
-					className="mt-5 h-8 rounded-md bg-neutral-900 px-4 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-				>
+				<Button variant="solid" size="md" onClick={connection.reconnect} className="mt-5">
 					Reconnect
-				</button>
+				</Button>
 			</Center>
 		);
 	}

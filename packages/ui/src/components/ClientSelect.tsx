@@ -1,5 +1,6 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import type { ClientInfo } from "@vkma.dev/protocol";
+import type { ComponentPropsWithoutRef } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, shortId } from "../lib/format.ts";
 import { CheckIcon, ChevronIcon } from "./icons.tsx";
@@ -11,7 +12,7 @@ interface Option {
 	clientId?: string;
 }
 
-export interface ClientSelectProps {
+export interface ClientSelectProps extends ComponentPropsWithoutRef<"button"> {
 	clients: readonly ClientInfo[];
 	value: string;
 	onValueChange: (value: string) => void;
@@ -20,7 +21,6 @@ export interface ClientSelectProps {
 	/** Filter-row compact (h-7) vs form-field (h-8). */
 	size?: "sm" | "md";
 	ariaLabel?: string;
-	title?: string;
 	className?: string;
 }
 
@@ -33,7 +33,8 @@ function clientLabel(client: ClientInfo): string {
  * color dot — same palette as the timeline badges — in both the trigger and
  * the popup. Built on Base UI's Select, so listbox semantics (keyboard,
  * typeahead, focus) come with it; the popup aligns with the trigger the way
- * a native select's list does.
+ * a native select's list does. Rest props forward to the trigger element,
+ * so a wrapping Tooltip attaches to the button itself.
  */
 export function ClientSelect({
 	clients,
@@ -42,8 +43,8 @@ export function ClientSelect({
 	allValue,
 	size = "md",
 	ariaLabel,
-	title,
 	className,
+	...rest
 }: ClientSelectProps) {
 	const options: Option[] = [
 		...(allValue ? [{ value: allValue.value, label: allValue.label }] : []),
@@ -72,8 +73,8 @@ export function ClientSelect({
 			}}
 		>
 			<BaseSelect.Trigger
+				{...rest}
 				aria-label={ariaLabel}
-				title={title}
 				className={`flex min-w-0 cursor-pointer items-center rounded-md border border-neutral-200 bg-white text-left text-neutral-800 outline-none focus-visible:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 ${triggerSize} ${className ?? ""}`}
 			>
 				{/* The dot slot is always reserved: alignItemWithTrigger aligns

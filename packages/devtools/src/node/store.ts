@@ -1,13 +1,32 @@
 import type { ClientInfo, ClientStatus, WireEvent } from "../shared/protocol.ts";
 
 const RING_LIMIT = 500;
+/** Byte budget alongside the count cap: the ring keeps the LAST 500 events
+ * *and* the newest ~8 MiB — a count-only cap retains multi-megabyte
+ * payloads indefinitely (one message, 500 x 2 MB rows). */
+const RING_BYTES = 8 * 1024 * 1024;
 const CLIENT_ONLINE_TTL_MS = 15_000;
 const REGISTRY_CAP = 24;
 const EXEC_TIMEOUT_MS = 20_000;
 
+/** Cheap upper-bound size of a wire event for byte-budget accounting. */
+const approxBytes = (event: Omit<WireEvent, "seq" | "clientId" | "runId">): number => {
+	const payload = event.payload;
+	const payloadSize =
+		typeof payload === "string"
+			? payload.length
+			: (JSON.stringify(payload ?? null)?.length ?? 0);
+	return event.name.length + payloadSize;
+};
+
 interface PendingExec {
 	settle: (result: import("../shared/protocol.ts").ExecResult) => void;
 	timer: ReturnType<typeof setTimeout>;
+	/** The channel this exec was routed to — an exec-result may settle it
+	 * only when it arrives on that same connection (reply correlation
+	 * bound to the issuing peer). Undefined for callers that have not
+	 * adopted owner binding yet (backwards compatible). */
+	owner?: unknown;
 }
 
 /**
@@ -17,6 +36,7 @@ interface PendingExec {
  */
 export class DevtoolsStore {
 	private events: WireEvent[] = [];
+	private eventsBytes = 0;
 	private seq = 0;
 	/**
 	 * Instance epoch, stamped on every event: the extension's host store
@@ -34,6 +54,30 @@ export class DevtoolsStore {
 		if (existing && existing.lastSeenAt === info.lastSeenAt) {
 			return false;
 		}
+		if (existing === undefined && this.clients.size >= REGISTRY_CAP) {
+			// At the cap, make room the way listClients always did —
+			// oldest offline entry first. If every slot is online (the
+			// documented attack shape: one connection minting fresh ids
+			// with fresh timestamps), the newcomer is refused: the
+			// registry must stay bounded regardless of online state.
+			const now = Date.now();
+			let oldestOffline: { id: string; connectedAt: number } | undefined;
+			for (const [id, candidate] of this.clients) {
+				if (now - candidate.lastSeenAt <= CLIENT_ONLINE_TTL_MS) {
+					continue; // online slots are shielded
+				}
+				if (
+					oldestOffline === undefined ||
+					candidate.connectedAt < oldestOffline.connectedAt
+				) {
+					oldestOffline = { id, connectedAt: candidate.connectedAt };
+				}
+			}
+			if (oldestOffline === undefined) {
+				return false;
+			}
+			this.clients.delete(oldestOffline.id);
+		}
 		this.clients.set(info.clientId, {
 			...info,
 			// connectedAt anchors the registry order and the "connected N
@@ -49,7 +93,13 @@ export class DevtoolsStore {
 
 	/** A page reload: the client's previous session history is dead. */
 	public purgeEvents(clientId: string): void {
-		this.events = this.events.filter(event => event.clientId !== clientId);
+		this.events = this.events.filter(event => {
+			if (event.clientId !== clientId) {
+				return true;
+			}
+			this.eventsBytes -= approxBytes(event);
+			return false;
+		});
 	}
 
 	/**
@@ -134,9 +184,19 @@ export class DevtoolsStore {
 			seq: ++this.seq,
 			runId: this.runId,
 		}));
-		this.events.push(...stamped);
-		if (this.events.length > RING_LIMIT) {
-			this.events.splice(0, this.events.length - RING_LIMIT);
+		// Plain loop, never a spread: a spread push over an unbounded array
+		// throws RangeError (spread-argument limit) out of the transport
+		// handler into the host page.
+		for (const event of stamped) {
+			this.events.push(event);
+			this.eventsBytes += approxBytes(event);
+		}
+		while (this.events.length > RING_LIMIT || this.eventsBytes > RING_BYTES) {
+			const dropped = this.events.shift();
+			if (dropped === undefined) {
+				break;
+			}
+			this.eventsBytes -= approxBytes(dropped);
 		}
 		return stamped;
 	}
@@ -145,7 +205,7 @@ export class DevtoolsStore {
 		return [...this.events];
 	}
 
-	public beginExec(): {
+	public beginExec(owner?: unknown): {
 		execId: number;
 		promise: Promise<import("../shared/protocol.ts").ExecResult>;
 	} {
@@ -165,19 +225,25 @@ export class DevtoolsStore {
 				resolve(result);
 			},
 			timer,
+			owner,
 		});
 		return { execId, promise };
 	}
 
-	/** @returns true if a pending execute was resolved. */
-	public settleExec(report: {
-		execId: number;
-		clientId: string;
-		ok: boolean;
-		payload?: unknown;
-	}): boolean {
+	/** @returns true if a pending execute was resolved. An exec carrying an
+	 * owner settles only for that owner (same connection) — a report from
+	 * any other peer is a forgery attempt and drops. */
+	public settleExec(
+		report: {
+			execId: number;
+			clientId: string;
+			ok: boolean;
+			payload?: unknown;
+		},
+		fromOwner?: unknown,
+	): boolean {
 		const pending = this.pendingExecs.get(report.execId);
-		if (!pending) {
+		if (!pending || (pending.owner !== undefined && pending.owner !== fromOwner)) {
 			return false;
 		}
 		pending.settle({

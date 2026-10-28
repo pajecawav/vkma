@@ -1,0 +1,48 @@
+{
+	"name": "@vkma.dev/inspect",
+	"version": "0.0.0",
+	"description": "Remote VK Mini Apps inspector — the vkma.dev panel over WebRTC, for pages the dev-server plugin and the extension can never reach",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"dev": "rsbuild dev --config rsbuild.dev.config.ts",
+		"build": "run-s build:panel build:inspector",
+		"build:panel": "rsbuild build --config rsbuild.panel.config.ts",
+		"build:inspector": "rsbuild build --config rsbuild.inspector.config.ts",
+		"preview": "rsbuild preview --config rsbuild.panel.config.ts",
+		"deploy": "run-s build deploy:wrangler",
+		"deploy:wrangler": "pnpx wrangler deploy",
+		"gen:favicon": "node scripts/generate-favicon.ts",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"dependencies": {
+		"@vkma.dev/bridge": "workspace:*",
+		"@vkma.dev/devtools": "workspace:*",
+		"@vkma.dev/protocol": "workspace:*",
+		"peerjs": "^1.5.4"
+	},
+	"devDependencies": {
+		"@base-ui/react": "catalog:",
+		"@rsbuild/core": "catalog:",
+		"@rsbuild/plugin-react": "catalog:",
+		"@tailwindcss/postcss": "^4.3.3",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vkma.dev/ui": "workspace:*",
+		"happy-dom": "catalog:",
+		"lucide-react": "catalog:",
+		"npm-run-all2": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"tailwindcss": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:",
+		"zod": "catalog:"
+	}
+}
