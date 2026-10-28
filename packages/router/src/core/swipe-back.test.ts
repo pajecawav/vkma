@@ -14,9 +14,9 @@ const make = (options?: { enabled?: boolean }): Harness => {
 	const listeners = new Set<() => void>();
 	const manager = createSwipeBackManager({
 		bridge: {
-			send: (async (type: string) => {
+			send: async (type: string) => {
 				sent.push(type);
-			}) as never,
+			},
 			subscribe: () => () => {},
 		},
 		history: {

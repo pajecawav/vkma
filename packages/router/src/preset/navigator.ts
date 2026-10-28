@@ -105,32 +105,32 @@ export function useNavigator(): VkNavigator {
 			rest?: Omit<NavigateOptions, "to" | "params">,
 		) =>
 			params === undefined
-				? (navigate({
+				? navigate({
 						...(pageOrOptions as NavigateOptions),
 						replace: false,
-					}) as Promise<void>)
-				: (navigate({
+					})
+				: navigate({
 						to: pageTo(pageOrOptions as PanelPage),
 						params,
 						replace: false,
 						...rest,
-					}) as Promise<void>)) as VkNavigator["push"],
+					})) as VkNavigator["push"],
 		replace: ((
 			pageOrOptions: NavigateOptions | PanelPage,
 			params?: Record<string, string>,
 			rest?: Omit<NavigateOptions, "to" | "params">,
 		) =>
 			params === undefined
-				? (navigate({
+				? navigate({
 						...(pageOrOptions as NavigateOptions),
 						replace: true,
-					}) as Promise<void>)
-				: (navigate({
+					})
+				: navigate({
 						to: pageTo(pageOrOptions as PanelPage),
 						params,
 						replace: true,
 						...rest,
-					}) as Promise<void>)) as VkNavigator["replace"],
+					})) as VkNavigator["replace"],
 		back: () => {
 			router.history.back();
 		},
@@ -182,7 +182,7 @@ export function useNavigator(): VkNavigator {
 				search: options.search ?? true,
 				replace: nested ? false : modalOpen,
 				...withProps,
-			}) as Promise<void>;
+			});
 		},
 		hideModal: () => {
 			if (router.history.canGoBack()) {
@@ -226,7 +226,7 @@ export function useNavigator(): VkNavigator {
 				replace: already || modalOpen,
 				...rest,
 				...nextState,
-			}) as Promise<void>;
+			});
 		},
 		block: onLeave => {
 			const unblock = router.history.block({
@@ -245,7 +245,7 @@ export function useNavigator(): VkNavigator {
 								? args.action
 								: "POP",
 					}),
-			} as never);
+			});
 			return unblock;
 		},
 	};

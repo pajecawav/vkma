@@ -263,7 +263,7 @@ function normalizeViews(views: unknown): DeclaredView[] {
 	if (Array.isArray(views)) {
 		return (views as readonly ViewDefinition[]).map(definition => ({
 			viewKey: definition.view,
-			viewRest: (definition.options ?? {}) as LooseRouteOptions,
+			viewRest: definition.options ?? {},
 			viewPanels: { ...definition.panels },
 		}));
 	}
@@ -277,7 +277,7 @@ function normalizeViews(views: unknown): DeclaredView[] {
 			}
 			return {
 				viewKey: definition.view,
-				viewRest: (definition.options ?? {}) as LooseRouteOptions,
+				viewRest: definition.options ?? {},
 				viewPanels: { ...definition.panels },
 			};
 		}
@@ -291,7 +291,7 @@ function asDeclaration(value: ModalComponent): ModalDeclaration {
 	// shape check, NOT typeof: lazy/memo/forwardRef components are objects
 	return typeof value === "object" && value !== null && "component" in value
 		? value
-		: { component: value as ModalEntryComponent };
+		: { component: value };
 }
 
 /**
@@ -367,7 +367,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const pendingMasks: Array<{ from: string; to: string }> = [];
 	const popouts: PopoutEntry[] = Object.entries(options.popouts ?? {}).map(([id, Component]) => ({
 		id,
-		Component: Component as PopoutEntry["Component"],
+		Component,
 	}));
 	const globalPopoutIds = new Set(Object.keys(options.popouts ?? {}));
 

@@ -100,7 +100,7 @@ export function useInflate(app: AppHandle, enabled = true): void {
 				href: state.location.href,
 				panelKey,
 				panelPath,
-				modalPaths: modalPaths.reverse(),
+				modalPaths: modalPaths.toReversed(),
 				deepestParams:
 					(
 						state.matches[state.matches.length - 1] as
@@ -148,9 +148,9 @@ export function useInflate(app: AppHandle, enabled = true): void {
 		}
 		const { href: targetHref } = snapshot;
 		void (async () => {
-			await router.navigate({ href: chain[0] as string, replace: true });
+			await router.navigate({ href: chain[0], replace: true });
 			for (let i = 1; i < chain.length; i++) {
-				await router.navigate({ href: chain[i] as string });
+				await router.navigate({ href: chain[i] });
 			}
 			await router.navigate({ href: targetHref });
 		})();

@@ -59,7 +59,7 @@ const make = (codecs?: {
 		sent,
 		replaced,
 		hostEvent(type, data) {
-			hostHandler?.({ type, data } as BridgeEventEnvelope);
+			hostHandler?.({ type, data });
 		},
 		commit(pathname, search = "", hash = "") {
 			location.pathname = pathname;

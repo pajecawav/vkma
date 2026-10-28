@@ -58,7 +58,7 @@ export function useHidePopout(): () => void {
 		void router.navigate({
 			href: router.state.location.href,
 			replace: true,
-			state: state as never,
+			state,
 		});
 	};
 }

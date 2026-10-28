@@ -18,7 +18,7 @@ export function readModalState(state: unknown): ModalState | undefined {
 	if (state !== null && typeof state === "object" && MODAL_STATE_KEY in state) {
 		const modal = (state as Record<string, unknown>)[MODAL_STATE_KEY];
 		if (modal !== null && typeof modal === "object") {
-			return modal as ModalState;
+			return modal;
 		}
 	}
 	return undefined;
