@@ -1,10 +1,14 @@
 import type { MouseEvent, ReactNode } from "react";
+import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * A square icon-only button. Two sizes: `md` is the top-bar chrome
  * (theme, reconnect, close, side panel), `sm` is the dense action rows
  * (copy, remove). `active` marks a toggled state — it switches the look
  * to pressed and sets aria-pressed; leave it undefined on plain buttons.
+ * The label is the accessible name and the hover hint — the button rides
+ * inside a Tooltip, so the hint behaves like the rest of the design
+ * system's (delayed, escape-able) instead of a native title.
  */
 export function IconButton({
 	label,
@@ -30,15 +34,16 @@ export function IconButton({
 			? "text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
 			: "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
 	return (
-		<button
-			type="button"
-			onClick={onClick}
-			aria-label={label}
-			aria-pressed={active}
-			title={label}
-			className={`grid place-items-center ${shape} ${tone} ${className}`}
-		>
-			{children}
-		</button>
+		<Tooltip content={label}>
+			<button
+				type="button"
+				onClick={onClick}
+				aria-label={label}
+				aria-pressed={active}
+				className={`grid place-items-center ${shape} ${tone} ${className}`}
+			>
+				{children}
+			</button>
+		</Tooltip>
 	);
 }
