@@ -7,6 +7,7 @@ import {
 	type ExecResult,
 	type WireEvent,
 } from "../shared/protocol.ts";
+import { ExecResponders } from "./exec-responders.ts";
 import { sanitizeEvent, toMcpJson } from "./serialize.ts";
 import { DevtoolsStore } from "./store.ts";
 import { EmbeddedSubscriptions } from "./subscriptions.ts";
@@ -27,6 +28,9 @@ export const vkmaDevframe = defineDevframe({
 
 	setup(ctx) {
 		const store = new DevtoolsStore();
+		// Execute results settle only for the session that registered the
+		// client (see ExecResponders) — bounded by the same registry.
+		const execResponders = new ExecResponders();
 		// Embedded panels (the FAB's `?client=` iframe) subscribe to one
 		// client id; the node then delivers them only their own traffic via
 		// targeted broadcasts and per-client streams instead of the full feed.
@@ -131,6 +135,7 @@ export const vkmaDevframe = defineDevframe({
 		// client offline instead of deleting it). Never holds the process.
 		let onlineFingerprint = "";
 		const statusTimer = setInterval(() => {
+			execResponders.prune(clientId => store.getClient(clientId) !== undefined);
 			const fingerprint = store
 				.listClients()
 				.map(client => `${client.clientId}:${client.online ? 1 : 0}`)
@@ -149,6 +154,9 @@ export const vkmaDevframe = defineDevframe({
 				const previous = store.getClient(info.clientId);
 				const sessionChanged =
 					previous !== undefined && previous.sessionId !== info.sessionId;
+				// The registering session becomes the only legitimate
+				// exec-result responder for this client (see ExecResponders).
+				execResponders.bind(ctx.rpc.getCurrentRpcSession()?.meta, info.clientId);
 				const changed = store.touchClient(info);
 				if (sessionChanged) {
 					// The page reloaded: its previous session's history is dead
@@ -222,7 +230,10 @@ export const vkmaDevframe = defineDevframe({
 				ok: boolean;
 				payload?: unknown;
 			}) => {
-				store.settleExec(report);
+				// Only the session that registered the client may settle its
+				// execs — every collector sees the broadcast's execId, so the
+				// id alone would let any page forge any pending answer.
+				store.settleExec(report, execResponders.responderOf(report.clientId));
 			},
 		});
 
@@ -345,7 +356,12 @@ export const vkmaDevframe = defineDevframe({
 			if (!store.getClient(payload.clientId)) {
 				return { status: "no-client", clientId: payload.clientId } as const;
 			}
-			const { execId, promise } = store.beginExec();
+			// The pending exec is bound to the session that registered the
+			// target client — reports from any other session are forgeries
+			// (every collector sees the broadcast's execId).
+			const { execId, promise } = store.beginExec(
+				execResponders.responderOf(payload.clientId),
+			);
 			await ctx.rpc.broadcast({
 				method: VKMA_RPC.clientExecute,
 				args: [{ execId, ...payload }],

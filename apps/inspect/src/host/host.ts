@@ -141,11 +141,13 @@ export class InspectHost {
 
 	/** Deny a parked connection: close it and stay silent if it returns
 	 * (for this panel load). A denial also revokes any persisted
-	 * "Always allow" grant for the id. */
+	 * "Always allow" grant for the id — and disconnects an already
+	 * admitted connection, so a trusted-then-hostile page stops
+	 * streaming without a panel reload. */
 	public deny(clientId: string): void {
 		this.gate.deny(clientId);
 		for (const state of this.conns) {
-			if (state.pending?.clientId === clientId) {
+			if (state.pending?.clientId === clientId || state.clientId === clientId) {
 				this.dropChannel(state.channel);
 			}
 		}
