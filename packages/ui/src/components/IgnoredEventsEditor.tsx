@@ -64,7 +64,7 @@ export function IgnoredEventsEditor({ settings, onChange, suggestions }: Ignored
 
 	return (
 		<div className="flex w-80 max-w-(--available-width) flex-col gap-3 p-3.5">
-			<label className="flex cursor-pointer items-center justify-between gap-3">
+			<label className="flex items-center justify-between gap-3">
 				<span className="text-xs font-medium text-neutral-800 dark:text-neutral-200">
 					Hide ignored events
 				</span>

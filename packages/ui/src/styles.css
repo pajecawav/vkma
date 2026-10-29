@@ -58,6 +58,30 @@ html.dark body {
 	outline: none;
 }
 
+/* Pointer affordance: Tailwind v4's preflight resets buttons to the UA
+   default cursor, so the panel's clickable chrome (rows, chips, tabs,
+   option items, the FAB links…) stopped reading as clickable on hover.
+   Layered base, so a component can still win with a utility — a drag
+   handle asks for `cursor-grab`, not for a fork of this rule. */
+@layer base {
+	:where(
+		button,
+		[role="button"],
+		[role="tab"],
+		[role="radio"],
+		[role="option"],
+		[role="menuitem"],
+		a[href],
+		label:has(:is(input, button, [role="switch"], select))
+	):not(:disabled, [aria-disabled="true"]) {
+		cursor: pointer;
+	}
+
+	:where(button, [role="button"]):is(:disabled, [aria-disabled="true"]) {
+		cursor: not-allowed;
+	}
+}
+
 .scroll-area {
 	scrollbar-width: thin;
 	scrollbar-color: var(--color-neutral-300) transparent;
