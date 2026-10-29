@@ -11,7 +11,8 @@
 	"scripts": {
 		"dev": "rsbuild build --watch",
 		"start": "web-ext run --source-dir dist --target chromium",
-		"start:firefox": "web-ext run --source-dir dist --target firefox",
+		"start:firefox": "cross-env BROWSER=firefox run-s build:rsbuild start:firefox:run",
+		"start:firefox:run": "web-ext run --source-dir dist --target firefox-desktop",
 		"gen:icons": "node scripts/generate-icons.ts",
 		"build": "run-s build:rsbuild build:webext",
 		"build:rsbuild": "rsbuild build",
@@ -28,7 +29,7 @@
 		"@vkma.dev/bridge-schema": "workspace:*",
 		"@vkma.dev/devtools": "workspace:*",
 		"@vkma.dev/protocol": "workspace:*",
-		"werpc": "^0.0.9"
+		"werpc": "^0.1.0"
 	},
 	"devDependencies": {
 		"@rsbuild/core": "catalog:",

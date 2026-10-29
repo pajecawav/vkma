@@ -14,6 +14,7 @@ import {
 } from "@vkma.dev/ui";
 import { FabPositionControl } from "@vkma.dev/ui";
 import { useEffect, useState } from "react";
+import { api, sidePanelSupported } from "../shared/api.ts";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 import { useVkmaAllTabs, useVkmaExtension, type ExtensionConnection } from "./connection.ts";
 import { useFabPosition } from "./fab-position.ts";
@@ -43,7 +44,7 @@ function resolveTabId(): number | undefined {
 }
 
 async function resolveSidePanelTabId(): Promise<number | undefined> {
-	const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+	const [tab] = await api.tabs.query({ active: true, currentWindow: true });
 	return typeof tab?.id === "number" ? tab.id : undefined;
 }
 
@@ -247,9 +248,9 @@ function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
 		: undefined;
 }
 
-/** Chrome 116+ exposes the sidePanel API surface in extension pages too;
- * Firefox never does — the button hides there. */
-const sidePanelSupported = () => typeof chrome !== "undefined" && chrome.sidePanel !== undefined;
+/** Chrome exposes the sidePanel API surface in extension pages too;
+ * Firefox never does — the button hides there (shared helper in
+ * shared/api.ts). */
 
 function TabPanel({
 	tabId,
@@ -283,7 +284,7 @@ function TabPanel({
 			? () => {
 					// the listener never responds — swallow the closed-port
 					// rejection instead of leaking it as a console error
-					void chrome.runtime
+					void api.runtime
 						.sendMessage({ type: OPEN_SIDE_PANEL_MESSAGE, tabId })
 						.catch(() => {});
 				}

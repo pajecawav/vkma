@@ -4,6 +4,7 @@ import {
 	type FabPosition,
 } from "@vkma.dev/ui/fab-position";
 import { useCallback, useEffect, useState } from "react";
+import { api } from "../shared/api.ts";
 
 /**
  * The extension's FAB placement: chrome.storage.local is shared by every
@@ -15,7 +16,7 @@ export function useFabPosition(): { position: FabPosition; pick: (position: FabP
 	const [position, setPosition] = useState<FabPosition>("bottom-right");
 
 	useEffect(() => {
-		void chrome.storage.local.get(FAB_POSITION_STORAGE_KEY).then(stored => {
+		void api.storage.local.get(FAB_POSITION_STORAGE_KEY).then(stored => {
 			setPosition(normalizeFabPosition(stored[FAB_POSITION_STORAGE_KEY]));
 		});
 		const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
@@ -23,15 +24,15 @@ export function useFabPosition(): { position: FabPosition; pick: (position: FabP
 				setPosition(normalizeFabPosition(changes[FAB_POSITION_STORAGE_KEY]?.newValue));
 			}
 		};
-		chrome.storage.onChanged.addListener(listener);
+		api.storage.onChanged.addListener(listener);
 		return () => {
-			chrome.storage.onChanged.removeListener(listener);
+			api.storage.onChanged.removeListener(listener);
 		};
 	}, []);
 
 	const pick = useCallback((next: FabPosition) => {
 		setPosition(next);
-		void chrome.storage.local.set({ [FAB_POSITION_STORAGE_KEY]: next });
+		void api.storage.local.set({ [FAB_POSITION_STORAGE_KEY]: next });
 	}, []);
 
 	return { position, pick };

@@ -1,12 +1,14 @@
 import { createHandler, type InferNamespace, initWERPC } from "werpc";
 import { z } from "zod";
+import { api } from "../shared/api.ts";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 
 /**
- * The service worker: the werpc router (every non-SW context opens a port
- * and the SW routes point-to-point within the tab scope) plus the side
- * panel state machine — `sidePanel.open()` needs a user gesture, and
- * gestures only survive raw one-shot runtime messages, not ports.
+ * The background — the werpc router hub plus the side panel state
+ * machine. In Chrome this context is a service worker; in Firefox an
+ * event page (werpc detects both and takes the server branch either
+ * way). `sidePanel.open()` needs a user gesture, and gestures only
+ * survive raw one-shot runtime messages, not ports.
  */
 const werpc = initWERPC();
 
@@ -39,7 +41,7 @@ const ensureHydrated = async () => {
 
 	hydrated = true;
 
-	const storage = await chrome.storage.session.get(null);
+	const storage = await api.storage.session.get(null);
 
 	for (const key of Object.keys(storage)) {
 		if (!key.startsWith(PANEL_TAB_PREFIX)) {
@@ -56,9 +58,9 @@ const ensureHydrated = async () => {
 
 const persistPanelTab = (tabId: number, open: boolean) => {
 	if (open) {
-		void chrome.storage.session.set({ [panelKey(tabId)]: true });
+		void api.storage.session.set({ [panelKey(tabId)]: true });
 	} else {
-		void chrome.storage.session.remove(panelKey(tabId));
+		void api.storage.session.remove(panelKey(tabId));
 	}
 };
 
@@ -90,13 +92,13 @@ const onPanelChanged = (tabId: number, listener: PanelListener): VoidFunction =>
  * tabs, keeps its state and can be closed programmatically — a global
  * panel cannot. Firefox has no sidePanel API: the procedures guard on it.
  */
-const hasSidePanel = typeof chrome.sidePanel !== "undefined";
+const hasSidePanel = typeof api.sidePanel !== "undefined";
 
 const enableTabPanel = (tabId: number) =>
-	chrome.sidePanel.setOptions({ tabId, path: "panel.html", enabled: true });
+	api.sidePanel.setOptions({ tabId, path: "panel.html", enabled: true });
 
 const closeTabPanel = async (tabId: number) => {
-	await chrome.sidePanel.close({ tabId });
+	await api.sidePanel.close({ tabId });
 	setPanelTab(tabId, false);
 };
 
@@ -111,7 +113,7 @@ const openTabPanelFromGesture = (tabId: number) => {
 	if (!hasSidePanel) {
 		return;
 	}
-	void chrome.sidePanel
+	void api.sidePanel
 		.open({ tabId })
 		.then(() => setPanelTab(tabId, true))
 		.catch((error: unknown) => console.warn("[vkma] open side panel failed:", error));
@@ -120,7 +122,7 @@ const openTabPanelFromGesture = (tabId: number) => {
 if (hasSidePanel) {
 	// keep the default (global) panel disabled — a stale `enabled: true`
 	// from an older build may persist in the profile
-	void chrome.sidePanel.setOptions({ enabled: false }).catch((error: unknown) => {
+	void api.sidePanel.setOptions({ enabled: false }).catch((error: unknown) => {
 		console.warn("[vkma] disabling the default side panel failed:", error);
 	});
 	void ensureHydrated();
@@ -128,13 +130,13 @@ if (hasSidePanel) {
 
 // --- surfaces -----------------------------------------------------------------
 
-chrome.action.onClicked.addListener(tab => {
+api.action.onClicked.addListener(tab => {
 	if (typeof tab.id !== "number") {
 		return;
 	}
 	// The action icon is the "wide" surface: every watched tab at once —
 	// the /__vkma/ standalone panel's counterpart.
-	void chrome.tabs.create({ url: "panel.html?view=all" });
+	void api.tabs.create({ url: "panel.html?view=all" });
 });
 
 // NOTE: sidePanel.open() requires a user gesture, and gestures do not
@@ -142,7 +144,7 @@ chrome.action.onClicked.addListener(tab => {
 // messages, which is why the panel page uses this raw channel instead of
 // rpc (the click's gesture rides the one-shot; the tabId is explicit
 // because extension pages have no sender.tab)
-chrome.runtime.onMessage.addListener((message: unknown, sender) => {
+api.runtime.onMessage.addListener((message: unknown, sender) => {
 	if (
 		typeof message === "object" &&
 		message !== null &&
@@ -152,7 +154,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
 		const tabId =
 			typeof explicit === "number"
 				? explicit
-				: typeof sender.tab?.id === "number" && sender.tab.id !== chrome.tabs.TAB_ID_NONE
+				: typeof sender.tab?.id === "number" && sender.tab.id !== api.tabs.TAB_ID_NONE
 					? sender.tab.id
 					: undefined;
 		if (tabId !== undefined) {
@@ -162,20 +164,20 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
 });
 
 if (hasSidePanel) {
-	chrome.sidePanel.onOpened.addListener(({ tabId }) => {
+	api.sidePanel.onOpened.addListener(({ tabId }) => {
 		if (tabId !== undefined && !openPanelTabs.has(tabId)) {
 			setPanelTab(tabId, true);
 		}
 	});
 
-	chrome.sidePanel.onClosed.addListener(({ tabId }) => {
+	api.sidePanel.onClosed.addListener(({ tabId }) => {
 		if (tabId !== undefined) {
 			setPanelTab(tabId, false);
 		}
 	});
 }
 
-chrome.tabs.onRemoved.addListener(tabId => {
+api.tabs.onRemoved.addListener(tabId => {
 	if (openPanelTabs.has(tabId)) {
 		setPanelTab(tabId, false);
 	}

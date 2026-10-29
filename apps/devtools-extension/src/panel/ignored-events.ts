@@ -1,5 +1,6 @@
 import { parseIgnoredSettings, type IgnoredEventsSettings } from "@vkma.dev/ui";
 import { useCallback, useEffect, useState } from "react";
+import { api } from "../shared/api.ts";
 
 const KEY = "ignoredEvents";
 
@@ -17,12 +18,12 @@ export function useIgnoredEventsSettings() {
 		// State first: the write is fire-and-forget, and onChanged echoes
 		// it back to this surface too — a double set with the same value.
 		setSettings(next);
-		void chrome.storage.local.set({ [KEY]: next });
+		void api.storage.local.set({ [KEY]: next });
 	}, []);
 
 	useEffect(() => {
 		let alive = true;
-		void chrome.storage.local.get(KEY).then(storage => {
+		void api.storage.local.get(KEY).then(storage => {
 			if (alive) {
 				setSettings(parseIgnoredSettings(storage[KEY]));
 			}
@@ -32,10 +33,10 @@ export function useIgnoredEventsSettings() {
 				setSettings(parseIgnoredSettings(changes[KEY].newValue));
 			}
 		};
-		chrome.storage.onChanged.addListener(listener);
+		api.storage.onChanged.addListener(listener);
 		return () => {
 			alive = false;
-			chrome.storage.onChanged.removeListener(listener);
+			api.storage.onChanged.removeListener(listener);
 		};
 	}, []);
 

@@ -10,6 +10,7 @@ import {
 import { FAB_POSITION_STORAGE_KEY, normalizeFabPosition } from "@vkma.dev/ui/fab-position";
 import { createClient, type InferNamespace, createHandler, initWERPC } from "werpc";
 import { z } from "zod";
+import { api } from "../shared/api.ts";
 import { mountFab } from "./fab.ts";
 import { BatchedHub, Hub } from "./hub.ts";
 import { SpyTracker } from "./spy.ts";
@@ -303,13 +304,13 @@ void (async () => {
 	// The placement preference is read BEFORE mounting (the FAB first
 	// appears at its saved spot) and followed live afterwards — any panel
 	// surface edits it, every tab follows via storage.onChanged.
-	const stored = await chrome.storage.local.get(FAB_POSITION_STORAGE_KEY).catch(() => undefined);
+	const stored = await api.storage.local.get(FAB_POSITION_STORAGE_KEY).catch(() => undefined);
 	const fab = mountFab({
-		panelUrl: `${chrome.runtime.getURL("panel.html")}?tab=${tabId}`,
+		panelUrl: `${api.runtime.getURL("panel.html")}?tab=${tabId}`,
 		position: normalizeFabPosition(stored?.[FAB_POSITION_STORAGE_KEY]),
 	});
 
-	chrome.storage.onChanged.addListener((changes, area) => {
+	api.storage.onChanged.addListener((changes, area) => {
 		if (area === "local" && FAB_POSITION_STORAGE_KEY in changes) {
 			fab.setPosition(normalizeFabPosition(changes[FAB_POSITION_STORAGE_KEY]?.newValue));
 		}

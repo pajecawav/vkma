@@ -24,15 +24,31 @@ The TopBar chip shows which: `vkma bridge` (direct) vs `sniffer` (spy).
 - **FAB** on every VK host page (vk.com/vk.ru and friends) — opens the
   panel inline, yields to the side panel when that is open.
 - **Action icon** — the full panel in a tab, bound to the clicked tab.
-- **Side panel** (Chrome 142+) — opened from the FAB panel's toolbar.
+- **Side panel** (Chrome only) — opened from the FAB panel's toolbar.
+  Firefox has no sidePanel API: the button hides there, the FAB and the
+  action-icon tab are the Firefox surfaces.
+
+## Firefox
+
+`manifest.firefox.json` runs the background as an MV3 event page
+(`background.scripts`) — werpc detects the event-page context and takes
+its server branch, so the routing hub works unchanged. Unlike Chrome,
+Firefox does not grant content-script host permissions on install
+(127+): after loading, approve the listed hosts once in the extension's
+permissions.
+
+Extension-API calls go through `shared/api.ts` (`api`): Firefox's
+`chrome` namespace is callback-only, its `browser` namespace is not —
+the shim picks the promise-capable one at runtime. Never call
+`chrome.*` directly.
 
 ## Develop
 
 ```sh
-pnpm build          # rsbuild + web-ext zip
+pnpm build          # rsbuild + web-ext zip (chrome manifest by default)
 pnpm start          # web-ext run (chromium)
-pnpm start:firefox  # web-ext run (firefox)
-BROWSER=firefox pnpm build:rsbuild   # firefox manifest
+pnpm start:firefox  # BROWSER=firefox build + web-ext run (firefox)
+BROWSER=firefox pnpm build:rsbuild   # firefox manifest only
 ```
 
 Architecture invariants live in the root `AGENTS.md` (»Devtools

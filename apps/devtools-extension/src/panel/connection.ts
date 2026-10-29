@@ -7,6 +7,7 @@ import type {
 } from "@vkma.dev/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient, type WERPClient } from "werpc";
+import { api } from "../shared/api.ts";
 import { absorbEvents } from "./absorb.ts";
 
 /**
@@ -49,7 +50,7 @@ function useHostTabs(): number[] | undefined {
 	const [tabIds, setTabIds] = useState<number[] | undefined>(undefined);
 	useEffect(() => {
 		const refresh = () => {
-			void chrome.tabs.query({ url: [...HOST_MATCHES] }).then(tabs => {
+			void api.tabs.query({ url: [...HOST_MATCHES] }).then(tabs => {
 				setTabIds(
 					tabs.map(tab => tab.id).filter((id): id is number => typeof id === "number"),
 				);
@@ -63,13 +64,13 @@ function useHostTabs(): number[] | undefined {
 				refresh();
 			}
 		};
-		chrome.tabs.onCreated.addListener(refresh);
-		chrome.tabs.onRemoved.addListener(refresh);
-		chrome.tabs.onUpdated.addListener(onUpdated);
+		api.tabs.onCreated.addListener(refresh);
+		api.tabs.onRemoved.addListener(refresh);
+		api.tabs.onUpdated.addListener(onUpdated);
 		return () => {
-			chrome.tabs.onCreated.removeListener(refresh);
-			chrome.tabs.onRemoved.removeListener(refresh);
-			chrome.tabs.onUpdated.removeListener(onUpdated);
+			api.tabs.onCreated.removeListener(refresh);
+			api.tabs.onRemoved.removeListener(refresh);
+			api.tabs.onUpdated.removeListener(onUpdated);
 		};
 	}, []);
 	return tabIds;

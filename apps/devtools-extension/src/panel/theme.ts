@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { api } from "../shared/api.ts";
 import { applyTheme, readStoredTheme, THEME_KEY, writeStoredTheme } from "../shared/theme.ts";
 
 /**
@@ -28,9 +29,9 @@ export function useExtensionTheme(): { dark: boolean; toggle: () => void } {
 				}
 			}
 		};
-		chrome.storage.onChanged.addListener(listener);
+		api.storage.onChanged.addListener(listener);
 		return () => {
-			chrome.storage.onChanged.removeListener(listener);
+			api.storage.onChanged.removeListener(listener);
 		};
 	}, []);
 

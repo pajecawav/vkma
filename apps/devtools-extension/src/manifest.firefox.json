@@ -1,5 +1,5 @@
 {
-	"manifest_version": "3",
+	"manifest_version": 3,
 	"icons": {
 		"16": "icons/icon16.png",
 		"48": "icons/icon48.png",
@@ -11,7 +11,10 @@
 	"browser_specific_settings": {
 		"gecko": {
 			"id": "devtools@vkma.dev",
-			"strict_min_version": "128.0"
+			"strict_min_version": "128.0",
+			"data_collection_permissions": {
+				"required": ["none"]
+			}
 		}
 	},
 	"permissions": ["storage", "tabs"],
