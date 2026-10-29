@@ -22,7 +22,8 @@ import bridge from "@vkma.dev/bridge";
 await bridge.send("VKWebAppInit");
 const user = await bridge.send("VKWebAppGetUserInfo");
 
-bridge.subscribe(event => {
+// every classic subscribe returns its own off — no unsubscribe bookkeeping
+const off = bridge.subscribe(event => {
     // event.detail.type / event.detail.data — every event from the host
 });
 ```

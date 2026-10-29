@@ -383,8 +383,11 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 		fanOutToSubscribers(type, data);
 	}
 
-	function subscribe(listener: VKBridgeSubscribeHandler): void {
+	function subscribe(listener: VKBridgeSubscribeHandler): () => void {
 		subscribers.push(listener);
+		return () => {
+			unsubscribe(listener);
+		};
 	}
 
 	function unsubscribe(listener: VKBridgeSubscribeHandler): void {

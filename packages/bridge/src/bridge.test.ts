@@ -408,6 +408,20 @@ describe("subscribe fan-out", () => {
 		expect(seen).toEqual(["VKWebAppUpdateConfig"]);
 	});
 
+	test("subscribe returns its own unsubscribe", () => {
+		const { bridge, respond } = createHarness();
+		const seen: string[] = [];
+		const off = bridge.subscribe(event => {
+			seen.push(String(event.detail?.type));
+		});
+
+		respond("VKWebAppUpdateConfig", { scheme: "space_gray" });
+		off();
+		respond("VKWebAppViewRestore", {});
+
+		expect(seen).toEqual(["VKWebAppUpdateConfig"]);
+	});
+
 	test("VKWebAppSettings never reaches subscribers", () => {
 		const { bridge, respond } = createHarness();
 		const seen: Array<string | undefined> = [];

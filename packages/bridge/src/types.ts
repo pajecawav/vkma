@@ -218,8 +218,10 @@ export interface VKBridge {
 	 * Adds an event listener. It will be called any time a data is received.
 	 *
 	 * @param listener A callback to be invoked on every event receive.
+	 * @returns An unsubscribe function — beyond upstream parity, where the
+	 * only way out is the `unsubscribe` method.
 	 */
-	subscribe: (listener: VKBridgeSubscribeHandler) => void;
+	subscribe: (listener: VKBridgeSubscribeHandler) => () => void;
 
 	/**
 	 * Removes an event listener which has been subscribed for event listening.
