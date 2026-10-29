@@ -1,8 +1,6 @@
 # @vkma.dev/bridge-schema
 
-JSON Schema catalogue of every VK Bridge event — method request props, response/receive data and the `Result`/`Failed` event wiring — with generated TypeScript types on top.
-
-Typed after the VK Bridge event catalogue. Thanks to [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT) for the reference catalogue.
+JSON Schema catalogue of every VK Bridge event — method request props, response/receive data and the `Result`/`Failed` event wiring — with generated TypeScript types on top. Thanks to [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT) for the reference catalogue.
 
 ## Install
 

@@ -184,11 +184,8 @@ prompts still deploys (the version is uploaded without switching URLs).
       VKMA_ACCESS_TOKEN: ${{ secrets.VK_TOKEN }}
 ```
 
-Non-interactive runs require an explicit URL-switch policy: pass
-`--update-prod`/`--no-update-prod` and `--update-dev`/`--no-update-dev`
-(or set `updateProd`/`updateDev` in the config) — without them the deploy
-fails with exit `1` instead of leaving the decision to VK's server default.
-
+Non-interactive runs require an explicit URL-switch policy — see the
+"URL-switch policy" section above.
 Add `--json` for machine-readable, newline-delimited event records on stdout.
 
 ## Library API
@@ -259,4 +256,4 @@ The proxy is activated by the CLI only. Library consumers inject their own
 
 ## License
 
-MIT
+MIT.

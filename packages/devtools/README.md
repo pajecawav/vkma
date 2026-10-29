@@ -108,11 +108,16 @@ export default defineConfig({
 
 Same one-liner as Vite: the `/__vkma/` panel (RPC bridge rides a
 side-car WebSocket — Rsbuild never hands over HTTP upgrades), the
-`@vkontakte/vk-bridge → @vkma.dev/bridge` interception (issuer-aware, the
-tap itself keeps the original), the FAB + collector injection. Requires
-`@rsbuild/core` >= 1.0. See `playground/mini-app-rsbuild`.
+`@vkontakte/vk-bridge → @vkma.dev/bridge` interception, the FAB + collector
+injection. Requires `@rsbuild/core` >= 1.0. See
+[`playground/mini-app-rsbuild`](https://github.com/pajecawav/vkma/tree/master/playground/mini-app-rsbuild)
+for a working setup.
 
 **Any other bundler / server** — import `@vkma.dev/bridge` instead of
 `@vkontakte/vk-bridge` (or alias it yourself, skipping imports from inside
 the tap package) and mount the panel yourself via `initDevframe` — see
 the `vkmaDevframe` export.
+
+## License
+
+MIT.

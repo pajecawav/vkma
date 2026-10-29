@@ -2,8 +2,6 @@
 
 Generated TypeScript types, [zod](https://zod.dev) and [valibot](https://valibot.dev) schemas for the [VK API](https://dev.vk.com/), built from [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema) with [@pajecawav/json2code](https://github.com/pajecawav/json2code).
 
-The VK API schema lives in this repo as a git submodule (`schema/`); generated code is **not** committed — it is produced at build time (`pnpm build` → `generate` + `tsdown`).
-
 ## Install
 
 ```sh
@@ -72,11 +70,6 @@ Naming follows [VKCOM/api-schema-typescript](https://github.com/VKCOM/api-schema
 
 The minor segment encodes the VK API version: package `0.5199.x` is generated from API `5.199`. `API_VERSION` is exported from the root entry.
 
-## Updating the schema
+## License
 
-```sh
-git submodule update --init --recursive   # fresh clone
-pnpm update-schema                        # bump submodule + regenerate
-```
-
-Schema updates land through [changesets](https://github.com/changesets/changesets); keep the package minor aligned with the new API version.
+MIT.
