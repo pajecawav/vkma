@@ -12,10 +12,18 @@ import {
 import { useEffect, useState } from "react";
 import { StatusGate } from "./components/StatusGate.tsx";
 import { useFabPosition } from "./lib/fab-position.ts";
+import { useIgnoredEventsSettings } from "./lib/ignored-events.ts";
 import { useVkma } from "./lib/rpc.ts";
 
 // Sorted once at module scope — the catalogue is frozen data.
 const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
+
+// The ignore editor suggests every name the catalogue knows: request
+// methods AND receive events (the noisiest rows are receive-side).
+const IGNORE_SUGGESTIONS = [
+	...Object.keys(catalogue.props),
+	...Object.keys(catalogue.receive),
+].toSorted((a, b) => a.localeCompare(b));
 
 const SECTION_KEY = "vkma:section";
 
@@ -26,6 +34,7 @@ export function App() {
 
 	const connection = useVkma(embeddedClientId);
 	const fabPosition = useFabPosition();
+	const ignoredEvents = useIgnoredEventsSettings();
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
@@ -73,6 +82,11 @@ export function App() {
 									events={connection.events}
 									clients={connection.clients}
 									hideClient={Boolean(embeddedClientId)}
+									ignoredEvents={{
+										settings: ignoredEvents.settings,
+										onChange: ignoredEvents.save,
+										suggestions: IGNORE_SUGGESTIONS,
+									}}
 								/>
 							</div>
 							<div

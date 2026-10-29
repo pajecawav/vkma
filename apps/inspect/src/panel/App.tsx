@@ -17,12 +17,19 @@ import { platformLabel, shortId } from "@vkma.dev/ui";
 import { useState } from "react";
 import type { InspectRuntime } from "../host/runtime.ts";
 import { useInspect, type InspectConnection } from "./connection.ts";
+import { useIgnoredEventsSettings } from "./ignored-events.ts";
 import { SetupPanel } from "./SetupPanel.tsx";
 
 const SECTION_KEY = "vkma:section";
 
 // Sorted once at module scope — the catalogue is frozen data.
 const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
+
+// The ignore editor suggests every catalogue name: methods + receive events.
+const IGNORE_SUGGESTIONS = [
+	...Object.keys(catalogue.props),
+	...Object.keys(catalogue.receive),
+].toSorted((a, b) => a.localeCompare(b));
 
 export function App({ runtime }: { runtime: InspectRuntime }) {
 	return (
@@ -145,6 +152,7 @@ function Sections({ connection }: { connection: InspectConnection }) {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
 	});
+	const ignoredEvents = useIgnoredEventsSettings();
 
 	// Sections stay mounted (display-none) so in-progress state survives.
 	return (
@@ -168,6 +176,11 @@ function Sections({ connection }: { connection: InspectConnection }) {
 							relays): if nothing arrives, put both on the same Wi-Fi.
 						</>
 					}
+					ignoredEvents={{
+						settings: ignoredEvents.settings,
+						onChange: ignoredEvents.save,
+						suggestions: IGNORE_SUGGESTIONS,
+					}}
 				/>
 			</div>
 			<div

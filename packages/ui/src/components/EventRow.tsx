@@ -6,7 +6,7 @@ import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../li
 import { scrubUrl } from "../lib/sensitive.ts";
 import { ClientDot } from "./ClientDot.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon } from "./icons.tsx";
+import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon, EyeOffIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
@@ -29,6 +29,13 @@ function ClientBadge({ clientId, clients }: { clientId: string; clients: ClientI
 const ISO_MAX = 8.64e15;
 const isoDateTime = (ts: number): string | undefined =>
 	Number.isFinite(ts) && Math.abs(ts) <= ISO_MAX ? new Date(ts).toISOString() : undefined;
+
+/** Expand-panel buttons sit inside the row's toggle <button>, so a click
+ * must not also flip the row. */
+const stopEvent = (run: () => void) => (event: React.MouseEvent) => {
+	event.stopPropagation();
+	run();
+};
 
 function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
@@ -95,6 +102,8 @@ interface RowProps {
 	requestTs?: number;
 	animate: boolean;
 	indent?: boolean;
+	/** Adds the row's event name to the ignored set. */
+	onIgnore?: (name: string) => void;
 }
 
 const EventRow = memo(function Row({
@@ -104,6 +113,7 @@ const EventRow = memo(function Row({
 	requestTs,
 	animate,
 	indent,
+	onIgnore,
 }: RowProps) {
 	const [open, setOpen] = useState(false);
 	const kind: "request" | "response" | "event" =
@@ -159,6 +169,15 @@ const EventRow = memo(function Row({
 			{open && (
 				<div className="flex items-start gap-1 px-3 pb-2 pl-9">
 					<CopyButton text={JSON.stringify(event.payload ?? null, null, "\t")} />
+					{onIgnore && (
+						<IconButton
+							size="sm"
+							label={`Ignore ${event.name} — hide it in the timeline`}
+							onClick={stopEvent(() => onIgnore(event.name))}
+						>
+							<EyeOffIcon width={13} height={13} />
+						</IconButton>
+					)}
 					<div className="scroll-area max-h-64 w-full min-w-0 overflow-auto rounded-md border border-neutral-200 bg-white px-2 py-1 text-left dark:border-neutral-800 dark:bg-neutral-900">
 						<JsonTree value={event.payload} />
 					</div>
@@ -174,6 +193,8 @@ export interface RequestGroupProps {
 	clients: ClientInfo[];
 	hideClient?: boolean;
 	animate: boolean;
+	/** Adds a row's event name to the ignored set. */
+	onIgnore?: (name: string) => void;
 }
 
 /** A request and its paired response, rendered as one unit. */
@@ -183,10 +204,17 @@ export const RequestGroup = memo(function RequestGroup({
 	clients,
 	hideClient,
 	animate,
+	onIgnore,
 }: RequestGroupProps) {
 	return (
 		<div className={animate ? "row-in" : undefined}>
-			<EventRow event={request} clients={clients} hideClient={hideClient} animate={false} />
+			<EventRow
+				event={request}
+				clients={clients}
+				hideClient={hideClient}
+				animate={false}
+				onIgnore={onIgnore}
+			/>
 			{response && (
 				<EventRow
 					event={response}
@@ -195,6 +223,7 @@ export const RequestGroup = memo(function RequestGroup({
 					requestTs={request.ts}
 					animate={false}
 					indent
+					onIgnore={onIgnore}
 				/>
 			)}
 		</div>

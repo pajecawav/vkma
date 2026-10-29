@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from "react";
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from "react";
 import { Tooltip } from "./Tooltip.tsx";
 
 /**
@@ -8,7 +8,9 @@ import { Tooltip } from "./Tooltip.tsx";
  * to pressed and sets aria-pressed; leave it undefined on plain buttons.
  * The label is the accessible name and the hover hint — the button rides
  * inside a Tooltip, so the hint behaves like the rest of the design
- * system's (delayed, escape-able) instead of a native title.
+ * system's (delayed, escape-able) instead of a native title. Rest props
+ * forward to the button element, so render-prop triggers (Base UI's
+ * Popover.Trigger) can compose with it.
  */
 export function IconButton({
 	label,
@@ -17,10 +19,13 @@ export function IconButton({
 	active,
 	className = "",
 	children,
-}: {
+	...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
 	/** Accessible name and the hover tooltip. */
 	label: string;
-	onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+	/** Optional so render-prop triggers (Base UI's Popover.Trigger) can
+	 * compose with it — the trigger supplies the click handler. */
+	onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 	size?: "sm" | "md";
 	/** Pressed look for toggle buttons; omit on plain ones. */
 	active?: boolean;
@@ -40,6 +45,7 @@ export function IconButton({
 				onClick={onClick}
 				aria-label={label}
 				aria-pressed={active}
+				{...rest}
 				className={`grid place-items-center ${shape} ${tone} ${className}`}
 			>
 				{children}

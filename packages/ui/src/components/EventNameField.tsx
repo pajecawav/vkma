@@ -11,6 +11,8 @@ export interface EventNameFieldProps extends Pick<
 	/** The raw input value; arbitrary names stay sendable, suggestions are advisory. */
 	value: string;
 	onValueChange: (value: string) => void;
+	/** A suggestion was picked from the popup — distinct from typing the same text. */
+	onPick?: (value: string) => void;
 	ariaLabel?: string;
 	className?: string;
 }
@@ -27,6 +29,7 @@ export function EventNameField({
 	events,
 	value,
 	onValueChange,
+	onPick,
 	ariaLabel,
 	className,
 	id,
@@ -35,23 +38,31 @@ export function EventNameField({
 	// The matches are computed here so the popup can stay CLOSED while
 	// nothing matches — an empty suggestion list is noise, not information.
 	// (ASCII identifiers only, so `includes` agrees with the collator filter
-	// Base UI would have applied.)
+	// Base UI would have applied.) The pool dedupes: merged catalogue
+	// tables (methods ∪ receive events) legitimately repeat a name, and
+	// duplicate React keys here accumulate stale option nodes.
+	const known = useMemo(() => [...new Set(events)], [events]);
 	const query = value.trim().toLowerCase();
 	const matches = useMemo(
 		() =>
-			query === "" ? [...events] : events.filter(name => name.toLowerCase().includes(query)),
-		[events, query],
+			query === "" ? [...known] : known.filter(name => name.toLowerCase().includes(query)),
+		[known, query],
 	);
 	const [open, setOpen] = useState(false);
 
 	return (
 		<BaseAutocomplete.Root
-			items={events}
+			items={known}
 			filteredItems={matches}
 			open={open && matches.length > 0}
 			onOpenChange={setOpen}
 			value={value}
-			onValueChange={onValueChange}
+			onValueChange={(next, details) => {
+				onValueChange(next);
+				if (details?.reason === "item-press") {
+					onPick?.(next);
+				}
+			}}
 			// No auto-highlight: Enter with no deliberate pick must not silently
 			// rewrite the name the user typed.
 			autoHighlight={false}

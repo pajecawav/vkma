@@ -1,12 +1,19 @@
+import { Popover } from "@base-ui/react/popover";
 import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import {
+	ignoreName,
+	type IgnoredEventsSettings,
+	resolveIgnoredNames,
+} from "../lib/ignored-events.ts";
 import { compileNameFilter } from "../lib/name-filter.ts";
 import { Button } from "./Button.tsx";
 import { ClientSelect } from "./ClientSelect.tsx";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { PauseIcon, PlayIcon, TrashIcon } from "./icons.tsx";
+import { EyeOffIcon, PauseIcon, PlayIcon, Settings2Icon, TrashIcon } from "./icons.tsx";
+import { IgnoredEventsEditor } from "./IgnoredEventsEditor.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
 type EventFilter = "all" | "requests" | "events";
@@ -22,6 +29,16 @@ interface Group {
 	head: WireEvent;
 	/** The paired response, when one arrived. */
 	response?: WireEvent;
+}
+
+/** Everything the timeline needs to run the ignored-events feature. The
+ * consumer owns the storage (localStorage / chrome.storage) and hands in
+ * the settings plus a persister; the pool feeds the editor's suggestions. */
+export interface IgnoredEventsControl {
+	settings: IgnoredEventsSettings;
+	onChange: (next: IgnoredEventsSettings) => void;
+	/** Catalogue names for the editor's add field (methods + receive events). */
+	suggestions: readonly string[];
 }
 
 /**
@@ -81,6 +98,7 @@ export function Timeline({
 	clients,
 	hideClient = false,
 	emptyStateHint,
+	ignoredEvents,
 }: {
 	events: WireEvent[];
 	clients: ClientInfo[];
@@ -88,6 +106,8 @@ export function Timeline({
 	hideClient?: boolean;
 	/** Overrides the "nothing yet" hint (surfaces with other capture modes). */
 	emptyStateHint?: ReactNode;
+	/** Enables the ignored-events eye cluster and the row-level ignore action. */
+	ignoredEvents?: IgnoredEventsControl;
 }) {
 	const [query, setQuery] = useState("");
 	const [filter, setFilter] = useState<EventFilter>("all");
@@ -124,7 +144,31 @@ export function Timeline({
 		});
 	}, [events, clearSeq, paused, anchorSeq, query, clientFilter]);
 
-	const groups = useMemo(() => buildGroups(visible, filter), [visible, filter]);
+	// The effective hide set — resolved from settings only while the eye
+	// toggle is on, so disabling shows everything without reshaping lists.
+	const ignoredSet = useMemo(
+		() =>
+			ignoredEvents !== undefined && ignoredEvents.settings.enabled
+				? resolveIgnoredNames(ignoredEvents.settings)
+				: undefined,
+		[ignoredEvents?.settings],
+	);
+
+	const ignoreRow =
+		ignoredEvents &&
+		((name: string) => {
+			ignoredEvents.onChange(ignoreName(ignoredEvents.settings, name));
+		});
+
+	const groups = useMemo(() => {
+		const built = buildGroups(visible, filter);
+		// Ignore on the group head: a hidden request takes its paired
+		// response along, and an unpaired response hides by its own name.
+		if (ignoredSet === undefined) {
+			return built;
+		}
+		return built.filter(group => !ignoredSet.has(group.head.name.toLowerCase()));
+	}, [visible, filter, ignoredSet]);
 
 	// Newest first: the ledger opens on the latest traffic. The scroll
 	// container starts at the top, so no follow-the-bottom logic is needed.
@@ -140,7 +184,8 @@ export function Timeline({
 		initialMaxSeq.current = maxSeq;
 	}
 
-	const empty = ordered.length === 0 && query === "" && buffered === 0;
+	const empty =
+		ordered.length === 0 && query === "" && buffered === 0 && ignoredSet === undefined;
 
 	// The filter chrome renders twice — a single row for wide containers and
 	// a stacked variant for narrow ones (side panel, FAB iframe). Container
@@ -202,6 +247,54 @@ export function Timeline({
 	);
 	const actions = (
 		<div className="ml-auto flex shrink-0 items-center gap-1">
+			{ignoredEvents && (
+				<>
+					<IconButton
+						label={
+							ignoredEvents.settings.enabled
+								? "Show ignored events"
+								: "Hide ignored events"
+						}
+						active={ignoredEvents.settings.enabled}
+						onClick={() =>
+							ignoredEvents.onChange({
+								...ignoredEvents.settings,
+								enabled: !ignoredEvents.settings.enabled,
+							})
+						}
+					>
+						<EyeOffIcon width={14} height={14} />
+					</IconButton>
+					<Popover.Root>
+						<Popover.Trigger
+							render={
+								<IconButton label="Edit ignored events">
+									<Settings2Icon width={14} height={14} />
+								</IconButton>
+							}
+						/>
+						<Popover.Portal>
+							<Popover.Positioner
+								align="end"
+								sideOffset={6}
+								collisionPadding={8}
+								className="z-50"
+							>
+								<Popover.Popup className="z-50 rounded-lg bg-white shadow-lg ring-1 ring-neutral-200 outline-none transition-[opacity,scale] duration-150 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none dark:bg-neutral-900 dark:ring-neutral-800 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 [transform-origin:var(--transform-origin)]">
+									<Popover.Title className="sr-only">
+										Ignored events
+									</Popover.Title>
+									<IgnoredEventsEditor
+										settings={ignoredEvents.settings}
+										onChange={ignoredEvents.onChange}
+										suggestions={ignoredEvents.suggestions}
+									/>
+								</Popover.Popup>
+							</Popover.Positioner>
+						</Popover.Portal>
+					</Popover.Root>
+				</>
+			)}
 			{paused && buffered > 0 && (
 				<Button variant="solid" size="sm" onClick={() => setPaused(false)}>
 					{buffered} new — resume
@@ -295,6 +388,7 @@ export function Timeline({
 									response={group.response}
 									clients={clients}
 									hideClient={hideClient}
+									onIgnore={ignoreRow}
 									animate={
 										initialMaxSeq.current !== null &&
 										group.head.seq > initialMaxSeq.current
@@ -305,6 +399,7 @@ export function Timeline({
 									event={group.head}
 									clients={clients}
 									hideClient={hideClient}
+									onIgnore={ignoreRow}
 									animate={
 										initialMaxSeq.current !== null &&
 										group.head.seq > initialMaxSeq.current

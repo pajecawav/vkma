@@ -1,3 +1,4 @@
+import { catalogue } from "@vkma.dev/bridge-schema/catalogue";
 import type { CaptureMode, ClientStatus, WireEvent } from "@vkma.dev/protocol";
 import {
 	Button,
@@ -16,9 +17,19 @@ import { useEffect, useState } from "react";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 import { useVkmaAllTabs, useVkmaExtension, type ExtensionConnection } from "./connection.ts";
 import { useFabPosition } from "./fab-position.ts";
+import { useIgnoredEventsSettings } from "./ignored-events.ts";
 import { useExtensionTheme } from "./theme.ts";
 
 const SECTION_KEY = "vkma:section";
+
+// Sorted once at module scope — the catalogue is frozen data. The execute
+// autocomplete and the ignore editor both draw from it; the editor also
+// takes the receive events (the noisiest rows are receive-side).
+const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
+const IGNORE_SUGGESTIONS = [
+	...Object.keys(catalogue.props),
+	...Object.keys(catalogue.receive),
+].toSorted((a, b) => a.localeCompare(b));
 
 /** One panel page, three surfaces: the FAB iframe and the tab panel pass
  * ?tab=; the side panel resolves its own tab (the panel is tab-specific
@@ -107,6 +118,7 @@ function Sections({
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
 	});
+	const ignoredEvents = useIgnoredEventsSettings();
 
 	useEffect(() => {
 		localStorage.setItem(SECTION_KEY, section);
@@ -132,6 +144,11 @@ function Sections({
 							sniffer when it doesn&rsquo;t.
 						</>
 					}
+					ignoredEvents={{
+						settings: ignoredEvents.settings,
+						onChange: ignoredEvents.save,
+						suggestions: IGNORE_SUGGESTIONS,
+					}}
 				/>
 			</div>
 			<div
@@ -141,6 +158,7 @@ function Sections({
 					clients={clients}
 					events={events}
 					execute={execute}
+					suggestedEvents={SUGGESTED_EVENTS}
 					emptyState={
 						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
 							No mini app clients yet. Open one — then execute bridge events here.

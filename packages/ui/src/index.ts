@@ -19,6 +19,9 @@ export type { TooltipProps, TooltipPlacement } from "./components/Tooltip.tsx";
 export { ClientDot } from "./components/ClientDot.tsx";
 export { StatusLine, STATUS_META } from "./components/StatusLine.tsx";
 export { Timeline } from "./components/Timeline.tsx";
+export type { IgnoredEventsControl } from "./components/Timeline.tsx";
+export { IgnoredEventsEditor } from "./components/IgnoredEventsEditor.tsx";
+export type { IgnoredEventsEditorProps } from "./components/IgnoredEventsEditor.tsx";
 export { ClientSelect } from "./components/ClientSelect.tsx";
 export type { ClientSelectProps } from "./components/ClientSelect.tsx";
 export { EventNameField } from "./components/EventNameField.tsx";
@@ -57,6 +60,14 @@ export {
 	PanelRightIcon,
 } from "./components/icons.tsx";
 export { clientColor } from "./lib/colors.ts";
+export {
+	DEFAULT_IGNORED_EVENTS,
+	DEFAULT_IGNORED_SETTINGS,
+	ignoreName,
+	parseIgnoredSettings,
+	resolveIgnoredNames,
+} from "./lib/ignored-events.ts";
+export type { IgnoredEventsSettings } from "./lib/ignored-events.ts";
 export {
 	formatDuration,
 	formatJson,
