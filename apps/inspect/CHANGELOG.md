@@ -1,0 +1,17 @@
+# @vkma.dev/inspect
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [d6d6398]
+- Updated dependencies [631947f]
+- Updated dependencies [e12316e]
+- Updated dependencies [a7e2cbe]
+- Updated dependencies [da6d594]
+- Updated dependencies [ba8667b]
+- Updated dependencies [603a33f]
+- Updated dependencies [6f3a42d]
+- Updated dependencies [686c201]
+    - @vkma.dev/bridge@0.2.1
+    - @vkma.dev/devtools@0.2.0

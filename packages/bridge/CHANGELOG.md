@@ -1,5 +1,16 @@
 # @vkma.dev/bridge
 
+## 0.2.1
+
+### Patch Changes
+
+- d6d6398: Hoist the web transport's `parent.postMessage` behind a `webBridge` handle so Facebook Instant Games static analysis stops rejecting cross-published builds (VKCOM/vk-bridge#290)
+- 631947f: Parse OK (Odnoklassniki) launch params: OK-only `vk_ok_*` keys, `*_ok` platforms, `true`/`false` toggle serialization
+- Updated dependencies [a7e2cbe]
+- Updated dependencies [631947f]
+- Updated dependencies [d6d6398]
+    - @vkma.dev/bridge-schema@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes

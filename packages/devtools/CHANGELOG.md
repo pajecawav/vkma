@@ -1,5 +1,23 @@
 # @vkma.dev/devtools
 
+## 0.2.0
+
+### Minor Changes
+
+- da6d594: fabPosition option: initial FAB placement (bottom-left / bottom / bottom-right)
+- 603a33f: Ignored events: hide factory noise (ScrollTop, UpdateInsets, SetSupportedHandlers, …) out of the timeline — eye toggle, popover editor, per-row ignore
+- 686c201: Extract shared wire types and the client palette into @vkma.dev/protocol and add a ./store subpath export for the extension
+
+### Patch Changes
+
+- e12316e: Exec timeout 20s → 60s (store guard; panel call timeouts follow at 70s)
+- a7e2cbe: Execute autocomplete over the bridge catalogue (Base UI Autocomplete) with params stub prefill
+- ba8667b: Flat MCP input schema for `vkma:mcp-execute` (plain agent tool, no `arg0` wrapping).
+- 6f3a42d: Owner-bound exec settlement, ring byte budget, insert-time registry cap, loop pushes
+- Updated dependencies [d6d6398]
+- Updated dependencies [631947f]
+    - @vkma.dev/bridge@0.2.1
+
 ## 0.1.0
 
 ### Minor Changes
