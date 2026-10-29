@@ -412,7 +412,7 @@ describe("subscribe fan-out", () => {
 		const { bridge, respond } = createHarness();
 		const seen: string[] = [];
 		const off = bridge.subscribe(event => {
-			seen.push(String(event.detail?.type));
+			seen.push(event.detail?.type ?? "?");
 		});
 
 		respond("VKWebAppUpdateConfig", { scheme: "space_gray" });
