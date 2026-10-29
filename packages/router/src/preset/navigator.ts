@@ -230,11 +230,9 @@ export function useNavigator(): VkNavigator {
 		},
 		block: onLeave => {
 			const unblock = router.history.block({
-				blockerFn: (args: {
-					currentLocation: never;
-					nextLocation: never;
-					action: string;
-				}) =>
+				// args infer as TanStack's BlockerFnArgs (HistoryLocation × 2 +
+				// action) — assignable to our structural BlockerArgs
+				blockerFn: args =>
 					onLeave({
 						currentLocation: args.currentLocation,
 						nextLocation: args.nextLocation,

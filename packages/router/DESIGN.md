@@ -60,6 +60,10 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 - **Route tree convention**: story (Epic tab) and view are pathless layout
   routes; a panel is a path child of its view; a modal is a masked child
   route. The preset generates exactly this shape.
+- **Nav key convention**: `<VkView>`'s VKUI nav id defaults to the story
+  key — the view key the app author wrote in `defineView("feed")` —
+  derived from the view route id (`/view:feed`). Epic/Root match children
+  by getNavId, so the raw route id never leaks into the UI layer.
 - **Static children rendering**: `<View>` renders its panel routes as
   always-mounted JSX children and feeds VKUI's `activePanel` from the
   matched route — VKUI hides the inactive panels itself and animates
@@ -152,6 +156,13 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 - **Auto-shell**: `<App>` renders Epic/Root/View/modals/popouts from the
   config with slots for customization; headless `/vkui` components remain
   available for custom shells.
+- **`useActiveStory(app)`** (extracted 2026-10-29): the active story key for
+  custom Epic/Root shells — the owning view of the deepest match (a modal
+  child route resolves to its panel's view), `null` on a notFound
+  navigation (the shell shows the NotFound screen; a story fallback would
+  spin forever on an unloaded lazy chunk). `AppRootShell` resolves its
+  active view through the same shared helper (`owningViewIdOf`), so the
+  package — not every shell — owns the TanStack notFound-match sniffing.
 - **Parity navigator**: `useNavigator()` → `{ push, replace, back,
   backToFirst, showModal, hideModal, showPopout, hidePopout }` on top of
   TanStack `navigate`/history; the router instance stays reachable. A

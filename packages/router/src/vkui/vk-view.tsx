@@ -33,10 +33,21 @@ function useMatchSummaries(): string {
 	});
 }
 
+/**
+ * The VKUI nav key of a view route: "/view:feed" → "feed". Epic/Root match
+ * children by getNavId, so the raw route id would leak the route-tree
+ * convention into the UI layer. This is also the key the app author wrote
+ * in `defineView("feed")`.
+ */
+export function storyKeyOf(routeId: unknown): string {
+	const id = String(routeId);
+	return id.split(":")[1] ?? id;
+}
+
 export interface VkViewProps {
 	/** The pathless view layout route created by the preset. */
 	view: AnyRoute;
-	/** VKUI nav id of the View. Defaults to the route id. */
+	/** VKUI nav id of the View. Defaults to the story key (the defineView key). */
 	nav?: string;
 	/** Native swipe-back pop; defaults to `window.history.back()`. */
 	onSwipeBack?: () => void;
@@ -89,7 +100,7 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 
 	return (
 		<View
-			nav={nav ?? view.id}
+			nav={nav ?? storyKeyOf(view.id)}
 			activePanel={activePanel}
 			history={history}
 			onSwipeBack={onSwipeBack ?? (() => window.history.back())}

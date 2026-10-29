@@ -9,7 +9,7 @@ export {
 	type TypedAppHandle,
 	type ViewOptions,
 } from "./preset/builders.tsx";
-export { AppRootShell, useInflate } from "./preset/app.tsx";
+export { AppRootShell, useActiveStory, useInflate } from "./preset/app.tsx";
 export { deriveInflateChain } from "./preset/inflate.ts";
 export { useNavigator, type VkNavigator } from "./preset/navigator.ts";
 export { definePanel, panelRouteId, type PanelDefinition } from "./preset/define-panel.ts";

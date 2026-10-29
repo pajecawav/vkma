@@ -4,9 +4,45 @@ import { looseRouteOf } from "../core/loose-route.ts";
 import { Modals } from "../vkui/modals.tsx";
 import { NotFound } from "../vkui/not-found.tsx";
 import { Popouts } from "../vkui/popouts.tsx";
-import { VkView } from "../vkui/vk-view.tsx";
+import { storyKeyOf, VkView } from "../vkui/vk-view.tsx";
 import type { AppHandle } from "./builders.tsx";
 import { deriveInflateChain, interpolatePath } from "./inflate.ts";
+
+interface MatchLike {
+	routeId?: string;
+	status?: string;
+	_notFound?: boolean;
+}
+
+/**
+ * The view route owning the deepest matched route, or null. The walk starts
+ * at the deepest match because the chain depth varies — a modal is a masked
+ * CHILD route of its panel, so `/view:feed/feed/comments` must still resolve
+ * to the feed view. A notFound match anywhere in the chain wins over
+ * everything: the shell must show the NotFound screen, never a story
+ * fallback (an unmatched lazy panel's chunk never loads — a fallback story
+ * would spin forever).
+ */
+export function owningViewIdOf(
+	matches: readonly MatchLike[],
+	views: readonly { id: string }[],
+): string | null {
+	const notFound = matches.some(
+		match =>
+			match.status === "notFound" || (match as { _notFound?: boolean })._notFound === true,
+	);
+	if (notFound) {
+		return null;
+	}
+	for (let i = matches.length - 1; i >= 0; i--) {
+		const routeId = matches[i]?.routeId ?? "";
+		const view = views.find(view => routeId === view.id || routeId.startsWith(`${view.id}/`));
+		if (view !== undefined) {
+			return view.id;
+		}
+	}
+	return null;
+}
 
 /**
  * Default root shell: the active view + the modal/popout hosts + inflate.
@@ -21,29 +57,10 @@ import { deriveInflateChain, interpolatePath } from "./inflate.ts";
  */
 export function AppRootShell({ app, inflate = true }: { app: AppHandle; inflate?: boolean }) {
 	useInflate(app, inflate);
+	const views = Object.values(app.views);
 
 	const activeViewId = useRouterState({
-		select: state => {
-			const notFound = state.matches.some(
-				match =>
-					(match as { status?: string }).status === "notFound" ||
-					(match as { _notFound?: boolean })._notFound === true,
-			);
-			if (notFound) {
-				return null;
-			}
-			const views = Object.values(app.views);
-			for (let i = state.matches.length - 1; i >= 0; i--) {
-				const routeId = state.matches[i]?.routeId ?? "";
-				const view = views.find(
-					view => routeId === view.id || routeId.startsWith(`${view.id}/`),
-				);
-				if (view !== undefined) {
-					return view.id;
-				}
-			}
-			return null;
-		},
+		select: (state): string | null => owningViewIdOf(state.matches, views),
 	});
 	const activeView =
 		activeViewId === null
@@ -57,6 +74,23 @@ export function AppRootShell({ app, inflate = true }: { app: AppHandle; inflate?
 			<Popouts entries={app.popouts} />
 		</>
 	);
+}
+
+/**
+ * The active story key for Epic/Root shells: the view key the app author
+ * wrote in `defineView("feed")`, or null on a notFound navigation — render
+ * the NotFound screen instead of a story. Pairs with `<VkView view={…}>`
+ * whose nav defaults to the same key, so `activeStory === tab.id` compares
+ * user-authored keys on both sides.
+ */
+export function useActiveStory(app: AppHandle): string | null {
+	const views = Object.values(app.views);
+	return useRouterState({
+		select: (state): string | null => {
+			const viewId = owningViewIdOf(state.matches, views);
+			return viewId === null ? null : storyKeyOf(viewId);
+		},
+	});
 }
 
 /**

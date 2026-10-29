@@ -1,8 +1,8 @@
-import { useRouterState } from "@tanstack/react-router";
 import {
 	Modals,
 	NotFound,
 	Popouts,
+	useActiveStory,
 	VkView,
 	useInflate,
 	useNavigator,
@@ -62,41 +62,10 @@ const TABS: TabConfig[] = [
 ];
 
 /**
- * The story key behind a view route id: "/view:feed" → "feed". Route ids
- * carry a leading slash at runtime, so raw ids never equal the tab ids —
- * the Epic nav and the tab/sidebar highlighting must compare the same key.
+ * The active story comes from the exported `useActiveStory` — the owning
+ * view of the deepest match, null on a notFound navigation (the package
+ * owns the TanStack notFound-match sniffing, not every shell).
  */
-function storyKey(routeId: unknown): string {
-	const id = String(routeId);
-	return id.split(":")[1] ?? id;
-}
-
-/** The active story is the view containing the deepest matched route; `null` = 404. */
-function useActiveStory(app: AppHandle) {
-	return useRouterState({
-		select: (state): string | null => {
-			const notFound = state.matches.some(
-				match =>
-					(match as { status?: string }).status === "notFound" ||
-					(match as { _notFound?: boolean })._notFound === true,
-			);
-			if (notFound) {
-				return null;
-			}
-			const views = Object.values(app.views);
-			for (let i = state.matches.length - 1; i >= 0; i--) {
-				const routeId = state.matches[i]?.routeId ?? "";
-				const view = views.find(
-					view => routeId === view.id || routeId.startsWith(`${view.id}/`),
-				);
-				if (view !== undefined) {
-					return storyKey(view.id);
-				}
-			}
-			return null;
-		},
-	});
-}
 
 export function AppShell({ app }: { app: AppHandle }) {
 	useInflate(app);
@@ -189,7 +158,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 						}
 					>
 						{Object.values(app.views).map(view => (
-							<VkView key={view.id} view={view} nav={storyKey(view.id)} />
+							<VkView key={view.id} view={view} />
 						))}
 					</Epic>
 				</SplitCol>

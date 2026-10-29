@@ -181,12 +181,14 @@ read it before touching anything here.
 - **Custom roots get the handle**: `createApp({ root })` invokes the
   custom root with `{ app }` PLUS the raw match props (the default
   AppRootShell closes over the handle). Custom Epic/Tabbar shells compose
-  `useInflate(app)` + `<VkView view={…}>` per story + `<Modals>` /
-  `<Popouts>` from `/preset` — Epic matches stories by
-  `getNavId(props.nav)`, so pass `nav={view.id}`. Route ids carry a
-  LEADING SLASH at runtime (`/view:feed`), and `AnyRoute["id"]` is `any` —
-  annotate select callbacks (`(state): string =>`) or `useRouterState`
-  degrades to the full-state result.
+  `useInflate(app)` + `useActiveStory(app)` + `<VkView view={…}>` per
+  story + `<Modals>` / `<Popouts>` from `/preset`. `VkView`'s nav defaults
+  to the story key (the `defineView` key) — the same key
+  `useActiveStory` returns, so `activeStory === tab.id` compares
+  user-authored keys on both sides; pass `nav` only to override it. Route
+  ids carry a LEADING SLASH at runtime (`/view:feed`), and
+  `AnyRoute["id"]` is `any` — annotate select callbacks (`(state): string =>`)
+  or `useRouterState` degrades to the full-state result.
 - **One view owns `/`**: panel paths are global — two views with an
   `index` ("/") panel conflict and matching picks arbitrarily
   (`createApp` console-errors on duplicates at build time). Every other
