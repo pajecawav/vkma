@@ -6,5 +6,15 @@
 	"linked": [],
 	"access": "public",
 	"baseBranch": "master",
-	"updateInternalDependencies": "patch"
+	"updateInternalDependencies": "patch",
+	"privatePackages": {
+		"version": true,
+		"tag": false
+	},
+	"ignore": [
+		"@vkma.dev/ui",
+		"@vkma.dev/protocol",
+		"@vkma.dev/playground-mini-app",
+		"@vkma.dev/playground-mini-app-rsbuild"
+	]
 }
