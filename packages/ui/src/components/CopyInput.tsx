@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { copyText } from "../lib/clipboard.ts";
 import { CheckIcon, CopyIcon } from "./icons.tsx";
-import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * A read-only snippet field with a copy button — connection snippets,
@@ -38,20 +37,20 @@ export function CopyInput({ value, ariaLabel }: { value: string; ariaLabel: stri
 				onFocus={event => event.target.select()}
 				className="h-8 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-2.5 font-mono text-xs text-neutral-600 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400"
 			/>
-			<Tooltip content="Copy to clipboard">
-				<button
-					type="button"
-					onClick={copy}
-					className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-neutral-200 px-2.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
-				>
-					{copied ? (
-						<CheckIcon width={13} height={13} />
-					) : (
-						<CopyIcon width={13} height={13} />
-					)}
-					{copied ? "Copied" : "Copy"}
-				</button>
-			</Tooltip>
+			{/* Visible text is the label ("Copy"/"Copied") — a tooltip would
+			    only repeat it. */}
+			<button
+				type="button"
+				onClick={copy}
+				className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-neutral-200 px-2.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
+			>
+				{copied ? (
+					<CheckIcon width={13} height={13} />
+				) : (
+					<CopyIcon width={13} height={13} />
+				)}
+				{copied ? "Copied" : "Copy"}
+			</button>
 		</span>
 	);
 }

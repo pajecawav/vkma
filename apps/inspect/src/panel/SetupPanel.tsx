@@ -5,7 +5,6 @@ import {
 	RefreshIcon,
 	StatusLine,
 	Switch,
-	Tooltip,
 	WarningIcon,
 } from "@vkma.dev/ui";
 import type { InspectConnection } from "./connection.ts";
@@ -106,12 +105,12 @@ export function SetupPanel({
 						<code className="min-w-0 flex-1 truncate rounded-md bg-neutral-100 px-2.5 py-1.5 font-mono text-[11px] text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
 							{connection.peerId ?? "settling…"}
 						</code>
-						<Tooltip content="Mint a fresh peer id — pages holding the old one stop connecting until their snippet is updated">
-							<Button variant="outline" size="md" onClick={connection.rotate}>
-								<RefreshIcon />
-								Rotate
-							</Button>
-						</Tooltip>
+						{/* No tooltip: the paragraph below already explains what
+						    rotating does — it would only repeat it. */}
+						<Button variant="outline" size="md" onClick={connection.rotate}>
+							<RefreshIcon />
+							Rotate
+						</Button>
 					</div>
 					<p className="text-[11px] leading-relaxed text-neutral-500">
 						Rotating also frees an id the signaling server refuses to hand back (a

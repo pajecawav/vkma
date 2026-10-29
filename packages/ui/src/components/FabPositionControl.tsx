@@ -2,9 +2,9 @@ import { FAB_POSITIONS, type FabPosition } from "../fab-position.ts";
 import { Tooltip } from "./Tooltip.tsx";
 
 const LABELS: Record<FabPosition, string> = {
-	"bottom-left": "bottom left",
-	bottom: "bottom",
-	"bottom-right": "bottom right",
+	"bottom-left": "Bottom left",
+	bottom: "Bottom",
+	"bottom-right": "Bottom right",
 };
 
 /**

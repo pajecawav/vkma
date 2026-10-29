@@ -9,7 +9,6 @@ import {
 	Rail,
 	Timeline,
 	TopBar,
-	Tooltip,
 	UiProvider,
 	type Section,
 } from "@vkma.dev/ui";
@@ -52,12 +51,10 @@ function PanelBody({ runtime }: { runtime: InspectRuntime }) {
 				onReconnect={connection.reconnect}
 				capture={captureOf(connection.clients)}
 				actions={
-					<Tooltip content="How to connect a mini app">
-						<Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
-							<GlobeIcon />
-							Connect
-						</Button>
-					</Tooltip>
+					<Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
+						<GlobeIcon />
+						Connect
+					</Button>
 				}
 			/>
 			{(connection.approvals.length > 0 || connection.status === "error") && (

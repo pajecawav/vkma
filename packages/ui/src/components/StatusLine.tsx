@@ -25,7 +25,9 @@ export const STATUS_META: Record<ConnectionStatus, { label: string; dot: string;
 
 /**
  * The status row: colored dot + label, with an optional muted tail.
- * The `title` hint rides a Tooltip (the shared delay profile applies).
+ * The `title` hint rides a Tooltip (the shared delay profile applies);
+ * without it the row renders bare — a default hint would only repeat
+ * the visible label.
  */
 export function StatusLine({
 	status,
@@ -41,8 +43,16 @@ export function StatusLine({
 	title?: string;
 }) {
 	const meta = STATUS_META[status];
-	return (
-		<Tooltip content={title ?? `RPC: ${meta.label}`}>
+	// The hint only rides when it adds something — a bare `RPC: Connected`
+	// over the visible "Connected" would be noise.
+	return title === undefined ? (
+		<span className="flex items-center gap-2 text-xs">
+			<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
+			<span className={meta.text}>{label ?? meta.label}</span>
+			{extra !== undefined && <span className="text-neutral-400">{extra}</span>}
+		</span>
+	) : (
+		<Tooltip content={title}>
 			<span className="flex items-center gap-2 text-xs">
 				<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
 				<span className={meta.text}>{label ?? meta.label}</span>
