@@ -428,12 +428,16 @@
 				"desktop_app_messenger",
 				"desktop_web",
 				"desktop_web_messenger",
+				"desktop_web_ok",
 				"mobile_android",
 				"mobile_android_messenger",
+				"mobile_android_ok",
 				"mobile_ipad",
 				"mobile_iphone",
 				"mobile_iphone_messenger",
-				"mobile_web"
+				"mobile_iphone_ok",
+				"mobile_web",
+				"mobile_web_ok"
 			]
 		},
 		"EGrantedPermission": {
@@ -472,7 +476,9 @@
 				"vk_are_notifications_enabled": {
 					"enum": [
 						0,
-						1
+						1,
+						true,
+						false
 					]
 				},
 				"vk_group_id": {
@@ -481,13 +487,17 @@
 				"vk_is_app_user": {
 					"enum": [
 						0,
-						1
+						1,
+						true,
+						false
 					]
 				},
 				"vk_is_favorite": {
 					"enum": [
 						0,
-						1
+						1,
+						true,
+						false
 					]
 				},
 				"vk_language": {
@@ -507,6 +517,29 @@
 				},
 				"vk_viewer_group_role": {
 					"$ref": "#/$defs/EGetLaunchParamsResponseGroupRole"
+				},
+				"vk_client": {
+					"type": "string"
+				},
+				"vk_ok_app_id": {
+					"type": "number"
+				},
+				"vk_ok_ref": {
+					"type": "string"
+				},
+				"vk_ok_user_id": {
+					"type": "number"
+				},
+				"vk_original_vk_id": {
+					"type": "number"
+				},
+				"vk_are_pushes_enabled": {
+					"enum": [
+						0,
+						1,
+						true,
+						false
+					]
 				}
 			},
 			"required": [

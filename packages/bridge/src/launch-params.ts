@@ -14,18 +14,23 @@ const PLATFORMS = new Set([
 	"desktop_web",
 	"desktop_web_messenger",
 	"desktop_app_messenger",
+	"desktop_web_ok",
 	"mobile_web",
+	"mobile_web_ok",
 	"mobile_android",
+	"mobile_android_ok",
 	"mobile_android_messenger",
 	"mobile_iphone",
+	"mobile_iphone_ok",
 	"mobile_iphone_messenger",
 	"mobile_ipad",
 ]);
 
 /**
  * Launch params as they appear in the URL — a superset of
- * `GetLaunchParamsResponse` with the keys the host only sends via the query
- * string.
+ * `GetLaunchParamsResponse` with the URL-only keys. The OK (Odnoklassniki)
+ * keys (`vk_client`, `vk_ok_*`, `vk_original_vk_id`, `vk_are_pushes_enabled`)
+ * come from the catalogue as optional — vk.com hosts never send them.
  */
 export interface LaunchParams extends GetLaunchParamsResponse {
 	vk_chat_id: string;
@@ -52,10 +57,13 @@ export const parseURLSearchParamsForGetLaunchParams = (
 		const parsedSearchParams = new URLSearchParams(searchParams);
 
 		const convertToggleStateFromStringToNumber = (value: string): 0 | 1 | undefined => {
+			// OK hosts serialize toggles both ways ("true"/"false" and "0"/"1")
 			switch (value) {
 				case "0":
+				case "false":
 					return 0;
 				case "1":
+				case "true":
 					return 1;
 				default:
 					return undefined;
@@ -72,11 +80,16 @@ export const parseURLSearchParamsForGetLaunchParams = (
 				case "vk_user_id":
 				case "vk_app_id":
 				case "vk_group_id":
+				case "vk_ok_app_id":
+				case "vk_ok_user_id":
+				case "vk_original_vk_id":
 					launchParams[query] = Number(value);
 					break;
 				case "sign":
 				case "vk_chat_id":
 				case "vk_ref":
+				case "vk_ok_ref":
+				case "vk_client":
 				case "vk_access_token_settings":
 					launchParams[query] = value;
 					break;
@@ -85,6 +98,7 @@ export const parseURLSearchParamsForGetLaunchParams = (
 					break;
 				case "vk_is_app_user":
 				case "vk_are_notifications_enabled":
+				case "vk_are_pushes_enabled":
 				case "vk_is_favorite": {
 					launchParams[query] = convertToggleStateFromStringToNumber(value);
 					break;

@@ -68,6 +68,32 @@ describe("parseURLSearchParamsForGetLaunchParams", () => {
 		expect(params["vk_language"]).toBeUndefined();
 		expect(params["vk_platform"]).toBeUndefined();
 	});
+
+	test("parses a real OK (Odnoklassniki) launch: OK-only keys, *_ok platform, boolean toggles", () => {
+		// Captured live from https://ok.ru/app/vk_test_vkapp — the OK host sends
+		// vk_* keys the vk.com catalogue never had, booleans where vk.com sends
+		// 0/1, and *_ok platform values (dev.vk.ru/ru/ok/development/launch-parameters).
+		const params = parseURLSearchParamsForGetLaunchParams(
+			"vk_access_token_settings=wall&vk_app_id=6703670&vk_are_notifications_enabled=true&vk_are_pushes_enabled=false&vk_client=ok&vk_is_app_user=true&vk_language=ru&vk_ok_app_id=512000435468&vk_ok_ref=other&vk_ok_user_id=910077458625&vk_original_vk_id=791264063&vk_platform=desktop_web_ok&vk_ref=other&vk_ts=1793295516164&vk_user_id=791264063",
+		);
+		expect(params).toEqual({
+			vk_access_token_settings: "wall",
+			vk_app_id: 6703670,
+			vk_are_notifications_enabled: 1,
+			vk_are_pushes_enabled: 0,
+			vk_client: "ok",
+			vk_is_app_user: 1,
+			vk_language: "ru",
+			vk_ok_app_id: 512000435468,
+			vk_ok_ref: "other",
+			vk_ok_user_id: 910077458625,
+			vk_original_vk_id: 791264063,
+			vk_platform: "desktop_web_ok",
+			vk_ref: "other",
+			vk_ts: 1793295516164,
+			vk_user_id: 791264063,
+		});
+	});
 });
 
 describe("the default instance", () => {
