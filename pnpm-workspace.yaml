@@ -1,17 +1,22 @@
 packages:
     - apps/*
     - packages/*
+    - packages/router/playground
     - playground/*
 
 catalog:
     "@base-ui/react": ^1.9.0
     "@pajecawav/json2code": ^0.2.0
+    "@tanstack/history": ^1.162.0
+    "@tanstack/react-router": ^1.170.46
     "@types/node": ^26.6.5
     "@types/react": ^19.3.0
     "@types/react-dom": ^19.3.0
     "@tailwindcss/vite": ^4.3.3
     "@vitejs/plugin-react": ^6.1.2
+    "@vkontakte/icons": ^3.78.0
     "@vkontakte/vk-bridge": ^3.0.2
+    "@vkontakte/vkui": ^8.4.0
     "@devframes/agentic": ^1.2.6
     "@devframes/vite": ^1.2.6
     "@vitejs/devtools-kit": ^0.8.0
