@@ -4,6 +4,24 @@
 	"description": "JSON Schema catalogue of VK Bridge events with generated TypeScript types",
 	"type": "module",
 	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/bridge-schema"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vk-bridge",
+		"json-schema",
+		"schema",
+		"types"
+	],
 	"publishConfig": {
 		"access": "public"
 	},

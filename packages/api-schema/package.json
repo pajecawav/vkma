@@ -4,6 +4,27 @@
 	"description": "Generated TypeScript types, zod and valibot schemas for the VK API",
 	"type": "module",
 	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/api-schema#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/api-schema"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vk-api",
+		"api",
+		"json-schema",
+		"zod",
+		"valibot",
+		"types",
+		"codegen"
+	],
 	"publishConfig": {
 		"access": "public"
 	},

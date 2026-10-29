@@ -4,6 +4,25 @@
 	"description": "Independent VK Bridge for VK Mini Apps — drop-in API, built-in devtools tap",
 	"type": "module",
 	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/bridge#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/bridge"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vk-bridge",
+		"vk-mini-apps",
+		"mini-apps",
+		"bridge",
+		"typescript"
+	],
 	"publishConfig": {
 		"access": "public"
 	},

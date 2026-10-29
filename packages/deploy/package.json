@@ -4,6 +4,25 @@
 	"description": "Deploy CLI and library for VK Mini Apps hosting. Drop-in compatible with @vkontakte/vk-miniapps-deploy.",
 	"type": "module",
 	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/deploy#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/deploy"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vk-mini-apps",
+		"deploy",
+		"hosting",
+		"cli",
+		"ci"
+	],
 	"publishConfig": {
 		"access": "public"
 	},
