@@ -5,10 +5,11 @@ Generated TypeScript types, [zod](https://zod.dev) and [valibot](https://valibot
 ## Install
 
 ```sh
-pnpm add @vkma.dev/api-schema
+npm install @vkma.dev/api-schema
+# or: pnpm add / yarn add / bun add
 # optional peers, only if you use the corresponding subpath
-pnpm add zod      # for @vkma.dev/api-schema/zod
-pnpm add valibot  # for @vkma.dev/api-schema/valibot
+npm install zod      # for @vkma.dev/api-schema/zod
+npm install valibot  # for @vkma.dev/api-schema/valibot
 ```
 
 ## Usage

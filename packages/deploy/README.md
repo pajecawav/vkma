@@ -3,7 +3,7 @@
 Deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting — a modern, drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
 
 ```sh
-pnpm dlx @vkma.dev/deploy   # or: npx
+npx @vkma.dev/deploy        # or: pnpm dlx / yarn dlx / bunx
 vkma-deploy                 # deploys using the config in your project
 ```
 
@@ -18,7 +18,8 @@ vkma-deploy                 # deploys using the config in your project
 ## Quick start
 
 ```sh
-npm add -D @vkma.dev/deploy
+npm install -D @vkma.dev/deploy
+# or: pnpm add -D / yarn add -D / bun add -D
 npx vkma-deploy login        # one-time browser authorization
 npx vkma-deploy --dry-run    # validate config + bundle without uploading
 npx vkma-deploy              # deploy

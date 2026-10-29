@@ -8,9 +8,10 @@ events), a connected-clients registry and an execute bridge.
 
 ```sh
 # Vite:
-pnpm add -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
+npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
 # Rsbuild (no vite needed):
-pnpm add -D @vkma.dev/devtools @vkma.dev/bridge devframe
+npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe
+# or: pnpm add -D / yarn add -D / bun add -D
 ```
 
 Only the adapter you use is a hard dependency: `vite` and `@devframes/vite`

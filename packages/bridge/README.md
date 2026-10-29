@@ -7,7 +7,8 @@ Types come from [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tr
 ## Install
 
 ```sh
-pnpm add @vkma.dev/bridge
+npm install @vkma.dev/bridge
+# or: pnpm add / yarn add / bun add
 ```
 
 ## Use

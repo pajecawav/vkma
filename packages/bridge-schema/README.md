@@ -5,7 +5,8 @@ JSON Schema catalogue of every VK Bridge event — method request props, respons
 ## Install
 
 ```sh
-pnpm add @vkma.dev/bridge-schema
+npm install @vkma.dev/bridge-schema
+# or: pnpm add / yarn add / bun add
 ```
 
 ## Types
