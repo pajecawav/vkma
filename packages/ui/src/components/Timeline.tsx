@@ -185,7 +185,12 @@ export function Timeline({
 	}
 
 	const empty =
-		ordered.length === 0 && query === "" && buffered === 0 && ignoredSet === undefined;
+		ordered.length === 0 &&
+		query === "" &&
+		buffered === 0 &&
+		// "Waiting" only when nothing is actually being filtered away: an
+		// empty buffer or an inactive filter. Otherwise — the match-miss.
+		(events.length === 0 || ignoredSet === undefined);
 
 	// The filter chrome renders twice — a single row for wide containers and
 	// a stacked variant for narrow ones (side panel, FAB iframe). Container

@@ -34,10 +34,10 @@ function Chip({
 			type="button"
 			onClick={onClick}
 			title={title}
-			className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-md px-2 py-1 font-mono text-[11px] leading-none transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600 ${
+			className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-md border px-2 py-1 font-mono text-[11px] leading-none transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600 ${
 				active
-					? "bg-neutral-800 text-white dark:bg-neutral-100 dark:text-neutral-900"
-					: "border border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:text-neutral-200"
+					? "border-neutral-800 bg-neutral-800 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+					: "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:text-neutral-200"
 			}`}
 		>
 			<span className="truncate">{children}</span>
@@ -117,7 +117,7 @@ export function IgnoredEventsEditor({ settings, onChange, suggestions }: Ignored
 						{settings.extra.map(name => (
 							<span
 								key={name}
-								className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-md bg-neutral-800 px-2 py-1 font-mono text-[11px] leading-none text-white dark:bg-neutral-100 dark:text-neutral-900"
+								className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-md border border-neutral-800 bg-neutral-800 px-2 py-1 font-mono text-[11px] leading-none text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
 							>
 								<span className="truncate">{name}</span>
 								<button
