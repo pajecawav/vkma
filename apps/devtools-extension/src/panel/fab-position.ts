@@ -13,7 +13,7 @@ import { api } from "../shared/api.ts";
  * changes.
  */
 export function useFabPosition(): { position: FabPosition; pick: (position: FabPosition) => void } {
-	const [position, setPosition] = useState<FabPosition>("bottom-right");
+	const [position, setPosition] = useState<FabPosition>("bottom-left");
 
 	useEffect(() => {
 		void api.storage.local.get(FAB_POSITION_STORAGE_KEY).then(stored => {

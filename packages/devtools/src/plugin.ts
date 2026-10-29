@@ -44,7 +44,7 @@ export interface VkmaDevtoolsOptions {
 	 */
 	allowedOrigins?: DevframeViteBridgeOptions["allowedOrigins"];
 	/**
-	 * Initial placement of the in-page FAB. Default `bottom-right`. A
+	 * Initial placement of the in-page FAB. Default `bottom-left`. A
 	 * placement picked in the panel is stored per origin (localStorage)
 	 * and wins over this initial value. Mirrors `FabPosition` of
 	 * `@vkma.dev/ui/fab-position`.

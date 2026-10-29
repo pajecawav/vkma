@@ -119,15 +119,6 @@ function ClientCard({
 						</span>
 					</span>
 					<span className="ml-auto flex shrink-0 items-center gap-2 pr-3 text-[11px] text-neutral-400">
-						{onLocate && client.online && (
-							<IconButton
-								size="sm"
-								label="Show this client's frame on the page"
-								onClick={() => onLocate(client.clientId)}
-							>
-								<LocateIcon width={12} height={12} />
-							</IconButton>
-						)}
 						{client.appId !== undefined && <span>app {client.appId}</span>}
 						{relativeTime(client.connectedAt)}
 						<ChevronIcon
@@ -137,6 +128,19 @@ function ClientCard({
 						/>
 					</span>
 				</button>
+				{/* Locate is a SIBLING of the toggle, like remove — inside it
+				 * the click would bubble into setOpen (and nested buttons are
+				 * invalid HTML). Online-only: an offline client has no frame. */}
+				{onLocate && client.online && (
+					<IconButton
+						size="sm"
+						className="mr-2"
+						label="Show this client's frame on the page"
+						onClick={() => onLocate(client.clientId)}
+					>
+						<LocateIcon width={12} height={12} />
+					</IconButton>
+				)}
 				{onDelete && !client.online && (
 					<IconButton
 						size="sm"

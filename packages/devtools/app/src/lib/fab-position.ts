@@ -16,7 +16,7 @@ export function useFabPosition(): { position: FabPosition; pick: (position: FabP
 		try {
 			return normalizeFabPosition(localStorage.getItem(FAB_POSITION_STORAGE_KEY));
 		} catch {
-			return "bottom-right";
+			return "bottom-left";
 		}
 	});
 

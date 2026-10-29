@@ -10,5 +10,5 @@ export type FabPosition = (typeof FAB_POSITIONS)[number];
 export const FAB_POSITION_STORAGE_KEY = "vkma:fab-position";
 
 export function normalizeFabPosition(value: unknown): FabPosition {
-	return FAB_POSITIONS.includes(value as FabPosition) ? (value as FabPosition) : "bottom-right";
+	return FAB_POSITIONS.includes(value as FabPosition) ? (value as FabPosition) : "bottom-left";
 }
