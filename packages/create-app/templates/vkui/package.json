@@ -1,0 +1,9 @@
+{
+	"name": "@vkma.dev/create-app-template-vkui",
+	"version": "0.0.0",
+	"private": true,
+	"dependencies": {
+		"@vkontakte/icons": "3.78.0",
+		"@vkontakte/vkui": "8.4.0"
+	}
+}

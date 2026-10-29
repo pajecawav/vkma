@@ -1,0 +1,62 @@
+{
+	"name": "@vkma.dev/create-app",
+	"version": "0.0.0",
+	"description": "Scaffold a VK Mini App: Vite + @vkma.dev bridge, devtools and deploy — base, VKUI and router presets",
+	"type": "module",
+	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/create-app#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/create-app"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vk-mini-apps",
+		"mini-apps",
+		"scaffold",
+		"create-app",
+		"starter",
+		"boilerplate",
+		"vite",
+		"vkui"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22.18.0"
+	},
+	"sideEffects": false,
+	"bin": {
+		"vkma-create": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"templates",
+		"!templates/**/*.test.ts"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"lint:package": "publint",
+		"test": "vitest run",
+		"test:watch": "vitest watch",
+		"test:e2e": "node scripts/e2e.mjs"
+	},
+	"dependencies": {
+		"@clack/prompts": "catalog:"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"publint": "catalog:",
+		"tsdown": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

@@ -1,0 +1,3 @@
+{
+	"remove": ["src/App.tsx", "src/App.css"]
+}
