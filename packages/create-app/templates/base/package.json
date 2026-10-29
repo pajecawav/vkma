@@ -9,7 +9,7 @@
 		"deploy": "vkma-deploy"
 	},
 	"dependencies": {
-		"@vkma.dev/bridge": "0.2.1",
+		"@vkma.dev/bridge": "0.2.2",
 		"react": "19.3.1",
 		"react-dom": "19.3.1"
 	},

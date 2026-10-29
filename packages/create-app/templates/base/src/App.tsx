@@ -7,19 +7,21 @@ async function fetchUser() {
 
 /**
  * The minimal bridge demo: a typed `send` (request → response) and a page
- * subscription to host events (the classic API has no unsubscribe — the
- * listener lives as long as the page).
+ * subscription to host events (`subscribe` returns its own off — a perfect
+ * useEffect cleanup).
  */
 export function App() {
 	const [user, setUser] = useState<Awaited<ReturnType<typeof fetchUser>> | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [lastEvent, setLastEvent] = useState<string | null>(null);
 
-	useEffect(() => {
-		bridge.subscribe(event => {
-			setLastEvent(event.detail.type);
-		});
-	}, []);
+	useEffect(
+		() =>
+			bridge.subscribe(event => {
+				setLastEvent(event.detail.type);
+			}),
+		[],
+	);
 
 	const loadUser = async () => {
 		try {
