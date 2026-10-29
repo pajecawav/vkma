@@ -45,7 +45,7 @@ expectTypeOf<ReceiveDataMap>().toHaveProperty("VKWebAppMyCustomEvent");
 // ---------------------------------------------------------------------------
 // Parity with the reference devDependency: the catalogue must cover exactly
 // the event set of the installed @vkontakte/vk-bridge (bumping the catalog
-// version without re-running the bootstrap shows up here immediately).
+// version without touching events.json shows up here immediately).
 // The augmented keys are subtracted — augmentation is program-wide, so the
 // custom events above would otherwise shadow the upstream comparison.
 // ---------------------------------------------------------------------------

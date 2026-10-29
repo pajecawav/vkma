@@ -50,7 +50,6 @@
 		"dist"
 	],
 	"scripts": {
-		"bootstrap": "node scripts/bootstrap.ts",
 		"generate": "node scripts/generate.ts",
 		"build": "pnpm generate && tsdown",
 		"dev": "pnpm generate && tsdown --watch",
@@ -64,7 +63,6 @@
 		"@vkontakte/vk-bridge": "catalog:",
 		"publint": "catalog:",
 		"tsdown": "catalog:",
-		"typescript": "catalog:",
 		"vitest": "catalog:"
 	}
 }

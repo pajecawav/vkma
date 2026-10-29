@@ -12,7 +12,6 @@ export default defineOxlintConfig({
 		"**/packages/bridge-schema/schema",
 		"**/packages/bridge-schema/src/generated",
 		"**/packages/bridge-schema/src/index.ts",
-		"**/packages/bridge-schema/.bootstrap",
 	],
 	rules: {
 		"typescript/explicit-member-accessibility": "error",

@@ -12,6 +12,5 @@ export default defineOxfmtConfig({
 		"**/packages/bridge-schema/schema",
 		"**/packages/bridge-schema/src/generated",
 		"**/packages/bridge-schema/src/index.ts",
-		"**/packages/bridge-schema/.bootstrap",
 	],
 });
