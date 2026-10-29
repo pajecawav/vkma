@@ -308,8 +308,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/protocol
       werpc:
-        specifier: ^0.0.9
-        version: 0.0.9(typescript@7.0.2)
+        specifier: ^0.1.0
+        version: 0.1.0(typescript@7.0.2)
     devDependencies:
       '@resvg/resvg-js':
         specifier: ^2.6.2
@@ -461,7 +461,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       valibot:
         specifier: 'catalog:'
         version: 1.5.0(typescript@7.0.2)
@@ -486,7 +486,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.4)
@@ -507,7 +507,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -532,7 +532,7 @@ importers:
         version: 0.3.25
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.4)
@@ -602,7 +602,7 @@ importers:
         version: 4.3.3
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vite:
         specifier: 'catalog:'
         version: 8.3.4(@types/node@26.6.5)(@vitejs/devtools@0.8.0)(jiti@2.7.0)(yaml@2.9.1)
@@ -621,7 +621,7 @@ importers:
         version: 26.6.5
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.4)
@@ -655,7 +655,7 @@ importers:
         version: 19.3.1
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(publint@0.3.25)(typescript@7.0.2)
+        version: 0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -5046,8 +5046,8 @@ packages:
     resolution: {integrity: sha512-CHbl2ZQbxx164IgWRgzJno4hWtM4tFbRam1QfI3Yxhs3w/DvqluVxVWeXs3oL5/fbGkSNLKo0Ty5MgUWceNhog==}
     engines: {node: '>=6.0.0', npm: '>=3.10.0'}
 
-  werpc@0.0.9:
-    resolution: {integrity: sha512-r0uiHPMRLqGxTvYwcqSDEHjdrZS9/oOzHHYaooYYmE+pGfYL7/6jAUvuYBYn6oldPZkdP4EJowGyhWUNWqawyw==}
+  werpc@0.1.0:
+    resolution: {integrity: sha512-tC4Cl1MHbRuLhP4PF62PfY2UIMlVKKPKHU7gVZsLp90NAPRWs34tpPXyYO0RamPlh4T+Lg7yhHSd/S9UrM3GGQ==}
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
@@ -8800,7 +8800,7 @@ snapshots:
 
   trough@2.2.0: {}
 
-  tsdown@0.23.1(publint@0.3.25)(typescript@7.0.2):
+  tsdown@0.23.1(@vitejs/devtools@0.8.0)(publint@0.3.25)(typescript@7.0.2):
     dependencies:
       cac: 7.1.0
       defu: 6.1.7
@@ -8817,6 +8817,7 @@ snapshots:
       unconfig-core: 7.5.0
       verkit: 0.5.0
     optionalDependencies:
+      '@vitejs/devtools': 0.8.0(crossws@0.4.15(srvx@1.0.6))(srvx@1.0.6)(vite@8.3.4)
       publint: 0.3.25
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -9058,7 +9059,7 @@ snapshots:
     dependencies:
       sdp: 3.2.2
 
-  werpc@0.0.9(typescript@7.0.2):
+  werpc@0.1.0(typescript@7.0.2):
     dependencies:
       '@trpc/client': 11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2)
       '@trpc/server': 11.19.0(typescript@7.0.2)

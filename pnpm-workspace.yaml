@@ -44,4 +44,4 @@ minimumReleaseAgeExclude:
     - "@types/node@26.2.0"
     - "@pajecawav/json2code@0.2.0 || 0.2.1 || 0.2.2"
     - vite@8.3.5
-    - werpc@0.0.9
+    - werpc@0.0.9 || 0.1.0
