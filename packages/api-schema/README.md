@@ -1,5 +1,8 @@
 # @vkma.dev/api-schema
 
+[![npm](https://img.shields.io/npm/v/@vkma.dev/api-schema.svg)](https://www.npmjs.com/package/@vkma.dev/api-schema)
+[![minzip](https://img.shields.io/bundlephobia/minzip/@vkma.dev/api-schema.svg)](https://bundlephobia.com/package/@vkma.dev/api-schema)
+
 Generated TypeScript types, [zod](https://zod.dev) and [valibot](https://valibot.dev) schemas for the [VK API](https://dev.vk.com/), built from [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema) with [@pajecawav/json2code](https://github.com/pajecawav/json2code).
 
 ## Install

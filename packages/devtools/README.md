@@ -1,5 +1,7 @@
 # @vkma.dev/devtools
 
+[![npm](https://img.shields.io/npm/v/@vkma.dev/devtools.svg)](https://www.npmjs.com/package/@vkma.dev/devtools)
+
 Devtools for VK Mini Apps: a `/__vkma/` panel on your own Vite dev server
 with a live VK Bridge dialogue (outgoing sends, paired responses, incoming
 events), a connected-clients registry and an execute bridge.

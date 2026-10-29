@@ -1,5 +1,8 @@
 # @vkma.dev/bridge
 
+[![npm](https://img.shields.io/npm/v/@vkma.dev/bridge.svg)](https://www.npmjs.com/package/@vkma.dev/bridge)
+[![minzip](https://img.shields.io/bundlephobia/minzip/@vkma.dev/bridge.svg)](https://bundlephobia.com/package/@vkma.dev/bridge)
+
 Independent VK Bridge for VK Mini Apps. Drop-in classic API (`send` / `subscribe` / `supportsAsync` / …) plus a built-in observability tap, per-send timeout/abort and a configurable `request_id` policy.
 
 Types come from [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme) — the catalogue of every platform event as data, with an open interface for your own events.

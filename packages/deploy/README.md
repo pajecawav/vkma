@@ -1,5 +1,7 @@
 # @vkma.dev/deploy
 
+[![npm](https://img.shields.io/npm/v/@vkma.dev/deploy.svg)](https://www.npmjs.com/package/@vkma.dev/deploy)
+
 Deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting — a modern, drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
 
 ```sh

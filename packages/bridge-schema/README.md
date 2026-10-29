@@ -1,5 +1,8 @@
 # @vkma.dev/bridge-schema
 
+[![npm](https://img.shields.io/npm/v/@vkma.dev/bridge-schema.svg)](https://www.npmjs.com/package/@vkma.dev/bridge-schema)
+[![minzip](https://img.shields.io/bundlephobia/minzip/@vkma.dev/bridge-schema.svg)](https://bundlephobia.com/package/@vkma.dev/bridge-schema)
+
 JSON Schema catalogue of every VK Bridge event — method request props, response/receive data and the `Result`/`Failed` event wiring — with generated TypeScript types on top. Thanks to [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT) for the reference catalogue.
 
 ## Install
