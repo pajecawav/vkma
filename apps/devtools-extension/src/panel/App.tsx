@@ -109,17 +109,49 @@ function Sections({
 	clients,
 	execute,
 	deleteClients,
+	locateClients,
+	focused,
 }: {
 	events: WireEvent[];
 	clients: ClientStatus[];
 	execute: ExtensionConnection["execute"];
 	deleteClients: ExtensionConnection["deleteClients"];
+	locateClients?: ExtensionConnection["locateClients"];
+	focused?: { clientId: string; ts: number };
 }) {
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
 	});
 	const ignoredEvents = useIgnoredEventsSettings();
+
+	// A frameFocus flash: the matching card wears a colored ring for a
+	// beat. The event may land while this panel is a background tab
+	// (?view=all) — a fresh focus (under 2s old) replays on visibility so
+	// the user still sees which card their click pointed at.
+	const [focusFlash, setFocusFlash] = useState<string | undefined>(undefined);
+	useEffect(() => {
+		if (focused === undefined) {
+			return;
+		}
+		setFocusFlash(focused.clientId);
+		const timer = setTimeout(() => setFocusFlash(undefined), 1600);
+		return () => clearTimeout(timer);
+	}, [focused]);
+	useEffect(() => {
+		const onVisible = () => {
+			if (document.visibilityState !== "visible" || focused === undefined) {
+				return;
+			}
+			if (Date.now() - focused.ts < 2000) {
+				setFocusFlash(focused.clientId);
+				const timer = setTimeout(() => setFocusFlash(undefined), 1600);
+				return () => clearTimeout(timer);
+			}
+		};
+		document.addEventListener("visibilitychange", onVisible);
+		return () => document.removeEventListener("visibilitychange", onVisible);
+	}, [focused]);
 
 	useEffect(() => {
 		localStorage.setItem(SECTION_KEY, section);
@@ -181,6 +213,10 @@ function Sections({
 					onDeleteClient={clientId => {
 						void deleteClients([clientId]).catch(() => {});
 					}}
+					onLocateClient={clientId => {
+						void locateClients?.(clientId).catch(() => {});
+					}}
+					focusedClientId={focusFlash}
 				/>
 			</div>
 		</div>
@@ -231,6 +267,8 @@ function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }
 				clients={connection.clients}
 				execute={connection.execute}
 				deleteClients={connection.deleteClients}
+				locateClients={connection.locateClients}
+				focused={connection.focused}
 			/>
 		</div>
 	);
@@ -319,6 +357,8 @@ function TabPanel({
 				clients={connection.clients}
 				execute={connection.execute}
 				deleteClients={connection.deleteClients}
+				locateClients={connection.locateClients}
+				focused={connection.focused}
 			/>
 		</div>
 	);

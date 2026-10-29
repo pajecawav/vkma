@@ -35,6 +35,11 @@ export interface PanelConnection {
 	/** Registry hygiene: removes offline clients (live skipped
 	 * server-side). @returns the ids actually removed. */
 	deleteClients: (clientIds: string[]) => Promise<string[]>;
+	/** The locate affordance: flash the client's frame(s) on its page. */
+	locateClients: (clientId: string) => Promise<void>;
+	/** The latest frame activation (a click inside a mini app frame) —
+	 * the panel flashes the matching client card. */
+	focused?: { clientId: string; ts: number };
 	reconnect: () => void;
 }
 
@@ -103,6 +108,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 	const feedsRef = useRef(new Map<number, TabFeed>());
 	const mergerRef = useRef(new MergedTimeline());
 	const [reattach, setReattach] = useState(0);
+	const [focused, setFocused] = useState<{ clientId: string; ts: number } | undefined>(undefined);
 	const [derived, setDerived] = useState<{
 		events: WireEvent[];
 		clients: ClientStatus[];
@@ -234,6 +240,14 @@ export function useVkmaAllTabs(): GlobalConnection {
 						publish();
 					},
 				});
+				client.vkma.frameFocus.subscribe(undefined, {
+					onData: focused => {
+						if (feeds.get(tabId) !== feed) {
+							return;
+						}
+						setFocused(focused);
+					},
+				});
 			}
 			publish();
 		}
@@ -287,6 +301,20 @@ export function useVkmaAllTabs(): GlobalConnection {
 		return removed;
 	}, []);
 
+	const locateClients = useCallback<GlobalConnection["locateClients"]>(async clientId => {
+		for (const [tabId, feed] of feedsRef.current) {
+			if (!feed.clients.some(client => client.clientId === clientId)) {
+				continue;
+			}
+			// The frame lives in a possibly-background tab — an overlay
+			// drawn there is invisible until the tab is fronted, so bring
+			// it forward first (that is what "show me the frame" means).
+			await api.tabs.update(tabId, { active: true }).catch(() => {});
+			await feed.client.vkma.locateClients.mutate({ clientIds: [clientId] });
+			return;
+		}
+	}, []);
+
 	const status: ExtensionStatus =
 		derived.live > 0
 			? "connected"
@@ -301,6 +329,8 @@ export function useVkmaAllTabs(): GlobalConnection {
 		tabCount: tabIds?.length ?? 0,
 		execute,
 		deleteClients,
+		locateClients,
+		focused,
 		reconnect,
 	};
 }
@@ -310,6 +340,7 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 	const [events, setEvents] = useState<WireEvent[]>([]);
 	const [clients, setClients] = useState<ClientStatus[]>([]);
 	const [lastError, setLastError] = useState<string | undefined>(undefined);
+	const [focused, setFocused] = useState<{ clientId: string; ts: number } | undefined>(undefined);
 	const [nonce, setNonce] = useState(0);
 
 	const clientRef = useRef<WERPClient | undefined>(undefined);
@@ -363,6 +394,9 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 					onData: ({ clientId }) =>
 						setEvents(prev => prev.filter(event => event.clientId !== clientId)),
 				});
+				client.vkma.frameFocus.subscribe(undefined, {
+					onData: focused => setFocused(focused),
+				});
 			})
 			.catch((error: unknown) => {
 				if (disposed) {
@@ -398,5 +432,30 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 		return client.vkma.deleteClients.mutate({ clientIds });
 	}, []);
 
-	return { status, events, clients, lastError, execute, deleteClients, reconnect };
+	const locateClients = useCallback<ExtensionConnection["locateClients"]>(
+		async clientId => {
+			// The panel tab is rarely the watched tab (the action icon opens
+			// panel.html as its own tab) — front the watched tab so the flash
+			// is actually on screen.
+			await api.tabs.update(tabId, { active: true }).catch(() => {});
+			const client = clientRef.current;
+			if (!client) {
+				throw new Error("not connected");
+			}
+			await client.vkma.locateClients.mutate({ clientIds: [clientId] });
+		},
+		[tabId],
+	);
+
+	return {
+		status,
+		events,
+		clients,
+		lastError,
+		execute,
+		deleteClients,
+		locateClients,
+		focused,
+		reconnect,
+	};
 }

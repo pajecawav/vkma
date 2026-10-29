@@ -12,6 +12,7 @@ import { createClient, type InferNamespace, createHandler, initWERPC } from "wer
 import { z } from "zod";
 import { api } from "../shared/api.ts";
 import { mountFab } from "./fab.ts";
+import { createFrameHighlighter } from "./highlight.ts";
 import { BatchedHub, Hub } from "./hub.ts";
 import { SpyTracker } from "./spy.ts";
 
@@ -34,6 +35,12 @@ const executeHub = new Hub<{
 	name: string;
 	params?: Record<string, unknown>;
 }>();
+/** Clicks inside mini app frames (the collectors report them) — panels
+ * flash the matching client card, the reverse of `locateClients`. */
+const frameFocusHub = new Hub<{ clientId: string; ts: number }>();
+
+/** The locate overlays drawn over the tab's mini app iframes. */
+const highlighter = createFrameHighlighter(window.document);
 
 const broadcastClients = () => {
 	clientsHub.publish(store.listClients());
@@ -214,6 +221,34 @@ const handler = createHandler({
 		/** Collecters settle pending executes. */
 		execResult: werpc.procedure.input(execResultInputSchema).mutation(({ input }) => {
 			store.settleExec(input);
+		}),
+
+		/** The locate button: flash the client's iframe(s) on the page so
+		 * the user can see which frame the card is. Resolves the clients
+		 * against the registry — unknown ids no-op inside the highlighter
+		 * (no frame to draw over). */
+		locateClients: werpc.procedure
+			.input(z.object({ clientIds: z.array(z.string()) }))
+			.mutation(({ input }) => {
+				const clients = input.clientIds
+					.map(clientId => store.getClient(clientId))
+					.filter(client => client !== undefined);
+				highlighter.show(clients);
+			}),
+
+		/** A click landed inside a mini app frame (the frame's collector
+		 * reports it) — panels flash that client's card, the reverse
+		 * locate. Throttled collector-side; the hub drops it when no
+		 * surface is subscribed. */
+		frameActivated: werpc.procedure
+			.input(z.object({ clientId: z.string() }))
+			.mutation(({ input }) => {
+				frameFocusHub.publish({ clientId: input.clientId, ts: Date.now() });
+			}),
+
+		/** Live stream of frame activations for the card flash. */
+		frameFocus: werpc.procedure.subscription(async function* ({ signal }) {
+			yield* drainable(signal, frameFocusHub, () => []);
 		}),
 
 		/** Registry hygiene: remove offline entries (live skipped — a

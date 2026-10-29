@@ -1,12 +1,13 @@
 import type { ClientStatus } from "@vkma.dev/protocol";
-import { useState } from "react";
+import { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
 import { SENSITIVE_PARAMS, scrubUrl } from "../lib/sensitive.ts";
 import { ClientDot } from "./ClientDot.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { ChevronIcon, CrossIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
+import { ChevronIcon, CrossIcon, LocateIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
 
 function LaunchParams({ params }: { params: Record<string, string> }) {
 	const entries = Object.entries(params).toSorted(([a], [b]) => a.localeCompare(b));
@@ -43,17 +44,39 @@ function ClientCard({
 	client,
 	bridgeWarning,
 	onDelete,
+	onLocate,
+	focused,
 }: {
 	client: ClientStatus;
 	bridgeWarning?: ReactNode;
 	onDelete?: (clientId: string) => void;
+	onLocate?: (clientId: string) => void;
+	/** A frameFocus flash for this card: colored ring + bring into view,
+	 * auto-clears from the parent after the fade. */
+	focused?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
+	const cardRef = useRef<HTMLLIElement>(null);
+
+	useEffect(() => {
+		if (focused) {
+			cardRef.current?.scrollIntoView({ block: "nearest" });
+		}
+	}, [focused]);
+
 	return (
 		<li
-			className={`rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900 ${
+			ref={cardRef}
+			className={`rounded-lg border border-neutral-200 bg-white transition-shadow duration-300 dark:border-neutral-800 dark:bg-neutral-900 ${
 				client.online ? "" : "opacity-55"
 			}`}
+			style={
+				focused
+					? {
+							boxShadow: `0 0 0 2px ${CLIENT_PALETTE[clientColorIndex(client.clientId)]}`,
+						}
+					: undefined
+			}
 		>
 			{/* The remove button must be a SIBLING of the toggle, not a
 			 * descendant — nested interactive elements are invalid HTML and
@@ -96,6 +119,15 @@ function ClientCard({
 						</span>
 					</span>
 					<span className="ml-auto flex shrink-0 items-center gap-2 pr-3 text-[11px] text-neutral-400">
+						{onLocate && client.online && (
+							<IconButton
+								size="sm"
+								label="Show this client's frame on the page"
+								onClick={() => onLocate(client.clientId)}
+							>
+								<LocateIcon width={12} height={12} />
+							</IconButton>
+						)}
 						{client.appId !== undefined && <span>app {client.appId}</span>}
 						{relativeTime(client.connectedAt)}
 						<ChevronIcon
@@ -147,6 +179,8 @@ export function Clients({
 	emptyState,
 	bridgeWarning,
 	onDeleteClient,
+	onLocateClient,
+	focusedClientId,
 }: {
 	clients: ClientStatus[];
 	/** Overrides the "no clients" card (surfaces with other capture modes). */
@@ -159,6 +193,13 @@ export function Clients({
 	 * never deletable from here (a running collector re-registers within
 	 * one heartbeat anyway). */
 	onDeleteClient?: (clientId: string) => void;
+	/** The locate affordance: renders a per-card crosshair (online
+	 * clients) that flashes the client's frame on the page. */
+	onLocateClient?: (clientId: string) => void;
+	/** The card of this client currently wears a colored focus ring —
+	 * driven by vkma.frameFocus (a click inside its frame); the parent
+	 * clears it when the flash expires. */
+	focusedClientId?: string;
 }) {
 	const offline = clients.filter(client => !client.online);
 	return (
@@ -195,6 +236,8 @@ export function Clients({
 								client={client}
 								bridgeWarning={bridgeWarning}
 								onDelete={onDeleteClient}
+								onLocate={onLocateClient}
+								focused={client.clientId === focusedClientId}
 							/>
 						))}
 					</ul>

@@ -45,6 +45,7 @@ export {
 	ExecuteIcon,
 	FrameIcon,
 	GlobeIcon,
+	LocateIcon,
 	MonitorIcon,
 	MoonIcon,
 	PhoneIcon,

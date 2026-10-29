@@ -16,6 +16,7 @@ export {
 	Check as CheckIcon,
 	ChevronRight as ChevronIcon,
 	Copy as CopyIcon,
+	Crosshair as LocateIcon,
 	Diamond as DiamondIcon,
 	EyeOff as EyeOffIcon,
 	Globe as GlobeIcon,

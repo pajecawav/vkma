@@ -172,6 +172,24 @@ async function main(): Promise<void> {
 		}
 	});
 
+	// The reverse locate: a click inside THIS frame is the user pointing
+	// at it — panels flash the matching client card. Capture + passive in
+	// the isolated world: the page cannot block it and nothing changes
+	// for the app. Throttled — one tiny mutation per burst of clicks.
+	let lastFocusSentAt = 0;
+	document.addEventListener(
+		"pointerdown",
+		() => {
+			const now = Date.now();
+			if (now - lastFocusSentAt < 400) {
+				return;
+			}
+			lastFocusSentAt = now;
+			void client.vkma.frameActivated.mutate({ clientId }).catch(() => {});
+		},
+		{ capture: true, passive: true },
+	);
+
 	// Executes arrive as subscription pushes routed by clientId — direct
 	// sends go through the relay (the app's own instance), spy sends
 	// through ours.
