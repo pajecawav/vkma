@@ -1,4 +1,9 @@
-import type { ReceiveDataMap, ReceiveEventMap, RequestPropsMap } from "@vkma.dev/bridge-schema";
+import type {
+	LinkShareResult,
+	ReceiveDataMap,
+	ReceiveEventMap,
+	RequestPropsMap,
+} from "@vkma.dev/bridge-schema";
 import { catalogue, eventsSchema } from "@vkma.dev/bridge-schema/schema";
 import type {
 	ReceiveDataMap as UpstreamReceiveDataMap,
@@ -94,6 +99,13 @@ expectTypeOf<UpstreamRequestPropsMap["VKWebAppShowWallPostBox"]>().toExtend<
 expectTypeOf<ReceiveEventMap["VKWebAppGetAuthToken"]>().toEqualTypeOf<{
 	result: "VKWebAppAccessTokenReceived";
 	failed: "VKWebAppAccessTokenFailed";
+}>();
+// Deliberate divergence: VKWebAppShare answers `{ result: [...] }`, not the
+// bare array upstream types (VKCOM/vk-bridge#554, confirmed by VK; upstream
+// PR #555 pending). If this line starts failing against upstream, they
+// finally merged the same shape — drop the divergence.
+expectTypeOf<ReceiveDataMap["VKWebAppShare"]>().toEqualTypeOf<{
+	result: LinkShareResult[];
 }>();
 
 // ---------------------------------------------------------------------------

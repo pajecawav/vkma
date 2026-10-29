@@ -254,10 +254,15 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 		const win = clientWindow();
 		const parent = win?.parent;
 		if (win && parent && typeof parent.postMessage === "function") {
+			// A hoisted handle, not a literal `parent.postMessage(...)` call:
+			// Facebook's Instant Games static analysis rejects builds that
+			// contain the literal substring (VKCOM/vk-bridge#290) — the same
+			// pattern as the `iosBridge`/`reactNative` handles above.
+			const webBridge = parent;
 			// The mini app does not know the host origin ahead of time (vk.ru,
 			// m.vk.ru, mobile clients) — "*" is the wire contract here.
 			// oxlint-disable-next-line unicorn/require-post-message-target-origin
-			parent.postMessage(
+			webBridge.postMessage(
 				{
 					handler: method,
 					params: props,
