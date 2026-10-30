@@ -1,7 +1,7 @@
 import type { AnyRoute } from "@tanstack/react-router";
 import { useRouterState } from "@tanstack/react-router";
 import { Panel, PanelHeader, PanelSpinner, View } from "@vkontakte/vkui";
-import { type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { usePanelsHistory } from "../react/hooks.ts";
 
 export interface PanelStaticData {
@@ -60,7 +60,9 @@ export interface VkViewProps {
  * the animation direction from the children order — a plain <Outlet>
  * breaks both. A lazy panel's `options.component` is undefined until its
  * chunk resolves (TanStack merges loaded options in place), so the panel
- * renders a spinner fallback until then. For the same reason TanStack's
+ * renders a spinner fallback until then — but only after a short grace
+ * delay: a fast chunk load must not flash a spinner for a frame or two,
+ * the panel just fills in seamlessly. For the same reason TanStack's
  * Outlet-driven `pendingComponent` swap never happens on its own — while
  * the panel's match is pending (loader/beforeLoad), the route's
  * `pendingComponent` renders instead of the component.
@@ -80,6 +82,13 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				.filter(match => (match as { status?: string }).status === "pending")
 				.map(match => String(match.routeId)),
 	});
+	// The grace delay: a pending match only earns the spinner fallback after
+	// staying pending for this long. Fast lazy-chunk loads (a warm cache, a
+	// small bundle) resolve within a frame or two — flashing a spinner for
+	// that blink makes every navigation feel broken; showing nothing and
+	// letting the panel fill in seamlessly looks instant. Real loaders
+	// outlive the delay and still get the fallback.
+	const stalledRouteIds = useStalledIds(pendingRouteIds, 200);
 	// a notFound match (notFound() from beforeLoad/validateSearch) must NOT
 	// render its panel component: the component's data guards assume a valid
 	// match, and the shell renders the NotFound screen for this navigation —
@@ -109,7 +118,7 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				const id = panelIdOf(child);
 				const Component = child.options.component as ComponentType | undefined;
 				const Pending = child.options.pendingComponent as ComponentType | undefined;
-				const isPending = pendingRouteIds.includes(String(child.id));
+				const isPending = stalledRouteIds.includes(String(child.id));
 				const isNotFound = notFoundRouteIds.includes(String(child.id));
 				// pending without a pendingComponent renders the FALLBACK, never
 				// the component: a lazy chunk may have already merged its
@@ -148,4 +157,37 @@ function PanelSpinnerFallback() {
 			<PanelSpinner size="l" />
 		</>
 	);
+}
+
+/**
+ * The delayed-spinner gate: mirrors `pendingIds` but only after they have
+ * stayed pending for `delayMs` continuously; clears the moment the pending
+ * set empties. `pendingRouteIds` comes from a structurally-stable
+ * `useRouterState` select — the reference only changes when the pending set
+ * actually changes, so the timer legitimately resets per navigation.
+ */
+/**
+ * The delayed-spinner gate: mirrors `pendingIds` but only after they have
+ * stayed pending for `delayMs` continuously; clears the moment the pending
+ * set empties. The state is a STRING KEY, not the array — array-typed state
+ * set from an effect re-triggers renders (a fresh reference every time)
+ * and loops; a key string with the React bail-out (same value → no
+ * re-render) cannot. `key` is stable across re-renders as long as the
+ * pending SET is the same, even if TanStack hands out a fresh array
+ * reference per render.
+ */
+function useStalledIds(pendingIds: string[], delayMs: number): string[] {
+	const key = pendingIds.join("|");
+	const [stalledKey, setStalledKey] = useState("");
+	useEffect(() => {
+		if (key === "") {
+			setStalledKey(prev => (prev === "" ? prev : ""));
+			return;
+		}
+		const timer = setTimeout(() => setStalledKey(key), delayMs);
+		return () => {
+			clearTimeout(timer);
+		};
+	}, [key, delayMs]);
+	return stalledKey === key && key !== "" ? pendingIds : [];
 }
