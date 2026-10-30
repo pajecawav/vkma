@@ -25,7 +25,9 @@ export const router = createRouter({
 	routeTree: app.routeTree,
 	// without routeMasks a modal open would put its own path in the URL
 	routeMasks: app.routeMasks,
-	history: createVkHistory().history,
+	// hash-param mode: foreign hash params (the devtools OTP link, analytics
+	// tags) don't break routing, and legacy #/path deep links still resolve
+	history: createVkHistory({ mode: "hash-param" }).history,
 	defaultNotFoundComponent: NotFound,
 	defaultPendingComponent: ScreenSpinner,
 	defaultPendingMs: 0,

@@ -8,6 +8,9 @@ import {
 	useNavigator,
 	type AppHandle,
 } from "@vkma.dev/router/preset";
+// Epic matches its children by the ELEMENT-level nav prop — VkView computes
+// its default one level down, so shells must pass nav explicitly
+import { storyKeyOf } from "@vkma.dev/router/vkui";
 import {
 	Icon28MoreHorizontal,
 	Icon28NewsfeedOutline,
@@ -116,7 +119,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 						}
 					>
 						{Object.values(app.views).map(view => (
-							<VkView key={view.id} view={view} />
+							<VkView key={view.id} view={view} nav={storyKeyOf(view.id)} />
 						))}
 					</Epic>
 				</SplitCol>
