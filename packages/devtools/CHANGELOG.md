@@ -1,5 +1,11 @@
 # @vkma.dev/devtools
 
+## 0.2.1
+
+### Patch Changes
+
+- f23dd6b: Legacy (pre-`vk_`) game launch params — `api_id`, `viewer_id`, `sid`, `secret` and friends — are collected on every surface; `appId` falls back to `api_id`, `secret` joins the blurred set
+
 ## 0.2.0
 
 ### Minor Changes

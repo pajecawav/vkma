@@ -1,5 +1,12 @@
 # @vkma.dev/router
 
+## 0.1.2
+
+### Patch Changes
+
+- 951d5f4: lazy-panel fallback renders VKUI `PanelSpinner` instead of a bare floating `Spinner`
+- 951d5f4: export `storyKeyOf` from the `/vkui` subpath — Epic/Root shells need it to pass the nav key on the element props
+
 ## 0.1.1
 
 ### Patch Changes
