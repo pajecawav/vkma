@@ -24,6 +24,8 @@ export interface VkLinkProps<TParams extends Record<string, string> = Record<str
 	 * the tap, so the arriving panel paints instantly.
 	 */
 	preload?: false | "intent" | "render" | "viewport";
+	/** Replace the history entry instead of pushing (tab/tabbar switches). */
+	replace?: boolean;
 	children?: ReactNode;
 	className?: string;
 	style?: CSSProperties;
@@ -44,6 +46,7 @@ export interface SplitVkLinkProps {
 	to: string;
 	params?: Record<string, string>;
 	preload: false | "intent" | "render" | "viewport";
+	replace?: boolean;
 	host: Record<string, unknown>;
 }
 
@@ -51,11 +54,12 @@ export interface SplitVkLinkProps {
 export function splitVkLinkProps<TParams extends Record<string, string>>(
 	props: VkLinkProps<TParams>,
 ): SplitVkLinkProps {
-	const { page, params, preload = "intent", ...host } = props;
+	const { page, params, preload = "intent", replace, ...host } = props;
 	return {
 		to: vkLinkTarget(page),
 		params,
 		preload,
+		replace,
 		host: host as Record<string, unknown>,
 	};
 }
@@ -84,11 +88,12 @@ export function createVkLink<TCompProps>(
 	return function VkLink<TParams extends Record<string, string>>(
 		props: TCompProps & VkLinkProps<TParams>,
 	): ReactNode {
-		const { page, params, preload = "intent", onClick, ...host } = props;
+		const { page, params, preload = "intent", replace, onClick, ...host } = props;
 		const options: UseLinkPropsOptions = {
 			to: vkLinkTarget(page),
 			params,
 			preload,
+			replace,
 		} as UseLinkPropsOptions;
 		const anchor = useLinkProps(options);
 		return createElement(Comp, {

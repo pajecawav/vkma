@@ -27,12 +27,15 @@ describe("splitVkLinkProps", () => {
 		expect(split.host).toEqual({ children: "Открыть", className: "my-link" });
 	});
 
-	it("an explicit preload passes through", () => {
+	it("an explicit preload and replace pass through", () => {
 		const split = splitVkLinkProps({
 			page: { path: "settings" },
 			preload: false,
+			replace: true,
 		});
 		expect(split.preload).toBe(false);
+		expect(split.replace).toBe(true);
 		expect(split.host).not.toHaveProperty("preload");
+		expect(split.host).not.toHaveProperty("replace");
 	});
 });
