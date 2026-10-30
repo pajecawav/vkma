@@ -1,9 +1,11 @@
-import { useNavigator } from "@vkma.dev/router/preset";
+import { createVkLink, useNavigator } from "@vkma.dev/router/preset";
 import { usePanelParams } from "@vkma.dev/router/react";
 import { Group, Header, PanelHeader, PanelHeaderBack, RichCell, Text } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
 import { postOf } from "../../data";
 import { postPanel } from "./feed.panel";
+
+const RichCellLink = createVkLink(RichCell);
 
 export default function PostPanel(): ReactElement {
 	const navigator = useNavigator();
@@ -29,12 +31,13 @@ export default function PostPanel(): ReactElement {
 				))}
 			</Group>
 			<Group>
-				<RichCell
+				<RichCellLink
 					subtitle="та же панель, новый параметр"
-					onClick={() => void navigator.push(postPanel, { id: String(post.id + 1) })}
+					page={postPanel}
+					params={{ id: String(post.id + 1) }}
 				>
 					Следующая запись
-				</RichCell>
+				</RichCellLink>
 			</Group>
 		</>
 	);

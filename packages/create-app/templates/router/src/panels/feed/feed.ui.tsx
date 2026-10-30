@@ -1,22 +1,23 @@
-import { useNavigator } from "@vkma.dev/router/preset";
+import { createVkLink } from "@vkma.dev/router/preset";
 import { Group, Header, PanelHeader, RichCell, Text } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
 import { POSTS } from "../../data";
 import { postPanel } from "./feed.panel";
 
-export default function FeedPanel(): ReactElement {
-	const navigator = useNavigator();
+const RichCellLink = createVkLink(RichCell);
 
+export default function FeedPanel(): ReactElement {
 	return (
 		<>
 			<PanelHeader>Лента</PanelHeader>
 			<Group header={<Header size="s">Записи</Header>}>
 				{POSTS.map(post => (
-					<RichCell
+					<RichCellLink
 						key={post.id}
 						multiline
 						subtitle={post.author}
-						onClick={() => void navigator.push(postPanel, { id: String(post.id) })}
+						page={postPanel}
+						params={{ id: String(post.id) }}
 					>
 						<Text
 							style={{
@@ -26,7 +27,7 @@ export default function FeedPanel(): ReactElement {
 						>
 							{post.text}
 						</Text>
-					</RichCell>
+					</RichCellLink>
 				))}
 			</Group>
 		</>

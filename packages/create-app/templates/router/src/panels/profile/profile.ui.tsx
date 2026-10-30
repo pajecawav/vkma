@@ -1,8 +1,11 @@
 import bridge from "@vkma.dev/bridge";
-import { useNavigator } from "@vkma.dev/router/preset";
+import { createVkLink, useNavigator } from "@vkma.dev/router/preset";
 import { Avatar, Caption, CellButton, Group, Header, PanelHeader, Title } from "@vkontakte/vkui";
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
+import { profileSettingsPanel } from "./profile.panel";
+
+const CellButtonLink = createVkLink(CellButton);
 
 async function fetchUser() {
 	return bridge.send("VKWebAppGetUserInfo");
@@ -44,12 +47,12 @@ export default function ProfilePanel(): ReactElement {
 				</div>
 			</Group>
 			<Group header={<Header size="s">Навигация</Header>}>
-				<CellButton
-					subtitle="push — экран в стеке историй профиля"
-					onClick={() => void navigator.push({ to: "/settings" })}
+				<CellButtonLink
+					subtitle="router link — панель прогреется до тапа"
+					page={profileSettingsPanel}
 				>
 					Настройки профиля
-				</CellButton>
+				</CellButtonLink>
 				<CellButton
 					subtitle="глобальная модалка — с любой панели"
 					onClick={() => void navigator.showGlobalModal("settings")}

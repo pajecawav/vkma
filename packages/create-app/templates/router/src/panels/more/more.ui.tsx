@@ -1,7 +1,10 @@
-import { useNavigator } from "@vkma.dev/router/preset";
+import { createVkLink, useNavigator } from "@vkma.dev/router/preset";
 import { Icon28Notifications } from "@vkontakte/icons";
 import { Cell, CellButton, Footer, Group, PanelHeader } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
+import { notificationsPanel } from "./more.panel";
+
+const CellLink = createVkLink(Cell);
 
 export default function MorePanel(): ReactElement {
 	const navigator = useNavigator();
@@ -10,13 +13,13 @@ export default function MorePanel(): ReactElement {
 		<>
 			<PanelHeader>Ещё</PanelHeader>
 			<Group>
-				<Cell
+				<CellLink
 					before={<Icon28Notifications />}
 					chevron="always"
-					onClick={() => void navigator.push({ to: "/notifications" })}
+					page={notificationsPanel}
 				>
 					Уведомления
-				</Cell>
+				</CellLink>
 				<CellButton
 					subtitle="глобальная модалка — с любой панели"
 					onClick={() => void navigator.showGlobalModal("settings")}
