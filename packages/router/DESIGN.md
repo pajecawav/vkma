@@ -165,6 +165,12 @@ hard-won invariants; `AGENTS.md` distills them for agents.
   spin forever on an unloaded lazy chunk). `AppRootShell` resolves its
   active view through the same shared helper (`owningViewIdOf`), so the
   package — not every shell — owns the TanStack notFound-match sniffing.
+- **`createVkLink(Comp)`**: turn ANY component (VKUI `CellButton`, your own
+  button) into a router link with the typed Page-object targets
+  `navigator.push` accepts, plus route preloading on hover/focus/touchstart
+  (`preload="intent"` by default — TanStack `useLinkProps` under the hood).
+  A loaded panel component is never replaced by a spinner; the pending
+  fallback shows only after a 200ms grace delay.
 - **Parity navigator**: `useNavigator()` → `{ push, replace, back,
   backToFirst, showModal, hideModal, showPopout, hidePopout }` on top of
   TanStack `navigate`/history; the router instance stays reachable. A

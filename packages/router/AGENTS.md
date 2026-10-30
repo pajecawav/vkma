@@ -20,7 +20,9 @@ read it before touching anything here.
 - `src/vkui` — `VkView` (static children), `Modals` (sequential
   choreography host), `Popouts` (history-state registry), `NotFound`.
 - `src/preset` — `createApp` typed builders (views/panels/modals/popouts →
-  TanStack tree + registries), `AppRootShell` auto-shell, `useNavigator`.
+  TanStack tree + registries), `AppRootShell` auto-shell, `useActiveStory`,
+  `useNavigator`, `createVkLink` (typed Page-object router links for
+  arbitrary components, `preload="intent"`).
 - `playground` — the showcase playground (a VKUI navigation-guide style
   app: Epic/Tabbar + desktop sidebar, four stories driven by the router).
   It CONSUMES the package (`pnpm --filter @vkma.dev/router build` before
