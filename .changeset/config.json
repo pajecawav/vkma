@@ -15,6 +15,7 @@
 		"@vkma.dev/ui",
 		"@vkma.dev/protocol",
 		"@vkma.dev/playground-mini-app",
-		"@vkma.dev/playground-mini-app-rsbuild"
+		"@vkma.dev/playground-mini-app-rsbuild",
+		"@vkma.dev/router-playground"
 	]
 }
