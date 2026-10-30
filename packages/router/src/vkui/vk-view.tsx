@@ -1,7 +1,7 @@
 import type { AnyRoute } from "@tanstack/react-router";
 import { useRouterState } from "@tanstack/react-router";
 import { Panel, PanelHeader, PanelSpinner, View } from "@vkontakte/vkui";
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { usePanelsHistory } from "../react/hooks.ts";
 
 export interface PanelStaticData {
@@ -118,28 +118,46 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				const id = panelIdOf(child);
 				const Component = child.options.component as ComponentType | undefined;
 				const Pending = child.options.pendingComponent as ComponentType | undefined;
+				// the grace-gated pending set (useStalledIds): a fast chunk load
+				// never shows a spinner, the panel just fills in seamlessly
 				const isPending = stalledRouteIds.includes(String(child.id));
 				const isNotFound = notFoundRouteIds.includes(String(child.id));
-				// pending without a pendingComponent renders the FALLBACK, never
-				// the component: a lazy chunk may have already merged its
-				// component while the match is still pending (or parked on a
-				// notFound boundary up the tree) — the component's data guards
-				// assume a resolvable match and would throw in a hidden panel
+				// A LOADED COMPONENT ALWAYS WINS — even while its match is still
+				// pending. The fallback may only appear when the component is
+				// genuinely absent (chunk not merged yet): replacing rendered
+				// content with a spinner after it already appeared reads as
+				// broken. (Panels reading route data through the /react hooks
+				// are safe to render in a transient pending render; raw
+				// TanStack data hooks are not — see the AGENTS invariants.)
+				let content: ReactNode;
+				if (isNotFound) {
+					// parked on a notFound boundary up the tree — the component's
+					// data guards assume a resolvable match and would throw in a
+					// hidden panel; the shell renders the NotFound screen anyway
+					content = null;
+				} else if (Component !== undefined) {
+					// A LOADED COMPONENT ALWAYS WINS — even while its match is
+					// still pending. The fallback may only appear when the
+					// component is genuinely absent (chunk not merged yet):
+					// replacing rendered content with a spinner after it already
+					// appeared reads as broken. (Panels reading route data
+					// through the /react hooks are safe to render in a transient
+					// pending render; raw TanStack data hooks are not — see the
+					// AGENTS invariants.)
+					content = <Component />;
+				} else if (isPending && Pending !== undefined) {
+					// an explicit pendingComponent is deliberate — no grace delay
+					content = <Pending />;
+				} else if (isPending) {
+					content = <PanelSpinnerFallback />;
+				} else {
+					// chunk in flight, inside the grace window: an empty panel
+					// beats a spinner that would flash for a blink
+					content = null;
+				}
 				return (
 					<Panel key={id} nav={id}>
-						{isPending ? (
-							Pending !== undefined ? (
-								<Pending />
-							) : (
-								<PanelSpinnerFallback />
-							)
-						) : isNotFound ? (
-							<PanelSpinnerFallback />
-						) : Component ? (
-							<Component />
-						) : (
-							<PanelSpinnerFallback />
-						)}
+						{content}
 					</Panel>
 				);
 			})}

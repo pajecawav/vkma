@@ -2,4 +2,4 @@
 "@vkma.dev/router": patch
 ---
 
-panel pending fallback appears only after a 200ms grace delay — fast lazy-chunk loads no longer flash a spinner
+panel pending fallback: 200ms grace delay, and a loaded component is never replaced by a spinner
