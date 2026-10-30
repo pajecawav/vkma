@@ -1,5 +1,11 @@
 # @vkma.dev/bridge
 
+## 0.2.2
+
+### Patch Changes
+
+- 3cb8a59: classic `subscribe` now returns an unsubscribe function
+
 ## 0.2.1
 
 ### Patch Changes

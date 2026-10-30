@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/bridge",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Independent VK Bridge for VK Mini Apps — drop-in API, built-in devtools tap",
 	"type": "module",
 	"license": "MIT",

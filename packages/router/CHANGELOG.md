@@ -1,5 +1,11 @@
 # @vkma.dev/router
 
+## 0.1.1
+
+### Patch Changes
+
+- d03bb33: `useActiveStory(app)` for Epic/Root shells + `VkView` nav defaults to the story key
+
 ## 0.1.0
 
 ### Minor Changes

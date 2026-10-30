@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/inspect",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "Remote VK Mini Apps inspector — the vkma.dev panel over WebRTC, for pages the dev-server plugin and the extension can never reach",
 	"private": true,
 	"type": "module",

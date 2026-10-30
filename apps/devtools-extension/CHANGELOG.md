@@ -1,5 +1,13 @@
 # @vkma.dev/devtools-extension
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [3cb8a59]
+    - @vkma.dev/bridge@0.2.2
+    - @vkma.dev/devtools@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes
