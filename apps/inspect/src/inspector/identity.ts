@@ -1,4 +1,4 @@
-import type { ClientInfo } from "@vkma.dev/protocol";
+import { isLaunchParamKey, type ClientInfo } from "@vkma.dev/protocol";
 import { CLAIM_WINDOW_MS } from "../shared/config.ts";
 
 /**
@@ -37,7 +37,7 @@ function getOrCreateClientId(): string {
 export function collectLaunchParams(): Record<string, string> {
 	const params: Record<string, string> = {};
 	for (const [key, value] of new URLSearchParams(window.location.search)) {
-		if (key.startsWith("vk_") || key === "api_url" || key === "sign") {
+		if (isLaunchParamKey(key)) {
 			params[key] = value;
 		}
 	}
@@ -58,10 +58,13 @@ export function detectPlatform(launchParams: Record<string, string>): string {
 		return "ios";
 	}
 	const inFrame = window.self !== window.top;
+	// vk_platform is the modern value; legacy games pass platform=mobile_*
 	const mobile =
 		launchParams["vk_platform"] === "mobile_web" ||
+		(launchParams["platform"] ?? "").startsWith("mobile") ||
 		/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-	if (!launchParams["vk_app_id"] && !inFrame) {
+	// legacy games identify by api_id, not vk_app_id
+	if (!launchParams["vk_app_id"] && !launchParams["api_id"] && !inFrame) {
 		return "standalone";
 	}
 	if (mobile) {
@@ -132,7 +135,7 @@ export function createIdentity(onClientIdChange: () => void): CollectorIdentity 
 				url,
 				platform,
 				bridge,
-				appId: launchParams["vk_app_id"],
+				appId: launchParams["vk_app_id"] ?? launchParams["api_id"],
 				launchParams,
 			};
 		},

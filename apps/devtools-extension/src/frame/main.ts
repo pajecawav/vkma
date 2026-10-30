@@ -14,7 +14,7 @@
  *   own instance with a reserved request_id prefix.
  */
 import { createVKBridge } from "@vkma.dev/bridge";
-import type { ClientInfo } from "@vkma.dev/protocol";
+import { isLaunchParamKey, type ClientInfo } from "@vkma.dev/protocol";
 import {
 	RELAY_CHANNEL,
 	type TapEvent,
@@ -32,7 +32,12 @@ const BRIDGE_WAIT_MS = 10_000;
 
 const params = new URLSearchParams(window.location.search);
 const framed = window !== window.top;
-const looksLikeMiniApp = params.has("sign") || params.has("vk_app_id") || params.has("vk_platform");
+const looksLikeMiniApp =
+	params.has("sign") ||
+	params.has("vk_app_id") ||
+	params.has("vk_platform") ||
+	// legacy games: the pre-vk_ era launches by api_id (often sign-less)
+	params.has("api_id");
 
 if (framed && looksLikeMiniApp) {
 	void main();
@@ -41,7 +46,7 @@ if (framed && looksLikeMiniApp) {
 function launchParams(): Record<string, string> {
 	const collected: Record<string, string> = {};
 	for (const [key, value] of params) {
-		if (key.startsWith("vk_") || key === "api_url" || key === "sign") {
+		if (isLaunchParamKey(key)) {
 			collected[key] = value;
 		}
 	}
@@ -140,7 +145,7 @@ async function main(): Promise<void> {
 			url: window.location.href,
 			platform: params.get("vk_platform") === "mobile_web" ? "mobile-web" : "iframe",
 			bridge: mode === "direct",
-			appId: params.get("vk_app_id") ?? undefined,
+			appId: params.get("vk_app_id") ?? params.get("api_id") ?? undefined,
 			launchParams: launchParams(),
 		};
 	}

@@ -92,6 +92,52 @@ export type CaptureMode = "direct" | "spy";
 export const RELAY_CHANNEL = "__vkmaExt";
 
 /**
+ * The pre-`vk_` launch params of VK's legacy games/api.php era — games
+ * (tapclap & co) still launch with `api_id`/`viewer_id`/`sid` instead of
+ * the modern `vk_*` set. Hand-curated on purpose: launch params are the
+ * ONLY page data a collector may ship, so foreign query keys (`code`,
+ * `email`, utm…) must never match. `secret` and friends are credentials —
+ * the UI blurs them (SENSITIVE_PARAMS in @vkma.dev/ui).
+ */
+export const LEGACY_LAUNCH_KEYS: ReadonlySet<string> = new Set([
+	"access_token",
+	"access_token_settings",
+	"ads_app_id",
+	"api_id",
+	"api_settings",
+	"api_url",
+	"auth_key",
+	"group_id",
+	"group_whitelist_scopes",
+	"hash",
+	"is_app_user",
+	"is_favorite",
+	"is_secure",
+	"is_widescreen",
+	"language",
+	"lc_name",
+	"parent_language",
+	"platform",
+	"referrer",
+	"secret",
+	"sid",
+	"sign",
+	"sign_keys",
+	"stats_hash",
+	"timestamp",
+	"user_id",
+	"viewer_id",
+	"viewer_type",
+	"whitelist_scopes",
+]);
+
+/** True for every launch param a collector may report: `vk_*`, the
+ * classic standalone keys and the legacy game set above. */
+export function isLaunchParamKey(key: string): boolean {
+	return key.startsWith("vk_") || LEGACY_LAUNCH_KEYS.has(key);
+}
+
+/**
  * Panel-facing connection states. The devtools SPA maps devframe transport
  * states onto these; the extension adapter reports its werpc port health.
  */

@@ -19,7 +19,7 @@ export type {
 	WireEvent,
 } from "@vkma.dev/protocol";
 
-export { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
+export { CLIENT_PALETTE, clientColorIndex, isLaunchParamKey } from "@vkma.dev/protocol";
 
 /**
  * Wire names, `vkma`-namespaced by hand on the node side (the panel and

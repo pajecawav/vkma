@@ -5,7 +5,7 @@ import {
 } from "@vkma.dev/ui/fab-position";
 import { defineRpcFunction } from "devframe";
 import { connectDevframe } from "devframe/client";
-import { VKMA_RPC, type ClientInfo } from "../shared/protocol.ts";
+import { VKMA_RPC, isLaunchParamKey, type ClientInfo } from "../shared/protocol.ts";
 
 /**
  * The inject collector: runs inside the mini app's page (loaded from
@@ -117,7 +117,7 @@ function getOrCreateClientId(): string {
 function collectLaunchParams(): Record<string, string> {
 	const params: Record<string, string> = {};
 	for (const [key, value] of new URLSearchParams(window.location.search)) {
-		if (key.startsWith("vk_") || key === "api_url" || key === "sign") {
+		if (isLaunchParamKey(key)) {
 			params[key] = value;
 		}
 	}
@@ -211,10 +211,13 @@ function watchClientIds(): (() => void) | undefined {
 
 function detectPlatform(): ClientInfo["platform"] {
 	const inFrame = window.self !== window.top;
+	// vk_platform is the modern value; legacy games pass platform=mobile_*
 	const mobile =
 		launchParams["vk_platform"] === "mobile_web" ||
+		(launchParams["platform"] ?? "").startsWith("mobile") ||
 		/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-	if (!launchParams["vk_app_id"] && !inFrame) {
+	// legacy games identify by api_id, not vk_app_id
+	if (!launchParams["vk_app_id"] && !launchParams["api_id"] && !inFrame) {
 		return "standalone";
 	}
 	if (mobile) {
@@ -244,7 +247,7 @@ function clientInfo(): ClientInfo {
 		url: window.location.href,
 		platform,
 		bridge: bridgeGlobal !== undefined,
-		appId: launchParams["vk_app_id"],
+		appId: launchParams["vk_app_id"] ?? launchParams["api_id"],
 		launchParams,
 	};
 }
