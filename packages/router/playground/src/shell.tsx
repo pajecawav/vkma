@@ -8,6 +8,7 @@ import {
 	useNavigator,
 	type AppHandle,
 } from "@vkma.dev/router/preset";
+import { storyKeyOf } from "@vkma.dev/router/vkui";
 import {
 	Icon28MessageOutline,
 	Icon28MoreHorizontal,
@@ -158,7 +159,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 						}
 					>
 						{Object.values(app.views).map(view => (
-							<VkView key={view.id} view={view} />
+							<VkView key={view.id} view={view} nav={storyKeyOf(view.id)} />
 						))}
 					</Epic>
 				</SplitCol>

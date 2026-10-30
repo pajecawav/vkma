@@ -1,4 +1,4 @@
-export { VkView, panelIdOf, type VkViewProps } from "./vkui/vk-view.tsx";
+export { VkView, panelIdOf, storyKeyOf, type VkViewProps } from "./vkui/vk-view.tsx";
 export {
 	Modals,
 	ModalPageSurface,

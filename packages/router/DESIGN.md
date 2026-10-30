@@ -63,7 +63,9 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 - **Nav key convention**: `<VkView>`'s VKUI nav id defaults to the story
   key — the view key the app author wrote in `defineView("feed")` —
   derived from the view route id (`/view:feed`). Epic/Root match children
-  by getNavId, so the raw route id never leaks into the UI layer.
+  by getNavId over the ELEMENT props, so Epic shells must pass
+  `nav={storyKeyOf(view.id)}` explicitly (the internal default serves
+  standalone single-view shells, one level below Epic's inspection).
 - **Static children rendering**: `<View>` renders its panel routes as
   always-mounted JSX children and feeds VKUI's `activePanel` from the
   matched route — VKUI hides the inactive panels itself and animates

@@ -1,6 +1,6 @@
 import type { AnyRoute } from "@tanstack/react-router";
 import { useRouterState } from "@tanstack/react-router";
-import { Panel, Spinner, View } from "@vkontakte/vkui";
+import { Panel, PanelHeader, PanelSpinner, View } from "@vkontakte/vkui";
 import { type ComponentType } from "react";
 import { usePanelsHistory } from "../react/hooks.ts";
 
@@ -139,9 +139,13 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 }
 
 function PanelSpinnerFallback() {
+	// The canonical VKUI loading screen: a header stub keeps the layout
+	// structure while the lazy chunk is in flight, and PanelSpinner centers
+	// itself inside the panel (a bare Spinner floats at the top of a void).
 	return (
-		<div style={{ paddingTop: 64, textAlign: "center" }}>
-			<Spinner size="l" />
-		</div>
+		<>
+			<PanelHeader />
+			<PanelSpinner size="l" />
+		</>
 	);
 }
