@@ -1,12 +1,13 @@
 import {
+	createVkLink,
 	Modals,
 	NotFound,
 	Popouts,
 	useActiveStory,
 	VkView,
 	useInflate,
-	useNavigator,
 	type AppHandle,
+	type PanelPage,
 } from "@vkma.dev/router/preset";
 // Epic matches its children by the ELEMENT-level nav prop — VkView computes
 // its default one level down, so shells must pass nav explicitly
@@ -30,17 +31,20 @@ import {
 } from "@vkontakte/vkui";
 import type { ComponentType } from "react";
 
+const CellLink = createVkLink(Cell);
+const TabbarItemLink = createVkLink(TabbarItem);
+
 interface TabConfig {
 	id: string;
 	label: string;
-	to: "/" | "/feed" | "/more";
+	page: PanelPage;
 	Icon: ComponentType;
 }
 
 const TABS: TabConfig[] = [
-	{ id: "profile", label: "Профиль", to: "/", Icon: Icon28UserCircleOutline },
-	{ id: "feed", label: "Лента", to: "/feed", Icon: Icon28NewsfeedOutline },
-	{ id: "more", label: "Ещё", to: "/more", Icon: Icon28MoreHorizontal },
+	{ id: "profile", label: "Профиль", page: { path: "index" }, Icon: Icon28UserCircleOutline },
+	{ id: "feed", label: "Лента", page: { path: "feed" }, Icon: Icon28NewsfeedOutline },
+	{ id: "more", label: "Ещё", page: { path: "more" }, Icon: Icon28MoreHorizontal },
 ];
 
 /**
@@ -58,12 +62,8 @@ const TABS: TabConfig[] = [
  */
 export function AppShell({ app }: { app: AppHandle }) {
 	useInflate(app);
-	const navigator = useNavigator();
 	const activeStory = useActiveStory(app);
 	const { viewWidth } = useAdaptivityConditionalRender();
-	const onTab = (to: TabConfig["to"]) => {
-		void navigator.replace({ to });
-	};
 
 	if (activeStory === null) {
 		// an unmatched URL must show the NotFound screen — falling back to
@@ -84,15 +84,16 @@ export function AppShell({ app }: { app: AppHandle }) {
 						<Panel>
 							<PanelHeader />
 							<Group>
-								{TABS.map(({ id, label, to, Icon }) => (
-									<Cell
+								{TABS.map(({ id, label, page, Icon }) => (
+									<CellLink
 										key={id}
 										before={<Icon />}
 										activated={activeStory === id}
-										onClick={() => onTab(to)}
+										page={page}
+										replace
 									>
 										{label}
-									</Cell>
+									</CellLink>
 								))}
 							</Group>
 						</Panel>
@@ -104,15 +105,16 @@ export function AppShell({ app }: { app: AppHandle }) {
 						tabbar={
 							viewWidth.tabletMinus && (
 								<Tabbar className={viewWidth.tabletMinus.className}>
-									{TABS.map(({ id, label, to, Icon }) => (
-										<TabbarItem
+									{TABS.map(({ id, label, page, Icon }) => (
+										<TabbarItemLink
 											key={id}
 											label={label}
 											selected={activeStory === id}
-											onClick={() => onTab(to)}
+											page={page}
+											replace
 										>
 											<Icon />
-										</TabbarItem>
+										</TabbarItemLink>
 									))}
 								</Tabbar>
 							)
