@@ -1,5 +1,12 @@
 # @vkma.dev/router
 
+## 0.1.3
+
+### Patch Changes
+
+- fee36b1: panel pending fallback: 200ms grace delay, and a loaded component is never replaced by a spinner
+- 84490b1: `createVkLink` — typed Page-object router links for arbitrary components, with `preload="intent"` route preloading
+
 ## 0.1.2
 
 ### Patch Changes
