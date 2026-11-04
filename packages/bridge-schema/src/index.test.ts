@@ -42,7 +42,7 @@ expectTypeOf<ReceiveEventMap["VKWebAppMyCustomMethod"]>().toEqualTypeOf<{
 	result: "VKWebAppMyCustomMethodResult";
 	failed: "VKWebAppMyCustomMethodFailed";
 }>();
-// Positive membership checks — these fail to compile if the augmentation above
+// Positive membership checks. These fail to compile if the augmentation above
 // stopped merging into the catalogue.
 expectTypeOf<RequestPropsMap>().toHaveProperty("VKWebAppMyCustomMethod");
 expectTypeOf<ReceiveDataMap>().toHaveProperty("VKWebAppMyCustomEvent");
@@ -51,7 +51,7 @@ expectTypeOf<ReceiveDataMap>().toHaveProperty("VKWebAppMyCustomEvent");
 // Parity with the reference devDependency: the catalogue must cover exactly
 // the event set of the installed @vkontakte/vk-bridge (bumping the catalog
 // version without touching events.json shows up here immediately).
-// The augmented keys are subtracted — augmentation is program-wide, so the
+// The augmented keys are subtracted. Augmentation is program-wide, so the
 // custom events above would otherwise shadow the upstream comparison.
 // ---------------------------------------------------------------------------
 
@@ -95,7 +95,7 @@ expectTypeOf<RequestPropsMap["VKWebAppShowWallPostBox"]>().toExtend<
 expectTypeOf<UpstreamRequestPropsMap["VKWebAppShowWallPostBox"]>().toExtend<
 	RequestPropsMap["VKWebAppShowWallPostBox"]
 >();
-// The wiring is data — it must match upstream exactly, irregular pairs included.
+// The wiring is data. It must match upstream exactly, irregular pairs included.
 expectTypeOf<ReceiveEventMap["VKWebAppGetAuthToken"]>().toEqualTypeOf<{
 	result: "VKWebAppAccessTokenReceived";
 	failed: "VKWebAppAccessTokenFailed";
@@ -103,7 +103,7 @@ expectTypeOf<ReceiveEventMap["VKWebAppGetAuthToken"]>().toEqualTypeOf<{
 // Deliberate divergence: VKWebAppShare answers `{ result: [...] }`, not the
 // bare array upstream types (VKCOM/vk-bridge#554, confirmed by VK; upstream
 // PR #555 pending). If this line starts failing against upstream, they
-// finally merged the same shape — drop the divergence.
+// finally merged the same shape. Drop the divergence.
 expectTypeOf<ReceiveDataMap["VKWebAppShare"]>().toEqualTypeOf<{
 	result: LinkShareResult[];
 }>();

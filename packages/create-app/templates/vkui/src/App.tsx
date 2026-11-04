@@ -36,7 +36,7 @@ const TABS: TabConfig[] = [
 /**
  * The app shell, following the VKUI navigation guide: SplitLayout with a
  * header stub, a sidebar of Cells on desktop and Epic + Tabbar on mobile.
- * Navigation lives in local state here — see the router preset for the
+ * Navigation lives in local state here. See the router preset for the
  * URL-driven version of the same structure.
  */
 export function App() {

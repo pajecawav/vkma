@@ -4,14 +4,14 @@
  *
  * The bridge wrapper always emits into the tap. When no devtools collector
  * is attached (production), the buffer fills up once and every later emit
- * costs a dropped-head push — effectively free.
+ * costs a dropped-head push, effectively free.
  */
 
 export interface BridgeTapEvent {
 	/** Monotonic within a page load; pairs a `response` with its `send`. */
 	id: number;
 	ts: number;
-	/** `out` — the app called send; `in` — VK sent something to the app. */
+	/** `out`, the app called send; `in`, VK sent something to the app. */
 	direction: "out" | "in";
 	/** `send` (out), `response` (in, paired), `event` (in, unsolicited). */
 	kind: "send" | "response" | "event";

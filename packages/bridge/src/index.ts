@@ -1,14 +1,14 @@
 /**
- * @vkma.dev/bridge — an independent VK Bridge for VK Mini Apps.
+ * @vkma.dev/bridge, an independent VK Bridge for VK Mini Apps.
  *
  * The default export is a ready singleton; `createVKBridge` builds additional
  * instances. Every instance carries an always-on tap (see `onSend`/`onEvent`
- * and `tap`), which is what the VKMA devtools observe — no opt-in required.
+ * and `tap`), which is what the VKMA devtools observe. No opt-in required.
  *
  * Merely importing this module publishes the page-wide devtools handle on
  * `globalThis.__vkmaDevtoolsBridge` (`{ tap, send }`), so the devtools
- * collector — loaded as a separate script, never sharing a module graph with
- * the app — can observe and drive the app's own bridge instance.
+ * collector, loaded as a separate script, never sharing a module graph with
+ * the app, can observe and drive the app's own bridge instance.
  */
 
 import packageJson from "../package.json" with { type: "json" };
@@ -62,12 +62,12 @@ export * from "@vkma.dev/bridge-schema";
 
 /**
  * The devtools bridge handle shared by every copy of this module on the page,
- * exposed on `globalThis` under a stable key so the devtools collector —
- * loaded as a separate script, never sharing a module graph with the app —
+ * exposed on `globalThis` under a stable key so the devtools collector,
+ * loaded as a separate script, never sharing a module graph with the app,
  * can observe and drive the app's own bridge instance:
  *
- * - `tap` — replay-buffered stream of sends, paired responses and events
- * - `send` — execute a bridge send inside the app (devtools "execute")
+ * - `tap`, replay-buffered stream of sends, paired responses and events
+ * - `send`, execute a bridge send inside the app (devtools "execute")
  */
 const GLOBAL_KEY = "__vkmaDevtoolsBridge";
 
@@ -88,7 +88,7 @@ function sharedTap(): BridgeTap {
 	const tap = createTap();
 	globalScope[GLOBAL_KEY] = {
 		tap,
-		// The collector executes arbitrary method names — the handle stays
+		// The collector executes arbitrary method names. The handle stays
 		// stringly typed by design.
 		send: (name, params) => bridge.send(name as never, params as never),
 	};

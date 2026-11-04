@@ -7,12 +7,12 @@ const CellButtonLink = createVkLink(CellButton);
 
 /**
  * The lazy panel chunk: split out of the main bundle, resolved on match.
- * The loader data is HERE before the first mount — no loading state needed.
+ * The loader data is HERE before the first mount, no loading state needed.
  */
 export default function ProfilePanel(): ReactElement {
 	const navigator = useNavigator();
-	// the hook returns undefined until the panel's loader has settled —
-	// in THIS panel it resolves before the first mount, normalize to null
+	// the hook returns undefined until the panel's loader has settled.
+	// In THIS panel it resolves before the first mount, normalize to null
 	const user = usePanelLoaderData(profilePanel)?.user ?? null;
 
 	return (

@@ -2,16 +2,17 @@ import type { VKBridgeEvent } from "@vkma.dev/bridge";
 import type { ColorSchemeType, SafeAreaInsets } from "@vkontakte/vkui";
 
 /**
- * The fields the host may put into a config-shaped payload: incoming
- * `VKWebAppUpdateConfig` / `VKWebAppGetConfig` results / `VKWebAppUpdateInsets`
- * and outgoing... no — read-only overlap. Each field is optional because hosts
- * differ by platform (iOS sends insets + scheme in the config, web sends
- * appearance separately, and the adaptivity pass only lives in mobile hosts).
+ * The read-side fields the host may put into a config-shaped payload,
+ * covering `VKWebAppUpdateConfig` events, `VKWebAppGetConfig` results
+ * and the insets field of `VKWebAppUpdateInsets`. Each field is optional
+ * because hosts differ by platform (iOS ships insets and scheme inside
+ * the config, the web host sends appearance separately, and only mobile
+ * hosts carry the adaptivity field).
  */
 export interface BridgeConfigData {
 	/** Legacy scheme name (`bright_light`, `space_gray`, `vkcom_dark`, ...). */
 	scheme?: string;
-	/** Modern appearance — preferred over `scheme` when present. */
+	/** Modern appearance, preferred over `scheme` when present. */
 	appearance?: ColorSchemeType;
 	/** Screen insets against the host chrome (present in webviews). */
 	insets?: Partial<SafeAreaInsets>;
@@ -32,7 +33,7 @@ export interface BridgeAdaptivity {
 const DARK_SCHEMES = new Set(["space_gray", "vkcom_dark"]);
 
 /**
- * Appearance (`VKWebAppUpdateConfig` payload → VKUI's ColorSchemeType) — the
+ * Appearance (`VKWebAppUpdateConfig` payload → VKUI's ColorSchemeType). The
  * modern `appearance` field wins, the legacy name is mapped, anything unknown
  * is `light` (`vk-bridge-react`'s `resolveAppearance` parity).
  */
@@ -60,7 +61,7 @@ export function resolveAdaptivity(data: BridgeConfigData): BridgeAdaptivity {
 	};
 }
 
-/** Height of the virtual keyboard — insets above this are the host's keyboard, not layout. */
+/** Height of the virtual keyboard. Insets above this are the host's keyboard, not layout. */
 const VIRTUAL_KEYBOARD_HEIGHT = 150;
 
 /**

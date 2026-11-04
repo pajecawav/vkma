@@ -5,7 +5,7 @@ export interface Post {
 	comments: string[];
 }
 
-/** Demo content for the feed story — replace with your API calls. */
+/** Demo content for the feed story. Replace with your API calls. */
 export const POSTS: Post[] = [
 	{
 		id: 1,

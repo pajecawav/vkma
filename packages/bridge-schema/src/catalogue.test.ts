@@ -3,7 +3,7 @@ import { catalogue as schemaCatalogue } from "@vkma.dev/bridge-schema/schema";
 import { expect, test } from "vitest";
 
 // ---------------------------------------------------------------------------
-// The light `./catalogue` entrypoint mirrors the `./schema` wiring tables —
+// The light `./catalogue` entrypoint mirrors the `./schema` wiring tables,
 // two copies of the same facts, kept honest by this comparison.
 // ---------------------------------------------------------------------------
 

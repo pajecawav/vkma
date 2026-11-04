@@ -7,7 +7,7 @@ async function fetchUser() {
 
 /**
  * The minimal bridge demo: a typed `send` (request → response) and a page
- * subscription to host events (`subscribe` returns its own off — a perfect
+ * subscription to host events (`subscribe` returns its own off, a perfect
  * useEffect cleanup).
  */
 export function App() {

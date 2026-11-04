@@ -192,7 +192,7 @@ export type VKBridgeEvent<M extends AnyReceiveMethodName> =
 export type VKBridgeSubscribeHandler = (event: VKBridgeEvent<AnyReceiveMethodName>) => void;
 
 /**
- * VK Bridge interface — the classic drop-in surface.
+ * VK Bridge interface, the classic drop-in surface.
  */
 export interface VKBridge {
 	/**
@@ -218,7 +218,7 @@ export interface VKBridge {
 	 * Adds an event listener. It will be called any time a data is received.
 	 *
 	 * @param listener A callback to be invoked on every event receive.
-	 * @returns An unsubscribe function — beyond upstream parity, where the
+	 * @returns An unsubscribe function, beyond upstream parity, where the
 	 * only way out is the `unsubscribe` method.
 	 */
 	subscribe: (listener: VKBridgeSubscribeHandler) => () => void;

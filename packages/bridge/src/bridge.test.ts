@@ -264,7 +264,7 @@ describe("timeout and abort", () => {
 			bridge.send("VKWebAppGetUserInfo", undefined, { signal: controller.signal }),
 		).rejects.toMatchObject({ name: "AbortError" });
 
-		// Nothing touched the wire — the tap must reflect that.
+		// Nothing touched the wire. The tap must reflect that.
 		expect(seen).toEqual([]);
 	});
 });
@@ -387,7 +387,7 @@ describe("subscribe fan-out", () => {
 		respond("VKWebAppGetUserInfoResult", { id: 1 }, "__vkma_1");
 
 		// Upstream parity: promisifySend is itself a subscriber, so user
-		// handlers observe the wire event as-is — request_id not yet
+		// handlers observe the wire event as-is, request_id not yet
 		// stripped; only the promise resolution strips it.
 		expect(await promise).toEqual({ id: 1 });
 		expect(seen).toEqual([{ id: 1, request_id: "__vkma_1" }]);
@@ -439,13 +439,13 @@ describe("subscribe fan-out", () => {
 		respond("SetSupportedHandlers", { supportedHandlers: ["VKWebAppInit"] }, "__vkma_1");
 		expect(await first).toBe(false);
 
-		// An unsolicited push (no request_id — the host volunteered it).
+		// An unsolicited push (the host volunteered it, so no request_id).
 		respond("SetSupportedHandlers", {
 			supportedHandlers: ["VKWebAppInit", "VKWebAppOpenCodeReader"],
 		});
 		const roundTrips = parentPostMessage.mock.calls.length;
 		expect(await bridge.supportsAsync("VKWebAppOpenCodeReader")).toBe(true);
-		// Answered from the refreshed cache — no new round trip.
+		// Answered from the refreshed cache, no new round trip.
 		expect(parentPostMessage.mock.calls.length).toBe(roundTrips);
 	});
 });

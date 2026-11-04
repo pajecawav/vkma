@@ -7,7 +7,7 @@ export interface Preset {
 }
 
 /**
- * The preset registry — data, not code. Every preset builds on the base
+ * The preset registry, data, not code. Every preset builds on the base
  * template (Vite + React + @vkma.dev bridge, devtools and deploy); an overlay
  * adds dependencies (its package.json fragment) and overrides source files.
  */

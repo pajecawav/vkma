@@ -3,7 +3,7 @@ import { LEGACY_LAUNCH_KEYS, isLaunchParamKey } from "./index.ts";
 
 /**
  * The launch-params curation is a trust boundary: it decides the ONLY
- * page data a collector may ship, so a foreign key must never match —
+ * page data a collector may ship, so a foreign key must never match,
  * neither OAuth/OIDC debris nor lookalikes of the legacy game set.
  */
 describe("isLaunchParamKey", () => {

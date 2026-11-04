@@ -10,7 +10,7 @@ import {
 } from "@vkontakte/vkui";
 
 /**
- * App-wide overlays: the global settings modal (openable from any panel —
+ * App-wide overlays: the global settings modal (openable from any panel,
  * the URL stays masked) and the logout popout (a transient overlay).
  */
 export function SettingsModal() {

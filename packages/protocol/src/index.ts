@@ -4,7 +4,7 @@
  * Kept structurally identical to `BridgeTapEvent` from `@vkma.dev/bridge`
  * but declared here so no consumer depends on the bridge at runtime.
  *
- * This module is types + tiny pure helpers only — no zod, so bundlers that
+ * This module is types + tiny pure helpers only. No zod, so bundlers that
  * never touch `./schemas` (the devtools node side) don't pull it in.
  */
 
@@ -75,9 +75,9 @@ export interface DevtoolsState {
 }
 
 /**
- * How a client's bridge traffic is captured. `direct` — the page runs
+ * How a client's bridge traffic is captured. `direct`. The page runs
  * `@vkma.dev/bridge`, its tap is authoritative (replay buffer, pairing,
- * execute through the app's own instance). `spy` — a foreign bridge
+ * execute through the app's own instance). `spy`. A foreign bridge
  * (`@vkontakte/vk-bridge` in prod or third-party apps): events are
  * reconstructed from a second bridge instance in the isolated world
  * (host → app) and the top-frame vk-connect sniffer (app → host).
@@ -92,12 +92,12 @@ export type CaptureMode = "direct" | "spy";
 export const RELAY_CHANNEL = "__vkmaExt";
 
 /**
- * The pre-`vk_` launch params of VK's legacy games/api.php era — games
+ * The pre-`vk_` launch params of VK's legacy games/api.php era. Games
  * (tapclap & co) still launch with `api_id`/`viewer_id`/`sid` instead of
  * the modern `vk_*` set. Hand-curated on purpose: launch params are the
  * ONLY page data a collector may ship, so foreign query keys (`code`,
- * `email`, utm…) must never match. `secret` and friends are credentials —
- * the UI blurs them (SENSITIVE_PARAMS in @vkma.dev/ui).
+ * `email`, utm…) must never match. `secret` and friends are credentials.
+ * The UI blurs them (SENSITIVE_PARAMS in @vkma.dev/ui).
  */
 export const LEGACY_LAUNCH_KEYS: ReadonlySet<string> = new Set([
 	"access_token",

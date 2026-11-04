@@ -3,7 +3,7 @@
  * and the always-on tap.
  *
  * Transports (checked lazily on every call, unlike the load-time caches of
- * the reference implementation — same in practice, testable in unit tests):
+ * the reference implementation, same in practice, testable in unit tests):
  *
  * - Android WebView: `window.AndroidBridge[method](JSON.stringify(props))`
  * - iOS WebView: `window.webkit.messageHandlers[method].postMessage(props)`
@@ -12,7 +12,7 @@
  *   `type: "vk-connect"` envelope; receive side listens to `message`
  * - WebViews receive via `CustomEvent("VKWebAppEvent")`
  *
- * The wire format is the platform interface — the host clients on the other
+ * The wire format is the platform interface. The host clients on the other
  * side of these bridges define it, which is why the envelopes above are
  * reproduced exactly.
  */
@@ -106,7 +106,7 @@ function clientWindow(): (Window & typeof globalThis) | undefined {
 
 /**
  * The native side of the host (AndroidBridge / webkit / ReactNativeWebView)
- * lives on the window but is not part of any DOM typing — tests install
+ * lives on the window but is not part of any DOM typing. Tests install
  * fakes under the same keys.
  */
 function hostGlobal(): Record<string, unknown> | undefined {
@@ -158,7 +158,7 @@ export function isDesktopVk(): boolean {
 export interface RequestIdPolicy {
 	/**
 	 * Own generator of outgoing request ids; receives an incrementing
-	 * sequence. The default mints `__vkma_<n>` — the ids the devtools tap
+	 * sequence. The default mints `__vkma_<n>`, the ids the devtools tap
 	 * pairs responses by.
 	 */
 	generator?: (sequence: number) => string | number;
@@ -233,7 +233,7 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 		)?.messageHandlers;
 		// Sending data through the iOS bridge
 		if (typeof iosHandlers?.[method]?.postMessage === "function") {
-			// Not a window.postMessage — the native handler takes no targetOrigin.
+			// Not a window.postMessage. The native handler takes no targetOrigin.
 			// oxlint-disable-next-line unicorn/require-post-message-target-origin
 			(iosHandlers[method].postMessage as (data: unknown) => void)(props);
 			return;
@@ -244,7 +244,7 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 			const reactNative = host?.["ReactNativeWebView"] as {
 				postMessage: (data: string) => void;
 			};
-			// Not a window.postMessage — the RN handler takes no targetOrigin.
+			// Not a window.postMessage. The RN handler takes no targetOrigin.
 			// oxlint-disable-next-line unicorn/require-post-message-target-origin
 			reactNative.postMessage(JSON.stringify({ handler: method, params: props }));
 			return;
@@ -256,11 +256,11 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 		if (win && parent && typeof parent.postMessage === "function") {
 			// A hoisted handle, not a literal `parent.postMessage(...)` call:
 			// Facebook's Instant Games static analysis rejects builds that
-			// contain the literal substring (VKCOM/vk-bridge#290) — the same
+			// contain the literal substring (VKCOM/vk-bridge#290), the same
 			// pattern as the `iosBridge`/`reactNative` handles above.
 			const webBridge = parent;
 			// The mini app does not know the host origin ahead of time (vk.ru,
-			// m.vk.ru, mobile clients) — "*" is the wire contract here.
+			// m.vk.ru, mobile clients). "*" is the wire contract here.
 			// oxlint-disable-next-line unicorn/require-post-message-target-origin
 			webBridge.postMessage(
 				{
@@ -307,7 +307,7 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 			return;
 		}
 
-		// The host assigns this iframe its frame id — internal protocol,
+		// The host assigns this iframe its frame id. Internal protocol,
 		// not delivered to subscribers.
 		if (type === "VKWebAppSettings") {
 			webFrameId = typeof frameId === "string" ? frameId : webFrameId;
@@ -318,13 +318,13 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 	}
 
 	/**
-	 * Upstream parity: every incoming event reaches `[...subscribers]` —
+	 * Upstream parity: every incoming event reaches `[...subscribers]`,
 	 * paired responses included, with the raw wire data (upstream's
 	 * promisifySend is itself a subscriber and strips request_id only for
 	 * the promise). Snapshot iteration: a handler may unsubscribe mid-fan.
 	 */
 	function fanOutToSubscribers(type: string, data: unknown): void {
-		// The wire type is stringly here by design — handleEvent dispatches
+		// The wire type is stringly here by design. `handleEvent` dispatches
 		// arbitrary host envelopes; the public subscribe surface narrows it.
 		// The slice is a snapshot: a handler may unsubscribe mid-fan-out,
 		// and shifting live iteration would skip its neighbours (upstream
@@ -467,7 +467,7 @@ export function createVKBridge(version: string, options: VkmaBridgeOptions = {})
 			};
 
 			// Timeout and abort must fire even for unpaired sends (no
-			// pending slot to consult — e.g. inject: false without a caller
+			// pending slot to consult, e.g. inject: false without a caller
 			// request_id): the caller asked for a bounded call. For paired
 			// sends the pending entry doubles as the "already answered"
 			// guard against a double rejection.

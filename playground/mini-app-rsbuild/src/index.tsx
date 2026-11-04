@@ -8,7 +8,7 @@ void bridge.send("VKWebAppInit");
 
 // A fake VK client: vk-bridge posts `{ type: 'vk-connect', handler, params }`
 // to the parent frame and waits for `{ type: methodName, data }` back. In a
-// standalone tab the parent is this very window, so we echo the requests —
+// standalone tab the parent is this very window, so we echo the requests,
 // including the devtools' `request_id`, which resolves the send promises.
 window.addEventListener("message", event => {
 	const payload = event.data as {

@@ -11,7 +11,7 @@ export interface CliArgs {
 export class ArgsError extends Error {}
 
 /**
- * Hand-rolled flag parser — the CLI surface is five flags, a parser library
+ * Hand-rolled flag parser. The CLI surface is five flags, a parser library
  * would outweigh it. Supports `--flag value` and `--flag=value`; everything
  * after a bare `--` is ignored (npm forwards it from `npm create`).
  */

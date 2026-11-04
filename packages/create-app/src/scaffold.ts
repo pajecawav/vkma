@@ -112,7 +112,7 @@ async function readFragment(path: string): Promise<PackageJsonFragment> {
 	return JSON.parse(await readFile(path, "utf8")) as PackageJsonFragment;
 }
 
-/** Apply the overlay's `remove` list — base files replaced by the preset's structure. */
+/** Apply the overlay's `remove` list, base files replaced by the preset's structure. */
 async function applyOverlayRemovals(overlayDir: string, targetDir: string): Promise<void> {
 	const manifestPath = join(overlayDir, "overlay.json");
 	if (!existsSync(manifestPath)) {

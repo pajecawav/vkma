@@ -6,7 +6,7 @@ import { join } from "node:path";
 /**
  * End-to-end template check: scaffold every preset through the built CLI,
  * install its dependencies and run its build (tsc --noEmit + vite build).
- * Requires `pnpm build` first — it runs dist/cli.js against the registry.
+ * Requires `pnpm build` first. It runs dist/cli.js against the registry.
  */
 const presets = ["base", "vkui", "router"];
 const root = mkdtempSync(join(tmpdir(), "vkma-create-app-e2e-"));

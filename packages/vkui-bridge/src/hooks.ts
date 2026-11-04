@@ -13,7 +13,7 @@ import {
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
- * Appearance straight from the host — only while EMBEDDED (inside a webview
+ * Appearance straight from the host, only while EMBEDDED (inside a webview
  * or hosting frame; a plain browser owns its system theme, the VKUI default
  * is `undefined` there): streamed from `VKWebAppUpdateConfig` and
  * bootstrapped with a `VKWebAppGetConfig` round trip (`useAppearance` parity).
@@ -52,10 +52,10 @@ export function useBridgeAppearance(): ColorSchemeType | undefined {
 }
 
 /**
- * Safe-area insets straight from the host — streamed from
+ * Safe-area insets straight from the host, streamed from
  * `VKWebAppUpdateInsets` (and config-carrying insets, see `resolveInsets`),
- * ready for `AppRoot`'s `safeAreaInsets` (`useInsets` parity; no embed gate —
- * VKUI itself decides what to do with the absence).
+ * ready for `AppRoot`'s `safeAreaInsets` (`useInsets` parity; no embed
+ * gate, VKUI itself decides what to do with the absence).
  */
 export function useBridgeInsets(): SafeAreaInsets | undefined {
 	const [insets, setInsets] = useState<SafeAreaInsets | null>(null);
@@ -74,7 +74,7 @@ export function useBridgeInsets(): SafeAreaInsets | undefined {
 const INITIAL_ADAPTIVITY: BridgeAdaptivity = { type: null, viewportWidth: 0, viewportHeight: 0 };
 
 /**
- * Host's adaptivity verdict — streamed in with every `VKWebAppUpdateConfig`
+ * Host's adaptivity verdict, streamed in with every `VKWebAppUpdateConfig`
  * and bootstrapped with `VKWebAppGetConfig`, holding the last received
  * values. Feed it to `transformVKBridgeAdaptivity` and `AdaptivityProvider`
  * (`useAdaptivity` parity).

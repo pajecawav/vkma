@@ -70,7 +70,7 @@ describe("parseURLSearchParamsForGetLaunchParams", () => {
 	});
 
 	test("parses a real OK (Odnoklassniki) launch: OK-only keys, *_ok platform, boolean toggles", () => {
-		// Captured live from https://ok.ru/app/vk_test_vkapp — the OK host sends
+		// Captured live from https://ok.ru/app/vk_test_vkapp. The OK host sends
 		// vk_* keys the vk.com catalogue never had, booleans where vk.com sends
 		// 0/1, and *_ok platform values (dev.vk.ru/ru/ok/development/launch-parameters).
 		const params = parseURLSearchParamsForGetLaunchParams(
@@ -126,7 +126,7 @@ describe("the default instance", () => {
 		);
 		await expect(promise).resolves.toEqual({ id: 7 });
 		// The first tap subscription replays the buffer, so earlier sends of
-		// this file show up too — assert on the newest event.
+		// this file show up too. Assert on the newest event.
 		expect(sent.at(-1)?.name).toBe("VKWebAppGetUserInfo");
 		expect(incoming.at(-1)).toBe("VKWebAppGetUserInfoResult");
 

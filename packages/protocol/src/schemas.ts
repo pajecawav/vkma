@@ -1,5 +1,5 @@
 /**
- * Zod schemas for the extension's trust boundaries — every place where
+ * Zod schemas for the extension's trust boundaries. Every place where
  * data crosses from a page world into extension code is parsed here and
  * anything invalid is dropped silently (like the collector drops
  * `vk-connect` transport chatter): the top-frame sniffer's window
@@ -11,7 +11,7 @@ import { RELAY_CHANNEL } from "./index.ts";
 
 /** A tap event before the collecting side stamps `seq`/`clientId`.
  * `ts` must be a finite millisecond timestamp inside the ECMAScript date
- * range — anything else is malformed foreign input and drops silently
+ * range. Anything else is malformed foreign input and drops silently
  * (one out-of-range value must never reach a `new Date(ts)` render sink). */
 export const tapEventSchema = z.object({
 	/** Monotonic within a page load; pairs a `response` with its `send`. */
@@ -78,7 +78,7 @@ export type ExecuteInput = z.infer<typeof executeInputSchema>;
 
 /**
  * The MAIN-world relay's window.postMessage payloads. `__vkmaExt` is the
- * reserved channel name (constant in the zod-free package root — the
+ * reserved channel name (constant in the zod-free package root. The
  * relay itself must not depend on zod); `kind` selects the shape.
  */
 export { RELAY_CHANNEL } from "./index.ts";
