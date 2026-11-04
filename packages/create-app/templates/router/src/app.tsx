@@ -1,6 +1,10 @@
 import { createRouter } from "@tanstack/react-router";
-import { createApp, createVkHistory, NotFound } from "@vkma.dev/router/preset";
-import { ScreenSpinner } from "@vkontakte/vkui";
+import {
+	createApp,
+	createVkHistory,
+	DefaultPanelPendingComponent,
+	NotFound,
+} from "@vkma.dev/router/preset";
 import { LogoutPopout, SettingsModal } from "./overlays";
 import { feedView } from "./panels/feed/feed.panel";
 import { moreView } from "./panels/more/more.panel";
@@ -25,11 +29,17 @@ export const router = createRouter({
 	routeTree: app.routeTree,
 	// without routeMasks a modal open would put its own path in the URL
 	routeMasks: app.routeMasks,
-	// hash-param mode: foreign hash params (the devtools OTP link, analytics
-	// tags) don't break routing, and legacy #/path deep links still resolve
-	history: createVkHistory({ mode: "hash-param" }).history,
+	// hash mode (old createHashRouter parity): the hash IS the location,
+	// #/item/7; the host preloader and native back keep native semantics.
+	// Legacy `#?path=` deep links resolve too. Caveats vs hash-param mode:
+	// foreign hash params can't ride the location — the devtools OTP link
+	// `#devframe_otp=…` boots the router on an unmatched path (NotFound
+	// screen) and only a reload clears it after devframe strips itself;
+	// if that dev flow matters more than plain `#/path` URLs, use the
+	// "hash-param" mode instead.
+	history: createVkHistory({ mode: "hash" }).history,
 	defaultNotFoundComponent: NotFound,
-	defaultPendingComponent: ScreenSpinner,
+	defaultPendingComponent: DefaultPanelPendingComponent,
 	defaultPendingMs: 0,
 });
 
