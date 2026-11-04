@@ -1,24 +1,19 @@
-import bridge from "@vkma.dev/bridge";
-import { createVkLink, useNavigator } from "@vkma.dev/router/preset";
+import { createVkLink, useNavigator, usePanelLoaderData } from "@vkma.dev/router/preset";
 import { Avatar, Caption, CellButton, Group, Header, PanelHeader, Title } from "@vkontakte/vkui";
-import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { profileSettingsPanel } from "./profile.panel";
+import { profilePanel, profileSettingsPanel } from "./profile.panel";
 
 const CellButtonLink = createVkLink(CellButton);
 
-async function fetchUser() {
-	return bridge.send("VKWebAppGetUserInfo");
-}
-
-/** The lazy panel chunk: split out of the main bundle, resolved on match. */
+/**
+ * The lazy panel chunk: split out of the main bundle, resolved on match.
+ * The loader data is HERE before the first mount — no loading state needed.
+ */
 export default function ProfilePanel(): ReactElement {
 	const navigator = useNavigator();
-	const [user, setUser] = useState<Awaited<ReturnType<typeof fetchUser>> | null>(null);
-
-	useEffect(() => {
-		void fetchUser().then(setUser, () => setUser(null));
-	}, []);
+	// the hook returns undefined until the panel's loader has settled —
+	// in THIS panel it resolves before the first mount, normalize to null
+	const user = usePanelLoaderData(profilePanel)?.user ?? null;
 
 	return (
 		<>
