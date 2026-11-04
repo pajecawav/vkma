@@ -19,7 +19,7 @@ npm run build   # type-checks (tsc) and bundles into dist/
 
 ## Deploy
 
-1. Create a mini app at <https://dev.vk.com/mini-apps> and put its id into `vkma-deploy.config.ts` (`appId`).
+1. Create a mini app at <https://dev.vk.com/admin/apps-list> and put its id into `vkma-deploy.config.ts` (`appId`).
 2. Authorize once: `npx vkma-deploy login`.
 3. Deploy: `npm run deploy`.
 
