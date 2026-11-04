@@ -1,0 +1,27 @@
+{
+	"name": "@vkma.dev/create-app-template-base",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc --noEmit && vite build",
+		"preview": "vite preview",
+		"deploy": "vkma-deploy"
+	},
+	"dependencies": {
+		"@vkma.dev/bridge": "0.2.2",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	},
+	"devDependencies": {
+		"@devframes/vite": "1.2.6",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"@vkma.dev/deploy": "0.2.1",
+		"@vkma.dev/devtools": "0.2.0",
+		"@vitejs/plugin-react": "6.1.2",
+		"devframe": "1.2.6",
+		"typescript": "7.0.2",
+		"vite": "8.3.4"
+	}
+}

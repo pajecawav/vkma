@@ -36,6 +36,11 @@ jobs:
             - name: Test
               run: pnpm test
 
+            - name: Scaffold & build every create-app preset
+              run: |
+                  pnpm --filter @vkma.dev/create-app build
+                  pnpm --filter @vkma.dev/create-app test:e2e
+
             - name: Upload extension artifacts
               uses: actions/upload-artifact@v7
               with:

@@ -12,6 +12,10 @@ export default defineOxlintConfig({
 		"**/packages/bridge-schema/schema",
 		"**/packages/bridge-schema/src/generated",
 		"**/packages/bridge-schema/src/index.ts",
+		// create-app templates are scaffold payloads with no tsconfig context
+		// here — type-aware rules resolve everything to `any` and misfire;
+		// the e2e job type-checks them for real (tsc in generated apps)
+		"**/packages/create-app/templates",
 	],
 	rules: {
 		"typescript/explicit-member-accessibility": "error",

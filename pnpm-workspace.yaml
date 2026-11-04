@@ -6,6 +6,7 @@ packages:
 
 catalog:
     "@base-ui/react": ^1.9.0
+    "@clack/prompts": ^1.8.1
     "@pajecawav/json2code": ^0.2.0
     "@tanstack/history": ^1.162.0
     "@tanstack/react-router": ^1.170.46
