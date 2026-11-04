@@ -5,7 +5,7 @@
  * code into `process.exitCode`. Everything testable lives in `cli/main.ts`.
  *
  * `process.exitCode` (not `process.exit`) so pending piped-stdout writes
- * drain before the process ends — `--json | jq` must never lose tail
+ * drain before the process ends. `--json | jq` must never lose tail
  * records. The event loop exits on its own once main() resolves.
  */
 

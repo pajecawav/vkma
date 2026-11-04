@@ -32,7 +32,7 @@ export interface RequestEvent {
 	readonly url?: string;
 	readonly method?: string;
 	readonly status?: number;
-	/** Response body preview (truncated) — present on "response" events. */
+	/** Response body preview (truncated), present on "response" events. */
 	readonly body?: string;
 	readonly attempt?: number;
 	readonly maxAttempts?: number;
@@ -105,7 +105,7 @@ function aborted(): DeployError {
 
 /**
  * Composes the user signal with a hard per-request deadline, so a hung
- * server cannot outlive the operation's budget — deadline checks between
+ * server cannot outlive the operation's budget. Deadline checks between
  * requests are advisory on their own (undici's own timeouts default to
  * ~300s). The caller distinguishes a deadline abort from a user abort by
  * checking its own signal.
@@ -122,7 +122,7 @@ export function deadlineSignal(signal: AbortSignal | undefined, deadlineAt: numb
 /**
  * Masks secret values inside response body previews: JSON string values of
  * token fields and `access_token`-style query parameters. The JSON key
- * `"code"` is deliberately untouched — VK error payloads use it for error
+ * `"code"` is deliberately untouched. VK error payloads use it for error
  * codes, which must stay readable in verbose diagnostics.
  */
 const SECRET_JSON_RE = /("(?:access_token|refresh_token)"\s*:\s*)"[^"]*"/g;
@@ -147,7 +147,7 @@ export function bodyPreview(text: string): string {
 	if (masked.length > BODY_PREVIEW_LIMIT) {
 		// Never cut an astral character in half (lone surrogates break
 		// JSON.stringify and terminal decoding), and report real UTF-8
-		// bytes — VK error messages are frequently Cyrillic (2-3 bytes
+		// bytes. VK error messages are frequently Cyrillic (2-3 bytes
 		// per character, not 1 per code unit).
 		const cut = masked.slice(0, BODY_PREVIEW_LIMIT).replace(/[\uD800-\uDBFF]$/, "");
 		return `${cut}… (${TEXT_ENCODER.encode(masked).length} bytes)`;
@@ -222,7 +222,7 @@ function finalizeTransportError(error: unknown, maxAttempts: number): unknown {
 /**
  * GET with one retry budget: transport errors and retriable statuses
  * back off with jitter, bounded by `maxAttempts` (default 3) for the
- * whole operation — never per layer.
+ * whole operation, never per layer.
  */
 export async function httpGet(
 	url: string,
@@ -309,7 +309,7 @@ export async function callApi(
 				const code = Number(error["error_code"] ?? 0);
 
 				if (code === 6) {
-					// Retriable marker — finalized as a VK api error once the
+					// Retriable marker, finalized as a VK api error once the
 					// budget runs out.
 					throw new DeployError("network", "VK error 6 (rate limit)", {
 						code: VK_RATE_LIMIT_RETRY,

@@ -258,7 +258,7 @@ describe("waitForQueue", () => {
 	});
 
 	it("cuts an in-flight poll at the deadline, not only between polls", async () => {
-		// A poll that never resolves on its own — only the abort path can end
+		// A poll that never resolves on its own. Only the abort path can end
 		// it, like a hung server connection. Deadline checks between polls
 		// are advisory on their own.
 		const fetchImpl: FetchLike = (url, init) => {
@@ -315,7 +315,7 @@ describe("waitForQueue", () => {
 			timeoutMs: 40,
 			confirmCode: async () => {
 				// Reading the code from a phone takes longer than the whole
-				// deadline — the budget must not burn while the user types.
+				// deadline. The budget must not burn while the user types.
 				await new Promise(resolve => setTimeout(resolve, 90));
 				return "4242";
 			},

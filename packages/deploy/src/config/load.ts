@@ -2,8 +2,8 @@
  * Config file loading.
  *
  * Supported files:
- * - `vkma-deploy.config.{ts,mts,js,mjs,json}` — ours (camelCase)
- * - `vk-hosting-config.json` — legacy upstream format (mapped by `legacy.ts`)
+ * - `vkma-deploy.config.{ts,mts,js,mjs,json}`, ours (camelCase)
+ * - `vk-hosting-config.json`, legacy upstream format (mapped by `legacy.ts`)
  *
  * TypeScript is supported with zero dependencies via the native
  * `module.stripTypeScriptTypes()` (Node >= 22.13). Because a `data:` URL
@@ -105,7 +105,7 @@ async function loadTypeScriptConfig(filePath: string): Promise<DeployConfigInput
 		`.vkma-deploy.config.tmp-${randomBytes(6).toString("hex")}.mjs`,
 	);
 	// 0600: the stripped config is a world-readable copy of everything in
-	// the file — including an inlined access token, if the user put one there.
+	// the file, including an inlined access token, if the user put one there.
 	await fs.writeFile(tempPath, stripped, { encoding: "utf8", mode: 0o600 });
 	try {
 		const module = await importModule(tempPath);
@@ -121,7 +121,7 @@ async function loadTypeScriptConfig(filePath: string): Promise<DeployConfigInput
  * `module.stripTypeScriptTypes` prints a warning on first use in every
  * process; for a config loader that is pure noise. We shim
  * `process.emitWarning` strictly around the synchronous strip call and
- * restore the original immediately — no lasting global mutation. This is a
+ * restore the original immediately, no lasting global mutation. This is a
  * documented exception to the "library never touches process" invariant.
  */
 function stripTypesQuietly(source: string, filePath: string): string {

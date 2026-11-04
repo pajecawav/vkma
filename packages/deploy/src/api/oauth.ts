@@ -29,7 +29,7 @@ export interface LoginOptions extends HttpOptions {
 	readonly onAuthUrl?: (url: string) => void;
 	/**
 	 * Opens the confirmation URL in a browser. The library never spawns
-	 * processes — the CLI layer injects its opener here, and only for
+	 * processes. The CLI layer injects its opener here, and only for
 	 * interactive (TTY) runs.
 	 */
 	readonly openBrowser?: (url: string) => void;
@@ -61,7 +61,7 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 		const error =
 			isRecord(authJson) && isRecord(authJson["error"]) ? authJson["error"] : authJson;
 		// Raw server payloads belong in details (redacted at print time),
-		// never in the message — messages flow into terminals and --json.
+		// never in the message. Messages flow into terminals and --json.
 		throw new DeployError("api", "OAuth failed to issue an auth code", {
 			code: "E_AUTH_CODE",
 			details: { response: error },
@@ -89,7 +89,7 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 		options.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
 	// Surfaced in the timeout error: "not confirmed yet" and a permanently
 	// broken poll (bad client_id, revoked app) are both non-200 answers, so
-	// we cannot fail fast — but we can explain what kept happening.
+	// we cannot fail fast. But we can explain what kept happening.
 	let lastPollError: string | undefined;
 
 	const loginTimeoutError = (): DeployError =>
@@ -132,7 +132,7 @@ export async function loginDeviceFlow(options: LoginOptions): Promise<LoginResul
 				throw error;
 			}
 			// Not confirmed yet (VK answers non-200 until the user approves)
-			// or a transient network hiccup — keep polling.
+			// or a transient network hiccup. Keep polling.
 			lastPollError = (error as Error).message;
 			options.onEvent?.({
 				kind: "retry",

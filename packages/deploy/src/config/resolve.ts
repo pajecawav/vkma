@@ -4,7 +4,7 @@
  * Discovery walks up from `cwd` (or the explicit `--config` path) and at each
  * directory checks, in order: `vkma-deploy.config.{ts,mts,js,mjs,json}`, then
  * the legacy `vk-hosting-config.json`. The first file found wins and stops the
- * search — the closest file beats the file type. There is deliberately no
+ * search. The closest file beats the file type. There is deliberately no
  * merging between config files: one file is the whole truth.
  *
  * Layering: CLI overrides > environment variables > config file > defaults.
@@ -70,7 +70,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 
 	// Merge layers: file, then env, then CLI overrides. Later layers win.
 	const merged: Record<string, unknown> = { ...file?.config };
-	// `$schema` is editor metadata, not config — strip it before the
+	// `$schema` is editor metadata, not config. Strip it before the
 	// provenance loop so it never haunts meta.sources.
 	delete merged["$schema"];
 	if (file) {
@@ -101,7 +101,7 @@ export async function resolveConfig(options: ResolveConfigOptions = {}): Promise
 
 	const config: ResolvedConfig = {
 		appId: merged["appId"] as number,
-		// Whitespace-only paths normalize to unset — an empty staticPath must
+		// Whitespace-only paths normalize to unset. An empty staticPath must
 		// never resolve to cwd and zip the whole project.
 		staticPath: normalizeMaybePath(merged["staticPath"] as string | undefined) || undefined,
 		bundle: normalizeMaybePath(merged["bundle"] as string | undefined) || undefined,
@@ -191,7 +191,7 @@ function validateCrossFields(config: ResolvedConfig): void {
 export interface ReadinessHints {
 	/** A legacy (vk-hosting-config.json) file was discovered. */
 	readonly legacy?: boolean;
-	/** Directory discovery started from — used in the no-config hint. */
+	/** Directory discovery started from, used in the no-config hint. */
 	readonly cwd?: string;
 	/** Whether any config file was discovered. */
 	readonly hasConfigFile?: boolean;
@@ -203,8 +203,8 @@ export interface ReadinessHints {
  * Operation readiness for the deploy flow. appId presence belongs here,
  * not in resolution: `login` demands it too, but on its own terms (an
  * interactive prompt or login-specific guidance). Resolution stays
- * consumer-agnostic; the deploy contract — a deployable bundle and the
- * app to deploy it to — is enforced here at the mouth of the flow.
+ * consumer-agnostic; the deploy contract, a deployable bundle and the
+ * app to deploy it to, is enforced here at the mouth of the flow.
  */
 export function assertDeployReadiness(config: ResolvedConfig, hints: ReadinessHints = {}): void {
 	const issues: ConfigIssue[] = [];

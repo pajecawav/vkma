@@ -192,7 +192,7 @@ describe("CliLogger", () => {
 			});
 			logger.spinnerStart("First phase");
 			logger.spinnerStart("Second phase");
-			// One interval, one frame per 80 ms tick — a second timer would
+			// One interval, one frame per 80 ms tick. A second timer would
 			// print two frames per tick and leak after spinnerStop.
 			const frames = () => out.filter(text => text.startsWith("\r"));
 			vi.advanceTimersByTime(80);
@@ -231,7 +231,7 @@ describe("CliLogger", () => {
 
 	it("erases each progress frame so shorter frames leave no ghost tail", () => {
 		// A retry drops the speed text and a unit boundary ("999.9 KB" ->
-		// "1.0 MB") shrinks the sizes — both make a frame shorter than its
+		// "1.0 MB") shrinks the sizes. Both make a frame shorter than its
 		// predecessor, and without an erase sequence the tail would glue
 		// onto the new frame ("1.7 MB/s   /s" was a real report).
 		const out: string[] = [];
@@ -256,7 +256,7 @@ describe("CliLogger", () => {
 
 	it("shrinks the progress bar to fit a narrow terminal in one line", () => {
 		// A frame wider than the terminal wraps, and \r can only redraw
-		// the last screen line — earlier wrapped lines would linger as
+		// the last screen line. Earlier wrapped lines would linger as
 		// progress-history ghosts.
 		const out: string[] = [];
 		const logger = new CliLogger({
@@ -274,7 +274,8 @@ describe("CliLogger", () => {
 		const first = out[0] ?? "";
 		const visible = first.startsWith(erase) ? first.slice(erase.length) : first;
 		expect(visible.length).toBeLessThanOrEqual(60);
-		// The bar is genuinely shrunk, not just the trailing spaces cut.
+		// The bar itself shrinks; trimming trailing spaces alone would
+		// leave this line longer.
 		expect(visible).toMatch(/\[[#]{4,}[-]{4,}\]/);
 	});
 
@@ -293,9 +294,9 @@ describe("CliLogger", () => {
 			stderr: { write: () => {} },
 		});
 		const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-		logger.progress(0, 10 * MB); // no mark yet — no speed
+		logger.progress(0, 10 * MB); // no mark yet, no speed
 		await sleep(350);
-		logger.progress(2 * MB, 10 * MB); // window passed — speed computed and drawn
+		logger.progress(2 * MB, 10 * MB); // window passed, speed computed and drawn
 		const speedFrames = out.slice(-1);
 		expect(speedFrames.join("")).toMatch(/[\d.]+ [KMG]?B\/s/);
 		// Two fast frames (< 300 ms apart): the sticky speed stays drawn.

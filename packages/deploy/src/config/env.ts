@@ -55,7 +55,7 @@ function firstDefined(
 /**
  * Reads env vars into config overrides.
  * `VKMA_*` wins over its `MINI_APPS_*` alias when both are set.
- * Throws {@link ConfigValidationError} on malformed values — unlike upstream,
+ * Throws {@link ConfigValidationError} on malformed values, unlike upstream,
  * which silently fell back to defaults on a bad `MINI_APPS_ENVIRONMENT`.
  */
 export function readEnv(env: Record<string, string | undefined>): EnvParseResult {
@@ -101,7 +101,7 @@ export function readEnv(env: Record<string, string | undefined>): EnvParseResult
 	if (timeoutRaw !== undefined) {
 		const timeout = Number.parseInt(timeoutRaw.value, 10);
 		// Round-trip like appId: "1e3"/"600s" must not silently truncate to
-		// 1/600 — a user asking for 1000 seconds got a 1-second deadline.
+		// 1/600. A user asking for 1000 seconds got a 1-second deadline.
 		if (
 			!Number.isInteger(timeout) ||
 			timeout < 1 ||

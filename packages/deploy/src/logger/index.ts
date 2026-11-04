@@ -109,7 +109,7 @@ export class CliLogger {
 	}
 
 	/**
-	 * Writes text verbatim, bypassing redaction — for values the user must
+	 * Writes text verbatim, bypassing redaction, for values the user must
 	 * see in full, e.g. the single-use OAuth confirm URL (its `code=`
 	 * parameter would otherwise be masked by the redactor). Every other
 	 * write goes through `emit()`/`fail()` and is redacted.
@@ -145,7 +145,7 @@ export class CliLogger {
 			}
 			return;
 		}
-		// Pretty: never print into a live spinner frame — clear the line
+		// Pretty: never print into a live spinner frame. Clear the line
 		// first and resume the animation after ("Waiting…GET -> 200" glue
 		// was a real-world verbose-mode report).
 		const resume = this.pauseSpinner();
@@ -289,13 +289,13 @@ export class CliLogger {
 		const now = Date.now();
 		// Speed is sticky: recomputed at most every ~300 ms against a rate
 		// mark, but drawn in every frame afterwards. Recomputing per frame
-		// (with per-chunk marks) would blink — most frames are < 200 ms
+		// (with per-chunk marks) would blink. Most frames are < 200 ms
 		// apart and would render no speed at all. Upstream parity until
 		// this fix: the speed only *appeared* stuck to the screen because
 		// frames drew over each other without an erase.
 		let speedText = "";
 		if (this.progressMark !== undefined && sent < this.progressMark.sent) {
-			// An upload retry restarted from zero — speed math must not
+			// An upload retry restarted from zero. Speed math must not
 			// go negative against the previous attempt's mark.
 			this.progressMark = undefined;
 			this.speedText = "";
@@ -314,10 +314,10 @@ export class CliLogger {
 		// Erase before drawing: the previous frame may have been longer
 		// (a retry drops the speed text, a unit boundary "999.9 KB" ->
 		// "1.0 MB" shrinks the sizes) and its tail would glue onto the
-		// new frame — "1.7 MB/s   /s" was a real report.
+		// new frame. "1.7 MB/s   /s" was a real report.
 		//
 		// Narrow terminals: a frame wider than `columns` wraps, and \r
-		// can only redraw the last screen line — earlier wrapped lines
+		// can only redraw the last screen line. Earlier wrapped lines
 		// would linger as ghosts. Shrink the bar to keep one line.
 		const columns = this.stdout.columns ?? 80;
 		const build = (barWidth: number): string => {
@@ -357,8 +357,8 @@ export class CliLogger {
 		if (this.mode === "quiet") {
 			return;
 		}
-		// Multi-line block: hold the spinner for the whole block, not just
-		// the header line.
+		// Multi-line block: hold the spinner across the whole block,
+		// header line included.
 		const resume = this.pauseSpinner();
 		this.info(this.paint(`URLs changed for ${environment}:`, "green"));
 		if (this.ciUrls) {
@@ -382,7 +382,7 @@ export class CliLogger {
 
 	/**
 	 * A mid-run action the user must take (e.g. "confirm the push on your
-	 * phone") — bold with air around it, so it cannot drown in the queue
+	 * phone"), bold with air around it, so it cannot drown in the queue
 	 * output. JSON mode emits a structured `action_required` event.
 	 */
 	public actionRequired(message: string): void {

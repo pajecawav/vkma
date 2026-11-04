@@ -20,7 +20,7 @@ import {
 export const DeployConfigSchema = Type.Object(
 	{
 		// JSDoc here surfaces on `Static` property hovers (TypeBox keeps
-		// doc comments through Static/Omit — verified with the TS 5.9
+		// doc comments through Static/Omit, verified with the TS 5.9
 		// language service). The `description` options below feed the
 		// shipped JSON Schema file; keep both in sync when editing.
 		/** Allows `$schema` in JSON configs for autocomplete without failing validation. */

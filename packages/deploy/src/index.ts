@@ -2,11 +2,11 @@
  * Public API of `@vkma.dev/deploy`.
  *
  * Library surface:
- * - `deploy()` — full deploy flow (resolves config automatically when needed)
- * - `resolveConfig()` — discovery + merge + validation only
- * - `defineDeployConfig()` — type helper for config files
+ * - `deploy()`, full deploy flow (resolves config automatically when needed)
+ * - `resolveConfig()`, discovery + merge + validation only
+ * - `defineDeployConfig()`, type helper for config files
  * - granular building blocks (zip, upload, queue, login, API client)
- * - typed errors (`DeployError`) — the library never calls `process.exit`
+ * - typed errors (`DeployError`). The library never calls `process.exit`
  */
 
 export { DeployError, ConfigValidationError, isDeployError, toDeployError } from "./errors.ts";

@@ -76,8 +76,8 @@ describe("loginDeviceFlow", () => {
 			timeoutMs: 10,
 		}).catch((e: unknown) => e)) as DeployError;
 		expect(error.code).toBe("E_LOGIN_TIMEOUT");
-		// Messages pass through the redactor, which masks code= parameters —
-		// the URL the user needs must not be mangled inside the message.
+		// Messages pass through the redactor, which masks code= parameters.
+		// The URL the user needs must not be mangled inside the message.
 		expect(error.message).not.toContain("code_auth");
 		const details = error.details as { confirmUrl?: string };
 		expect(details.confirmUrl).toContain("code_auth?stage=check&code=A&revoke=1");

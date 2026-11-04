@@ -64,7 +64,7 @@ describe("readEnv", () => {
 		expect(() => readEnv({ VKMA_TIMEOUT: "0" })).toThrow(/VKMA_TIMEOUT/);
 		expect(() => readEnv({ VKMA_TIMEOUT: "-5" })).toThrow(/positive integer/);
 		// parseInt without a round-trip check used to truncate these to 1
-		// (or 600) — a user asking for 1000 seconds got a 1-second deadline.
+		// (or 600). A user asking for 1000 seconds got a 1-second deadline.
 		expect(() => readEnv({ VKMA_TIMEOUT: "1e3" })).toThrow(/VKMA_TIMEOUT/);
 		expect(() => readEnv({ VKMA_TIMEOUT: "600s" })).toThrow(/VKMA_TIMEOUT/);
 		expect(() => readEnv({ VKMA_TIMEOUT: "10min" })).toThrow(/VKMA_TIMEOUT/);

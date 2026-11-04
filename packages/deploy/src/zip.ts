@@ -101,7 +101,7 @@ export async function zipDirectory(dir: string, options: ZipOptions = {}): Promi
 
 	const archive = await new Promise<Uint8Array>((resolve, reject) => {
 		// Fixed mtime (DOS epoch, UTC): identical trees produce byte-identical
-		// archives regardless of wall-clock time or timezone — content-hash
+		// archives regardless of wall-clock time or timezone. Content-hash
 		// comparisons and retry diffing stay meaningful.
 		zip(zippable, { level: 6, mtime: ZIP_MTIME }, (error, data) => {
 			if (error) {

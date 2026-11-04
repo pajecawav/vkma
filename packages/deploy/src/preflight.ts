@@ -66,7 +66,7 @@ export async function preflight(config: ResolvedConfig, cwd: string): Promise<Pr
 
 	// Upstream parity: only platforms explicitly configured in `endpoints`
 	// are checked (and later sent as endpoint_* params). Unconfigured
-	// platforms are left to VK server defaults — a config with just
+	// platforms are left to VK server defaults. A config with just
 	// `endpoints: { web: "custom.html" }` deploys without index.html.
 	for (const [platform, endpoint] of Object.entries(config.endpoints)) {
 		const file = endpointFilePath(staticAbs, endpoint);

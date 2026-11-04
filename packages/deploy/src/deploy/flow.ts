@@ -3,7 +3,7 @@
  * create task -> wait for the hosting queue.
  *
  * This is the library core. It never touches `process`, never reads CLI
- * flags, and never calls `process.exit` — the CLI layer does all that.
+ * flags, and never calls `process.exit`. The CLI layer does all that.
  */
 
 import fs from "node:fs/promises";
@@ -95,7 +95,7 @@ function buildTaskParams(
 		params["test_group_name"] = config.testGroupName;
 	}
 	// Upstream parity ('update_prod' in cfg): the flags are sent only when
-	// explicitly set — via config file, env var, or CLI flag. Absent flags
+	// explicitly set, via config file, env var, or CLI flag. Absent flags
 	// fall back to VK server defaults instead of pinning 1/1.
 	if (sources["updateProd"] !== undefined) {
 		params["update_prod"] = config.updateProd ? 1 : 0;
@@ -138,9 +138,9 @@ async function resolveToken(
 
 /**
  * Runs a deploy. Accepts:
- * - `undefined` — discover the config from `options.cwd` (default: cwd)
- * - a directory path — discover from there
- * - a config object — use it directly (env vars still apply on top, exactly
+ * - `undefined`. Discover the config from `options.cwd` (default: cwd)
+ * - a directory path. Discover from there
+ * - a config object. Use it directly (env vars still apply on top, exactly
  *   like a discovered config file)
  */
 export async function deploy(
@@ -159,7 +159,7 @@ export async function deploy(
 
 /**
  * Runs a deploy from an already-resolved configuration. The CLI resolves
- * once for logging and passes the result here — a second discovery pass
+ * once for logging and passes the result here. A second discovery pass
  * (and a second TS temp-file round-trip) per deploy is pure waste.
  */
 export async function deployResolved(
@@ -173,7 +173,7 @@ export async function deployResolved(
 
 	// Deploy-only completeness: login and `config` resolve without it, so
 	// it is enforced here at the mouth of the deploy flow (the wire
-	// invariant — VK ignores tasks without endpoint_* params — lives on).
+	// invariant, VK ignores tasks without endpoint_* params, lives on).
 	assertDeployReadiness(config, {
 		legacy: meta.legacy,
 		cwd,

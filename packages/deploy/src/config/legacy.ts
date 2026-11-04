@@ -4,7 +4,7 @@
  *
  * The mapping is intentionally total: every field upstream reads is either
  * mapped or reported as a warning. Unknown fields are warned about, never
- * silently dropped — that is how migration mistakes get caught early.
+ * silently dropped. That is how migration mistakes get caught early.
  */
 
 import type { DeployConfigInput } from "./schema.ts";

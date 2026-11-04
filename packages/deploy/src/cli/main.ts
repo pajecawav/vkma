@@ -224,8 +224,8 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		context.setGlobalProxyFromEnv ?? nativeSetGlobalProxyFromEnv()?.bind(http),
 	);
 
-	// Defense in depth: register every token this run may print so the
-	// redactor's exact-value layer is live, not just the regex layer.
+	// Defense in depth: register every token this run may print, so both
+	// the redactor's exact-value layer and the regex layer are live.
 	if (config.accessToken !== undefined && config.accessToken !== "") {
 		logger.addSecret(config.accessToken);
 	}
@@ -288,9 +288,9 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 			const sources = { ...meta.sources };
 			if (prodUndecided) {
 				// Declining means "do not switch URLs" (update_prod=0), not
-				// "cancel" — only the final Deploy? prompt cancels the run.
+				// "cancel". Only the final Deploy? prompt cancels the run.
 				// Yellow: the same caution color the logger uses for the
-				// "production URLs will switch" warning — one semantic, and
+				// "production URLs will switch" warning. One semantic, and
 				// the safe dev question stays neutral for contrast.
 				effectiveConfig = {
 					...effectiveConfig,
@@ -322,10 +322,10 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 
 	// Event 205 cannot be pre-configured: VK sends the confirmation code to
 	// the developer mid-queue, so this prompt is unconditional for real
-	// interactive terminals (AGENTS.md invariant #5) — no --interactive
+	// interactive terminals (AGENTS.md invariant #5), no --interactive
 	// required. Everything else fails fast with the queue's explanatory
 	// user error instead of hanging on readline: non-TTY, --json/--quiet,
-	// --yes, and CI runs — including pseudo-TTY CI (docker run -t and
+	// --yes, and CI runs, including pseudo-TTY CI (docker run -t and
 	// friends), which used to block forever.
 	const confirmCode =
 		stdin.isTTY === true &&
@@ -344,7 +344,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 						output: context.stdout,
 					});
 					if (code === "") {
-						// An empty answer means the user refuses to continue —
+						// An empty answer means the user refuses to continue,
 						// a cancel, not a config problem (exit 130).
 						throw new DeployError(
 							"aborted",
@@ -410,7 +410,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number> {
 	const { logger, env, cwd } = context;
 	const stdin = context.stdin ?? { isTTY: false };
-	// Resolution demands neither deploy completeness nor appId — login
+	// Resolution demands neither deploy completeness nor appId. Login
 	// asks for the app itself, so a missing appId is a login concern:
 	// --interactive prompts for it, everything else gets guidance.
 	const { config } = await resolveConfig({
@@ -418,7 +418,7 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 		configPath: parsed.values.config,
 		env,
 	});
-	// Login talks to the OAuth endpoints — proxy routing applies here too.
+	// Login talks to the OAuth endpoints. Proxy routing applies here too.
 	setupProxy(
 		{ flagProxy: parsed.values.proxy, configProxy: config.proxy, env },
 		logger,
@@ -486,7 +486,7 @@ async function runLogout(context: {
 		context.logger.info(`No stored credentials at ${credentialsPath(context.env)}`);
 	}
 	// Read-only fallback is a public promise, so logout must not touch the
-	// upstream vault — but silently still deploying with it after "logging
+	// upstream vault. But silently still deploying with it after "logging
 	// out" would be a trust trap, so say it out loud.
 	const remaining = await loadCredentials(context.env);
 	if (remaining?.source === "upstream-configstore") {
@@ -557,7 +557,7 @@ function urlSwitchLabel(
 }
 
 /**
- * Prints where the deploy is going — always logged (NDJSON event in json
+ * Prints where the deploy is going, always logged (NDJSON event in json
  * mode), so pipelines can audit targets even though they skip the prompt.
  */
 function renderDeployPlan(
@@ -606,7 +606,7 @@ function renderDeployPlan(
 	) {
 		logger.warn("production URLs will switch to the new version");
 	}
-	// Only warn when every relevant switch is an explicit no — unset flags
+	// Only warn when every relevant switch is an explicit no. Unset flags
 	// may still switch URLs via the VK server default.
 	const relevantSwitches = [
 		config.environment !== "dev" ? config.updateProd : undefined,
@@ -666,7 +666,7 @@ function renderDeployEvent(logger: CliLogger, event: DeployEvent): void {
 			logger.step("Bundle uploaded");
 			// The hosting backend keeps processing the uploaded archive
 			// before createGoHostingTask returns (tens of seconds for
-			// large bundles) — without a spinner here the CLI looks hung.
+			// large bundles). Without a spinner here the CLI looks hung.
 			// The finished 100% bar stays on screen; the spinner runs on
 			// its own line. task:created swaps this text, not a new line.
 			logger.spinnerStart("Hosting is processing the upload…");
@@ -725,7 +725,7 @@ function renderQueueEvent(logger: CliLogger, event: QueueEvent): void {
 		});
 		return;
 	}
-	// 205 renders only after a successful apps.confirmDeploy — the prompt
+	// 205 renders only after a successful apps.confirmDeploy. The prompt
 	// already stopped the spinner, so resume it unconditionally.
 	if (event.code === 205) {
 		logger.spinnerStop();

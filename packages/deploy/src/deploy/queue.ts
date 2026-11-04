@@ -5,7 +5,7 @@
  *  200 success · 201 URLs changed · 202 environment skipped · 203 push sent
  *  204 push approved · 205 confirm via message code · 206 test group URL
  *
- * Fixes vs upstream: a hard deadline (issue #119 — upstream polls forever),
+ * Fixes vs upstream: a hard deadline (issue #119, upstream polls forever),
  * AbortSignal support, structured events for library consumers, and errors
  * that say which event code failed.
  */
@@ -174,7 +174,7 @@ export async function waitForQueue(options: WaitForQueueOptions): Promise<QueueR
 				}
 				// VK has been observed sending `message` both as an object
 				// ({ message: "..." }) and as a plain string (upstream
-				// concatenated it directly) — handle both shapes.
+				// concatenated it directly). Handle both shapes.
 				const rawDetail =
 					typeof rawMessage === "string" ? rawMessage : message?.["message"];
 				const detail =

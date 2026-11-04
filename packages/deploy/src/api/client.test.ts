@@ -239,7 +239,7 @@ describe("callApi", () => {
 		expect(bodies[0]).not.toContain("tok-secret");
 		expect(bodies[0]).not.toContain("ref-secret");
 		expect(bodies[0]).toContain('"access_token":"***"');
-		// Error codes must stay readable — the JSON key "code" is never masked.
+		// Error codes must stay readable. The JSON key "code" is never masked.
 		expect(bodies[0]).toContain('"error_code":6');
 	});
 

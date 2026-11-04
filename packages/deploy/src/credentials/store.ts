@@ -4,7 +4,7 @@
  * Tokens live in `$XDG_CONFIG_HOME/vkma/deploy/credentials.json` (0600).
  * For drop-in migration the store also reads the upstream configstore vault
  * (`~/.config/configstore/@vkontakte/vk-miniapps-deploy.json`) as a fallback,
- * read-only — after `vkma-deploy login` everything is written to our file.
+ * read-only. After `vkma-deploy login` everything is written to our file.
  */
 
 import { randomBytes } from "node:crypto";
@@ -62,8 +62,8 @@ async function readJsonFile(filePath: string): Promise<Record<string, unknown> |
 
 /**
  * Loads credentials: our file first, then the upstream vault. Expired
- * tokens (when the expiry is known) fall through to the upstream vault —
- * a stale vkma token must not shadow a still-working upstream one.
+ * tokens (when the expiry is known) fall through to the upstream vault.
+ * A stale vkma token must not shadow a still-working upstream one.
  */
 export async function loadCredentials(
 	env: Record<string, string | undefined> = process.env,
@@ -104,7 +104,7 @@ export async function saveCredentials(
 		savedAt: Date.now(),
 	};
 	// Atomic write: a crash mid-save must never leave a torn (empty or
-	// partial) credentials file behind — write a 0600 temp sibling and
+	// partial) credentials file behind. Write a 0600 temp sibling and
 	// rename over the target.
 	const tempPath = `${filePath}.tmp-${randomBytes(6).toString("hex")}`;
 	await fs.writeFile(tempPath, `${JSON.stringify(payload, null, "\t")}\n`, { mode: 0o600 });

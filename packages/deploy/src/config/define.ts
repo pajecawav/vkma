@@ -1,7 +1,7 @@
 import type { DeployConfigInput } from "./schema.ts";
 
 /**
- * `defineDeployConfig` — identity function providing type completion for
+ * `defineDeployConfig`, identity function providing type completion for
  * config files (`vkma-deploy.config.ts`) without any runtime behavior.
  *
  * Deliberately non-generic: a generic `<T extends DeployConfigInput>`

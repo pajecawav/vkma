@@ -505,7 +505,7 @@ describe("main()", () => {
 		);
 		const input = new PassThrough();
 		// No --interactive flag: the 205 prompt is unconditional for a real
-		// interactive terminal (no CI env — see the CI test below).
+		// interactive terminal (no CI env, see the CI test below).
 		const pending = main([], {
 			stdout,
 			stderr,
@@ -564,7 +564,7 @@ describe("main()", () => {
 			]),
 		);
 		// A CI runner with a pseudo-TTY (docker run -t) used to hang on the
-		// readline prompt forever — invariant #5 says CI skips it.
+		// readline prompt forever. Invariant #5 says CI skips it.
 		const code = await main([], {
 			stdout,
 			stderr,
@@ -696,8 +696,8 @@ describe("main()", () => {
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
 		});
-		// First line: pre-deploy confirm (Y). The 205 code arrives deferred —
-		// readline eats pre-buffered lines eagerly (see the abort test).
+		// First line: pre-deploy confirm (Y). The 205 code arrives deferred.
+		// Readline eats pre-buffered lines eagerly (see the abort test).
 		input.write("\n");
 		setTimeout(() => input.write("4242\n"), 30);
 		const code = await pending;
@@ -925,7 +925,7 @@ describe("main()", () => {
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
 		});
-		// A CI runner with a pseudo-TTY must fail the same way — even with
+		// A CI runner with a pseudo-TTY must fail the same way. Even with
 		// --yes: automation has to pin its URL-switch policy explicitly.
 		const ci = await main(["--yes"], {
 			stdout,
@@ -962,7 +962,7 @@ describe("main()", () => {
 			sleep: instantSleep,
 		});
 		// Three answers: update-prod (Y default), update-dev (Y default),
-		// then the pre-deploy confirm. Deferred lines — readline eats
+		// then the pre-deploy confirm. Deferred lines. Readline eats
 		// pre-buffered input eagerly (see the event-205 test).
 		input.write("\n");
 		setTimeout(() => input.write("\n"), 30);
@@ -1050,7 +1050,7 @@ describe("main()", () => {
 			fetchImpl: spy.fetchImpl,
 			sleep: instantSleep,
 		});
-		// Only one answer exists — the pre-deploy confirm. If the update
+		// Only one answer exists, the pre-deploy confirm. If the update
 		// prompts fired too, the run would hang on a missing answer.
 		input.write("\n");
 		const code = await pending;

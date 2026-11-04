@@ -94,7 +94,7 @@ describe("preflight", () => {
 	});
 
 	it("skips endpoint checks for unconfigured platforms (upstream parity)", async () => {
-		// No index.html at all — upstream deployed this fine when only
+		// No index.html at all. Upstream deployed this fine when only
 		// `endpoints: { web: "custom.html" }` was configured.
 		await fs.mkdir(path.join(root, "build"), { recursive: true });
 		await fs.writeFile(path.join(root, "build", "custom.html"), "ok");

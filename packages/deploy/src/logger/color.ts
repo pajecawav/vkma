@@ -3,7 +3,7 @@
  *
  * Colors are semantic, not decorative: red errors, yellow caution,
  * green success, cyan progress, dim secondary info, bold action
- * required. Every `paint` call passes an explicit `enabled` flag — the
+ * required. Every `paint` call passes an explicit `enabled` flag. The
  * decision (TTY + pretty mode + NO_COLOR/--no-color) belongs to the
  * caller, never to this module.
  */

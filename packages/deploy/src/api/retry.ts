@@ -3,7 +3,7 @@
  *
  * One operation = one attempt budget: `runWithRetry` owns the loop, the
  * exponential backoff with jitter, and the abort checks. Callers decide
- * *what* is retriable via `shouldRetry` — layered retry loops (one inside
+ * *what* is retriable via `shouldRetry`. Layered retry loops (one inside
  * the transport, one around the API call) multiplied request counts and
  * are gone for good.
  */

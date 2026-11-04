@@ -9,7 +9,7 @@
  * support we warn and continue without a proxy.
  *
  * This mutates the global fetch dispatcher and therefore lives in the
- * CLI layer only — the library never routes through a proxy; library
+ * CLI layer only. The library never routes through a proxy; library
  * consumers inject their own `fetchImpl` instead (AGENTS.md invariant #2).
  */
 

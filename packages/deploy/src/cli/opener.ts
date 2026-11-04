@@ -1,5 +1,5 @@
 /**
- * Browser opener — CLI-only by design. The library layer physically cannot
+ * Browser opener, CLI-only by design. The library layer physically cannot
  * spawn processes (see AGENTS.md invariant #2), so `vkma-deploy login`
  * injects this into `loginDeviceFlow({ openBrowser })` and only for
  * interactive (TTY) runs.

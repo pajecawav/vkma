@@ -4,11 +4,11 @@
  * Every failure path throws a `DeployError` with a `kind` that maps to a
  * stable process exit code:
  *
- * - `config` — invalid or missing configuration (exit 1)
- * - `user`   — user aborted, declined a prompt, or passed a bad CLI value (exit 1)
- * - `network`— fetch failure, timeout, or exceeded queue deadline (exit 2)
- * - `api`    — VK API returned an error payload (exit 3)
- * - `aborted`— aborted via AbortSignal / SIGINT (exit 130)
+ * - `config`, invalid or missing configuration (exit 1)
+ * - `user`,   user aborted, declined a prompt, or passed a bad CLI value (exit 1)
+ * - `network`, fetch failure, timeout, or exceeded queue deadline (exit 2)
+ * - `api`,    VK API returned an error payload (exit 3)
+ * - `aborted`, aborted via AbortSignal / SIGINT (exit 130)
  */
 
 export type DeployErrorKind = "config" | "user" | "network" | "api" | "aborted";

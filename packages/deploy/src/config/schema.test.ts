@@ -46,7 +46,7 @@ describe("shipped JSON schema", () => {
 
 	it("keeps $schema out of the TS input type (JSON-editor metadata only)", () => {
 		expect(
-			// @ts-expect-error $schema is not part of DeployConfigInput —
+			// @ts-expect-error $schema is not part of DeployConfigInput.
 			// TS configs must not suggest or accept it.
 			defineDeployConfig({ $schema: "https://example.com/x.json", appId: 1 }),
 		).toMatchObject({ appId: 1 });

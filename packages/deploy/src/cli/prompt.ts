@@ -1,12 +1,12 @@
 /**
  * Minimal readline prompts (confirm / text).
  *
- * Prompts exist only behind --interactive — with three exceptions, all
+ * Prompts exist only behind --interactive, with three exceptions, all
  * TTY-only confirmation prompts: the update-flag confirms (answers feed
  * the wire params via the "prompt" config source), the pre-deploy
  * confirmation, and the event-205 confirmation code (which cannot be
  * known in advance). Without a TTY they throw a `user` DeployError
- * instead of hanging — CI pipelines never get stuck.
+ * instead of hanging. CI pipelines never get stuck.
  *
  * One readline interface is shared per input stream: sequential prompts
  * (pre-deploy confirm, then the 205 code) on a freshly created interface
@@ -25,7 +25,7 @@ export interface PromptOptions {
 	readonly input?: NodeJS.ReadableStream;
 	readonly output?: { write(text: string): void };
 	/** Paints the whole question (including the Y/n hint) in this color.
-	 * Passed only when colors are enabled at all — the caller owns the
+	 * Passed only when colors are enabled at all. The caller owns the
 	 * TTY / NO_COLOR / --no-color decision, never this module. */
 	readonly questionColor?: ColorName;
 }

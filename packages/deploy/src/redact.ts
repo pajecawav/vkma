@@ -5,8 +5,8 @@
  * 1. Exact-value replacement: every registered secret (access token, etc.)
  *    longer than a small threshold is replaced with `***` wherever it occurs.
  * 2. Structural replacement: `access_token`-style query parameters are masked
- *    even when the exact value was never registered (defense in depth —
- *    upstream leaks the token into GET query strings).
+ *    even when the exact value was never registered (defense in depth.
+ *    Upstream leaks the token into GET query strings).
  */
 
 const MIN_SECRET_LENGTH = 8;
@@ -42,7 +42,7 @@ export function createRedactor(): Redactor {
 			return redactString(value) as T;
 		}
 		if (value instanceof Date) {
-			// Dates must survive redaction as ISO strings — flattening them
+			// Dates must survive redaction as ISO strings. Flattening them
 			// to {} silently destroyed error diagnostics.
 			return value.toISOString() as T;
 		}
