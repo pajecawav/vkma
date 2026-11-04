@@ -15,7 +15,7 @@ export default function PostPanel(): ReactElement {
 
 	return (
 		<>
-			<PanelHeader before={<PanelHeaderBack onClick={() => navigator.back()} />}>
+			<PanelHeader before={<PanelHeaderBack onClick={() => navigator.backToFirst()} />}>
 				Запись
 			</PanelHeader>
 			<Group>
