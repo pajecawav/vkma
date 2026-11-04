@@ -1,10 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
-import {
-	createApp,
-	createVkHistory,
-	DefaultPanelPendingComponent,
-	NotFound,
-} from "@vkma.dev/router/preset";
+import { createApp, createVkHistory, NotFound } from "@vkma.dev/router/preset";
 import { LogoutPopout, SettingsModal } from "./overlays";
 import { feedView } from "./panels/feed/feed.panel";
 import { moreView } from "./panels/more/more.panel";
@@ -39,8 +34,9 @@ export const router = createRouter({
 	// "hash-param" mode instead.
 	history: createVkHistory({ mode: "hash" }).history,
 	defaultNotFoundComponent: NotFound,
-	defaultPendingComponent: DefaultPanelPendingComponent,
-	defaultPendingMs: 0,
+	// VkView owns pending rendering — after the 200ms grace it shows its
+	// own canonical fallback (header stub + large PanelSpinner), so the
+	// router-level pending options would never render.
 });
 
 declare module "@tanstack/react-router" {
