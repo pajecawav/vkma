@@ -23,7 +23,7 @@ Every generated app ships with:
 - `@vkma.dev/bridge` — the bridge with a built-in devtools tap
 - the devtools vite plugin — the `/__vkma/` panel (bridge timeline, clients, execute)
 - `@vkma.dev/deploy` — `vkma-deploy.config.ts`, `npm run deploy`, `npx vkma-deploy login`
-- TypeScript (strict), `.node-version`, `engines`, README, `.gitignore`
+- TypeScript (strict), `engines`, README, `.gitignore`
 
 ## CLI
 

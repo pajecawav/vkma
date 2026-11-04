@@ -82,7 +82,6 @@ describe("scaffoldProject", () => {
 				"tsconfig.json",
 				"vkma-deploy.config.ts",
 				".gitignore",
-				".node-version",
 				"README.md",
 			]) {
 				expect(existsSync(join(result.targetDir, file)), `${preset.id}:${file}`).toBe(true);
