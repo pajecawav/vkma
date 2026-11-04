@@ -2,18 +2,18 @@ import type { ClientStatus } from "@vkma.dev/protocol";
 import { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
 
 /**
- * The frame highlighter — the "locate" affordance: draws colored overlays
+ * The frame highlighter, the "locate" affordance: draws colored overlays
  * over the iframe(s) of a client so the panel's client card maps to a
  * visible frame on the page (and back, via vkma.frameFocus → card flash).
  *
  * Cross-origin reality: the host script cannot reach INTO a mini app
- * frame, but it does not need to — the overlay lives in the parent
+ * frame, but it does not need to; the overlay lives in the parent
  * document, positioned over the iframe's rect (the DevTools inspect
  * trick). Frames are matched by URL: the collector reports
  * `window.location.href` in its hello, the parent enumerates its
  * iframes' `src` attributes. Exact href first, then origin+pathname
  * (history.pushState inside the frame leaves `src` behind), then origin
- * when it is unambiguous. Matching never reads frame content — only the
+ * when it is unambiguous. Matching never reads frame content, only the
  * parent's own DOM.
  */
 
@@ -52,7 +52,7 @@ export function scoreMatch(frameUrl: string, clientUrl: string, baseHref: string
 
 /**
  * The iframes that belong to a client: all elements scoring the best
- * available match (several frames can embed the same app — highlight
+ * available match (several frames can embed the same app; highlight
  * every one and let the label's count tell them apart). Only top-level
  * iframes of the host document: mini apps sit directly in the host page;
  * matching inside shadow roots is a v2 concern.
@@ -68,7 +68,7 @@ export function matchClientFrames(
 		if (src === null) {
 			continue;
 		}
-		// Relative srcs resolve against the host page's own base — exactly
+		// Relative srcs resolve against the host page's own base, exactly
 		// how the browser resolved them when the page wrote the attribute.
 		const score = scoreMatch(src, client.url, document.baseURI);
 		if (score > MatchScore.None) {
@@ -112,7 +112,7 @@ export function createFrameHighlighter(document: Document): FrameHighlighter {
 			for (const { frame, box } of overlay.pairs) {
 				const rect = frame.getBoundingClientRect();
 				// A frame removed mid-flash (SPA navigation) reports a zero
-				// rect — park its box instead of a stray corner flash.
+				// rect, so park its box instead of a stray corner flash.
 				if (rect.width === 0 || rect.height === 0) {
 					box.style.display = "none";
 					continue;
@@ -130,7 +130,7 @@ export function createFrameHighlighter(document: Document): FrameHighlighter {
 		show(clients) {
 			for (const client of clients) {
 				const frames = matchClientFrames(document, client);
-				// Nothing matched — the frame is nested deeper than the host
+				// Nothing matched; the frame is nested deeper than the host
 				// document sees (or the app re-navigated): silently no-op.
 				if (frames.length === 0) {
 					continue;
@@ -198,7 +198,7 @@ export function createFrameHighlighter(document: Document): FrameHighlighter {
 					box.className = "box";
 					const chip = document.createElement("span");
 					chip.className = "label";
-					// Spy mode is the surprising capture — mark it; direct mode
+					// Spy mode is the surprising capture, so mark it; direct mode
 					// needs no annotation (the TopBar chip's vocabulary).
 					chip.textContent = `${label}${client.bridge ? "" : " · sniffer"}`;
 					box.append(chip);

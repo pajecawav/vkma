@@ -19,7 +19,7 @@ export interface VkmaRsbuildOptions {
 	/**
 	 * Expose the MCP tools (`vkma:mcp-state`, `vkma:mcp-execute`) at
 	 * `<base>__mcp` (Streamable-HTTP) for coding agents and MCP Inspector.
-	 * Off by default — the route's only built-in protection is the Origin
+	 * Off by default. The route's only built-in protection is the Origin
 	 * check, so turn it on deliberately: pass `true`, or a full
 	 * `McpRouteOptions` (bearer `authorization` token, extra `origins`) to
 	 * harden a tunnel/LAN setup. Default `false`.
@@ -28,7 +28,7 @@ export interface VkmaRsbuildOptions {
 	/**
 	 * WebSocket origin check forwarded to the bridge. Default `false`
 	 * (any origin may connect; the interactive OTP auth gate is the trust
-	 * boundary) — needed for tunnels and phones on LAN. Pass explicit
+	 * boundary), needed for tunnels and phones on LAN. Pass explicit
 	 * origins to lock down.
 	 */
 	allowedOrigins?: false | readonly string[];
@@ -65,7 +65,7 @@ function getDevframeInstance(
 		// client discovers it via `<base>__connection.json`.
 		ws: { sidecar: true },
 		allowedOrigins,
-		// MCP off unless asked for — the option owns the route decision
+		// MCP off unless asked for. The option owns the route decision
 		mcp: mcp ?? false,
 	});
 	store[INSTANCE_KEY] = instance;
@@ -73,7 +73,7 @@ function getDevframeInstance(
 }
 
 /**
- * The vkma devtools Rsbuild plugin — the `@vkma.dev/devtools/rsbuild`
+ * The vkma devtools Rsbuild plugin, the `@vkma.dev/devtools/rsbuild`
  * counterpart of the Vite plugin: the `/__vkma/` panel (SPA + RPC bridge,
  * WS side-car), the `@vkontakte/vk-bridge → @vkma.dev/bridge` dev
  * interception, and the FAB + collector script injected into the app page.
@@ -91,7 +91,7 @@ export function vkmaDevtoolsRsbuild(options: VkmaRsbuildOptions = {}): RsbuildPl
 					return;
 				}
 				// rspack's `resolve.alias` is importer-agnostic, which would
-				// loop our tap package onto itself — the replacement plugin
+				// loop our tap package onto itself; the replacement plugin
 				// sees the importer's directory and can skip the tap itself,
 				// the same rule the Vite plugin's resolveId applies.
 				chain.plugin("vkma-devtools-alias").use(rspack.NormalModuleReplacementPlugin, [
@@ -142,8 +142,8 @@ export function vkmaDevtoolsRsbuild(options: VkmaRsbuildOptions = {}): RsbuildPl
 							options.mcp,
 						);
 						// `/__vkma` (no trailing slash) would resolve the panel's
-						// relative asset URLs against the parent directory —
-						// white screen. Redirect to the slashed base, query included.
+						// relative asset URLs against the parent directory,
+						// causing a white screen. Redirect to the slashed base, query included.
 						const bare = base.replace(/\/+$/, "");
 						if (bare !== "") {
 							ctx.server.middlewares.use((req, res, next) => {

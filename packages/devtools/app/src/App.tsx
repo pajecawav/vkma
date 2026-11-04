@@ -15,7 +15,7 @@ import { useFabPosition } from "./lib/fab-position.ts";
 import { useIgnoredEventsSettings } from "./lib/ignored-events.ts";
 import { useVkma } from "./lib/rpc.ts";
 
-// Sorted once at module scope — the catalogue is frozen data.
+// Sorted once at module scope; the catalogue is frozen data.
 const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
 
 // The ignore editor suggests every name the catalogue knows: request
@@ -58,7 +58,7 @@ export function App() {
 					onReconnect={connection.reconnect}
 					clientBadge={embeddedClientId ? { clientId: embeddedClientId } : undefined}
 					actions={
-						// The placement controls the in-page FAB — only the
+						// The placement controls the in-page FAB; only the
 						// embedded panel (mounted by that FAB) shows it.
 						embeddedClientId ? (
 							<FabPositionControl
@@ -74,7 +74,7 @@ export function App() {
 						<>
 							{/* Sections stay mounted so in-progress state (typed params,
 							    pending execute, filters, expanded rows) survives tab
-							    switches — inactive ones are display-none. */}
+							    switches; inactive ones are display-none. */}
 							<div
 								className={`flex min-h-0 min-w-0 flex-1 flex-col ${section === "timeline" ? "" : "hidden"}`}
 							>

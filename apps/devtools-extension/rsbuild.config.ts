@@ -41,7 +41,7 @@ export default defineConfig({
 			{
 				from: `src/manifest.${browser}.json`,
 				to: "manifest.json",
-				// The version lives in package.json — the source manifests keep a
+				// The version lives in package.json; the source manifests keep a
 				// schema-valid placeholder that the build always overwrites.
 				transform: content => {
 					const manifest = JSON.parse(content.toString()) as { version: string };

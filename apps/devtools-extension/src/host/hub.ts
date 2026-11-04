@@ -22,7 +22,7 @@ export class Hub<T> {
 }
 
 /**
- * Coalesces pushes into batches flushed on a short timer — a chatty mini
+ * Coalesces pushes into batches flushed on a short timer; a chatty mini
  * app would otherwise wake every panel surface per event.
  */
 export class BatchedHub<T> {

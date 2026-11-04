@@ -31,7 +31,7 @@ const MAX_EVENTS = 500;
  * unique (runId, seq) and keep chronological order. A chunk from an
  * unknown run (dev-server restart reassigned seqs) resets the state.
  * A runId-less collecting side (pre-epoch node build, e.g. a dev server
- * still holding the old plugin in memory) forms its own legacy epoch —
+ * still holding the old plugin in memory) forms its own legacy epoch:
  * bare-seq absorb, not a drop.
  */
 function absorbEvents(prev: WireEvent[], incoming: WireEvent[]): WireEvent[] {
@@ -87,7 +87,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 
 	useEffect(() => {
 		let disposed = false;
-		// A fresh client per effect run — the devframe client does not
+		// A fresh client per effect run; the devframe client does not
 		// reconnect on its own. Tracked so cleanup closes it: without
 		// close() every reconnect() would leak the previous WebSocket.
 		let liveClient: RpcClient | undefined;
@@ -123,7 +123,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 				defineRpcFunction({
 					name: "on-session-reset",
 					type: "event",
-					// A client's page reloaded — its previous history is dead.
+					// A client's page reloaded; its previous history is dead.
 					handler: (payload: { clientId: string }) => {
 						setEvents(prev =>
 							prev.filter(event => event.clientId !== payload.clientId),
@@ -134,7 +134,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 
 			// The timeline streams ('connected' only happens once trust is
 			// in, so subscription failures on the unauthorized path are
-			// irrelevant — startReader is idempotent and re-invoked by the
+			// irrelevant; startReader is idempotent and re-invoked by the
 			// status listener when the panel completes the OTP flow).
 			let readerStarted = false;
 			const call = scoped.rpc.call as (name: string, ...args: unknown[]) => Promise<unknown>;
@@ -147,7 +147,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 				// devframe instance survives dev-server restarts, its replay
 				// window must never mix store epochs), so the reader needs
 				// `runId` before subscribing. Chunks written between the
-				// snapshot and the subscribe land in the replay window — the
+				// snapshot and the subscribe land in the replay window, and the
 				// (runId, seq) dedupe absorbs the overlap.
 				const state = (await call("state")) as DevtoolsState;
 				if (disposed) {
@@ -180,7 +180,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 						setEvents(prev => absorbEvents(prev, [event]));
 					}
 				})().catch(() => {
-					// transport dropped — the devframe client does not reconnect
+					// transport dropped; the devframe client does not reconnect
 					// on its own, the panel shows the gate and reconnect() makes
 					// a fresh client (and reader)
 				});
@@ -209,7 +209,7 @@ export function useVkma(embeddedClientId?: string): VkmaConnection {
 			disposed = true;
 			scopedRef.current = undefined;
 			rpcRef.current = undefined;
-			// The devframe client never reconnects on its own — without an
+			// The devframe client never reconnects on its own: without an
 			// explicit close every reconnect() leaks the previous WebSocket.
 			liveClient?.close?.();
 		};

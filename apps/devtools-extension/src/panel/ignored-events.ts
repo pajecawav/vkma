@@ -9,14 +9,14 @@ const DEFAULTS = parseIgnoredSettings(null);
 /**
  * The extension panel's ignored-events storage: `chrome.storage.local`,
  * shared by all three panel surfaces (side panel, FAB iframe, ?view=all).
- * `storage.onChanged` fans every save out to the other surfaces live —
+ * `storage.onChanged` fans every save out to the other surfaces live, so
  * the same list, toggled in one panel, hides rows in all of them.
  */
 export function useIgnoredEventsSettings() {
 	const [settings, setSettings] = useState<IgnoredEventsSettings>(DEFAULTS);
 	const save = useCallback((next: IgnoredEventsSettings) => {
 		// State first: the write is fire-and-forget, and onChanged echoes
-		// it back to this surface too — a double set with the same value.
+		// it back to this surface too, a double set with the same value.
 		setSettings(next);
 		void api.storage.local.set({ [KEY]: next });
 	}, []);

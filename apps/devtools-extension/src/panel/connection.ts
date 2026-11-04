@@ -11,7 +11,7 @@ import { api } from "../shared/api.ts";
 import { absorbEvents } from "./absorb.ts";
 
 /**
- * The extension panel's data layer — the counterpart of the devtools
+ * The extension panel's data layer, the counterpart of the devtools
  * panel's `useVkma` (devframe RPC), same shape the presentational
  * components consume: status, seq-deduped events, the client registry
  * and execute. The store lives in the tab's host script (the `vkma`
@@ -19,7 +19,7 @@ import { absorbEvents } from "./absorb.ts";
  * this tab", not an extension error.
  */
 
-/** The extension never runs the devtools OTP dance — no `unauthorized`. */
+/** The extension never runs the devtools OTP dance, so no `unauthorized`. */
 export type ExtensionStatus = Exclude<ConnectionStatus, "unauthorized">;
 
 export interface PanelConnection {
@@ -37,7 +37,7 @@ export interface PanelConnection {
 	deleteClients: (clientIds: string[]) => Promise<string[]>;
 	/** The locate affordance: flash the client's frame(s) on its page. */
 	locateClients: (clientId: string) => Promise<void>;
-	/** The latest frame activation (a click inside a mini app frame) —
+	/** The latest frame activation (a click inside a mini app frame), so
 	 * the panel flashes the matching client card. */
 	focused?: { clientId: string; ts: number };
 	reconnect: () => void;
@@ -50,7 +50,7 @@ export type ExtensionConnection = PanelConnection;
 import { HOST_MATCHES } from "../shared/hosts.ts";
 import { MergedTimeline } from "./merge.ts";
 
-/** Tabs whose URL sits on a VK host — exactly where host.js runs. */
+/** Tabs whose URL sits on a VK host, exactly where host.js runs. */
 function useHostTabs(): number[] | undefined {
 	const [tabIds, setTabIds] = useState<number[] | undefined>(undefined);
 	useEffect(() => {
@@ -62,7 +62,7 @@ function useHostTabs(): number[] | undefined {
 			});
 		};
 		refresh();
-		// onUpdated fires on every navigation tick — only URL/status flips
+		// onUpdated fires on every navigation tick; only URL/status flips
 		// change the host population
 		const onUpdated = (_tabId: number, change: { status?: string; url?: string }) => {
 			if (change.status === "loading" || change.url !== undefined) {
@@ -84,7 +84,7 @@ function useHostTabs(): number[] | undefined {
 interface TabFeed {
 	probe: WERPClient;
 	client: WERPClient;
-	/** By the HOST's seq — globally colliding, only the merger sees these. */
+	/** By the HOST's seq; globally colliding, only the merger sees these. */
 	events: Map<number, WireEvent>;
 	/** The host store's epoch: a reload restarts its seq, ghosts are purged. */
 	runId?: string;
@@ -99,7 +99,7 @@ export interface GlobalConnection extends Omit<PanelConnection, "lastError"> {
 
 /**
  * The wide panel: one werpc client per VK tab (werpc's explicit-tabId
- * routing — the same mechanism the side panel uses), merged into a single
+ * routing, the same mechanism the side panel uses), merged into a single
  * feed. All state stays with the per-tab hosts; this is a pure aggregate,
  * the /__vkma/ standalone panel's counterpart.
  */
@@ -128,7 +128,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 
 	// Attach/detach feeds as the host population changes. The diff runs on
 	// every tabIds refresh (navigations included) but only touches feeds
-	// that actually appeared/disappeared — surviving tabs keep their
+	// that actually appeared/disappeared, so surviving tabs keep their
 	// subscriptions and history.
 	useEffect(() => {
 		const feeds = feedsRef.current;
@@ -146,7 +146,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 				if (feeds.has(tabId)) {
 					continue;
 				}
-				// Short probe, long-working client — same contract as local mode.
+				// Short probe, long-working client, same contract as local mode.
 				const probe = createClient({
 					clientName: "panel",
 					tabId,
@@ -209,7 +209,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 						for (const event of batch) {
 							feed.events.set(event.seq, event);
 						}
-						// Data is proof of a host — covers a probe that raced a
+						// Data is proof of a host, and covers a probe that raced a
 						// not-yet-injected host script (extension installed while
 						// the tab was already open): without this the feed would
 						// stay "dead" with events flowing into it unseen.
@@ -306,7 +306,7 @@ export function useVkmaAllTabs(): GlobalConnection {
 			if (!feed.clients.some(client => client.clientId === clientId)) {
 				continue;
 			}
-			// The frame lives in a possibly-background tab — an overlay
+			// The frame lives in a possibly-background tab; an overlay
 			// drawn there is invisible until the tab is fronted, so bring
 			// it forward first (that is what "show me the frame" means).
 			await api.tabs.update(tabId, { active: true }).catch(() => {});
@@ -435,7 +435,7 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 	const locateClients = useCallback<ExtensionConnection["locateClients"]>(
 		async clientId => {
 			// The panel tab is rarely the watched tab (the action icon opens
-			// panel.html as its own tab) — front the watched tab so the flash
+			// panel.html as its own tab): front the watched tab so the flash
 			// is actually on screen.
 			await api.tabs.update(tabId, { active: true }).catch(() => {});
 			const client = clientRef.current;

@@ -17,7 +17,7 @@ import { BatchedHub, Hub } from "./hub.ts";
 import { SpyTracker } from "./spy.ts";
 
 /**
- * The host script — the extension's "node side", running in the top frame
+ * The host script, the extension's "node side", running in the top frame
  * of every VK host page. Owns the event store (the very same DevtoolsStore
  * the devtools plugin runs on the dev server), the vk-connect sniffer for
  * spy-mode clients, and serves the `vkma` werpc namespace every surface of
@@ -35,7 +35,7 @@ const executeHub = new Hub<{
 	name: string;
 	params?: Record<string, unknown>;
 }>();
-/** Clicks inside mini app frames (the collectors report them) — panels
+/** Clicks inside mini app frames (the collectors report them); panels
  * flash the matching client card, the reverse of `locateClients`. */
 const frameFocusHub = new Hub<{ clientId: string; ts: number }>();
 
@@ -49,7 +49,7 @@ const broadcastClients = () => {
 // --- spy pairing state ---------------------------------------------------------
 
 /**
- * Spy-mode pairing (sniffed sends ↔ tap responses) — see SpyTracker for
+ * Spy-mode pairing (sniffed sends ↔ tap responses), see SpyTracker for
  * why synthesized ids draw from the negative space.
  */
 const spy = new SpyTracker();
@@ -58,7 +58,7 @@ const clientByOrigin = new Map<string, string>();
 
 // --- the vk-connect sniffer ----------------------------------------------------
 
-/** Our own execute sends ride the same wire — the sniffer must not echo them. */
+/** Our own execute sends ride the same wire; the sniffer must drop them. */
 const EXT_REQUEST_ID_PREFIX = "__vkma_ext_";
 
 function attributeEnvelope(webFrameId: string | undefined, origin: string): string | undefined {
@@ -70,7 +70,7 @@ function attributeEnvelope(webFrameId: string | undefined, origin: string): stri
 
 window.addEventListener("message", event => {
 	const data: unknown = event.data;
-	// The app's web transport posts the envelope to its parent — which is
+	// The app's web transport posts the envelope to its parent, which is
 	// this window; every listener world sees it (the spy trick). Self-posts
 	// (the host page talking to itself) and non-vk-connect chatter are not
 	// mini app traffic.
@@ -85,7 +85,7 @@ window.addEventListener("message", event => {
 
 	const clientId = attributeEnvelope(envelope.webFrameId, event.origin);
 	if (clientId === undefined) {
-		return; // a frame with no collector (ads, service iframes) — not ours
+		return; // a frame with no collector (ads, service iframes), not ours
 	}
 	const client = store.getClient(clientId);
 	if (client === undefined) {
@@ -96,7 +96,7 @@ window.addEventListener("message", event => {
 	}
 	const requestId = envelope.params["request_id"];
 	if (typeof requestId === "string" && requestId.startsWith(EXT_REQUEST_ID_PREFIX)) {
-		return; // the collector's own execute send — its tap already reports it
+		return; // the collector's own execute send; its tap already reports it
 	}
 
 	const wire = spy.synthesizeSend(clientId, envelope);
@@ -110,7 +110,7 @@ window.addEventListener("message", event => {
 
 const helloInputSchema = z.object({
 	info: clientInfoSchema,
-	/** The frame's `webFrameId` (VKWebAppSettings) — joins sniffed
+	/** The frame's `webFrameId` (VKWebAppSettings), which joins sniffed
 	 * envelopes to their collector when the host assigned one. */
 	webFrameId: z.string().optional(),
 	origin: z.string(),
@@ -148,7 +148,7 @@ const handler = createHandler({
 			yield* drainable(signal, clientsHub, () => []);
 		}),
 
-		/** A client's page reloaded — panels drop its history. */
+		/** A client's page reloaded, so panels drop its history. */
 		sessionReset: werpc.procedure.subscription(async function* ({ signal }) {
 			yield* drainable(signal, sessionResetHub, () => []);
 		}),
@@ -225,7 +225,7 @@ const handler = createHandler({
 
 		/** The locate button: flash the client's iframe(s) on the page so
 		 * the user can see which frame the card is. Resolves the clients
-		 * against the registry — unknown ids no-op inside the highlighter
+		 * against the registry; unknown ids no-op inside the highlighter
 		 * (no frame to draw over). */
 		locateClients: werpc.procedure
 			.input(z.object({ clientIds: z.array(z.string()) }))
@@ -237,7 +237,7 @@ const handler = createHandler({
 			}),
 
 		/** A click landed inside a mini app frame (the frame's collector
-		 * reports it) — panels flash that client's card, the reverse
+		 * reports it); panels flash that client's card, the reverse
 		 * locate. Throttled collector-side; the hub drops it when no
 		 * surface is subscribed. */
 		frameActivated: werpc.procedure
@@ -251,7 +251,7 @@ const handler = createHandler({
 			yield* drainable(signal, frameFocusHub, () => []);
 		}),
 
-		/** Registry hygiene: remove offline entries (live skipped — a
+		/** Registry hygiene: remove offline entries (live skipped: a
 		 * still-running collector would re-hello within a heartbeat
 		 * anyway). The immediate broadcast keeps every surface in sync
 		 * without waiting for the online-fingerprint timer. */
@@ -274,7 +274,7 @@ declare module "werpc" {
 }
 
 /**
- * Subscribe first, emit `initial()` immediately, then drain the queue —
+ * Subscribe first, emit `initial()` immediately, then drain the queue;
  * pushes racing the initial snapshot may duplicate, which the panels
  * absorb by `seq` (same snapshot-vs-stream race as the devtools panel).
  */
@@ -292,7 +292,7 @@ async function* drainable<T>(
 	});
 	const abort = () => {
 		aborted = true;
-		queue.push(SENTINEL as T); // wake the drain loop — a bare `wake` could race
+		queue.push(SENTINEL as T); // wake the drain loop; a bare `wake` could race
 		wake?.();
 	};
 	signal?.addEventListener("abort", abort);
@@ -337,7 +337,7 @@ void (async () => {
 	await client.background.enableSidePanel.mutate().catch(() => {});
 
 	// The placement preference is read BEFORE mounting (the FAB first
-	// appears at its saved spot) and followed live afterwards — any panel
+	// appears at its saved spot) and followed live afterwards: any panel
 	// surface edits it, every tab follows via storage.onChanged.
 	const stored = await api.storage.local.get(FAB_POSITION_STORAGE_KEY).catch(() => undefined);
 	const fab = mountFab({
@@ -357,7 +357,7 @@ void (async () => {
 	});
 
 	// The registry's online/offline fingerprint flips on a timer, not on
-	// hello — broadcast it like the devtools node side does.
+	// hello, so broadcast it like the devtools node side does.
 	let lastFingerprint = "";
 	setInterval(() => {
 		const fingerprint = store

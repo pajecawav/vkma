@@ -22,24 +22,24 @@ export interface VkmaDevtoolsOptions {
 	 * Mount the panel as a dock inside Vite DevTools (`@vitejs/devtools`)
 	 * instead of serving it standalone. Requires `@vitejs/devtools` in the
 	 * plugins list (which brings `@vitejs/devtools-kit`); the hub then owns
-	 * the SPA mount and the RPC bridge — this plugin keeps only the bridge
+	 * the SPA mount and the RPC bridge. This plugin keeps only the bridge
 	 * interception and the collector injection. Default `false`.
 	 */
 	hub?: boolean;
 	/**
 	 * Expose the MCP tools (`vkma:mcp-state`, `vkma:mcp-execute`) at
 	 * `<base>__mcp` (Streamable-HTTP) for coding agents and MCP Inspector.
-	 * Off by default — the route's only built-in protection is the Origin
+	 * Off by default. The route's only built-in protection is the Origin
 	 * check, so turn it on deliberately: pass `true`, or a full
 	 * `McpRouteOptions` (bearer `authorization` token, extra `origins`) to
-	 * harden a tunnel/LAN setup. Ignored with `hub: true` — the hub owns
+	 * harden a tunnel/LAN setup. Ignored with `hub: true`; the hub owns
 	 * its own aggregate MCP endpoint. Default `false`.
 	 */
 	mcp?: McpSetting;
 	/**
 	 * WebSocket origin check forwarded to the bridge. Default `false`
 	 * (any origin may connect, the interactive OTP auth gate stays the
-	 * trust boundary) — needed for `vite --host`, tunnels and phones on
+	 * trust boundary), needed for `vite --host`, tunnels and phones on
 	 * LAN. Pass explicit origins to lock down.
 	 */
 	allowedOrigins?: DevframeViteBridgeOptions["allowedOrigins"];
@@ -73,14 +73,14 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): PluginOption[] 
 	return [
 		// Static first: serve-static passes unknown paths through to the
 		// bridge's terminal router (which answers `__connection.json`, `__ws`,
-		// `__mcp` and `__sse` — without a SPA fallback of its own, so the
-		// reserved routes are never eaten).
+		// `__mcp` and `__sse` and owns no SPA fallback, so the reserved
+		// routes always reach the router).
 		vkmaStaticPlugin(base),
 		devframeViteBridge(vkmaDevframe, {
 			base,
 			allowedOrigins: options.allowedOrigins ?? false,
 			...options.bridge,
-			// MCP off unless asked for — the option owns the route decision
+			// MCP off unless asked for. The option owns the route decision
 			mcp: options.mcp ?? false,
 		}),
 		vkmaCorePlugin(base, options),
@@ -88,7 +88,7 @@ export function vkmaDevtools(options: VkmaDevtoolsOptions = {}): PluginOption[] 
 }
 
 /**
- * Serve the panel's built SPA at `base` — devframeVitePlugin's copy with
+ * Serve the panel's built SPA at `base`, devframeVitePlugin's copy with
  * ONE deliberate difference: `single: false`, no SPA fallback. The
  * fallback answered index.html to every extensionless GET under the base,
  * which ate the bridge's own reserved routes (`__mcp`, `__sse`) before the
@@ -125,7 +125,7 @@ function vkmaStaticPlugin(base: string): Plugin {
 /**
  * The Vite DevTools (`@vitejs/devtools`) dock: `createPluginFromDevframe`
  * delegates the SPA mount, the RPC bridge and `setup(ctx)` to the hub's
- * `ctx.install` — so in hub mode OUR own `devframeVitePlugin` /
+ * `ctx.install`, so in hub mode OUR own `devframeVitePlugin` /
  * `devframeViteBridge` must stay out of the list (double mount = double
  * ring buffer). Vite awaits plugin promises, so the kit is imported
  * lazily: it only has to exist when `hub: true` is actually used.
@@ -156,8 +156,8 @@ function vkmaCorePlugin(base: string, options: VkmaDevtoolsOptions): Plugin {
 		enforce: "pre",
 		configureServer(server) {
 			// `/__vkma` (no trailing slash) serves the panel HTML too, but its
-			// relative asset URLs then resolve against the parent directory —
-			// white screen. Redirect to the slashed base, query included.
+			// relative asset URLs then resolve against the parent directory,
+			// causing a white screen. Redirect to the slashed base, query included.
 			const bare = base !== "/" ? base.replace(/\/+$/, "") : "";
 			if (bare !== "") {
 				server.middlewares.use((req, res, next) => {

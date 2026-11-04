@@ -6,7 +6,7 @@ const client = (url: string): Pick<ClientStatus, "url"> => ({ url });
 
 /**
  * A minimal document fake: matchClientFrames touches only
- * `querySelectorAll("iframe")`, `getAttribute("src")` and `baseURI` —
+ * `querySelectorAll("iframe")`, `getAttribute("src")` and `baseURI`; a
  * a real DOM environment would buy nothing here.
  */
 const documentWithFrames =
@@ -25,7 +25,7 @@ describe("frame URL matching", () => {
 	it("scores exact href above pathname above origin", () => {
 		const url = "https://prod-app123.pages-ac.vk.com/index.html?sign=s";
 		expect(scoreMatch(url, url, "https://vk.com/")).toBe(3);
-		// same path, different query — the frame re-navigated within its page
+		// same path, different query; the frame re-navigated within its page
 		expect(
 			scoreMatch(
 				"https://prod-app123.pages-ac.vk.com/index.html?x=1",

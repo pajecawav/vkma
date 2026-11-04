@@ -4,7 +4,7 @@ import { api } from "../shared/api.ts";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 
 /**
- * The background — the werpc router hub plus the side panel state
+ * The background, the werpc router hub plus the side panel state
  * machine. In Chrome this context is a service worker; in Firefox an
  * event page (werpc detects both and takes the server branch either
  * way). `sidePanel.open()` needs a user gesture, and gestures only
@@ -89,7 +89,7 @@ const onPanelChanged = (tabId: number, listener: PanelListener): VoidFunction =>
 
 /**
  * A tab-specific panel (enabled per-tab via setOptions) hides on other
- * tabs, keeps its state and can be closed programmatically — a global
+ * tabs, keeps its state and can be closed programmatically; a global
  * panel cannot. Firefox has no sidePanel API: the procedures guard on it.
  */
 const hasSidePanel = typeof api.sidePanel !== "undefined";
@@ -120,7 +120,7 @@ const openTabPanelFromGesture = (tabId: number) => {
 };
 
 if (hasSidePanel) {
-	// keep the default (global) panel disabled — a stale `enabled: true`
+	// keep the default (global) panel disabled: a stale `enabled: true`
 	// from an older build may persist in the profile
 	void api.sidePanel.setOptions({ enabled: false }).catch((error: unknown) => {
 		console.warn("[vkma] disabling the default side panel failed:", error);
@@ -134,13 +134,13 @@ api.action.onClicked.addListener(tab => {
 	if (typeof tab.id !== "number") {
 		return;
 	}
-	// The action icon is the "wide" surface: every watched tab at once —
+	// The action icon is the "wide" surface: every watched tab at once,
 	// the /__vkma/ standalone panel's counterpart.
 	void api.tabs.create({ url: "panel.html?view=all" });
 });
 
 // NOTE: sidePanel.open() requires a user gesture, and gestures do not
-// travel over long-lived werpc ports — only over one-shot runtime
+// travel over long-lived werpc ports, only over one-shot runtime
 // messages, which is why the panel page uses this raw channel instead of
 // rpc (the click's gesture rides the one-shot; the tabId is explicit
 // because extension pages have no sender.tab)

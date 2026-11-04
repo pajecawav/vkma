@@ -116,7 +116,7 @@ test("deleteClients removes offline entries, skips live and unknown ones", () =>
 test("execute round-trip settles via report and rejects late arrivals", async () => {
 	const store = new DevtoolsStore();
 	store.touchClient(client());
-	store.beginExec(); // execId 1 — let it time out silently below? no: settle it
+	store.beginExec(); // execId 1; let it time out silently below? no: settle it
 	const first = store.beginExec(); // execId 2
 
 	expect(store.settleExec({ execId: 2, clientId: "c1", ok: true, payload: 42 })).toBe(true);
@@ -134,7 +134,7 @@ test("an owned exec settles only from its owning channel", async () => {
 	const execA = store.beginExec(ownerA);
 	const execNoOwner = store.beginExec();
 
-	// a different connection's report is a forgery attempt — it drops
+	// a different connection's report is a forgery attempt; it drops
 	expect(
 		store.settleExec(
 			{ execId: execA.execId, clientId: "c1", ok: true, payload: "forged" },
@@ -159,7 +159,7 @@ test("the ring budget is bytes as well as count", () => {
 	store.touchClient(client());
 	const blob = "x".repeat(1024 * 1024);
 	// 3 events x 1 MiB: far under the 500-event count cap, past nothing
-	// byte-wise individually — but the budget trims the OLDEST once the
+	// byte-wise individually, but the budget trims the OLDEST once the
 	// total crosses RING_BYTES (8 MiB): 9 pushes of 3 MiB keep only the
 	// newest ~8.
 	for (let round = 0; round < 9; round++) {
@@ -185,7 +185,7 @@ test("the registry refuses new entries at the cap even when every entry is onlin
 	for (let i = 0; i < 24; i++) {
 		store.touchClient(client({ clientId: `c${i}`, lastSeenAt: now }));
 	}
-	// all online — yet the 25th distinct id must not insert
+	// all online, yet the 25th distinct id must not insert
 	expect(store.touchClient(client({ clientId: "c25", lastSeenAt: now }))).toBe(false);
 	expect(store.getClient("c25")).toBeUndefined();
 	// heartbeats of existing entries keep working

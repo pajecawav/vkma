@@ -2,7 +2,7 @@ import type { ClientInfo, ClientStatus, WireEvent } from "../shared/protocol.ts"
 
 const RING_LIMIT = 500;
 /** Byte budget alongside the count cap: the ring keeps the LAST 500 events
- * *and* the newest ~8 MiB — a count-only cap retains multi-megabyte
+ * *and* the newest ~8 MiB; a count-only cap retains multi-megabyte
  * payloads indefinitely (one message, 500 x 2 MB rows). */
 const RING_BYTES = 8 * 1024 * 1024;
 const CLIENT_ONLINE_TTL_MS = 15_000;
@@ -22,7 +22,7 @@ const approxBytes = (event: Omit<WireEvent, "seq" | "clientId" | "runId">): numb
 interface PendingExec {
 	settle: (result: import("../shared/protocol.ts").ExecResult) => void;
 	timer: ReturnType<typeof setTimeout>;
-	/** The channel this exec was routed to — an exec-result may settle it
+	/** The channel this exec was routed to. An exec-result may settle it
 	 * only when it arrives on that same connection (reply correlation
 	 * bound to the issuing peer). Undefined for callers that have not
 	 * adopted owner binding yet (backwards compatible). */
@@ -40,7 +40,7 @@ export class DevtoolsStore {
 	private seq = 0;
 	/**
 	 * Instance epoch, stamped on every event: the extension's host store
-	 * dies with its page, so a reload restarts `seq` — consumers dedupe
+	 * dies with its page, so a reload restarts `seq`; consumers dedupe
 	 * by (runId, seq) and treat other runs' events as ghosts.
 	 */
 	public readonly runId = crypto.randomUUID();
@@ -55,7 +55,7 @@ export class DevtoolsStore {
 			return false;
 		}
 		if (existing === undefined && this.clients.size >= REGISTRY_CAP) {
-			// At the cap, make room the way listClients always did —
+			// At the cap, make room the way listClients always did:
 			// oldest offline entry first. If every slot is online (the
 			// documented attack shape: one connection minting fresh ids
 			// with fresh timestamps), the newcomer is refused: the
@@ -81,7 +81,7 @@ export class DevtoolsStore {
 		this.clients.set(info.clientId, {
 			...info,
 			// connectedAt anchors the registry order and the "connected N
-			// ago" label — within one session it is first-seen, whatever the
+			// ago" label; within one session it is first-seen, whatever the
 			// collector stamps on its heartbeats.
 			connectedAt:
 				existing !== undefined && existing.sessionId === info.sessionId
@@ -103,7 +103,7 @@ export class DevtoolsStore {
 	}
 
 	/**
-	 * Clients never leave the registry on a timer — a background tab's
+	 * Clients leave the registry on cap pressure alone; a background tab's
 	 * heartbeat is throttled by Chrome and would flap them offline/online
 	 * as disappear/reappear. They are marked offline past the heartbeat TTL
 	 * instead, and only dropped when the registry outgrows its cap (oldest
@@ -143,7 +143,7 @@ export class DevtoolsStore {
 
 	/**
 	 * Manual registry cleanup (the Clients tab's delete affordance):
-	 * removes entries by id, skipping ONLINE clients — deleting an
+	 * removes entries by id, skipping ONLINE clients: deleting an
 	 * offline-but-alive client is temporary (its next hello re-registers),
 	 * but deleting a live one would silently drop its traffic for up to a
 	 * heartbeat. Timeline events are NOT touched: the ledger is history,
@@ -231,7 +231,7 @@ export class DevtoolsStore {
 	}
 
 	/** @returns true if a pending execute was resolved. An exec carrying an
-	 * owner settles only for that owner (same connection) — a report from
+	 * owner settles only for that owner (same connection); a report from
 	 * any other peer is a forgery attempt and drops. */
 	public settleExec(
 		report: {

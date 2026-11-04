@@ -1,8 +1,8 @@
 /**
- * Sanitize arbitrary tap payloads (app-provided `send`/event data — may be
- * Maps, Sets, BigInts, cyclic objects) into plain JSON for agent-facing RPC
+ * Sanitize arbitrary tap payloads (app-provided `send`/event data, which may
+ * be Maps, Sets, BigInts, cyclic objects) into plain JSON for agent-facing RPC
  * functions. Agent/MCP functions must declare `jsonSerializable: true`, and
- * the strict JSON encoder throws DF0020 on anything that cannot round-trip —
+ * the strict JSON encoder throws DF0020 on anything that cannot round-trip,
  * so the wire types (WireEvent etc.) that the panel RPCs keep structured
  * must not be reused as-is on the MCP surface.
  */

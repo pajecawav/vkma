@@ -4,7 +4,7 @@ import { applyTheme, readStoredTheme, THEME_KEY, writeStoredTheme } from "../sha
 
 /**
  * The extension's theme: chrome.storage.local is the single source of
- * truth (shared by the FAB iframe, the tab panel and the side panel —
+ * truth (shared by the FAB iframe, the tab panel and the side panel;
  * their localStorage jars are third-party partitioned and would drift),
  * and storage.onChanged keeps every open surface in sync live. The
  * localStorage mirror is refreshed on apply so the pre-paint script in
@@ -36,8 +36,8 @@ export function useExtensionTheme(): { dark: boolean; toggle: () => void } {
 	}, []);
 
 	const toggle = useCallback(() => {
-		// write-then-sync: own onChanged listener applies the new value —
-		// one code path for local and remote changes
+		// write-then-sync: own onChanged listener applies the new value,
+		// giving one code path for local and remote changes
 		void writeStoredTheme(!document.documentElement.classList.contains("dark"));
 	}, []);
 

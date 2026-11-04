@@ -25,7 +25,7 @@ export function useFabPosition(): { position: FabPosition; pick: (position: FabP
 		try {
 			localStorage.setItem(FAB_POSITION_STORAGE_KEY, next);
 		} catch {
-			// storage denied — the FAB keeps its current placement
+			// storage denied, so the FAB keeps its current placement
 		}
 	}, []);
 

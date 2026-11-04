@@ -3,7 +3,7 @@ import { defineConfig } from "tsdown";
 /**
  * Unbundled output: dist mirrors src one-to-one, so consumers' IDEs and
  * stack traces can follow declaration/source maps back to the real
- * sources (also shipped in the tarball — see `files` in package.json).
+ * sources (also shipped in the tarball, see `files` in package.json).
  */
 export default defineConfig({
 	entry: ["src/index.ts", "src/rsbuild/index.ts"],

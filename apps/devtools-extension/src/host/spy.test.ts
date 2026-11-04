@@ -33,8 +33,8 @@ describe("SpyTracker id spaces", () => {
 		const tracker = new SpyTracker();
 		const a = tracker.synthesizeSend("a", envelope("M"));
 		const b = tracker.synthesizeSend("b", envelope("M"));
-		// row keys are `${clientId}:${id}` — same bare id under different
-		// clients is not a collision
+		// row keys are `${clientId}:${id}`, so the same bare id under
+		// different clients is not a collision
 		expect(`${a.id}`).toBe(`${b.id}`);
 		const a2 = tracker.synthesizeSend("a", envelope("M"));
 		expect(a2.id).not.toBe(a.id);
@@ -48,7 +48,7 @@ describe("SpyTracker pairing", () => {
 			"c",
 			envelope("VKWebAppGetUserInfo", { request_id: "1_2" }),
 		);
-		// a tap event whose own id collides with nothing — but note the
+		// a tap event whose own id collides with nothing, but note the
 		// classic collision: tap ids count from 1, the send's id is negative
 		expect(send.id).toBe(-1);
 

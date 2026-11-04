@@ -3,11 +3,11 @@ import type { TapEvent, VkConnectEnvelope } from "@vkma.dev/protocol/schemas";
 
 /**
  * Spy-mode pairing: the app's outgoing requests are synthesized by the
- * host sniffer while their responses arrive as collector tap events — the
+ * host sniffer while their responses arrive as collector tap events; the
  * only join key is the wire `request_id`.
  *
  * Synthesized sends draw ids from a NEGATIVE per-client counter: tap ids
- * count from 1, and `buildGroups`/React keys join on bare `id` — sharing
+ * count from 1, and `buildGroups`/React keys join on bare `id`: sharing
  * the positive space once made two different rows collide on
  * `${clientId}:${id}`, which misplaced live rows mid-list and could glue
  * a response onto a stranger's group.

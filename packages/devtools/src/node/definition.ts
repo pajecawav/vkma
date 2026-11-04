@@ -29,7 +29,7 @@ export const vkmaDevframe = defineDevframe({
 	setup(ctx) {
 		const store = new DevtoolsStore();
 		// Execute results settle only for the session that registered the
-		// client (see ExecResponders) — bounded by the same registry.
+		// client (see ExecResponders), bounded by the same registry.
 		const execResponders = new ExecResponders();
 		// Embedded panels (the FAB's `?client=` iframe) subscribe to one
 		// client id; the node then delivers them only their own traffic via
@@ -49,7 +49,7 @@ export const vkmaDevframe = defineDevframe({
 		// The channel id carries the store's runId: the devframe instance
 		// survives dev-server restarts (globalThis in the rsbuild adapter),
 		// and its replay window would otherwise mix the previous store's
-		// chunks into the fresh run — panels flip-flop between epochs. A
+		// chunks into the fresh run; panels flip-flop between epochs. A
 		// per-run channel starts empty; readers derive the id from
 		// `state.runId`.
 		const timeline = ctx.rpc.streaming.create<WireEvent>(`vkma:timeline:${store.runId}`, {
@@ -131,7 +131,7 @@ export const vkmaDevframe = defineDevframe({
 		};
 
 		// Broadcast when a client's online flag flips (heartbeat every 5s,
-		// online TTL 15s — a background tab's throttled heartbeat turns the
+		// online TTL 15s: a background tab's throttled heartbeat turns the
 		// client offline instead of deleting it). Never holds the process.
 		let onlineFingerprint = "";
 		const statusTimer = setInterval(() => {
@@ -231,7 +231,7 @@ export const vkmaDevframe = defineDevframe({
 				payload?: unknown;
 			}) => {
 				// Only the session that registered the client may settle its
-				// execs — every collector sees the broadcast's execId, so the
+				// execs: every collector sees the broadcast's execId, so the
 				// id alone would let any page forge any pending answer.
 				store.settleExec(report, execResponders.responderOf(report.clientId));
 			},
@@ -259,7 +259,7 @@ export const vkmaDevframe = defineDevframe({
 
 		// Agent/MCP surface. `jsonSerializable: true` (required for
 		// agent-exposed functions) means every app-provided payload is
-		// sanitized to plain JSON first — the panel RPCs above keep the
+		// sanitized to plain JSON first, and the panel RPCs above keep the
 		// structured-clone wire for Maps/Sets/cycles.
 		ctx.rpc.register({
 			name: VKMA_RPC.mcpState,
@@ -290,7 +290,7 @@ export const vkmaDevframe = defineDevframe({
 		// MCP input schema would demand `{ arg0: … }` and flat input would
 		// fail validation (DF0043). The explicit flat `inputSchema` wins
 		// over the synthesized one, and the handler receives the caller's
-		// input as-is — no positional conversion.
+		// input as-is, no positional conversion.
 		ctx.agent.registerTool({
 			id: VKMA_RPC.mcpExecute,
 			title: "Execute a VK Bridge method",
@@ -327,7 +327,7 @@ export const vkmaDevframe = defineDevframe({
 				name?: unknown;
 				params?: Record<string, unknown>;
 			}) => {
-				// Plain tools bypass RPC args validation — guard the required
+				// Plain tools bypass RPC args validation, so guard the required
 				// fields here; `params` passes through unchecked (the page-side
 				// execute reports VK's own rejection).
 				if (typeof input?.clientId !== "string" || typeof input?.name !== "string") {
@@ -357,7 +357,7 @@ export const vkmaDevframe = defineDevframe({
 				return { status: "no-client", clientId: payload.clientId } as const;
 			}
 			// The pending exec is bound to the session that registered the
-			// target client — reports from any other session are forgeries
+			// target client; reports from any other session are forgeries
 			// (every collector sees the broadcast's execId).
 			const { execId, promise } = store.beginExec(
 				execResponders.responderOf(payload.clientId),

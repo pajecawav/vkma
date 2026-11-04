@@ -4,7 +4,7 @@ import { api } from "./api.ts";
  * Theme persistence for the extension panels. localStorage is NOT the
  * source of truth here: the FAB iframe's storage is third-party
  * partitioned (per top-level site!) and every surface would keep its own
- * jar — the theme would "not save". extension storage.local is shared by
+ * jar, so the theme would "not save". extension storage.local is shared by
  * all extension contexts; localStorage stays as a per-jar mirror so the
  * pre-paint script in index.html can restore without a flash.
  */

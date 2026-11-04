@@ -51,7 +51,7 @@ describe("MergedTimeline", () => {
 		const feedA = { events: [event("a", 1, 10)] };
 		const first = merger.merge([feedA]);
 		expect(first.map(e => e.seq)).toEqual([1]);
-		// the feed disappears (tab closed / host reloaded) — empty merge
+		// the feed disappears (tab closed / host reloaded): empty merge
 		expect(merger.merge([])).toEqual([]);
 		// a reappearing key draws a FRESH seq; no collision with the past
 		const second = merger.merge([feedA]);

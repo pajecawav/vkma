@@ -1,5 +1,5 @@
 /**
- * Pre-paint theme boot — loaded as a BLOCKING external script from the
+ * Pre-paint theme boot: loaded as a BLOCKING external script from the
  * panel template's <head> (MV3 extension CSP forbids inline scripts).
  * Synchronous by design: it must run before the first paint to avoid a
  * light→dark flash. Reads the localStorage mirror the theme hook
@@ -15,5 +15,5 @@ try {
 		document.documentElement.classList.add("dark");
 	}
 } catch {
-	// storage denied — fall through with the user-agent default
+	// storage denied, so fall through with the user-agent default
 }

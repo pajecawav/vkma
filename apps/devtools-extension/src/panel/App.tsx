@@ -23,7 +23,7 @@ import { useExtensionTheme } from "./theme.ts";
 
 const SECTION_KEY = "vkma:section";
 
-// Sorted once at module scope — the catalogue is frozen data. The execute
+// Sorted once at module scope; the catalogue is frozen data. The execute
 // autocomplete and the ignore editor both draw from it; the editor also
 // takes the receive events (the noisiest rows are receive-side).
 const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
@@ -58,7 +58,7 @@ export function App() {
 
 /**
  * One panel page, three surfaces: the tab panel (?view=all) watches EVERY
- * VK tab at once — the /__vkma/ standalone panel's counterpart — while
+ * VK tab at once, the /__vkma/ standalone panel's counterpart, while
  * the FAB iframe (?tab=…) and the side panel (no query, resolves its own
  * tab) stay scoped to their tab.
  */
@@ -69,7 +69,7 @@ function PanelRoot() {
 	const [urlTabId] = useState(() => (viewAll ? undefined : resolveTabId()));
 	const [sidePanelTabId, setSidePanelTabId] = useState<number | undefined>(undefined);
 	const isSidePanel = !viewAll && urlTabId === undefined;
-	// One theme subscription per surface, hoisted above every branch — a
+	// One theme subscription per surface, hoisted above every branch; a
 	// hook behind a conditional return flips the hook count and dies with
 	// React #310 (learned the hard way).
 	const theme = useExtensionTheme();
@@ -127,7 +127,7 @@ function Sections({
 
 	// A frameFocus flash: the matching card wears a colored ring for a
 	// beat. The event may land while this panel is a background tab
-	// (?view=all) — a fresh focus (under 2s old) replays on visibility so
+	// (?view=all): a fresh focus (under 2s old) replays on visibility so
 	// the user still sees which card their click pointed at.
 	const [focusFlash, setFocusFlash] = useState<string | undefined>(undefined);
 	useEffect(() => {
@@ -229,7 +229,7 @@ function GlobalPanel({ theme }: { theme: { dark: boolean; toggle: () => void } }
 	if (connection.status !== "connected") {
 		const nothingYet = connection.tabCount === 0 && connection.status === "error";
 		// Watched tabs exist but no host answered (e.g. the extension was
-		// installed while they were already open — content scripts inject
+		// installed while they were already open; content scripts inject
 		// on the next load). Distinct copy from the tab-scoped default.
 		const hostsPending = connection.tabCount > 0 && connection.status === "error";
 		return (
@@ -287,7 +287,7 @@ function captureOf(clients: ClientStatus[]): CaptureMode | undefined {
 }
 
 /** Chrome exposes the sidePanel API surface in extension pages too;
- * Firefox never does — the button hides there (shared helper in
+ * Firefox never does, so the button hides there (shared helper in
  * shared/api.ts). */
 
 function TabPanel({
@@ -315,12 +315,12 @@ function TabPanel({
 
 	// Clicking in the panel page is a user gesture, and a one-shot
 	// runtime message carries it into the service worker (werpc ports do
-	// not) — that is what sidePanel.open() demands. The tabId rides the
+	// not): that is what sidePanel.open() demands. The tabId rides the
 	// payload because extension pages have no sender.tab.
 	const openSidePanel =
 		sidePanelSupported() && !embeddedInSidePanel
 			? () => {
-					// the listener never responds — swallow the closed-port
+					// the listener never responds, so swallow the closed-port
 					// rejection instead of leaking it as a console error
 					void api.runtime
 						.sendMessage({ type: OPEN_SIDE_PANEL_MESSAGE, tabId })

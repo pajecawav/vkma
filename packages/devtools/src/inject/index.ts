@@ -35,7 +35,7 @@ interface BridgeHandle {
 /**
  * The bridge module initializes `globalThis.__vkmaDevtoolsBridge` at import
  * time, but this script is dynamically inserted and may execute BEFORE the
- * app's module graph — so the handle can legitimately appear later. The
+ * app's module graph, so the handle can legitimately appear later. The
  * tap's replay buffer covers anything sent before we subscribe.
  */
 async function waitForBridge(timeoutMs = 10_000): Promise<BridgeHandle | undefined> {
@@ -58,7 +58,7 @@ async function waitForBridge(timeoutMs = 10_000): Promise<BridgeHandle | undefin
 
 /**
  * The panel base. The Vite plugin sets `globalThis.__VKMA_DEVTOOLS_BASE__`
- * right before loading this module — deriving it from `import.meta.url` is
+ * right before loading this module; deriving it from `import.meta.url` is
  * unreliable in dev pipelines that inline modules as data: URLs.
  */
 const base =
@@ -68,7 +68,7 @@ const base =
 /**
  * Plugin options carried alongside the base (`__VKMA_DEVTOOLS_CONFIG__`,
  * emitted only when non-default). Values are untrusted page-reachable
- * JSON — everything flows through normalizers before use.
+ * JSON: everything flows through normalizers before use.
  */
 const pluginConfig =
 	(
@@ -96,7 +96,7 @@ function storeClientId(id: string): void {
 	try {
 		sessionStorage.setItem(CLIENT_ID_KEY, id);
 	} catch {
-		// storage denied — the id just lives for this page load
+		// storage denied, so the id just lives for this page load
 	}
 }
 
@@ -125,7 +125,7 @@ function collectLaunchParams(): Record<string, string> {
 }
 
 let clientId = getOrCreateClientId();
-/** Fresh on every page load — the node side wipes this client's history
+/** Fresh on every page load; the node side wipes this client's history
  * when it sees a new session for a known client. */
 const sessionId = mintId("s");
 const launchParams = collectLaunchParams();
@@ -141,12 +141,12 @@ let retintFab: (() => void) | undefined;
 
 /**
  * sessionStorage survives reloads but is copied by "Duplicate Tab"
- * (middle-click on the reload button, among others) — two live tabs then
+ * (middle-click on the reload button, among others), and two live tabs then
  * share one client id, interleaving their traffic into a single card and
  * wiping its history every heartbeat (their sessionIds alternate). This
  * BroadcastChannel handshake resolves that: a tab may keep its id only
- * while it is the one live tab holding it. The claimant yields — an
- * incumbent answers `taken` and the claiming tab mints a fresh id — so a
+ * while it is the one live tab holding it. The claimant yields: an
+ * incumbent answers `taken` and the claiming tab mints a fresh id, so a
  * plain reload (nobody else holds the id) keeps its id. Tabs re-assert
  * their claim periodically, which also settles a duplicate whose twin was
  * timer-frozen at claim time.
@@ -161,7 +161,7 @@ function watchClientIds(): (() => void) | undefined {
 	const regenerate = () => {
 		clientId = mintId("c");
 		storeClientId(clientId);
-		// the glyph color is derived from the id — re-tint it too
+		// the glyph color is derived from the id, so re-tint it too
 		retintFab?.();
 		// re-register right away so the next flush is not dropped as
 		// traffic from an unknown client
@@ -172,7 +172,7 @@ function watchClientIds(): (() => void) | undefined {
 
 	const claim = () => {
 		// BroadcastChannel.postMessage takes only the message, there is no
-		// targetOrigin — the rule is a false positive here.
+		// targetOrigin; the rule is a false positive here.
 		// oxlint-disable-next-line unicorn/require-post-message-target-origin
 		channel.postMessage({ type: "claim", id: clientId, token });
 	};
@@ -184,11 +184,11 @@ function watchClientIds(): (() => void) | undefined {
 		}
 		if (message.type === "claim") {
 			// BroadcastChannel never echoes to its own poster, so a claim
-			// carrying my token cannot happen — and a claim of my id by
+			// carrying my token cannot happen, and a claim of my id by
 			// another tab means the claimant yields, I keep it.
 			if (message.token !== token && message.id === clientId) {
 				// BroadcastChannel.postMessage takes only the message, there
-				// is no targetOrigin — the rule is a false positive here.
+				// is no targetOrigin; the rule is a false positive here.
 				// oxlint-disable-next-line unicorn/require-post-message-target-origin
 				channel.postMessage({ type: "taken", id: message.id, token: message.token });
 			}
@@ -199,7 +199,7 @@ function watchClientIds(): (() => void) | undefined {
 			message.token === token && // addressed to my claim
 			message.id === clientId
 		) {
-			// my claim lost — mint a fresh id and verify that one is unclaimed
+			// my claim lost: mint a fresh id and verify that one is unclaimed
 			regenerate();
 			claim();
 		}
@@ -232,8 +232,8 @@ function detectPlatform(): ClientInfo["platform"] {
 const platform = detectPlatform();
 let bridgeGlobal: BridgeHandle | undefined;
 
-/** When this page load connected — stable across heartbeats, the node side
- * sorts the registry (and shows "connected N ago") by it. */
+/** When this page load connected; stable across heartbeats, so the node
+ * side sorts the registry (and shows "connected N ago") by it. */
 const connectedAt = Date.now();
 
 function clientInfo(): ClientInfo {
@@ -261,7 +261,7 @@ function scopeVkma(rpc: RpcClient) {
 type ScopedClient = ReturnType<typeof scopeVkma>;
 
 const clientExecute = defineRpcFunction({
-	// bare name — the scope prefixes it to `vkma:client-execute`
+	// bare name: the scope prefixes it to `vkma:client-execute`
 	name: VKMA_RPC.clientExecute.slice("vkma:".length),
 	type: "event",
 	handler: (payload: {
@@ -365,7 +365,7 @@ async function main(): Promise<void> {
 	if (bridgeGlobal) {
 		// The tap replays its buffer to the first subscriber, so events the
 		// app emitted before this script executed are not lost. `vk-connect`
-		// is vk-bridge's own transport chatter, not VK semantics — skip it.
+		// is vk-bridge's own transport chatter, not VK semantics, so skip it.
 		bridgeGlobal.tap.subscribe(event => {
 			if (event.name === "vk-connect") {
 				return;
@@ -391,7 +391,7 @@ let heartbeatTicks = 0;
 setInterval(() => {
 	heartbeatTicks++;
 	if (reassertIds !== undefined && heartbeatTicks % REASSERT_EVERY === 0) {
-		// a frozen twin may have answered nothing at claim time — re-check
+		// a frozen twin may have answered nothing at claim time, so re-check
 		reassertIds();
 	}
 	if (current !== undefined) {
@@ -428,14 +428,14 @@ void import("./fab.ts").then(({ mountFab }) => {
 	const fab = mountFab({
 		base,
 		getClientId: () => clientId,
-		// Synchronous localStorage read — the FAB first appears at its
+		// Synchronous localStorage read: the FAB first appears at its
 		// saved spot instead of gliding over from the default corner.
 		position: currentPosition(),
 	});
 	retintFab = fab.retint;
 
 	// The FAB placement is a localStorage preference of this dev server
-	// origin — the (same-origin) panel writes it, the storage event
+	// origin: the (same-origin) panel writes it, the storage event
 	// reaches this page and moves the FAB live. No RPC involved.
 	fab.setPosition(currentPosition());
 	window.addEventListener("storage", event => {

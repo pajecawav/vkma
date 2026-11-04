@@ -1,9 +1,9 @@
 /**
  * The FAB: a shadow-DOM host button on the mini app page that toggles an
  * iframe overlay with the /__vkma panel. All styles live inside the shadow
- * root — nothing leaks into the host page and nothing of the host page
+ * root; nothing leaks into the host page and nothing of the host page
  * affects the panel chrome. The placement (bottom-right / bottom /
- * bottom-left) is a localStorage preference of the dev server origin —
+ * bottom-left) is a localStorage preference of the dev server origin,
  * see @vkma.dev/ui/fab-position.
  */
 import { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
@@ -166,7 +166,7 @@ export function mountFab({ base, getClientId, position }: FabOptions): FabHandle
 	const panel = root.querySelector<HTMLElement>(".panel")!;
 	const iframe = root.querySelector<HTMLIFrameElement>("iframe")!;
 
-	// The glyph is outlined and its stroke rides on currentColor — painting
+	// The glyph is outlined and its stroke rides on currentColor, so painting
 	// the button paints the icon's stroke with this client's color, so tabs
 	// are tellable apart without opening the panel.
 	const applyColor = () => {
@@ -178,7 +178,7 @@ export function mountFab({ base, getClientId, position }: FabOptions): FabHandle
 	const setOpen = (open: boolean) => {
 		if (open && !loaded) {
 			// ?client= scopes the embedded panel to this page's collector.
-			// Read at open time — the id can change if a duplicated tab
+			// Read at open time: the id can change if a duplicated tab
 			// yields its copied id.
 			iframe.src = `${base}?client=${encodeURIComponent(getClientId())}`;
 			loaded = true;
@@ -200,7 +200,7 @@ export function mountFab({ base, getClientId, position }: FabOptions): FabHandle
 	});
 
 	// Initial placement lands BEFORE attachment: no first paint at the
-	// default corner and no FLIP — the dedupe below swallows the caller's
+	// default corner and no FLIP. The dedupe below swallows the caller's
 	// initial setPosition.
 	let currentPosition = position;
 	if (currentPosition !== undefined) {
@@ -217,20 +217,20 @@ export function mountFab({ base, getClientId, position }: FabOptions): FabHandle
 			}
 			currentPosition = position;
 
-			// FLIP: First — where the movers sit now.
+			// FLIP: First, where the movers sit now.
 			const first = {
 				button: button.getBoundingClientRect(),
 				panel: panel.getBoundingClientRect(),
 			};
 
-			// Last — the new anchors land instantly (transitions off, so
+			// Last: the new anchors land instantly (transitions off, so
 			// the mismatched per-variant transforms cannot half-animate).
 			host.classList.add("vkma-no-anim");
 			for (const cls of Object.values(POSITION_CLASSES)) {
 				host.classList.toggle(cls, cls === POSITION_CLASSES[position]);
 			}
 
-			// Invert — visually put each element back where it was, via
+			// Invert: visually put each element back where it was, via
 			// the standalone translate (composes in viewport space with
 			// whatever per-variant transform now applies). One reflow
 			// bakes anchor + inversion together before any paint.
@@ -242,7 +242,7 @@ export function mountFab({ base, getClientId, position }: FabOptions): FabHandle
 			invert(panel, first.panel);
 			void host.offsetWidth;
 
-			// Play — restore transitions (computed styles unchanged so far,
+			// Play: restore transitions (computed styles unchanged so far,
 			// nothing fires yet), then in the NEXT frame release the
 			// inversion: translate glides each element to its new spot.
 			host.classList.remove("vkma-no-anim");

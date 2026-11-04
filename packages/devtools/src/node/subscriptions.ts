@@ -1,8 +1,8 @@
 /**
  * Server-side scoping for embedded panels: a session that subscribed to a
  * single client id only ever receives that client's traffic. Sessions are
- * keyed by their RPC session meta object — the same identity the devframe
- * broadcast `filter` compares (`client.$meta === session.meta`) — so a dead
+ * keyed by their RPC session meta object, the same identity the devframe
+ * broadcast `filter` compares (`client.$meta === session.meta`), so a dead
  * session's binding simply never matches a live filter and stays inert.
  */
 export class EmbeddedSubscriptions {

@@ -2,11 +2,11 @@ import type { FabPosition } from "@vkma.dev/ui/fab-position";
 
 /**
  * The extension FAB: the same shadow-DOM button as the devtools one
- * (`packages/devtools/src/inject/fab.ts`) adapted for the host page —
+ * (`packages/devtools/src/inject/fab.ts`) adapted for the host page:
  * it opens the extension's own panel.html (all clients of the tab, not a
  * single embedded client), stays neutrally colored (there is no single
  * client to tint by) and hides while the side panel of the tab is open.
- * The placement (bottom-right / bottom / bottom-left) is a preference —
+ * The placement (bottom-right / bottom / bottom-left) is a preference,
  * see @vkma.dev/ui/fab-position.
  */
 
@@ -184,7 +184,7 @@ export function mountFab({ panelUrl, position }: FabOptions): FabHandle {
 	});
 
 	// Initial placement lands BEFORE attachment: no first paint at the
-	// default corner and no FLIP — the dedupe below swallows the
+	// default corner and no FLIP. The dedupe below swallows the
 	// follow-up setPosition from the storage read.
 	let currentPosition = position;
 	if (currentPosition !== undefined) {
@@ -206,20 +206,20 @@ export function mountFab({ panelUrl, position }: FabOptions): FabHandle {
 			}
 			currentPosition = position;
 
-			// FLIP: First — where the movers sit now.
+			// FLIP: First, where the movers sit now.
 			const first = {
 				button: button.getBoundingClientRect(),
 				panel: panel.getBoundingClientRect(),
 			};
 
-			// Last — the new anchors land instantly (transitions off, so
+			// Last: the new anchors land instantly (transitions off, so
 			// the mismatched per-variant transforms cannot half-animate).
 			host.classList.add("vkma-no-anim");
 			for (const cls of Object.values(POSITION_CLASSES)) {
 				host.classList.toggle(cls, cls === POSITION_CLASSES[position]);
 			}
 
-			// Invert — visually put each element back where it was, via
+			// Invert: visually put each element back where it was, via
 			// the standalone `translate` (composes in viewport space with
 			// whatever per-variant `transform` now applies). One reflow
 			// bakes anchor + inversion together before any paint.
@@ -231,7 +231,7 @@ export function mountFab({ panelUrl, position }: FabOptions): FabHandle {
 			invert(panel, first.panel);
 			void host.offsetWidth;
 
-			// Play — restore transitions (computed styles unchanged so far,
+			// Play: restore transitions (computed styles unchanged so far,
 			// nothing fires yet), then in the NEXT frame release the
 			// inversion: `translate` glides each element to its new spot.
 			host.classList.remove("vkma-no-anim");

@@ -1,5 +1,5 @@
 /**
- * The frame collector — the extension's counterpart of the devtools inject
+ * The frame collector, the extension's counterpart of the devtools inject
  * collector, running in the ISOLATED world of every mini app frame. Two
  * capture modes (see CaptureMode in @vkma.dev/protocol):
  *
@@ -8,7 +8,7 @@
  *   the app's own bridge instance through the relay.
  * - spy: a foreign bridge (`@vkontakte/vk-bridge` in prod or third-party
  *   apps). A second `@vkma.dev/bridge` instance lives here in the
- *   isolated world — `message` events reach listeners of every world, so
+ *   isolated world: `message` events reach listeners of every world, so
  *   it sees everything the host sends INTO the frame; the app's outgoing
  *   requests are sniffed by the host script. Execute sends through this
  *   own instance with a reserved request_id prefix.
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
 	let mode: "direct" | "spy" = "spy";
 	let webFrameId: string | undefined;
 
-	// The host assigns the frame id over VKWebAppSettings — our bridge
+	// The host assigns the frame id over VKWebAppSettings; our bridge
 	// caches it for its own sends, but never reports it; grab it raw so the
 	// host can join sniffed envelopes to this collector.
 	window.addEventListener("message", event => {
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
 		const events = queue;
 		queue = [];
 		void client.vkma.push.mutate({ clientId, events }).catch(() => {
-			// the host died with the page — nothing to recover into
+			// the host died with the page, so nothing to recover into
 		});
 	}
 
@@ -178,9 +178,9 @@ async function main(): Promise<void> {
 	});
 
 	// The reverse locate: a click inside THIS frame is the user pointing
-	// at it — panels flash the matching client card. Capture + passive in
+	// at it, so panels flash the matching client card. Capture + passive in
 	// the isolated world: the page cannot block it and nothing changes
-	// for the app. Throttled — one tiny mutation per burst of clicks.
+	// for the app. Throttled: one tiny mutation per burst of clicks.
 	let lastFocusSentAt = 0;
 	document.addEventListener(
 		"pointerdown",
@@ -195,7 +195,7 @@ async function main(): Promise<void> {
 		{ capture: true, passive: true },
 	);
 
-	// Executes arrive as subscription pushes routed by clientId — direct
+	// Executes arrive as subscription pushes routed by clientId: direct
 	// sends go through the relay (the app's own instance), spy sends
 	// through ours.
 	client.vkma.executeRequests.subscribe(undefined, {
@@ -237,14 +237,14 @@ async function main(): Promise<void> {
 		},
 	});
 
-	// A host-less tab (a mini app embedded in a third-party page — the
+	// A host-less tab (a mini app embedded in a third-party page, the
 	// documented v1 gap) answers nothing: the hello times out, the
 	// heartbeat keeps retrying. Setup continues either way.
 	await hello().catch(() => {});
 	flush();
 
 	// The relay may legitimately resolve after us (the app imports its
-	// bridge dynamically) — after the wait, spy mode is final.
+	// bridge dynamically); after the wait, spy mode is final.
 	setTimeout(() => {
 		if (mode === "spy") {
 			bridge.tap.drain(); // the replay buffer is meaningless now
@@ -256,7 +256,7 @@ async function main(): Promise<void> {
 	}, HEARTBEAT_MS);
 	setInterval(flush, FLUSH_MS);
 
-	// Chrome throttles background-tab timers — on focus say hello right
+	// Chrome throttles background-tab timers; on focus, say hello right
 	// away so the registry flips back online immediately.
 	document.addEventListener("visibilitychange", () => {
 		if (document.visibilityState === "visible") {

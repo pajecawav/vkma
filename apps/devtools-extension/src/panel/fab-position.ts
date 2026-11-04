@@ -9,7 +9,7 @@ import { api } from "../shared/api.ts";
 /**
  * The extension's FAB placement: chrome.storage.local is shared by every
  * surface (FAB iframe, tab panel, side panel) and storage.onChanged is
- * what moves the in-page FAB live — the host script listens for the same
+ * what moves the in-page FAB live; the host script listens for the same
  * changes.
  */
 export function useFabPosition(): { position: FabPosition; pick: (position: FabPosition) => void } {

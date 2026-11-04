@@ -4,7 +4,7 @@
  * the real module tag at runtime, after the app's own module scripts.
  *
  * It must survive being placed in `<head>` before `<body>` exists (the
- * rsbuild adapter's tag injection lands there) — hence the DOM wait.
+ * rsbuild adapter's tag injection lands there), hence the DOM wait.
  */
 export interface InjectSnippetConfig {
 	/** Initial FAB placement; a placement picked in the panel wins over it. */
