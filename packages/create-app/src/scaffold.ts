@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Preset } from "./presets.ts";
@@ -59,6 +59,7 @@ export async function scaffoldProject(targetDir: string, preset: Preset): Promis
 		await copyTemplate(join(TEMPLATES_DIR, preset.overlay), absolute);
 		await applyOverlayRemovals(join(TEMPLATES_DIR, preset.overlay), absolute);
 	}
+	await restoreDotfiles(absolute);
 
 	const baseFragment = await readFragment(join(baseDir, "package.json"));
 	const overlayFragment =
@@ -80,6 +81,18 @@ export async function scaffoldProject(targetDir: string, preset: Preset): Promis
 
 /** Files that never reach the target as-is: fragments and the overlay manifest. */
 const NON_TEMPLATE_FILES = new Set(["package.json", "overlay.json"]);
+
+/**
+ * npm pack never ships `.gitignore` files in a tarball, so the template's
+ * gitignore travels under its dotless name and lands as the dotfile here.
+ */
+function restoreDotfiles(targetDir: string): Promise<void> {
+	const gitignore = join(targetDir, "gitignore");
+	if (!existsSync(gitignore)) {
+		return Promise.resolve();
+	}
+	return rename(gitignore, join(targetDir, ".gitignore"));
+}
 
 interface OverlayManifest {
 	/** Base-template files this preset replaces with its own structure. */
