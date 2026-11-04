@@ -134,6 +134,9 @@ function Sections({
 		if (focused === undefined) {
 			return;
 		}
+		// the flash is the 1.6 s residue of a focus EVENT arriving over the
+		// wire — not a value derivable in render
+		// eslint-disable-next-line react/set-state-in-effect
 		setFocusFlash(focused.clientId);
 		const timer = setTimeout(() => setFocusFlash(undefined), 1600);
 		return () => clearTimeout(timer);

@@ -120,8 +120,11 @@ export function Timeline({
 	const maxSeq = events.length > 0 ? (events.at(-1)?.seq ?? 0) : 0;
 
 	// When paused, freeze the view at the pause point; buffer the rest.
+	// The freeze point is a pause-moment snapshot: it can only be taken at
+	// the commit, never derived from props in render.
 	useEffect(() => {
 		if (!paused) {
+			// eslint-disable-next-line react/set-state-in-effect
 			setAnchorSeq(null);
 			return;
 		}
@@ -144,14 +147,13 @@ export function Timeline({
 		});
 	}, [events, clearSeq, paused, anchorSeq, query, clientFilter]);
 
-	// The effective hide set, resolved from settings only while the eye
-	// toggle is on, so disabling shows everything without reshaping lists.
+	// The effective hide set, resolved from the settings slice only:
+	// `onChange` lives on the same object and must never reshape the memo.
+	const settings = ignoredEvents?.settings;
 	const ignoredSet = useMemo(
 		() =>
-			ignoredEvents !== undefined && ignoredEvents.settings.enabled
-				? resolveIgnoredNames(ignoredEvents.settings)
-				: undefined,
-		[ignoredEvents?.settings],
+			settings !== undefined && settings.enabled ? resolveIgnoredNames(settings) : undefined,
+		[settings],
 	);
 
 	const ignoreRow =
@@ -180,9 +182,16 @@ export function Timeline({
 			: 0;
 
 	const initialMaxSeq = useRef<number | null>(null);
+	// eslint-disable-next-line react/refs
 	if (initialMaxSeq.current === null && events.length > 0) {
+		// the ledger is set-once (first-paint baseline) by design
+		// eslint-disable-next-line react/refs
 		initialMaxSeq.current = maxSeq;
 	}
+	// render-read of the set-once ledger is deliberate: it is the freeze
+	// baseline — groups with seq above it animate, the initial ones do not
+	// eslint-disable-next-line react/refs
+	const animateFloor: number | null = initialMaxSeq.current;
 
 	const empty =
 		ordered.length === 0 &&
@@ -382,6 +391,8 @@ export function Timeline({
 						No events match the filter.
 					</p>
 				) : (
+					// the ref-derived freeze baseline flows in via animateFloor
+					// eslint-disable-next-line react/refs
 					ordered.map(group => (
 						<div
 							key={`${group.head.runId}:${group.head.clientId}:${group.head.seq}`}
@@ -394,10 +405,7 @@ export function Timeline({
 									clients={clients}
 									hideClient={hideClient}
 									onIgnore={ignoreRow}
-									animate={
-										initialMaxSeq.current !== null &&
-										group.head.seq > initialMaxSeq.current
-									}
+									animate={animateFloor !== null && group.head.seq > animateFloor}
 								/>
 							) : (
 								<EventRow
@@ -405,10 +413,7 @@ export function Timeline({
 									clients={clients}
 									hideClient={hideClient}
 									onIgnore={ignoreRow}
-									animate={
-										initialMaxSeq.current !== null &&
-										group.head.seq > initialMaxSeq.current
-									}
+									animate={animateFloor !== null && group.head.seq > animateFloor}
 								/>
 							)}
 						</div>

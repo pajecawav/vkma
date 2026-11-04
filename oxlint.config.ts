@@ -1,6 +1,7 @@
 import { defineOxlintConfig } from "@pajecawav/tools";
 
 export default defineOxlintConfig({
+	plugins: ["react"],
 	ignorePatterns: [
 		"**/dist",
 		"**/coverage",
@@ -19,5 +20,12 @@ export default defineOxlintConfig({
 	],
 	rules: {
 		"typescript/explicit-member-accessibility": "error",
+		// the automatic JSX runtime imports React itself; the classic rule
+		// reads sources and "cannot find" it (740+ false positives)
+		"react/react-in-jsx-scope": "off",
+		// the two rules the plugin is for, pinned at error: conditional
+		// hooks and deps drift in effects/memos
+		"react/rules-of-hooks": "error",
+		"react-hooks/exhaustive-deps": "error",
 	},
 });

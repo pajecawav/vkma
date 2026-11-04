@@ -5,8 +5,10 @@ import {
 	createContext,
 	type LazyExoticComponent,
 	Suspense,
+	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 import { idleChoreography, reconcile, type ChoreographyState } from "./choreography.ts";
@@ -152,12 +154,18 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 		reconcile(idleChoreography<ModalEntry>(), target),
 	);
 
-	// choreograph target changes (see reconcile)
+	// choreograph target changes (see reconcile): the router location is
+	// the external system, so reconciliation belongs to the commit —
+	// deriving it in render would run the exit choreography mid-render
 	useEffect(() => {
+		// eslint-disable-next-line react/set-state-in-effect
 		setState(previous => reconcile(previous, target));
 	}, [target]);
 
-	const handleClosed = (closedId: string): void => {
+	const handleClosed = useCallback((closedId: string): void => {
+		// setState from an event context (a surface's onClosed or the
+		// watchdog timeout), never from render
+		// eslint-disable-next-line react/set-state-in-effect
 		setState(previous => {
 			if (previous.awaitingExitId !== closedId) {
 				return previous; // stale or unexpected callback
@@ -169,7 +177,7 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 			};
 			return reconcile(settled, settled.target);
 		});
-	};
+	}, []);
 
 	// watchdog for the lost-onClosed case (unmount mid-exit); the dep set
 	// re-arms it on every new exit and cleans up on completion/unmount
@@ -182,22 +190,32 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 			exitDuration * 2,
 		);
 		return () => clearTimeout(watchdog);
-	}, [state.awaitingExitId, exitDuration]);
+	}, [state.awaitingExitId, exitDuration, handleClosed]);
 
-	// render the open stack (bottom → top) plus the exiting sheet
-	const rendered: Array<{ entry: ModalEntry; open: boolean; stacked: boolean }> = [];
-	state.stack.forEach((entry, index) => {
-		rendered.push({ entry, open: true, stacked: index < state.stack.length - 1 });
-	});
-	if (state.exiting !== null && !state.stack.some(entry => entry.id === state.exiting?.id)) {
-		rendered.push({ entry: state.exiting, open: false, stacked: false });
-	}
+	// render the open stack (bottom → top) plus the exiting sheet; memoize
+	// the whole provider tree so the sheets (and their Suspense-mounted
+	// components) keep per-choreography identities across unrelated
+	// router-state renders
+	const rendered = useMemo(() => {
+		const list: Array<{ entry: ModalEntry; open: boolean; stacked: boolean }> = [];
+		state.stack.forEach((entry, index) => {
+			list.push({ entry, open: true, stacked: index < state.stack.length - 1 });
+		});
+		if (state.exiting !== null && !state.stack.some(entry => entry.id === state.exiting?.id)) {
+			list.push({ entry: state.exiting, open: false, stacked: false });
+		}
+		return list;
+	}, [state]);
 
-	return (
-		<>
-			{rendered.map(({ entry, open, stacked }) => (
+	const sheets = useMemo(
+		() =>
+			rendered.map(({ entry, open, stacked }) => (
 				<ModalSurfaceContext.Provider
 					key={entry.id}
+					// the enclosing useMemo rebuilds values only when the
+					// choreography state or handleClosed changes — the
+					// detector cannot see through it
+					// eslint-disable-next-line react/jsx-no-constructed-context-values
 					value={{
 						nav: entry.id,
 						open,
@@ -210,7 +228,9 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 						<entry.Component />
 					</Suspense>
 				</ModalSurfaceContext.Provider>
-			))}
-		</>
+			)),
+		[rendered, handleClosed],
 	);
+
+	return <>{sheets}</>;
 }

@@ -25,6 +25,9 @@ export default function ChatsPanel(): ReactElement {
 	// can be dismissed without rewriting the URL
 	const [redirectTrace, setRedirectTrace] = useState(search?.redirectedFrom);
 	useEffect(() => {
+		// a local dismissible copy: closing the snackbar is not a navigation
+		// (the search owns the redirect trace, the snackbar owns dismissal)
+		// eslint-disable-next-line react/set-state-in-effect
 		setRedirectTrace(search?.redirectedFrom);
 	}, [search?.redirectedFrom]);
 	const filtered = chats.filter(chat =>

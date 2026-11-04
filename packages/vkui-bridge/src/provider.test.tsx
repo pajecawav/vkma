@@ -1,5 +1,4 @@
 import { useConfigProvider } from "@vkontakte/vkui";
-import { createElement } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,16 +40,18 @@ async function renderProvider({
 	const root = createRoot(container);
 
 	const Probe = (): null => {
+		// the hand-rolled probe convention (no @testing-library in this
+		// repo): the test captures the hook's value straight out of render
+		// eslint-disable-next-line react/globals
 		capturedConfig = useConfigProvider();
 		return null;
 	};
 
 	act(() => {
 		root.render(
-			createElement(VKBridgeConfigProvider, {
-				...props,
-				children: createElement(Probe),
-			}),
+			<VKBridgeConfigProvider {...props}>
+				<Probe />
+			</VKBridgeConfigProvider>,
 		);
 	});
 	// the VKWebAppGetConfig round trip

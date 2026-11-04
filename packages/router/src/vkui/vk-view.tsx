@@ -203,6 +203,9 @@ function useStalledIds(pendingIds: string[], delayMs: number): string[] {
 	const [stalledKey, setStalledKey] = useState("");
 	useEffect(() => {
 		if (key === "") {
+			// functional reset so the bail-out keeps "" → "" render-free
+			// (see the overview comment above)
+			// eslint-disable-next-line react/set-state-in-effect
 			setStalledKey(prev => (prev === "" ? prev : ""));
 			return;
 		}

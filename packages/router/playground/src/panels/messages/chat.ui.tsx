@@ -51,6 +51,8 @@ export default function ChatPanel() {
 				>
 					{chat.messages.map((message, i) => (
 						<div
+							// a static demo transcript: bubbles never reorder
+							// eslint-disable-next-line react/no-array-index-key
 							key={i}
 							style={{
 								alignSelf: message.out ? "flex-end" : "flex-start",

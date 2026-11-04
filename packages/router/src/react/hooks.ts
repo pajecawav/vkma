@@ -41,8 +41,13 @@ export interface PanelRef<
 export function useLastWhileUndefined<T>(value: T | undefined): T | undefined {
 	const ref = useRef(value);
 	if (value !== undefined) {
+		// the retain-last trick writes during render on purpose: the panel
+		// stays mounted through the back animation and must not lose its
+		// data (see the freeze-semantics doc block above)
+		// eslint-disable-next-line react/refs
 		ref.current = value;
 	}
+	// eslint-disable-next-line react/refs
 	return value === undefined ? ref.current : value;
 }
 
@@ -109,9 +114,13 @@ export function usePanelsStack(activePanel: string): PanelsStackState {
 	const ref = useRef<PanelsStackState>(initialPanelsStack());
 
 	if (snapshot.status === "idle") {
+		// the mirror advances during render at idle commits only — spike-2
+		// semantics (the commit lands a render before matches resolve)
+		// eslint-disable-next-line react/refs
 		ref.current = applyLocation(ref.current, snapshot.index, activePanel);
 	}
 
+	// eslint-disable-next-line react/refs
 	return ref.current;
 }
 

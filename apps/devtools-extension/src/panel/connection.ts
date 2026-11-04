@@ -251,16 +251,22 @@ export function useVkmaAllTabs(): GlobalConnection {
 			}
 			publish();
 		}
+		// reattach is the reset trigger: reconnect() clears the feeds and
+		// bumps it to re-run the whole attach pass
+		// eslint-disable-next-line react/exhaustive-effect-dependencies
 	}, [tabIds, reattach, publish]);
 
-	// The page is going away for real: release every port.
+	// The page is going away for real: release every port. The map is
+	// captured once — the ref is never reassigned, only mutated — so the
+	// closure drains the same map at unmount.
 	useEffect(() => {
+		const feeds = feedsRef.current;
 		return () => {
-			for (const feed of feedsRef.current.values()) {
+			for (const feed of feeds.values()) {
 				feed.probe.dispose();
 				feed.client.dispose();
 			}
-			feedsRef.current.clear();
+			feeds.clear();
 		};
 	}, []);
 
@@ -412,6 +418,9 @@ export function useVkmaExtension(tabId: number): ExtensionConnection {
 			probe.dispose();
 			client.dispose();
 		};
+		// nonce is the redial trigger: reconnect() bumps it to tear down and
+		// re-create both clients
+		// eslint-disable-next-line react/exhaustive-effect-dependencies
 	}, [tabId, nonce]);
 
 	const execute = useCallback<ExtensionConnection["execute"]>(async (clientId, name, params) => {
