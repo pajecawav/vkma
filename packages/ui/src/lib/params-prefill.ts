@@ -1,8 +1,8 @@
 /**
  * Params prefill policy of the Execute panel: when a catalogue event is
  * picked, its payload stub may overwrite the textarea ONLY while the text
- * cannot be the user's work. Everything else — a typed JSON object, broken
- * JSON, anything non-empty — wins over the stub.
+ * cannot be the user's work. Everything else (a typed JSON object, broken
+ * JSON, anything non-empty) wins over the stub.
  */
 
 /** The text this surface last wrote itself; replacing it again is safe. */
@@ -22,7 +22,7 @@ export function nextParamsText(
 	return undefined;
 }
 
-/** Empty, whitespace, or a JSON object without keys — nothing to lose. */
+/** Empty, whitespace, or a JSON object without keys: nothing to lose. */
 function isUntouched(current: string): boolean {
 	const trimmed = current.trim();
 	if (trimmed === "") {

@@ -1,5 +1,5 @@
 /**
- * The VkmaLogoIcon glyph as raw SVG path data — the 24-grid, filled
+ * The VkmaLogoIcon glyph as raw SVG path data, the 24-grid, filled
  * four-squares mark. Shared by the React icon and non-DOM consumers like
  * the extension icon generator (keep in one place: the panel icon and
  * the launcher icon must never drift apart).

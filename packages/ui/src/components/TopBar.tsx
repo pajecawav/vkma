@@ -43,7 +43,7 @@ export function TopBar({
 	onReconnect: () => void;
 	clientBadge?: { clientId: string };
 	/** Capture-mode chip: only meaningful when the feed is one client's
-	 * (or uniform) — mixed feeds show the mode per client card instead. */
+	 * (or uniform). Mixed feeds show the mode per client card instead. */
 	capture?: CaptureMode;
 	/** Surface-specific buttons (e.g. the extension's "open side panel"),
 	 * rendered next to the theme toggle. */

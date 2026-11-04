@@ -1,7 +1,7 @@
 /**
  * The timeline's ignored-events feature: a user-editable list of bridge
  * event names that stay out of the ledger. The model is two lists over a
- * frozen default set — `off` names disabled defaults (they come back when
+ * frozen default set: `off` names disabled defaults (they come back when
  * re-enabled, and NEW defaults added in a later version reach existing
  * users, since defaults never get copied into storage), `extra` names
  * added on top. Everything is matched case-insensitively by exact name;
@@ -23,7 +23,7 @@ export const DEFAULT_IGNORED_EVENTS: readonly string[] = [
 export interface IgnoredEventsSettings {
 	/** Bump on shape changes; parsers reject other versions to defaults. */
 	v: 1;
-	/** Master switch — the toolbar's eye toggle. */
+	/** Master switch, the toolbar's eye toggle. */
 	enabled: boolean;
 	/** Disabled members of `DEFAULT_IGNORED_EVENTS` (kept for easy re-enable). */
 	off: string[];
@@ -60,7 +60,7 @@ const asStringList = (value: unknown): string[] => {
 
 /**
  * The storage decoder every surface shares: localStorage hands over a
- * string, chrome.storage an already-parsed value — both arrive here as
+ * string, chrome.storage an already-parsed value. Both arrive here as
  * `unknown`. Anything unexpected (absent, corrupt JSON, a future version,
  * a hostile shape) degrades to the defaults instead of throwing through
  * the render. `off` entries that no default knows are dropped, so a
@@ -91,7 +91,7 @@ export function parseIgnoredSettings(raw: unknown): IgnoredEventsSettings {
 	};
 }
 
-/** The effective hide set: enabled defaults minus `off`, plus `extra` —
+/** The effective hide set: enabled defaults minus `off`, plus `extra`,
  * lowercased, so the timeline matches case-insensitively. */
 export function resolveIgnoredNames(settings: IgnoredEventsSettings): ReadonlySet<string> {
 	const off = new Set(settings.off.map(name => name.toLowerCase()));
@@ -99,7 +99,7 @@ export function resolveIgnoredNames(settings: IgnoredEventsSettings): ReadonlySe
 	return new Set([...names, ...settings.extra].map(name => name.toLowerCase()));
 }
 
-/** Force-ignore one name — what both the row button and the editor's add
+/** Force-ignore one name, what both the row button and the editor's add
  * field mean. A disabled default is re-enabled (adding it back), anything
  * else joins `extra`; a no-op when the name is already ignored. */
 export function ignoreName(

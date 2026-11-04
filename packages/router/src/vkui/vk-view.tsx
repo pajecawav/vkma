@@ -57,22 +57,22 @@ export interface VkViewProps {
  * Static-children view: every panel route renders as an always-present JSX
  * child of VKUI <View>; the router only feeds `activePanel` (and `history`
  * for the iOS swipe-back). VKUI hides inactive panels itself and infers
- * the animation direction from the children order — a plain <Outlet>
+ * the animation direction from the children order. A plain <Outlet>
  * breaks both. A lazy panel's `options.component` is undefined until its
  * chunk resolves (TanStack merges loaded options in place), so the panel
- * renders a spinner fallback until then — but only after a short grace
- * delay: a fast chunk load must not flash a spinner for a frame or two,
- * the panel just fills in seamlessly. For the same reason TanStack's
- * Outlet-driven `pendingComponent` swap never happens on its own — while
- * the panel's match is pending (loader/beforeLoad), the route's
- * `pendingComponent` renders instead of the component.
+ * renders a spinner fallback until then, but only after a short grace
+ * delay: a fast chunk load resolves within a frame or two, so the panel
+ * shows nothing meanwhile and paints once the chunk arrives. For the same
+ * reason TanStack's Outlet-driven `pendingComponent` swap never happens
+ * on its own: while the panel's match is pending (loader/beforeLoad),
+ * the route's `pendingComponent` renders instead of the component.
  */
 export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 	useMatchSummaries();
 	const matchedRouteIds = useRouterState({
 		select: state => state.matches.map(match => match.routeId),
 	});
-	// structurally-compared array — TanStack keeps the reference stable when
+	// structurally-compared array. TanStack keeps the reference stable when
 	// the selection is deep-equal. TanStack's Outlet would swap in the
 	// route's pendingComponent itself, but static children render the
 	// component directly, so the swap is ours to make while the loader runs
@@ -84,15 +84,16 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 	});
 	// The grace delay: a pending match only earns the spinner fallback after
 	// staying pending for this long. Fast lazy-chunk loads (a warm cache, a
-	// small bundle) resolve within a frame or two — flashing a spinner for
-	// that blink makes every navigation feel broken; showing nothing and
-	// letting the panel fill in seamlessly looks instant. Real loaders
-	// outlive the delay and still get the fallback.
+	// small bundle) resolve within a frame or two. Flashing a spinner for
+	// that blink makes every navigation feel broken. Showing nothing keeps
+	// the previous paint on screen until the new panel mounts, so nothing
+	// swaps mid-frame. Real loaders outlive the delay and still get the
+	// fallback.
 	const stalledRouteIds = useStalledIds(pendingRouteIds, 200);
 	// a notFound match (notFound() from beforeLoad/validateSearch) must NOT
 	// render its panel component: the component's data guards assume a valid
-	// match, and the shell renders the NotFound screen for this navigation —
-	// the panel itself stays invisible. Without the gate the component would
+	// match, and the shell renders the NotFound screen for this navigation.
+	// The panel itself stays invisible. Without the gate the component would
 	// throw in a transient render and dirty the console on every cold 404
 	const notFoundRouteIds = useRouterState({
 		select: state =>
@@ -119,40 +120,41 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 				const Component = child.options.component as ComponentType | undefined;
 				const Pending = child.options.pendingComponent as ComponentType | undefined;
 				// the grace-gated pending set (useStalledIds): a fast chunk load
-				// never shows a spinner, the panel just fills in seamlessly
+				// resolves inside the grace window, the panel keeps painting and
+				// the arriving component mounts without a spinner flash
 				const isPending = stalledRouteIds.includes(String(child.id));
 				const isNotFound = notFoundRouteIds.includes(String(child.id));
-				// A LOADED COMPONENT ALWAYS WINS — even while its match is still
+				// A LOADED COMPONENT ALWAYS WINS, even while its match is still
 				// pending. The fallback may only appear when the component is
 				// genuinely absent (chunk not merged yet): replacing rendered
 				// content with a spinner after it already appeared reads as
 				// broken. (Panels reading route data through the /react hooks
 				// are safe to render in a transient pending render; raw
-				// TanStack data hooks are not — see the AGENTS invariants.)
+				// TanStack data hooks are not. See the AGENTS invariants.)
 				let content: ReactNode;
 				if (isNotFound) {
-					// parked on a notFound boundary up the tree — the component's
+					// parked on a notFound boundary up the tree. The component's
 					// data guards assume a resolvable match and would throw in a
 					// hidden panel; the shell renders the NotFound screen anyway
 					content = null;
 				} else if (Component !== undefined) {
-					// A LOADED COMPONENT ALWAYS WINS — even while its match is
+					// A LOADED COMPONENT ALWAYS WINS, even while its match is
 					// still pending. The fallback may only appear when the
 					// component is genuinely absent (chunk not merged yet):
 					// replacing rendered content with a spinner after it already
 					// appeared reads as broken. (Panels reading route data
 					// through the /react hooks are safe to render in a transient
-					// pending render; raw TanStack data hooks are not — see the
+					// pending render; raw TanStack data hooks are not. See the
 					// AGENTS invariants.)
 					content = <Component />;
 				} else if (isPending && Pending !== undefined) {
-					// an explicit pendingComponent is deliberate — no grace delay
+					// an explicit pendingComponent is deliberate. No grace delay
 					content = <Pending />;
 				} else if (isPending) {
 					content = <DefaultPanelPendingComponent />;
 				} else {
 					// chunk in flight, inside the grace window: a header stub beats
-					// a spinner that would flash for a blink — and beats an empty
+					// a spinner that would flash for a blink, and beats an empty
 					// panel: every panel SEPARATES with its own <PanelHeader>, so
 					// the stub paints the final layout slot and the arriving
 					// content fills in under it, nothing jumps
@@ -189,14 +191,7 @@ export function DefaultPanelPendingComponent() {
 /**
  * The delayed-spinner gate: mirrors `pendingIds` but only after they have
  * stayed pending for `delayMs` continuously; clears the moment the pending
- * set empties. `pendingRouteIds` comes from a structurally-stable
- * `useRouterState` select — the reference only changes when the pending set
- * actually changes, so the timer legitimately resets per navigation.
- */
-/**
- * The delayed-spinner gate: mirrors `pendingIds` but only after they have
- * stayed pending for `delayMs` continuously; clears the moment the pending
- * set empties. The state is a STRING KEY, not the array — array-typed state
+ * set empties. The state is a STRING KEY, not the array. Array-typed state
  * set from an effect re-triggers renders (a fresh reference every time)
  * and loops; a key string with the React bail-out (same value → no
  * re-render) cannot. `key` is stable across re-renders as long as the

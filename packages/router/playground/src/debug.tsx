@@ -3,13 +3,13 @@ import { useEffect, useSyncExternalStore } from "react";
 import { fakeBridge } from "./bridge";
 
 /**
- * The manual-e2e observability, armed by `?debug=1` (router search — inside
+ * The manual-e2e observability, armed by `?debug=1` (router search, inside
  * the hash: `#/?debug=1`). Surfaces the bridge contract (SetLocation
  * payloads, host stack, host-initiated ChangeFragment jumps) and the router
  * internals (path, __TSR_index, lazy chunk state). Rendered OUTSIDE the
  * navigation UI, at the very bottom-left.
  *
- * The flag PERSISTS across navigations (localStorage) — the panel exists to
+ * The flag PERSISTS across navigations (localStorage). The panel exists to
  * be watched WHILE navigating, so a single tab click must not kill it.
  * Disarm via the panel's hide button or `?debug=0`.
  */
@@ -20,7 +20,7 @@ let debugArmed = false;
 try {
 	debugArmed = window.localStorage.getItem(DEBUG_KEY) === "1";
 } catch {
-	// storage unavailable (private mode) — the URL param still arms it
+	// storage unavailable (private mode). The URL param still arms it
 }
 const listeners = new Set<() => void>();
 
@@ -33,7 +33,7 @@ function setDebugArmed(on: boolean): void {
 			window.localStorage.removeItem(DEBUG_KEY);
 		}
 	} catch {
-		// ignore — the in-memory flag still works for this page
+		// ignore. The in-memory flag still works for this page
 	}
 	for (const listener of listeners) {
 		listener();

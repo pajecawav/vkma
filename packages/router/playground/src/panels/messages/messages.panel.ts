@@ -1,10 +1,10 @@
 import { redirect } from "@tanstack/react-router";
 import { defineView } from "@vkma.dev/router/preset";
 
-/** The messages story hub — the only place the "messages" view key is written. */
+/** The messages story hub, the only place the "messages" view key is written. */
 export const messagesView = defineView("messages");
 
-/** The typed search shape of the chats panel — carries the redirect trace. */
+/** The typed search shape of the chats panel, carries the redirect trace. */
 export type ChatsSearch = {
 	redirectedFrom?: string;
 };
@@ -25,7 +25,7 @@ export const chatPanel = messagesView.panel(
 	{
 		beforeLoad: ({ params }: { params: { id: string } }) => {
 			if (params.id === "bot") {
-				// the redirect leaves a trace in the target's typed search — the
+				// the redirect leaves a trace in the target's typed search. The
 				// chats panel surfaces it as a snackbar; without it the feature
 				// would be completely invisible
 				throw redirect({ to: "/messages", search: { redirectedFrom: "bot" } });

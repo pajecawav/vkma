@@ -3,7 +3,7 @@ import { Globe, Monitor, PanelsTopLeft, Smartphone } from "lucide-react";
 import { VKMA_LOGO_PATH } from "../logo-path.ts";
 
 /**
- * Lucide icons under the panel's house defaults — 16px, stroke 1.75 — set
+ * Lucide icons under the panel's house defaults (16px, stroke 1.75), set
  * once in `LucideProvider` (App.tsx), so these are direct re-exports. The
  * only two exceptions: VkmaLogoIcon is the brand mark (hand-made, not a
  * lucide shape), and PlatformIcon maps a platform string to a shape.

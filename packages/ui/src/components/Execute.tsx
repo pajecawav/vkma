@@ -81,13 +81,13 @@ export function Execute({
 	// would land on the OLDEST offline client the moment one exists
 	// (backgrounded tab) and sends would die on the 20s exec timeout.
 	// With everyone offline, the newest offline entry is still the sanest
-	// default — it may just be throttled, not gone.
+	// default, it may just be throttled, not gone.
 	const latest = clients.toReversed().find(client => client.online) ?? clients.at(-1);
 	const latestClientId = latest?.clientId ?? "";
 	const [target, setTarget] = useState("");
 	// Derived, not stored: clients land after this component mounts (the
 	// state snapshot follows the connect), so a stored id would stay `""`
-	// forever — and every Send would silently no-op. Falls back to the
+	// forever, and every Send would silently no-op. Falls back to the
 	// latest client while nothing is picked and when a picked client has
 	// disconnected.
 	const activeTarget =
@@ -95,7 +95,7 @@ export function Execute({
 		(clients.some(client => client.clientId === target) ? target : latestClientId);
 	const [name, setName] = useState("");
 	const [paramsText, setParamsText] = useState("{\n  \n}");
-	// The params text this component last wrote itself — replacing THAT on a
+	// The params text this component last wrote itself. Replacing THAT on a
 	// later pick is safe; anything else may be the user's work and stays.
 	const lastAutoFillRef = useRef<string | undefined>(undefined);
 	const [pending, setPending] = useState<Pending>();
@@ -129,7 +129,7 @@ export function Execute({
 		}
 		try {
 			const parsed: unknown = JSON.parse(text);
-			// The wire contract is a params OBJECT — arrays and scalars would
+			// The wire contract is a params OBJECT. Arrays and scalars would
 			// only die later at the werpc zod boundary, as a generic error.
 			if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
 				return "Params must be a JSON object";
@@ -172,7 +172,7 @@ export function Execute({
 
 	// A cancel stops the WAIT, not the request: the bridge call cannot be
 	// unsent, and a late answer still lands in the timeline. The store keeps
-	// its pending entry until its own timeout — harmless, the result is
+	// its pending entry until its own timeout. Harmless: the result is
 	// dropped by the token guard above.
 	const cancel = () => {
 		pendingTokenRef.current++;

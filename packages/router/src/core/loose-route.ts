@@ -1,7 +1,7 @@
 /**
  * Loosely-typed view of a registered route. `AnyRoute`'s options bag is
  * generic-erased (`any`), so every consumer of `router.routesById` needs
- * the same structural recast — this owns it once.
+ * the same structural recast. This owns it once.
  */
 export interface LooseRoute {
 	options: { staticData?: { panel?: string; modal?: string } };

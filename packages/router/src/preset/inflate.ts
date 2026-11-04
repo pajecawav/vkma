@@ -2,7 +2,7 @@
  * Inflate: a synthetic parent chain after a deep link. Deep-linked to the
  * 4th panel? Back should walk the natural flow (panel 1 → 2 → 3 → 4)
  * instead of closing the app. The chain is auto-derived from the view's
- * panel declaration order (declaration order IS the navigation flow — the
+ * panel declaration order (declaration order IS the navigation flow, the
  * same convention VKUI animations rely on), replacing the old router's
  * manual `hierarchy` config.
  */
@@ -18,7 +18,7 @@ import type { PanelHandle } from "../preset/builders.tsx";
  *              panels' path params; a panel whose params cannot be filled
  *              is skipped from the chain)
  * @returns hrefs excluding the target (the target is already the current
- *          history entry — replay replaces the first chain entry, pushes
+ *          history entry. Replay replaces the first chain entry, pushes
  *          the rest, then re-pushes the target href)
  */
 export function deriveInflateChain(
@@ -28,13 +28,13 @@ export function deriveInflateChain(
 ): string[] {
 	const targetIndex = orderedPanels.findIndex(panel => panel.routeId === targetRouteId);
 	if (targetIndex <= 0) {
-		return []; // first panel of the view (or unknown) — nothing to inflate
+		return []; // first panel of the view (or unknown): nothing to inflate
 	}
 	const chain: string[] = [];
 	for (const panel of orderedPanels.slice(0, targetIndex)) {
 		const interpolated = interpolatePath(panel.path, params);
 		if (interpolated !== null) {
-			chain.push(interpolated); // a required param cannot be derived — skip the step
+			chain.push(interpolated); // a required param cannot be derived. Skip the step
 		}
 	}
 	return chain;

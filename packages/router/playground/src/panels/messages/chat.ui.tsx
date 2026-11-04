@@ -15,10 +15,10 @@ import {
 import { chatTitleOf, chats } from "../../data";
 import { chatPanel } from "./messages.panel";
 
-/** Lazy chat screen — deep-linkable (#/chat/anna inflates the chain). */
+/** Lazy chat screen, deep-linkable (#/chat/anna inflates the chain). */
 export default function ChatPanel() {
 	const navigator = useNavigator();
-	// a typing screen must not swipe away mid-word — the native gesture is
+	// a typing screen must not swipe away mid-word. The native gesture is
 	// disabled for as long as this panel is the active one
 	useEnableSwipeBack(false, chatPanel);
 	const { id } = usePanelParams(chatPanel);
@@ -93,7 +93,7 @@ export default function ChatPanel() {
 					Пожаловаться
 				</CellButton>
 			</Group>
-			{/* VKUI Panel is a flex column — margin-top:auto pins the bar above
+			{/* VKUI Panel is a flex column, margin-top:auto pins the bar above
 			    the tabbar while the content is shorter than the viewport. */}
 			<WriteBar
 				style={{ marginTop: "auto" }}

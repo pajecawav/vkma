@@ -1,6 +1,6 @@
 /**
- * The timeline's event-name filter. Plain text keeps its meaning — a
- * case-insensitive substring match — but anything regex-shaped
+ * The timeline's event-name filter. Plain text keeps its meaning (a
+ * case-insensitive substring match), but anything regex-shaped
  * (`Get.*Info`, `Storage|Photo`) compiles as a case-insensitive regexp,
  * so alternations and wildcards work without a mode toggle. An invalid
  * pattern (an unclosed `(` mid-typing) degrades to substring matching

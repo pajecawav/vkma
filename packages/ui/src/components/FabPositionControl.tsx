@@ -10,7 +10,7 @@ const LABELS: Record<FabPosition, string> = {
 /**
  * Picks the in-page FAB placement (bottom-right / bottom / bottom-left).
  * Storage-agnostic: the surface hands in the current position and a
- * picker — chrome.storage in the extension, localStorage on the dev
+ * picker; chrome.storage in the extension, localStorage on the dev
  * server origin in the devtools panel (where the same-origin storage
  * event is what moves the FAB live).
  */

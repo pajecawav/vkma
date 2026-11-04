@@ -19,7 +19,7 @@ export default function ProfileSettingsPanel(): ReactElement {
 	const navigator = useNavigator();
 	const search = usePanelSearch(profileSettingsPanel);
 	const privacy = search?.section === "privacy";
-	// demo toggles keep local state — a settings switch that refuses to flip
+	// demo toggles keep local state. A settings switch that refuses to flip
 	// reads as a broken app, not a demo
 	const [toggles, setToggles] = useState<Record<string, boolean>>({
 		photos: true,

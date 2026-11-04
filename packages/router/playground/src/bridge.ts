@@ -1,5 +1,5 @@
 /**
- * PROTOTYPE (spike 3) — fake VK host playing the bridge contract:
+ * PROTOTYPE (spike 3). Fake VK host playing the bridge contract:
  * `VKWebAppSetLocation` in (replace_state semantics), `VKWebAppChangeFragment`
  * out when the host-side history moves (its "back" button).
  */

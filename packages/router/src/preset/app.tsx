@@ -16,12 +16,12 @@ interface MatchLike {
 
 /**
  * The view route owning the deepest matched route, or null. The walk starts
- * at the deepest match because the chain depth varies — a modal is a masked
+ * at the deepest match because the chain depth varies. A modal is a masked
  * CHILD route of its panel, so `/view:feed/feed/comments` must still resolve
  * to the feed view. A notFound match anywhere in the chain wins over
  * everything: the shell must show the NotFound screen, never a story
- * fallback (an unmatched lazy panel's chunk never loads — a fallback story
- * would spin forever).
+ * fallback (an unmatched lazy panel's chunk never loads, so a fallback
+ * story would spin forever).
  */
 export function owningViewIdOf(
 	matches: readonly MatchLike[],
@@ -51,7 +51,7 @@ export function owningViewIdOf(
  * Epic/Root are built with a custom `root` shell out of the same pieces.
  *
  * An unmatched URL (global 404 or a `notFound()` thrown by `beforeLoad`)
- * renders the VKUI `NotFound` instead of a view — falling back to the
+ * renders the VKUI `NotFound` instead of a view. Falling back to the
  * first view here would show its lazy panel as a spinner that never
  * resolves, because an unmatched panel's chunk is never loaded.
  */
@@ -78,7 +78,7 @@ export function AppRootShell({ app, inflate = true }: { app: AppHandle; inflate?
 
 /**
  * The active story key for Epic/Root shells: the view key the app author
- * wrote in `defineView("feed")`, or null on a notFound navigation — render
+ * wrote in `defineView("feed")`, or null on a notFound navigation. Render
  * the NotFound screen instead of a story. Pairs with `<VkView view={…}>`
  * whose nav defaults to the same key, so `activeStory === tab.id` compares
  * user-authored keys on both sides.
@@ -152,7 +152,7 @@ export function useInflate(app: AppHandle, enabled = true): void {
 		}
 		done.current = true;
 		if (snapshot.index > 0 || snapshot.panelKey === null) {
-			return; // warm navigation or an unknown panel — nothing to inflate
+			return; // warm navigation or an unknown panel: nothing to inflate
 		}
 		const target = app.panels[snapshot.panelKey];
 		if (target === undefined) {
@@ -161,8 +161,8 @@ export function useInflate(app: AppHandle, enabled = true): void {
 		const ordered = Object.values(app.panels).filter(panel => panel.viewId === target.viewId);
 		let chain = deriveInflateChain(ordered, target.routeId, snapshot.deepestParams);
 		// a deep link INTO A ROUTE MODAL: the full ancestor chain must sit in
-		// history below the target — the parent panel, then every modal level
-		// (outer → inner) — or back skips the screens the user is logically
+		// history below the target (the parent panel, then every modal level,
+		// outer → inner), or back skips the screens the user is logically
 		// on. Only modal targets: for a panel target the parentHref IS the
 		// current location and would replay a pointless no-op navigation
 		if (snapshot.modalPaths.length > 0 && snapshot.panelPath !== null) {

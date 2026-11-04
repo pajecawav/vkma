@@ -5,7 +5,7 @@ import { Tooltip } from "./Tooltip.tsx";
 export interface SwitchProps {
 	checked: boolean;
 	onCheckedChange: (checked: boolean) => void;
-	/** Accessible name — the visible row label is not a native label element. */
+	/** Accessible name: the visible row label is not a native label element. */
 	ariaLabel: string;
 	/** Hover hint; native `title` on the base-ui span is unreliable through the render chain, so this is a real Tooltip. */
 	tooltip?: ReactNode;
@@ -15,7 +15,7 @@ export interface SwitchProps {
 /**
  * A toggle switch on Base UI's Switch: the role/aria-checked wiring,
  * Space/keyboard activation and the form input come with it. The look is
- * the house pill — emerald when on, neutral when off — with the thumb
+ * the house pill (emerald when on, neutral when off) with the thumb
  * sliding on a transform transition. States style through base-ui's
  * data-checked attribute, so no internal rendering branches on `checked`.
  */
@@ -33,7 +33,7 @@ export function Switch({ checked, onCheckedChange, ariaLabel, tooltip, className
 		</BaseSwitch.Root>
 	);
 	// Without a hint the control stands alone; with one the Tooltip's
-	// Trigger render chain attaches hover/focus to the switch itself —
-	// no wrapper element, so flex rows keep their layout.
+	// Trigger render chain attaches hover/focus to the switch itself, no
+	// wrapper element, so flex rows keep their layout.
 	return tooltip === undefined ? control : <Tooltip content={tooltip}>{control}</Tooltip>;
 }

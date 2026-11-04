@@ -5,7 +5,7 @@ import type { ReactElement } from "react";
 import { postPanel } from "./feed.panel";
 
 /**
- * NESTED route modal: a child route of the comments modal — it stacks ON
+ * NESTED route modal: a child route of the comments modal. It stacks ON
  * TOP of the open comments page (both sheets are visible), and back
  * unwinds just this level, revealing the comments again.
  */

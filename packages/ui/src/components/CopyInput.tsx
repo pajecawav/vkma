@@ -3,7 +3,7 @@ import { copyText } from "../lib/clipboard.ts";
 import { CheckIcon, CopyIcon } from "./icons.tsx";
 
 /**
- * A read-only snippet field with a copy button — connection snippets,
+ * A read-only snippet field with a copy button, connection snippets,
  * ids, anything long and copy-shaped. Clicking focuses and selects the
  * whole value (Ctrl+C works without aiming); the button flashes
  * "Copied" on success. The house input look, mono.
@@ -37,7 +37,7 @@ export function CopyInput({ value, ariaLabel }: { value: string; ariaLabel: stri
 				onFocus={event => event.target.select()}
 				className="h-8 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-2.5 font-mono text-xs text-neutral-600 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400"
 			/>
-			{/* Visible text is the label ("Copy"/"Copied") — a tooltip would
+			{/* Visible text is the label ("Copy"/"Copied"). A tooltip would
 			    only repeat it. */}
 			<button
 				type="button"

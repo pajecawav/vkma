@@ -46,7 +46,7 @@ function Chip({
 }
 
 /**
- * The ignored-events editor — the popover card behind the timeline's
+ * The ignored-events editor, the popover card behind the timeline's
  * eye cluster. Presentational: the surface hands in the settings and a
  * persister (localStorage / chrome.storage), the editor only reshapes.
  * Defaults toggle in place (so a temporarily noisy debugging session can

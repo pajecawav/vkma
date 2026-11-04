@@ -14,7 +14,7 @@ export const PANEL_DEFINITION = "__vkmaPanel" as const;
  * A self-contained panel declaration: the definition IS the typed handle.
  *
  * Panel chunk modules import the DEFINITION (never the app) for their data
- * hooks — the definition's stored type is CLOSED (its `options` are widened
+ * hooks. The definition's stored type is CLOSED (its `options` are widened
  * and the concrete option-derived types travel in the `types` phantom), so
  * the type graph stays acyclic and the app import disappears from chunks
  * entirely. `createApp` nests definitions under their view key and builds
@@ -26,7 +26,7 @@ export interface PanelDefinition<
 	O extends PanelOptions = PanelOptions,
 > {
 	readonly [PANEL_DEFINITION]: true;
-	/** The view (story) namespace — must match the key under `views`. */
+	/** The view (story) namespace: must match the key under `views`. */
 	readonly view: V;
 	/** The panel path segment (`"index"` = the view's home panel). */
 	readonly path: P;
@@ -42,7 +42,7 @@ export interface PanelDefinition<
 	/**
 	 * Phantom carrying the option-derived data types for the /react hooks.
 	 * `O` is the options WITHOUT `lazy` (the loader is a separate factory
-	 * parameter) — its arrow would otherwise embed the chunk module's
+	 * parameter). Its arrow would otherwise embed the chunk module's
 	 * (deferred) member types into the definition, the exact cycle this
 	 * module exists to break.
 	 */
@@ -64,7 +64,7 @@ export interface PanelDefinition<
  *
  * The returned definition nests directly into `createApp`'s
  * `views[view].panels[path]` and doubles as the typed handle for the
- * `/react` hooks — chunk modules import it instead of the app handle, which
+ * `/react` hooks. Chunk modules import it instead of the app handle, which
  * is what keeps the app's inference and the chunk graph acyclic. The view
  * key MUST match the nesting key in `createApp` (a mismatch is a dev-time
  * console error, not a silent hook break).
@@ -78,12 +78,12 @@ export function definePanel<
 	path: P,
 	options: O,
 	/**
-	 * The lazy loader as a SEPARATE parameter — not a member of `options`.
+	 * The lazy loader as a SEPARATE parameter, not a member of `options`.
 	 * Its arrow references the UI chunk's module, whose member types include
 	 * the (deferred) component signatures; if that arrow were part of the
 	 * inferred `O`, a chunk component resolving hooks against this very
 	 * definition would close the inference cycle (TS7022). A separate
-	 * parameter is contextually typed by `PanelLazy` directly — the module
+	 * parameter is contextually typed by `PanelLazy` directly. The module
 	 * type never enters `O`. Mirrors TanStack's own options/`route.lazy()`
 	 * split.
 	 */
@@ -94,7 +94,7 @@ export function definePanel<
 		view,
 		path,
 		options: lazy === undefined ? options : { ...options, lazy },
-		// same formula as panelRouteId — TS cannot see the literal through the
+		// same formula as panelRouteId. TS cannot see the literal through the
 		// template, the cast records the guarantee
 		routeId: panelRouteId(view, path) as PanelRouteId<V, P>,
 	};
@@ -102,7 +102,7 @@ export function definePanel<
 
 /**
  * The deterministic route-id convention shared with `createApp`'s tree
- * assembly — one formula, two consumers, no drift.
+ * assembly: one formula, two consumers, no drift.
  */
 export function panelRouteId(view: string, path: string): string {
 	return path === "index" ? `/view:${view}/` : `/view:${view}/${path}`;

@@ -4,7 +4,7 @@ import { createBridgeSync } from "./bridge-sync.ts";
 
 /**
  * Fake-transport coverage of the host↔app location contract (the mobile
- * webview paths — the web iframe speaks the same envelope).
+ * webview paths. The web iframe speaks the same envelope).
  */
 
 interface Harness {
@@ -92,7 +92,7 @@ describe("bridge sync (fake transports)", () => {
 		const h = make();
 		h.commit("/feed");
 		h.commit("/feed", "", "#anchor");
-		// hash-mode payload is path+search only — a fragment-only change is
+		// hash-mode payload is path+search only. A fragment-only change is
 		// invisible to the host
 		expect(
 			h.sent.filter(

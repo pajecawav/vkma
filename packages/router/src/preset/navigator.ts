@@ -12,9 +12,9 @@ import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
  * The parity navigator over TanStack primitives: push/replace/back/
  * backToFirst/showModal/hideModal/showPopout/hidePopout. Modal→modal
  * navigation REPLACES the entry (the host closes one modal before opening
- * the next — there is no modal stack); back from a modal returns to its
- * panel. `push`/`replace`/`showModal` accept full TanStack NavigateOptions
- * — typed by the registered route tree.
+ * the next. There is no modal stack); back from a modal returns to its
+ * panel. `push`/`replace`/`showModal` accept full TanStack NavigateOptions,
+ * typed by the registered route tree.
  */
 
 export interface VkNavigator {
@@ -52,7 +52,7 @@ export interface VkNavigator {
 	/**
 	 * Block navigation while `onLeave` returns true (old router's
 	 * `RouteNavigator.block`). The callback receives the current and the
-	 * next location plus the action — PUSH/REPLACE as-is, back/forward/go
+	 * next location plus the action: PUSH/REPLACE as-is, back/forward/go
 	 * mapped to POP (old-router `BlockerFunction` parity). Returns the
 	 * unblock function.
 	 */
@@ -73,7 +73,7 @@ export interface BlockerArgs {
 }
 
 /**
- * A typed page object — a panel definition (`defineView().panel(...)`) or
+ * A typed page object, a panel definition (`defineView().panel(...)`) or
  * a panel handle (`app.panels[...]`). The params type flows from the
  * definition's phantom `types`, so `navigator.push(postPanel, { id })`
  * type-checks the params (old-router `Page`/`PageWithParams` parity,
@@ -143,7 +143,7 @@ export function useNavigator(): VkNavigator {
 		},
 		showModal: ({ props, ...options }) => {
 			// nested modal: the target route is a CHILD of the currently open
-			// modal — PUSH (back unwinds the stack); sibling modals keep the
+			// modal: PUSH (back unwinds the stack); sibling modals keep the
 			// old-router replace parity
 			let nested = false;
 			if (modalOpen && typeof options.to === "string") {
@@ -161,7 +161,7 @@ export function useNavigator(): VkNavigator {
 					break;
 				}
 			}
-			// TanStack types history state as its own updater shape — arbitrary
+			// TanStack types history state as its own updater shape. Arbitrary
 			// serializable keys go through a cast (same as the popout state)
 			const withProps =
 				props !== undefined
@@ -174,7 +174,7 @@ export function useNavigator(): VkNavigator {
 					: {};
 			return navigate({
 				...options,
-				// a modal open never changes the panel behind it — carry the
+				// a modal open never changes the panel behind it. Carry the
 				// panel's search (?tab=…) onto the modal entry, or the covered
 				// panel would snap to its default search for the whole time the
 				// modal is open (and snap back on close). An explicit `search`
@@ -231,13 +231,13 @@ export function useNavigator(): VkNavigator {
 		block: onLeave => {
 			const unblock = router.history.block({
 				// args infer as TanStack's BlockerFnArgs (HistoryLocation × 2 +
-				// action) — assignable to our structural BlockerArgs
+				// action), assignable to our structural BlockerArgs
 				blockerFn: args =>
 					onLeave({
 						currentLocation: args.currentLocation,
 						nextLocation: args.nextLocation,
 						// TanStack distinguishes BACK/FORWARD/GO; the old router's
-						// BlockerFunction saw one POP — keep the parity
+						// BlockerFunction saw one POP. Keep the parity
 						action:
 							args.action === "PUSH" || args.action === "REPLACE"
 								? args.action

@@ -4,13 +4,13 @@ import type { ReactElement } from "react";
 
 /**
  * The feature index: every row IS a deep link to the scenario it describes,
- * so the showcase dogfoods its own router (typed search, route modals,
+ * so the demo dogfoods its own router (typed search, route modals,
  * inflate) as its own table of contents. The rows are the e2e script.
  */
 
 interface Scenario {
 	title: string;
-	/** the mechanism + the canonical URL — the URL is the demo */
+	/** the mechanism + the canonical URL. The URL is the demo */
 	subtitle: string;
 	to: string;
 	search?: Record<string, string>;

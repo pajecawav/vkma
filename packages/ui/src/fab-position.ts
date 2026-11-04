@@ -1,5 +1,5 @@
 /**
- * FAB placement preference — pure data shared by the devtools panel and
+ * FAB placement preference, pure data shared by the devtools panel and
  * the devtools-extension (the storage backends differ: localStorage on
  * the dev server origin vs chrome.storage.local in the extension, both
  * under the same key name).

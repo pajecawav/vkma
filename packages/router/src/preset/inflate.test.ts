@@ -35,7 +35,7 @@ describe("deriveInflateChain", () => {
 			panel("/view:main/wizard/$step", "/wizard/$step"),
 			panel("/view:main/item/$id", "/item/$id"),
 		];
-		// target has {id} only — wizard/$step cannot be filled, skipped
+		// target has {id} only: wizard/$step cannot be filled, skipped
 		const chain = deriveInflateChain(withParams, "/view:main/item/$id", { id: "9" });
 		expect(chain).toEqual(["/"]);
 	});

@@ -68,15 +68,15 @@ describe("swipe-back manager", () => {
 
 	it("an override replaces the automatic decision, null returns to it", () => {
 		const h = make();
-		h.setOverride(false); // first entry: auto says disabled — no change
+		h.setOverride(false); // first entry: auto says disabled, no change
 		expect(h.sent.filter(type => type.includes("SwipeBack"))).toHaveLength(1);
-		h.setIndex(2); // auto says enabled — the override keeps it off
+		h.setIndex(2); // auto says enabled. The override keeps it off
 		expect(h.sent).not.toContain("VKWebAppEnableSwipeBack");
 		h.setOverride(null); // back to automatic → now enabled
 		expect(h.sent).toContain("VKWebAppEnableSwipeBack");
 		const before = h.sent.filter(type => type.includes("SwipeBack")).length;
 		h.setOverride(true);
-		h.setIndex(0); // auto says disabled — the override keeps it on, no flapping
+		h.setIndex(0); // auto says disabled. The override keeps it on, no flapping
 		expect(h.sent.filter(type => type.includes("SwipeBack"))).toHaveLength(before);
 	});
 

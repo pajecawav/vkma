@@ -1,6 +1,6 @@
 import { defineView } from "@vkma.dev/router/preset";
 
-/** The "more" story hub — the only place the "more" view key is written. */
+/** The "more" story hub, the only place the "more" view key is written. */
 export const moreView = defineView("more");
 
 export const morePanel = moreView.panel("more", {}, () => import("./more.ui"));

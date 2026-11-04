@@ -17,7 +17,7 @@ export interface ModalProps {
  * A centered modal dialog on Base UI's Dialog: Escape and outside-press
  * dismiss it, focus is trapped while open, background scroll is locked.
  * The open/close transition rides Base UI's data-starting-style /
- * data-ending-style attributes — CSS transitions, so closing midway
+ * data-ending-style attributes, CSS transitions, so closing midway
  * through the opening animation lands smoothly instead of snapping
  * (and honors prefers-reduced-motion via motion-reduce).
  */

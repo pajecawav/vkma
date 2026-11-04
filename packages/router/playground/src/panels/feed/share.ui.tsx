@@ -6,7 +6,7 @@ import { postOf } from "../../data";
 import { postPanel } from "./feed.panel";
 
 /**
- * Route-modal chunk of the post panel — the share ModalCard. The chrome is
+ * Route-modal chunk of the post panel, the share ModalCard. The chrome is
  * runtime: the description comes from `showModal({ props })` (history
  * state) with a fallback, actions use the navigator.
  */

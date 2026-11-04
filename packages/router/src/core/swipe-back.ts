@@ -4,18 +4,18 @@ import type { VkBridgeLike } from "./bridge-like.ts";
  * Auto swipe-back management: the native gesture
  * (`VKWebAppEnableSwipeBack` / `VKWebAppSetSwipeSettings { history }`) is
  * enabled while the app can go back in its own history and disabled on the
- * first entry — where the system back must close the app. Unsupported
+ * first entry, where the system back must close the app. Unsupported
  * platforms (web) answer with error code 6; that is silenced, like the old
  * router did.
  *
  * Two manual layers on top of the automatic decision:
- * - `enabled: false` is a hard opt-out — the gesture is never enabled
+ * - `enabled: false` is a hard opt-out. The gesture is never enabled
  *   (an app that drives the gesture itself, or none at all);
- * - `setOverride(boolean)` — fed by `useEnableSwipeBack` — replaces the
+ * - `setOverride(boolean)` (fed by `useEnableSwipeBack`) replaces the
  *   automatic decision while set; `null` returns to it.
  */
 
-/** The one active manager — `useEnableSwipeBack` talks to the last created
+/** The one active manager. `useEnableSwipeBack` talks to the last created
  * one (a mini app has exactly one history). `destroy` unregisters. */
 let activeManager: { setOverride(enabled: boolean | null): void } | null = null;
 
@@ -39,7 +39,7 @@ export interface SwipeBackManagerOptions {
 
 export function createSwipeBackManager(options: SwipeBackManagerOptions): {
 	destroy: () => void;
-	/** Manual override — `null` returns to the automatic decision. */
+	/** Manual override. `null` returns to the automatic decision. */
 	setOverride: (enabled: boolean | null) => void;
 } {
 	let lastEnabled: boolean | null = null;

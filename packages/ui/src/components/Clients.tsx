@@ -25,7 +25,7 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 					<dt className="truncate font-mono text-[11px] text-neutral-400" title={key}>
 						{key}
 					</dt>
-					{/* The value renders in full (break-all) — no reveal hint.
+					{/* The value renders in full (break-all), no reveal hint.
 					    Sensitive values stay blurred and hinted nowhere. */}
 					<dd
 						className={`break-all font-mono text-[11px] text-neutral-600 dark:text-neutral-300 ${
@@ -79,7 +79,7 @@ function ClientCard({
 			}
 		>
 			{/* The remove button must be a SIBLING of the toggle, not a
-			 * descendant — nested interactive elements are invalid HTML and
+			 * descendant. Nested interactive elements are invalid HTML and
 			 * break activation routing in some AT/browser combos. */}
 			<div className="flex items-center">
 				<button
@@ -128,7 +128,7 @@ function ClientCard({
 						/>
 					</span>
 				</button>
-				{/* Locate is a SIBLING of the toggle, like remove — inside it
+				{/* Locate is a SIBLING of the toggle, like remove. Inside it
 				 * the click would bubble into setOpen (and nested buttons are
 				 * invalid HTML). Online-only: an offline client has no frame. */}
 				{onLocate && client.online && (
@@ -200,7 +200,7 @@ export function Clients({
 	/** The locate affordance: renders a per-card crosshair (online
 	 * clients) that flashes the client's frame on the page. */
 	onLocateClient?: (clientId: string) => void;
-	/** The card of this client currently wears a colored focus ring —
+	/** The card of this client currently wears a colored focus ring,
 	 * driven by vkma.frameFocus (a click inside its frame); the parent
 	 * clears it when the flash expires. */
 	focusedClientId?: string;

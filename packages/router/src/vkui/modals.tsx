@@ -13,28 +13,28 @@ import { idleChoreography, reconcile, type ChoreographyState } from "./choreogra
 
 /**
  * Modal choreography host. The state machine lives in `choreography.ts`
- * (pure — sibling closes first, nested stacks on top, back reveals the
+ * (pure: sibling closes first, nested stacks on top, back reveals the
  * parent, retarget-during-exit cancels or queues). This host binds it to
- * VKUI: exit completion is EVENT-DRIVEN — VKUI fires `onClosed` at the
+ * VKUI: exit completion is EVENT-DRIVEN. VKUI fires `onClosed` at the
  * transition end and backs it with an internal timer computed from the
  * element's real `transitionDuration` (adapts to platform/theme/reduced-
- * motion — more accurate than any host-side constant). The host
+ * motion, more accurate than any host-side constant). The host
  * `exitDuration` is only a WATCHDOG for the one case VKUI cannot report:
  * the modal unmounting before the exit finishes (its entry vanished from
  * `entries`).
  */
 
-/** A renderable modal entry component — plain or React.lazy. */
+/** A renderable modal entry component, plain or React.lazy. */
 export type ModalEntryComponent = ComponentType | LazyExoticComponent<ComponentType>;
 
 export interface ModalEntry {
 	/** Full route id of the modal route (e.g. `/item/$id/details`). */
 	routeId: string;
-	/** Modal id — also the VKUI `nav`. */
+	/** Modal id, also the VKUI `nav`. */
 	id: string;
 	/**
 	 * The modal content. Its root must be a ModalPageSurface or
-	 * ModalCardSurface — the host binds nav/open/close choreography to it
+	 * ModalCardSurface. The host binds nav/open/close choreography to it
 	 * through context; the component owns every other prop at runtime.
 	 */
 	Component: ModalEntryComponent;
@@ -44,7 +44,7 @@ export interface ModalsProps {
 	entries: ModalEntry[];
 	/**
 	 * Watchdog bound for an exit whose `onClosed` never arrives (the modal
-	 * unmounted mid-animation), ms. Default 420 — well past any VKUI modal
+	 * unmounted mid-animation), ms. Default 420, well past any VKUI modal
 	 * exit animation; a healthy `onClosed` lands long before it fires.
 	 */
 	exitDuration?: number;
@@ -54,7 +54,7 @@ export interface ModalsProps {
 interface ModalSurfaceApi {
 	nav: string;
 	open: boolean;
-	/** Another modal is stacked on top of this one — suppress the focus trap. */
+	/** Another modal is stacked on top of this one. Suppress the focus trap. */
 	stacked: boolean;
 	onClose: () => void;
 	onClosed: () => void;
@@ -74,7 +74,7 @@ function useModalSurface(): ModalSurfaceApi {
 
 /**
  * The host-owned keys VKUI actually accepts. Everything else in the api
- * (`stacked` today, future host keys tomorrow) must NOT reach the spread —
+ * (`stacked` today, future host keys tomorrow) must NOT reach the spread.
  * VKUI forwards unknown props to the DOM and React warns on booleans
  * ("Received `false` for a non-boolean attribute `stacked`").
  */
@@ -88,7 +88,7 @@ export function hostProps(api: ModalSurfaceApi): {
 	return { nav, open, onClose, onClosed };
 }
 
-/** ModalPage surface for a modal entry — the host owns nav/open/close choreography. */
+/** ModalPage surface for a modal entry, the host owns nav/open/close choreography. */
 export function ModalPageSurface({
 	children,
 	...surface
@@ -107,7 +107,7 @@ export function ModalPageSurface({
 }
 
 /**
- * ModalCard surface for a modal entry — same contract as
+ * ModalCard surface for a modal entry, same contract as
  * ModalPageSurface, with the card's icon/title/description/actions as
  * ordinary runtime props.
  */

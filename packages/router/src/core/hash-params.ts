@@ -3,11 +3,11 @@
  *
  * Two URL modes:
  * - `hash` (default): the hash IS the location (`#/item/7?tab=x`),
- *   TanStack-style — parity with the old `createHashRouter`.
+ *   TanStack-style, parity with the old `createHashRouter`.
  * - `hash-param`: the whole router location rides in ONE hash query param
  *   (`#?path=%2Fitem%2F7`), foreign hash params (launch params, UTM) are
  *   preserved next to it and never leak into the router's search. The real
- *   `location.search` — where VK puts launch params on the web platform —
+ *   `location.search` (where VK puts launch params on the web platform)
  *   is never touched. Parity with the old `createHashParamRouter`.
  *
  * Both read paths tolerate LEGACY deep links written by the other mode
@@ -42,7 +42,7 @@ export function writeHashParams(win: Window, pathParam: string, href: string): s
 	return `${win.location.pathname}${win.location.search}#?${params.toString()}`;
 }
 
-/** Hash content (`?…` string) for a router href — the SetLocation payload. */
+/** Hash content (`?…` string) for a router href, the SetLocation payload. */
 export function serializeHashPayload(win: Window, pathParam: string, href: string): string {
 	const params = readHashParams(win);
 	params.set(pathParam, href);

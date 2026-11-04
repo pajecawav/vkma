@@ -33,9 +33,9 @@ import { chats } from "./data";
 import { DebugOverlay } from "./debug";
 
 /**
- * The showcase shell, mirroring the VKUI navigation guide: SplitLayout with
+ * The demo shell, mirroring the VKUI navigation guide: SplitLayout with
  * a header stub, a fixed sidebar of Cells on desktop, Epic + Tabbar on
- * mobile — all of it driven by the ROUTER (no local activeStory state).
+ * mobile, all of it driven by the ROUTER (no local activeStory state).
  * Tabs navigate with `replace`, so back never walks the tab bar.
  */
 
@@ -63,7 +63,7 @@ const TABS: TabConfig[] = [
 ];
 
 /**
- * The active story comes from the exported `useActiveStory` — the owning
+ * The active story comes from the exported `useActiveStory`, the owning
  * view of the deepest match, null on a notFound navigation (the package
  * owns the TanStack notFound-match sniffing, not every shell).
  */
@@ -78,7 +78,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 	};
 
 	if (activeStory === null) {
-		// an unmatched URL must show the NotFound screen — falling back to the
+		// an unmatched URL must show the NotFound screen. Falling back to the
 		// first story here renders its lazy panel as an eternal spinner (the
 		// chunk of an unmatched route is never fetched)
 		return (

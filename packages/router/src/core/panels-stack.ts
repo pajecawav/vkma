@@ -2,7 +2,7 @@
  * Mirror of the browser history stack in terms of VKUI panel ids, indexed
  * by `location.state.__TSR_index` (the absolute position in the history
  * stack). Replaces the old router's key-matching ViewHistory with direct
- * indexing. Pure — the React binding gates writes on the router's
+ * indexing. Pure. The React binding gates writes on the router's
  * `status === "idle"` (the location commit lands a render before match
  * resolution, so a naive write records the stale panel at the new index).
  */
@@ -32,7 +32,7 @@ export function applyLocation(
 
 	if (prev.cursor === -1) {
 		// init (cold start / reload / deep link): anchor at the real history
-		// index — `__TSR_index` survives reloads in history.state. Earlier
+		// index. `__TSR_index` survives reloads in history.state. Earlier
 		// slots are unknown (null) and skipped by panelsHistoryOf.
 		const filled: Array<string | null> = [];
 		for (let i = 0; i <= at; i++) {

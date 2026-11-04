@@ -9,13 +9,13 @@ import { profileView } from "./panels/profile/profile.panel";
 import { AppShell } from "./shell";
 
 /**
- * The showcase app tree — four stories (Профиль / Лента / Сообщения / Ещё)
+ * The demo app tree, four stories (Профиль / Лента / Сообщения / Ещё)
  * driven entirely by the router. Every @vkma.dev/router feature stays
  * demonstrated: lazy panels, loaders + pending, beforeLoad redirect, typed
  * search, route modals with a chain, the masked global modal, popouts,
  * inflate and the hash history.
  *
- * Views are `defineView` hubs in `panels/<view>/` — the view key is written
+ * Views are `defineView` hubs in `panels/<view>/`. The view key is written
  * exactly once, and the `hub.panel(...)` declarations double as the typed
  * handles their lazy chunks import. Nothing imports `app` back: no casts,
  * no inference cycles. The array order is the story order.
@@ -25,21 +25,21 @@ export const app = createApp({
 	views: [profileView, feedView, messagesView, moreView],
 	modals: { settings: SettingsGlobalModal },
 	// `logout` is a PANEL-LOCAL popout of profile/settings (see
-	// profile.panel.ts) — the global registry holds only app-wide popouts
+	// profile.panel.ts). The global registry holds only app-wide popouts
 });
 
 export const router = createRouter({
 	routeTree: app.routeTree,
-	// local route modals are URL-masked back to their panel — without this
+	// local route modals are URL-masked back to their panel. Without this,
 	// a modal open would put its own path in the address bar
 	routeMasks: app.routeMasks,
 	history: createVkHistory().history,
 	defaultNotFoundComponent: NotFound,
-	// the initial load gates the FIRST render on the root match — without a
+	// the initial load gates the FIRST render on the root match. Without a
 	// pending component the cold start is a blank screen for the whole feed
 	// loader (an artificial 2s here). pendingMs: 0 shows the pending state
 	// from the very
-	// first committed frame — any positive value opens a blank window
+	// first committed frame. Any positive value opens a blank window
 	// between React mounting and the pending UI appearing
 	defaultPendingComponent: ScreenSpinner,
 	defaultPendingMs: 0,

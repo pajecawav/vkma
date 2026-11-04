@@ -7,7 +7,7 @@ export const VIEW_DEFINITION = "__vkmaView" as const;
 /**
  * A view hub: the ONE place a view key is written. Created by
  * {@link defineView}; its `panel()` method is the view-scoped
- * `definePanel` — it creates the definition and registers it into the
+ * `definePanel`, it creates the definition and registers it into the
  * view's registry in call order (the order is what VKUI View children get,
  * i.e. the push/pop animation direction).
  */
@@ -22,7 +22,7 @@ export interface ViewDefinition<V extends string = string> {
 }
 
 export interface ViewScope<V extends string = string> {
-	/** View-scoped `definePanel` — the view argument is pre-bound. */
+	/** View-scoped `definePanel`; the view argument is pre-bound. */
 	panel<const P extends string, O extends PanelOptions = PanelOptions>(
 		path: P,
 		options: O,
@@ -42,7 +42,7 @@ export interface ViewScope<V extends string = string> {
  *
  * The view key is written exactly once; `createApp` accepts the hub
  * directly (`views: [feedView, ...]`). Duplicate view keys are a dev-time
- * console error — a view must not sprawl across files.
+ * console error: a view must not sprawl across files.
  */
 export function defineView<const V extends string>(
 	view: V,

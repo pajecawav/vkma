@@ -1,8 +1,8 @@
 /**
- * @vkma.dev/ui — the design system of the vkma.dev surfaces: design
+ * @vkma.dev/ui, the design system of the vkma.dev surfaces: design
  * tokens (Tailwind v4 CSS-first, see `styles.css`), the icon set and the
  * presentational devtools panel components. Everything here renders data
- * handed in via props — data sources (devframe RPC, extension messaging)
+ * handed in via props. Data sources (devframe RPC, extension messaging)
  * live with the consumers.
  */
 export { EventRow, RequestGroup } from "./components/EventRow.tsx";

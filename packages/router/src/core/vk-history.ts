@@ -8,8 +8,8 @@ import {
 } from "./hash-params.ts";
 
 /**
- * VK history: the same trick TanStack's own hash history uses —
- * `createBrowserHistory` with swapped `parseLocation`/`createHref` — so we
+ * VK history: the same trick TanStack's own hash history uses:
+ * `createBrowserHistory` with swapped `parseLocation`/`createHref`, so we
  * inherit blockers with rollback, popstate classification, throttling and
  * TSR index/key stamping.
  *
@@ -23,7 +23,7 @@ import {
  *
  * Deep links written by the OTHER mode resolve too (legacy tolerance).
  * `"browser"` → pass TanStack's default history instead (omit `history`
- * in createRouter) — old `createBrowserRouter`.
+ * in createRouter), old `createBrowserRouter`.
  */
 
 export const DEFAULT_PATH_PARAM = "path";
@@ -55,7 +55,7 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 	/**
 	 * A history entry without TanStack state (manual hash edit / foreign
 	 * pushState) gets a FRESH index = lastIndex + 1, so popstate classifies
-	 * it as FORWARD — the entry behaves like a push (an entry parsed as
+	 * it as FORWARD. The entry behaves like a push (an entry parsed as
 	 * index 0 would desync any parallel stack mirror).
 	 */
 	const stampMissingState = (): HistoryState => {
@@ -97,7 +97,7 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 				parseLocation,
 				createHref: href => writeHashParams(win, pathParam, href),
 			}),
-			/** Hash content for a router href — the SetLocation payload. */
+			/** Hash content for a router href, the SetLocation payload. */
 			serializePayload: (href: string) => serializeHashPayload(win, pathParam, href),
 			/** Router href from a SetLocation/ChangeFragment payload. */
 			parsePayload: (payload: string) => parseHashPayload(payload, pathParam),
@@ -110,7 +110,7 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 	const hrefFromHash = (): string => {
 		const hash = win.location.hash;
 		if (hash.startsWith("#?")) {
-			// legacy hash-param deep link — resolve the path param out of it
+			// legacy hash-param deep link. Resolve the path param out of it
 			return new URLSearchParams(hash.slice(2)).get(pathParam) ?? "/";
 		}
 		return hash.length > 1 ? hash.slice(1) : "/";
@@ -134,7 +134,7 @@ export function createVkHistory(options: VkHistoryOptions = {}) {
 			parseLocation,
 			createHref: href => `${win.location.pathname}${win.location.search}#${href}`,
 		}),
-		/** Hash content for a router href — the SetLocation payload. */
+		/** Hash content for a router href, the SetLocation payload. */
 		serializePayload: (href: string) => href,
 		/** Router href from a SetLocation/ChangeFragment payload. */
 		parsePayload: (payload: string) => parseHashLocation(payload),

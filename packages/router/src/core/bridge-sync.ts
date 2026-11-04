@@ -76,12 +76,12 @@ export function createBridgeSync(options: BridgeSyncOptions): { destroy(): void 
 		}
 		const data = event.data as { location?: string } | undefined;
 		if (!data?.location) {
-			return; // malformed — the host always sends a location; never act on it
+			return; // malformed: the host always sends a location, so skip it
 		}
 		const incoming = parsePayload(data.location);
 		const current = `${options.history.location.pathname}${options.history.location.search}`;
 		if (incoming === current) {
-			return; // echo of our own location — loop protection
+			return; // echo of our own location, loop protection
 		}
 		options.history.replace(incoming);
 	});

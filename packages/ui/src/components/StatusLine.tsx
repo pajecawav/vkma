@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Tooltip } from "./Tooltip.tsx";
 
 /**
- * The one color semantics of connection states — dot + tone per status.
+ * The one color semantics of connection states, dot + tone per status.
  * Every surface that renders a status line reads from here, so the
  * colors cannot drift between panels.
  */
@@ -26,7 +26,7 @@ export const STATUS_META: Record<ConnectionStatus, { label: string; dot: string;
 /**
  * The status row: colored dot + label, with an optional muted tail.
  * The `title` hint rides a Tooltip (the shared delay profile applies);
- * without it the row renders bare — a default hint would only repeat
+ * without it the row renders bare. A default hint would only repeat
  * the visible label.
  */
 export function StatusLine({
@@ -43,7 +43,7 @@ export function StatusLine({
 	title?: string;
 }) {
 	const meta = STATUS_META[status];
-	// The hint only rides when it adds something — a bare `RPC: Connected`
+	// The hint only rides when it adds something. A bare `RPC: Connected`
 	// over the visible "Connected" would be noise.
 	return title === undefined ? (
 		<span className="flex items-center gap-2 text-xs">

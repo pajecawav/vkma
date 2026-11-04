@@ -9,18 +9,18 @@ import {
 import { type PanelPage } from "./navigator.ts";
 
 /**
- * Router-link props on top of a Page object — the typed counterpart of
+ * Router-link props on top of a Page object, the typed counterpart of
  * `navigator.push(page, params)`. The `page` is a panel definition/handle
  * (its phantom `types.params` drives the `params` prop type).
  */
 export interface VkLinkProps<TParams extends Record<string, string> = Record<string, string>> {
 	/** The typed page target: a panel definition/handle or a bare PanelPage. */
 	page: PanelPage<TParams>;
-	/** Path params — required for pages with `$param` segments. */
+	/** Path params, required for pages with `$param` segments. */
 	params?: TParams;
 	/**
-	 * Route preload trigger. Default `"intent"` — hover/focus on desktop,
-	 * touchstart on mobile: the chunk (and loader data) is fetched BEFORE
+	 * Route preload trigger. Default `"intent"`: hover/focus on desktop,
+	 * touchstart on mobile. The chunk (and loader data) is fetched BEFORE
 	 * the tap, so the arriving panel paints instantly.
 	 */
 	preload?: false | "intent" | "render" | "viewport";
@@ -67,7 +67,7 @@ export function splitVkLinkProps<TParams extends Record<string, string>>(
 /**
  * Turn ANY component (a VKUI `CellButton`, `RichCell`, your own button)
  * into a router link: client-side navigation plus route preloading on
- * hover/focus/touchstart (`preload="intent"` by default — the chunk and
+ * hover/focus/touchstart (`preload="intent"` by default. The chunk and
  * loader data are fetched BEFORE the tap). Targets are the typed Page
  * objects `navigator.push` accepts:
  *
@@ -78,7 +78,7 @@ export function splitVkLinkProps<TParams extends Record<string, string>>(
  * ```
  *
  * The host component receives the anchor `href` plus the navigation and
- * preload handlers — VKUI buttons/cells spread unknown props onto their
+ * preload handlers. VKUI buttons/cells spread unknown props onto their
  * interactive element, so no extra wiring is needed. A custom `onClick`
  * composes with the navigation handler (yours first, then navigate).
  */

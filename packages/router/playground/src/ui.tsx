@@ -1,7 +1,7 @@
 import { Avatar, AvatarProps } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
 
-/** VKUI Avatar has no initials mode — a deterministic initials disc. */
+/** VKUI Avatar has no initials mode, a deterministic initials disc. */
 export function InitialsAvatar({ name, size = 40 }: { name: string; size?: number }): ReactElement {
 	const initials = name
 		.split(" ")

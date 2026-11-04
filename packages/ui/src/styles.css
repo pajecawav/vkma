@@ -19,7 +19,7 @@
 /* ── browser surfaces ─────────────────────────────────────────────── */
 
 /* Selection must be OPAQUE: a translucent tint gets double-composited
-   over the panel's animated (transformed) rows — glyphs visibly ghost.
+   over the panel's animated (transformed) rows. Glyphs visibly ghost.
    Solid neutrals, text color untouched (DevTools-style). */
 ::selection {
 	background: var(--color-neutral-300);
@@ -51,7 +51,7 @@ html.dark body {
 	border-radius: 2px;
 }
 
-/* Listbox options highlight via data-highlighted — the global focus ring
+/* Listbox options highlight via data-highlighted. The global focus ring
    doubles it up. Unlayered rules beat utility overrides, so the opt-out
    lives here rather than in the component's classes. */
 [role="option"]:focus-visible {
@@ -61,7 +61,7 @@ html.dark body {
 /* Pointer affordance: Tailwind v4's preflight resets buttons to the UA
    default cursor, so the panel's clickable chrome (rows, chips, tabs,
    option items, the FAB links…) stopped reading as clickable on hover.
-   Layered base, so a component can still win with a utility — a drag
+   Layered base, so a component can still win with a utility. A drag
    handle asks for `cursor-grab`, not for a fork of this rule. */
 @layer base {
 	:where(

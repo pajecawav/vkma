@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 
 const VARIANTS = {
-	/** Text only, hover highlight — secondary actions (Deny). */
+	/** Text only, hover highlight, secondary actions (Deny). */
 	ghost: "text-neutral-500 hover:bg-neutral-200/70 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100",
 	/** The outlined default (Connect, Rotate, Always allow). */
 	outline:

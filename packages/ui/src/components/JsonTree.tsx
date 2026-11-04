@@ -7,7 +7,7 @@ import styles from "./JsonTree.module.css";
  * PayloadCollapsedPreview, adapted to the vkma themes): colored
  * keys/strings/numbers, collapsed containers preview their first entries
  * inline (`{ key : {…}, count : 11 }`), arrays get a length row, children
- * render in 500-item chunks. Nodes are memoized — collapsed subtrees cost
+ * render in 500-item chunks. Nodes are memoized. Collapsed subtrees cost
  * one cheap branch render on panel updates.
  */
 

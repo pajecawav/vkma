@@ -4,9 +4,9 @@ import { Tooltip } from "./Tooltip.tsx";
 /**
  * A square icon-only button. Two sizes: `md` is the top-bar chrome
  * (theme, reconnect, close, side panel), `sm` is the dense action rows
- * (copy, remove). `active` marks a toggled state — it switches the look
+ * (copy, remove). `active` marks a toggled state. It switches the look
  * to pressed and sets aria-pressed; leave it undefined on plain buttons.
- * The label is the accessible name and the hover hint — the button rides
+ * The label is the accessible name and the hover hint. The button rides
  * inside a Tooltip, so the hint behaves like the rest of the design
  * system's (delayed, escape-able) instead of a native title. Rest props
  * forward to the button element, so render-prop triggers (Base UI's
@@ -24,7 +24,7 @@ export function IconButton({
 	/** Accessible name and the hover tooltip. */
 	label: string;
 	/** Optional so render-prop triggers (Base UI's Popover.Trigger) can
-	 * compose with it — the trigger supplies the click handler. */
+	 * compose with it, the trigger supplies the click handler. */
 	onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 	size?: "sm" | "md";
 	/** Pressed look for toggle buttons; omit on plain ones. */

@@ -27,13 +27,14 @@ export interface TooltipProps {
 	content: ReactNode;
 	placement?: TooltipPlacement;
 	disabled?: boolean;
-	/** Per-trigger open delay override (ms) — dense lists want more than the shared 200. */
+	/** Per-trigger open delay override (ms): dense lists want more than the shared 200. */
 	delay?: number;
 	open?: boolean;
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	className?: string;
-	/** The single element the tooltip attaches to. It must forward props to a DOM element — plain `button`/`span` do. */
+	/** The single element the tooltip attaches to. It must forward props to a
+	 * DOM element, plain `button`/`span` do. */
 	children: ReactElement;
 }
 
@@ -41,7 +42,7 @@ export interface TooltipProps {
  * A hover/focus hint on Base UI's Tooltip. The popup paints in the
  * inverse surface (dark-on-light, light-on-dark) at the panel's small
  * text size; long hints wrap at a width cap. The Trigger renders the
- * child element in place — no wrapper DOM, flex rows keep their layout.
+ * child element in place, no wrapper DOM, flex rows keep their layout.
  * Rendering nothing (empty content) is legal and renders the child alone.
  *
  * Delay/closeDelay live on the shared provider in `UiProvider`, so every

@@ -1,7 +1,7 @@
 /**
  * Clipboard write with the FAB-iframe fallback: the async clipboard API
  * can be unavailable in an unfocused document or under a restrictive
- * permission policy — a hidden textarea + execCommand still works in
+ * permission policy. A hidden textarea + execCommand still works in
  * same-origin frames.
  * @returns whether the text was copied.
  */

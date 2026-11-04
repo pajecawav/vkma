@@ -16,7 +16,7 @@ export interface ClientSelectProps extends ComponentPropsWithoutRef<"button"> {
 	clients: readonly ClientInfo[];
 	value: string;
 	onValueChange: (value: string) => void;
-	/** Prepended without a color dot — the timeline's "All clients". */
+	/** Prepended without a color dot, the timeline's "All clients". */
 	allValue?: { value: string; label: string };
 	/** Filter-row compact (h-7) vs form-field (h-8). */
 	size?: "sm" | "md";
@@ -30,7 +30,7 @@ function clientLabel(client: ClientInfo): string {
 
 /**
  * A client picker in panel chrome: every client carries its deterministic
- * color dot — same palette as the timeline badges — in both the trigger and
+ * color dot (same palette as the timeline badges) in both the trigger and
  * the popup. Built on Base UI's Select, so listbox semantics (keyboard,
  * typeahead, focus) come with it; the popup aligns with the trigger the way
  * a native select's list does. Rest props forward to the trigger element,
@@ -66,7 +66,7 @@ export function ClientSelect({
 			onValueChange={next => {
 				// The panel's contract is plain strings; base-ui types the
 				// callback as nullable (deselect), which a single-value picker
-				// never exercises — every option above is non-null.
+				// never exercises: every option above is non-null.
 				if (next !== null) {
 					onValueChange(next);
 				}
@@ -80,7 +80,7 @@ export function ClientSelect({
 				{/* The dot slot is always reserved: alignItemWithTrigger aligns
 				    the selected item's text with the Value's edge, so the chain
 				    [padding][dot][gap] must be identical in the trigger and the
-				    items — otherwise the popup shifts horizontally. */}
+				    items. Otherwise the popup shifts horizontally. */}
 				<span
 					aria-hidden="true"
 					className={`size-1.5 shrink-0 rounded-[2px] ${selected?.clientId === undefined ? "bg-transparent" : clientColor(selected.clientId).dot}`}

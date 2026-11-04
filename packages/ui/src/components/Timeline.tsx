@@ -144,7 +144,7 @@ export function Timeline({
 		});
 	}, [events, clearSeq, paused, anchorSeq, query, clientFilter]);
 
-	// The effective hide set — resolved from settings only while the eye
+	// The effective hide set, resolved from settings only while the eye
 	// toggle is on, so disabling shows everything without reshaping lists.
 	const ignoredSet = useMemo(
 		() =>
@@ -189,16 +189,16 @@ export function Timeline({
 		query === "" &&
 		buffered === 0 &&
 		// "Waiting" only when nothing is actually being filtered away: an
-		// empty buffer or an inactive filter. Otherwise — the match-miss.
+		// empty buffer or an inactive filter. Otherwise, the match-miss.
 		(events.length === 0 || ignoredSet === undefined);
 
-	// The filter chrome renders twice — a single row for wide containers and
+	// The filter chrome renders twice: a single row for wide containers and
 	// a stacked variant for narrow ones (side panel, FAB iframe). Container
 	// queries pick the visible copy; display:none keeps the hidden one out
 	// of the a11y tree. The collapse point depends on whether the client
-	// filter rides along: with it one row needs ~576px, without — ~384px.
+	// filter rides along: with it one row needs ~576px, without, ~384px.
 	// The select also stays rendered while a non-`all` filter is active
-	// even with a single client left — otherwise the filter would pin the
+	// even with a single client left. Otherwise the filter would pin the
 	// feed to a departed client with no control to reset it.
 	const showClientFilter = !hideClient && (clients.length > 1 || clientFilter !== "all");
 	const search = (className: string) => (

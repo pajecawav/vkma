@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 
 /**
  * House defaults for every @vkma.dev/ui surface: lucide icons draw at
- * 16px / stroke 1.75 — the weight the panel always drew its icons with
+ * 16px / stroke 1.75, the weight the panel always drew its icons with
  * (lucide's own default is 24px / stroke 2, which visibly inflates every
- * icon-bearing button) — and tooltips share one delay profile, so hints
+ * icon-bearing button), and tooltips share one delay profile, so hints
  * time identically everywhere. Wrap the app root in this; the ui icons
  * are plain re-exports that rely on the context.
  */

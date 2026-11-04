@@ -64,7 +64,7 @@ function CopyButton({ text }: { text: string }) {
 }
 
 /** Small type chip: → request, ↳ response, ◇ event. Lives in every
- * timeline row, so its hint waits longer than the shared 200ms — the
+ * timeline row, so its hint waits longer than the shared 200ms. The
  * pointer sweeps whole stacks of these in one move. */
 function KindChip({ kind, title }: { kind: "request" | "response" | "event"; title: string }) {
 	return (

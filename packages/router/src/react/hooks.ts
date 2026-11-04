@@ -14,18 +14,18 @@ import { setSwipeBackOverride } from "../core/swipe-back.ts";
  * The departing-panel freeze (spike 1): raw TanStack data hooks throw
  * `Invariant failed: Could not find an active match` when the panel's
  * route stops matching while VKUI still keeps the panel mounted during the
- * back animation — the error flies past the router's error boundary and
+ * back animation. The error flies past the router's error boundary and
  * remounts the whole tree. These hooks never throw and retain the last
  * resolved value while the panel is mounted but unmatched.
  *
- * Pass the TYPED panel handle (`app.panels["feed/post/$id"]`) — params /
+ * Pass the TYPED panel handle (`app.panels["feed/post/$id"]`). Params /
  * search / loaderData are derived from the panel's declared options
  * (validateSearch return, loader return, $param path segments). A plain
  * route-id string also works, with loose types.
  */
 
 /**
- * Structural twin of the preset's `PanelHandle` — the phantom `types`
+ * Structural twin of the preset's `PanelHandle`. The phantom `types`
  * member carries the panel's data types without coupling this layer to
  * the preset.
  */
@@ -46,7 +46,7 @@ export function useLastWhileUndefined<T>(value: T | undefined): T | undefined {
 	return value === undefined ? ref.current : value;
 }
 
-/** Shared body of the panel data hooks — they differ only in the match field. */
+/** Shared body of the panel data hooks. They differ only in the match field. */
 function usePanelMatchField(
 	refOrFrom: PanelRef | string,
 	field: "params" | "search" | "loaderData",
@@ -79,11 +79,11 @@ export function usePanelLoaderData(refOrFrom: PanelRef | string): unknown {
 }
 
 /**
- * Runtime props of the open modal — `showModal({ to, params, props })` /
+ * Runtime props of the open modal: `showModal({ to, params, props })` /
  * `showGlobalModal(id, { props })` stash them in `history.state` (so they
  * survive reload and back/forward) and the modal entry component reads them
  * here. Serializable values only (structured clone); same freeze semantics
- * as the panel hooks — the departing modal keeps its last props while it
+ * as the panel hooks. The departing modal keeps its last props while it
  * animates out.
  */
 export function useModalProps<T = unknown>(): T | undefined {
@@ -93,7 +93,7 @@ export function useModalProps<T = unknown>(): T | undefined {
 
 /**
  * Mirror of the history stack in panel ids, driven by `__TSR_index`.
- * Applies only when the router is idle — between the location commit and
+ * Applies only when the router is idle. Between the location commit and
  * the match resolution there is an intermediate render with a stale
  * activePanel (spike 1: `[home, home]` flash, self-healed by the
  * replace-on-same-index rule).
@@ -121,7 +121,7 @@ export function usePanelsHistory(activePanel: string): string[] {
 }
 
 /**
- * The deepest matched panel's route id — what "the active panel" means
+ * The deepest matched panel's route id, what "the active panel" means
  * when every panel is a permanently mounted static child.
  */
 function useActivePanelRouteId(): string | null {
@@ -145,13 +145,13 @@ function useActivePanelRouteId(): string | null {
 /**
  * The old router's `useEnableSwipeBack`: override the automatic
  * swipe-back decision while it applies. Panels are permanently mounted
- * static children here, so pass the panel ref — the override applies only
+ * static children here, so pass the panel ref. The override applies only
  * while that panel is the deepest matched one and is released when the
  * user navigates away. Without a ref the override is app-global.
  *
  * `false` turns the native gesture off (drawing pads, drag surfaces);
  * `true` forces it on even on the first entry (the system back then
- * closes the app — you asked for it). `createSwipeBackManager({
+ * closes the app. You asked for it). `createSwipeBackManager({
  * enabled: false })` is the hard opt-out that wins over this hook.
  */
 export function useEnableSwipeBack(enabled: boolean, ref?: PanelRef | string): void {

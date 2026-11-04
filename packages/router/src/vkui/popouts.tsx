@@ -7,7 +7,7 @@ import { POPOUT_STATE_KEY, readPopoutState } from "../core/state-keys.ts";
  * Popouts are transient overlays, not routes: `history.state` holds
  * `{ popout: id, props }`, so the native/system back closes them, and
  * back/forward restores both the id and the props. Components come from
- * the registry (per-panel and/or global — see the preset builders);
+ * the registry (per-panel and/or global, see the preset builders);
  * `onClose` is injected by the host.
  */
 
@@ -15,8 +15,8 @@ export interface PopoutEntry {
 	id: string;
 	Component: ComponentType<{ onClose: () => void }>;
 	/**
-	 * The owning panel key (`${view}/${panel}`) for a panel-local popout —
-	 * it resolves only while that panel is the deepest matched one.
+	 * The owning panel key (`${view}/${panel}`) for a panel-local popout.
+	 * It resolves only while that panel is the deepest matched one.
 	 * Undefined = global (resolves from any panel).
 	 */
 	panel?: string;
@@ -26,7 +26,7 @@ export function usePopoutState(): { id: string; props?: Record<string, unknown> 
 	return useRouterState({ select: state => readPopoutState(state.location.state) });
 }
 
-/** `showPopout(id, props)` — pushes a popout entry; replaces if one is open. */
+/** `showPopout(id, props)`. Pushes a popout entry; replaces if one is open. */
 export function useShowPopout(): (id: string, props?: Record<string, unknown>) => void {
 	const router = useRouter();
 	const isOpen = usePopoutState() !== undefined;
@@ -43,7 +43,7 @@ export function useShowPopout(): (id: string, props?: Record<string, unknown>) =
 	};
 }
 
-/** `hidePopout()` — unwinds the popout entry; on the first entry, strips in place. */
+/** `hidePopout()`. Unwinds the popout entry; on the first entry, strips in place. */
 export function useHidePopout(): () => void {
 	const router = useRouter();
 	return () => {

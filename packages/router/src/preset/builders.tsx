@@ -15,7 +15,7 @@ import { VIEW_DEFINITION, type ViewDefinition } from "./define-view.ts";
 /**
  * Typed builders that generate the TanStack route tree in the /vkui
  * convention: view = pathless layout route, panels = path children, modals
- * = sibling child routes of their panel (chained modals are siblings — the
+ * = sibling child routes of their panel (chained modals are siblings. The
  * host closes one before opening the next). Local route modals are
  * URL-masked back to their panel (`app.routeMasks` → `createRouter`'s
  * `routeMasks`): the address stays at the panel while any modal level is
@@ -38,7 +38,7 @@ export type LooseRouteOptions = Partial<
 	Omit<NonNullable<AnyRoute>["options"], "getParentRoute" | "path" | "id">
 >;
 
-/** A renderable modal entry component — plain or React.lazy. */
+/** A renderable modal entry component, plain or React.lazy. */
 export type ModalEntryComponent = ComponentType | LazyExoticComponent<ComponentType>;
 
 /**
@@ -86,7 +86,7 @@ export type PanelLazy = (
 export interface ViewOptions extends LooseRouteOptions {
 	/**
 	 * Panels of the view: raw inline options (small apps, wrap `lazy` in
-	 * `panel()`) or a {@link PanelDefinition} from `definePanel` — the
+	 * `panel()`) or a {@link PanelDefinition} from `definePanel`, the
 	 * recommended shape, whose handle lives in a leaf module so panel chunks
 	 * never import the app back.
 	 */
@@ -98,13 +98,13 @@ export interface PanelHandle<
 	TSearch = Record<string, unknown>,
 	TLoaderData = unknown,
 > {
-	/** Full TanStack route id — the `from` for the /react data hooks. */
+	/** Full TanStack route id, the `from` for the /react data hooks. */
 	readonly routeId: string;
 	/** URL path of the panel. */
 	path: string;
 	/** The view route id the panel belongs to. */
 	viewId: string;
-	/** Phantom carrier — the panel's data types for the /react hooks. */
+	/** Phantom carrier, the panel's data types for the /react hooks. */
 	readonly types?: { params: TParams; search: TSearch; loaderData: TLoaderData };
 }
 
@@ -130,7 +130,7 @@ export type LoaderDataOf<O extends PanelOptions> = O extends {
 	: unknown;
 
 /**
- * The options a panels-map member declares — a {@link PanelDefinition}
+ * The options a panels-map member declares. A {@link PanelDefinition}
  * carries them in its third type parameter, raw inline options ARE the
  * options.
  */
@@ -168,7 +168,7 @@ export interface AppHandle {
 	/** Modal entries for the `<Modals>` host. */
 	modals: ModalEntry[];
 	/**
-	 * Declarative URL masks for the local route modals — pass into
+	 * Declarative URL masks for the local route modals. Pass into
 	 * `createRouter({ routeMasks })`, or a modal open puts its own path in
 	 * the address bar.
 	 */
@@ -184,7 +184,7 @@ export interface AppHandle {
 
 /**
  * The app handle with the DECLARED panels shape: literal keys
- * (`app.panels["feed/post/$id"]` — autocomplete, never undefined) and
+ * (`app.panels["feed/post/$id"]`, autocomplete, never undefined) and
  * literal route ids that drive the /react hooks' typing. Structurally an
  * AppHandle, so it flows into AppRootShell / useInflate / deriveInflateChain.
  */
@@ -204,7 +204,7 @@ export interface AppOptionsBase {
 	 * AppRootShell: the active view + modal/popout hosts. Deliberately
 	 * LOOSE (`AppHandle`, not `TypedAppHandle<TViews>`): a contextual type
 	 * mentioning TViews makes the app const's own initializer circular
-	 * (TS7022) — typed panel handles are read from the RETURN value.
+	 * (TS7022). Typed panel handles are read from the RETURN value.
 	 */
 	root?: (props: { app: AppHandle }) => ReactNode;
 	/** Global modals: `?modal=<id>` opens them from any panel. */
@@ -224,14 +224,14 @@ export interface AppOptions<
 	views: TViews;
 }
 
-/** `createApp` with `defineView` hubs — handles live on the panel definitions. */
+/** `createApp` with `defineView` hubs: handles live on the panel definitions. */
 export interface AppDefinitionOptions extends AppOptionsBase {
 	views: readonly ViewDefinition[] | Record<string, ViewDefinition>;
 }
 
 /**
  * Type-erasing wrapper for `lazy` panel chunks. The chunk module imports
- * the app back for its typed panel handles — passing its component types
+ * the app back for its typed panel handles. Passing its component types
  * straight into `views` makes the app's own inference circular (the
  * component's inferred type depends on `app.panels`). `panel()` erases the
  * chunk to `{ component: ComponentType }` at the boundary.
@@ -245,8 +245,8 @@ export interface AppDefinitionOptions extends AppOptionsBase {
  * Identity eraser for RAW inline `lazy` loaders (small apps declaring panels
  * directly in `createApp`): the chunk modules import the app back for their
  * handles, so the loader's return type must not carry the chunk's component
- * type into the app's own inference. Apps using `definePanel` don't need it
- * — the definition boundary already erases.
+ * type into the app's own inference. Apps using `definePanel` don't need it.
+ * The definition boundary already erases.
  */
 export function panel(load: PanelLazy): PanelLazy {
 	return load;
@@ -297,7 +297,7 @@ function asDeclaration(value: ModalComponent): ModalDeclaration {
 /**
  * Build a modal subtree under `parentRoute` (a panel or a parent modal) and
  * register every entry (flat) into the host registry. Nested modals are
- * child routes of their parent modal — the stacking is expressed by the
+ * child routes of their parent modal. The stacking is expressed by the
  * route tree itself.
  */
 function createModalTree(
@@ -305,7 +305,7 @@ function createModalTree(
 	modals: Record<string, ModalComponent>,
 	registry: ModalEntry[],
 	baseKey: string,
-	/** Full path of the OWNING panel — every level's mask displays it. */
+	/** Full path of the OWNING panel: every level's mask displays it. */
 	panelFullPath: string,
 	/** Full path of the parent in the modal chain (panel or parent modal). */
 	parentFullPath: string,
@@ -323,7 +323,7 @@ function createModalTree(
 		const modalFullPath =
 			parentFullPath === "/" ? `/${modalKey}` : `${parentFullPath}/${modalKey}`;
 		// while ANY level of the chain is open the URL keeps showing the
-		// OWNING panel's path — nested levels mask to the panel too, so the
+		// OWNING panel's path. Nested levels mask to the panel too, so the
 		// display never leaks a modal segment (the raw modal path still
 		// deep-links: parsing is never masked)
 		masks.push({ from: modalFullPath, to: panelFullPath });
@@ -348,7 +348,7 @@ function createModalTree(
 				masks,
 			);
 			if (children.length > 0) {
-				// addChildren REPLACES the children array — one call per route
+				// addChildren REPLACES the children array: one call per route
 				modalRoute.addChildren(children);
 			}
 		}
@@ -374,8 +374,8 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const views: Record<string, AnyRoute> = {};
 	const panels: Record<string, PanelHandle> = {};
 	/**
-	 * TanStack finalizes route ids in `route.init()` during `createRouter` —
-	 * they are not readable at build time. The handle therefore exposes
+	 * TanStack finalizes route ids in `route.init()` during `createRouter`.
+	 * They are not readable at build time. The handle therefore exposes
 	 * GETTERS: consumers read `routeId` at render time, when the router
 	 * (and the ids) already exist.
 	 */
@@ -391,7 +391,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const customRoot = options.root;
 	const rootRoute = createRootRoute({
 		// a custom root receives the app handle (plus the raw match props);
-		// the default is the auto-shell. Both close over the handle — the
+		// the default is the auto-shell. Both close over the handle. The
 		// component only runs at render time, after the binding exists.
 		component: (customRoot
 			? (routeProps: Record<string, unknown>) =>
@@ -446,7 +446,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			}
 			const panelPath = panelKey === "index" ? "/" : panelKey;
 			// dev check: two panels with the same full path silently break
-			// matching (the router resolves the conflict arbitrarily) — a
+			// matching (the router resolves the conflict arbitrarily). A
 			// multi-view app must give every home panel its own segment
 			const pathOwner = usedPaths.get(panelPath);
 			if (pathOwner !== undefined) {
@@ -463,7 +463,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 				...(panelRest as Partial<Record<string, unknown>>),
 			});
 			if (lazy !== undefined) {
-				// runs on match load — the router (and ids) exist by then;
+				// runs on match load, so the router (and ids) exist by then;
 				// TanStack's route.lazy() merges `lazyRoute.options`, the
 				// builder bridges the plain-options contract (both payload
 				// shapes) into that shape
@@ -477,7 +477,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			}
 			// the modal subtree (nested modals are child routes of their
 			// parent modal); entries register flat into the host registry.
-			// The view is a pathless layout route — the panel's full path is
+			// The view is a pathless layout route. The panel's full path is
 			// just its declared path rooted at "/"
 			const panelFullPath = panelPath === "/" ? "/" : `/${panelPath.replace(/^\//, "")}`;
 			const modalRoutes = createModalTree(
@@ -489,7 +489,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 				panelFullPath,
 				pendingMasks,
 			);
-			// addChildren REPLACES the children array — one call after the loop
+			// addChildren REPLACES the children array: one call after the loop
 			// (per-modal calls would orphan every modal but the last)
 			panelRoute.addChildren(modalRoutes);
 			panelRoutes.push(panelRoute);
@@ -508,7 +508,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 
 	// Declarative masks for the local route modals: while a modal is open
 	// the router displays the owning panel's path (createRouteMask is
-	// identity — the router matches `from` at navigation time and stores
+	// identity. The router matches `from` at navigation time and stores
 	// the real location in history.state.__tempLocation, so the raw modal
 	// path still deep-links and the mask survives reload)
 	const routeMasks = pendingMasks.map(
@@ -517,7 +517,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 				routeTree: rootRoute as never,
 				from: mask.from,
 				to: mask.to,
-				// modal routes are children of their panel — the params ($id, …)
+				// modal routes are children of their panel, so the params ($id, …)
 				// are shared, forward them to the displayed location wholesale
 				params: true,
 			} as never) as RouteMask<any>,
@@ -530,7 +530,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			},
 			path,
 			get viewId() {
-				// runtime ids carry a leading slash: "/view:feed" — split("/")[0]
+				// runtime ids carry a leading slash: "/view:feed", so split("/")[0]
 				// is ALWAYS "" (that silently broke the inflate view filter: every
 				// panel matched every view, so a cold home deep link replayed the
 				// first other view's panels before the target)
@@ -540,7 +540,7 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 		};
 	}
 
-	// global modals: no route — the Modals host opens them from the
+	// global modals: no route. The Modals host opens them from the
 	// `?modal=<id>` search param on any panel (deep-linkable; the
 	// imperative open in useNavigator masks the URL back to the panel)
 	for (const [modalKey, Modal] of Object.entries(options.modals ?? {})) {

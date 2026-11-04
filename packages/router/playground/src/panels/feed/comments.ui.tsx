@@ -14,7 +14,7 @@ import { postOf, users } from "../../data";
 import { InitialsAvatar } from "../../ui";
 import { postPanel } from "./feed.panel";
 
-/** Route-modal chunk of the post panel — the comments page. */
+/** Route-modal chunk of the post panel, the comments page. */
 export default function CommentsModal(): ReactElement {
 	const navigator = useNavigator();
 	const { id } = usePanelParams(postPanel);

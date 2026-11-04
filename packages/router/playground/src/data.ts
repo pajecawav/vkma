@@ -1,4 +1,4 @@
-/** Fake content for the showcase app — «Профиль / Лента / Сообщения / Ещё». */
+/** Fake content for the demo app, «Профиль / Лента / Сообщения / Ещё». */
 
 export interface User {
 	id: string;
@@ -175,7 +175,7 @@ export const chats: Chat[] = [
 export const chatTitleOf = (chat: Chat): string => users[chat.userId]?.name ?? "Чат";
 
 /**
- * The post by id — the post panel's `beforeLoad` rejects unknown ids
+ * The post by id. The post panel's `beforeLoad` rejects unknown ids
  * (including warm param swaps), so every chunk under that panel can only
  * be matched with a valid one; this narrows the type and fails loudly if
  * the guard is ever removed.
