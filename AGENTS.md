@@ -5,6 +5,7 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 ## Structure
 
 - `packages/bridge`, `packages/deploy`, `packages/devtools`, `packages/api-schema` — publishable libraries (tsdown: ESM + dts)
+- `packages/vkui-bridge` — publishable React glue: host-driven appearance/insets/adaptivity hooks + a preassembled `VKBridgeConfigProvider`, semantics pinned 1:1 to `@vkontakte/vk-bridge-react` (peer deps bridge + vkui + react; the vkui/router templates pin it)
 - `packages/router` — TanStack-based VK Mini Apps router (v0.1 implemented, pre-release; `DESIGN.md` is the source of truth for decisions, read its `AGENTS.md` before touching)
 - `packages/bridge-schema` — JSON Schema catalogue of VK Bridge events + generated types
 - `packages/api-schema` — generated TS types + zod/valibot schemas for the VK API, built at build time from the `VKCOM/vk-api-schema` git submodule
@@ -26,6 +27,15 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 - **Wire parity over convenience**: the `vk-connect` envelope, the four transports (web postMessage, Android, iOS, RN), `VKWebAppSettings` frame-id assignment and the `SetSupportedHandlers` caching reproduce the platform contract the host clients implement. `parent.postMessage` uses `"*"` because the host origin is unknowable ahead of time — do not "fix" that.
 - **Transports read the host lazily** (per call), unlike upstream's import-time caches — that's what makes the happy-dom unit tests possible. Mobile WebView transports are contract-tested via fakes only; run the manual device checklist before a release.
 - **Devtools dependency direction**: `devtools` never imports the bridge at runtime — the inject collector talks to `globalThis.__vkmaDevtoolsBridge` through structurally declared local types. The resolveId skip for `TAP_IMPORTERS` stays even though the clone no longer imports the original: installed older wrapper versions (peer `>=0.0.0`) still do.
+
+## VKUI config glue (`packages/vkui-bridge`)
+
+`@vkma.dev/vkui-bridge` — read `packages/vkui-bridge/AGENTS.md` before touching. The upstream-sourced invariants:
+
+- **Semantics are 1:1 with `@vkontakte/vk-bridge-react@2.0.1`** (the npm tarball is the reference): the `isEmbedded` gate + dual `appearance`/`scheme` key filter, the two-source insets with the `bottom > 150` keyboard clamp, and the both-`viewport_*` gate on adaptivity. Never "fix" these rules without a production bug.
+- Hooks read the DEFAULT bridge singleton (parity with the upstream hard-wired `vk_bridge`); tests fake it with `vi.mock` + `vi.hoisted`, not injection. `VKWebAppGetConfig` bootstrap failures stay `console.error`-silent — outside the sandbox they are expected.
+- The provider spreads app props LAST over the bridge-computed `ConfigProvider` defaults; `hasCustomPanelHeaderAfter` stays `true` unconditionally.
+- The vkui/router templates wire it in `main.tsx` and PIN it — the same registry-pin dance as the router: template changes that import new exports must be published before pushing (CI's scaffold-e2e installs from the registry).
 
 ## API schema (`packages/api-schema`)
 

@@ -25,6 +25,8 @@ Every generated app ships with:
 - `@vkma.dev/deploy` — `vkma-deploy.config.ts`, `npm run deploy`, `npx vkma-deploy login`
 - TypeScript (strict), `engines`, README, `.gitignore`
 
+The `vkui` and `router` presets also ship `@vkma.dev/vkui-bridge` — a preassembled `<VKBridgeConfigProvider>` (host theme, safe-area insets, adaptivity, `vkcom` platform) wired in `main.tsx`.
+
 ## CLI
 
 ```
