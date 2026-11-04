@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/vkui-bridge",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "React glue between @vkma.dev/bridge and @vkontakte/vkui — appearance, insets, adaptivity and a preassembled ConfigProvider",
 	"type": "module",
 	"license": "MIT",
