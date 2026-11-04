@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@vkma.dev/vkui-bridge.svg)](https://www.npmjs.com/package/@vkma.dev/vkui-bridge)
 [![minzip](https://img.shields.io/bundlephobia/minzip/@vkma.dev/vkui-bridge.svg)](https://bundlephobia.com/package/@vkma.dev/vkui-bridge)
 
-React glue between [`@vkma.dev/bridge`](https://github.com/pajecawav/vkma/tree/master/packages/bridge#readme) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI): the host config — appearance, safe-area insets, adaptivity — streamed from bridge events and preassembled into a ready `ConfigProvider` shell. Same role [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react) plays next to `vk-bridge`, semantics copied 1:1 from it.
+React glue between [`@vkma.dev/bridge`](https://github.com/pajecawav/vkma/tree/master/packages/bridge#readme) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell. Semantics copy [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react), the hooks package VK ships next to vk-bridge.
 
 ## Install
 
@@ -40,35 +40,35 @@ createRoot(document.getElementById("root")!).render(
 
 `VKBridgeConfigProvider` composes `ConfigProvider` → `AdaptivityProvider` → `AppRoot(mode="full")` with bridge-computed defaults:
 
-| ConfigProvider prop         | Source                                                                           |
-| --------------------------- | -------------------------------------------------------------------------------- |
-| `colorScheme`               | `VKWebAppUpdateConfig` + a `VKWebAppGetConfig` bootstrap (`useBridgeAppearance`) |
-| `platform`                  | `"vkcom"` when `vk_platform === "desktop_web"` in the launch params              |
-| `isWebView`                 | `bridge.isWebView()`                                                             |
-| `hasCustomPanelHeaderAfter` | always `true` — reserves the PanelHeader corner for the host controls            |
-| `AdaptivityProvider` props  | host adaptivity via `transformVKBridgeAdaptivity(useBridgeAdaptivity())`         |
-| `AppRoot.safeAreaInsets`    | `VKWebAppUpdateInsets` / config insets via `useBridgeInsets`                     |
+| ConfigProvider prop         | Source                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `colorScheme`               | `VKWebAppUpdateConfig` plus a `VKWebAppGetConfig` bootstrap (`useBridgeAppearance`) |
+| `platform`                  | `"vkcom"` when `vk_platform === "desktop_web"` in the launch params                 |
+| `isWebView`                 | `bridge.isWebView()`                                                                |
+| `hasCustomPanelHeaderAfter` | always `true`, reserving the PanelHeader corner for the host controls               |
+| `AdaptivityProvider` props  | host adaptivity via `transformVKBridgeAdaptivity(useBridgeAdaptivity())`            |
+| `AppRoot.safeAreaInsets`    | `VKWebAppUpdateInsets` and config insets via `useBridgeInsets`                      |
 
-Any prop you pass explicitly wins over the computed value — the whole `ConfigProvider` surface is accepted and spread last.
+Any prop the app passes explicitly wins over the computed value. The provider accepts the whole `ConfigProvider` prop surface and spreads it last.
 
 ## Hooks
 
-Every hook reads the default bridge singleton of `@vkma.dev/bridge` and subscribes with an isomorphic layout effect:
+Every hook reads the default bridge singleton of `@vkma.dev/bridge` and subscribes with an isomorphic layout effect.
 
-- **`useBridgeAppearance()`** → `ColorSchemeType | undefined` — streamed from `VKWebAppUpdateConfig`, bootstrapped with `VKWebAppGetConfig`. In a plain browser (not embedded) it stays `undefined` and VKUI falls back to its own system detection.
-- **`useBridgeInsets()`** → `SafeAreaInsets | undefined` — `VKWebAppUpdateInsets` and the insets field of `VKWebAppUpdateConfig`; a `bottom` beyond the virtual keyboard's ceiling (150) is clamped to `0`, so the layout doesn't absorb the transient keyboard.
-- **`useBridgeAdaptivity()`** → `{ type, viewportWidth, viewportHeight }` — the host's verdict (`adaptive`, `force_mobile`, `force_mobile_compact`, or `null`) plus the viewport at the last change; only configs carrying both `viewport_width` and `viewport_height` advance it.
+- **`useBridgeAppearance()`.** Returns `ColorSchemeType | undefined`. Streams `VKWebAppUpdateConfig` and bootstraps with `VKWebAppGetConfig`. In a plain browser (not embedded) it stays `undefined`, and VKUI falls back to its own system detection.
+- **`useBridgeInsets()`.** Returns `SafeAreaInsets | undefined`. Reads `VKWebAppUpdateInsets` and the insets field of `VKWebAppUpdateConfig`. A `bottom` beyond 150 (the virtual keyboard's ceiling) is clamped to `0`, so the layout does not absorb the transient keyboard.
+- **`useBridgeAdaptivity()`.** Returns `{ type, viewportWidth, viewportHeight }`. `type` is the host verdict (`adaptive`, `force_mobile`, `force_mobile_compact`, or `null`) plus the viewport at the last change. Only configs carrying both `viewport_width` and `viewport_height` advance it.
 
-Feed the adaptivity hook through **`transformVKBridgeAdaptivity(adaptivity)`** → `AdaptivityProvider` props (`AdaptivityProps`).
+Feed the adaptivity hook through **`transformVKBridgeAdaptivity(adaptivity)`** to get `AdaptivityProvider` props (`AdaptivityProps`).
 
 ## Pure helpers
 
-The resolvers behind the hooks are exported for tests and non-React consumers:
+The resolvers behind the hooks are exported for tests and non-React consumers.
 
-- `resolveAppearance(data)` — `appearance` field wins, legacy `space_gray`/`vkcom_dark` schemes map to dark, everything else is light
-- `resolveAdaptivity(data)` — the known directives kept, unknown ones become `null`, non-finite viewports become `0`
-- `resolveInsets(event)` — both inset sources, with the keyboard clamp
-- `transformVKBridgeAdaptivity(adaptivity)` — bridge vocabulary → `AdaptivityProps`
+- `resolveAppearance(data)`: the `appearance` field wins, legacy `space_gray`/`vkcom_dark` schemes map to dark, everything else is light
+- `resolveAdaptivity(data)`: the known directives kept, unknown ones become `null`, non-finite viewports become `0`
+- `resolveInsets(event)`: both inset sources, with the keyboard clamp
+- `transformVKBridgeAdaptivity(adaptivity)`: the bridge verdict to `AdaptivityProps`
 
 Types: `BridgeConfigData`, `BridgeAdaptivity`, `VKBridgeConfigProviderProps`.
 

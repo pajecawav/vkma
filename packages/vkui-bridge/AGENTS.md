@@ -42,38 +42,40 @@ in English.
       `bridge.isEmbedded()`;
     - insets arrive from two sources (`VKWebAppUpdateInsets` and
       `VKWebAppUpdateConfig.insets`) and `bottom > 150` is clamped to `0`
-      (the transient keyboard must never be absorbed by the layout) —
-      this is a deliberate magic number, not a bug;
+      (the value keeps the transient keyboard out of the layout); the
+      number is deliberate, upstream-pinned;
     - adaptivity only advances when a config carries both
       `viewport_width` and `viewport_height`.
 2. **The hooks read the default bridge singleton** (module-level import
    from `@vkma.dev/bridge`) — parity with upstream, and enough: a mini
-   app has one bridge. Never refactor to dependency injection without an
-   explicit user decision; tests fake the singleton with `vi.mock` +
-   `vi.hoisted` state instead.
-3. **`VKWebAppGetConfig` bootstrap failures stay silent**
-   (`.catch(error => console.error(error))`) — outside the sandbox the
-   request is expected to fail; it must never become an app-level error.
+   app has one bridge. Tests fake the singleton with `vi.mock` +
+   `vi.hoisted` state. A dependency-injected bridge is an explicit user
+   decision, not a refactor.
+3. **`VKWebAppGetConfig` bootstrap failures surface as `console.error`
+   alone** (`.catch(error => console.error(error))`): outside the
+   sandbox the request is expected to fail, and the failure stays
+   container-internal.
 4. **Zero runtime dependencies**, peers only (`bridge ^0.2.0`, `vkui
    ^8.0.0`, `react ^18 || ^19`). Adding one is an explicit user
    decision.
-5. Node >= 22 (`engines` is meaningful, don't lower it silently).
+5. Node >= 22 (`engines` is a decision, not a lookup).
 
 ## Testing notes
 
-- **`@testing-library` is not used repo-wide.** Hook tests hand-roll a
-  micro `renderHook` on `createRoot` + `act`, and the act environment
-  flag must be set (`IS_REACT_ACT_ENVIRONMENT = true`) or React warns.
+- **The repo-wide convention skips `@testing-library`.** Hook tests
+  hand-roll a micro `renderHook` on `createRoot` + `act`, and the act
+  environment flag must be set (`IS_REACT_ACT_ENVIRONMENT = true`) or
+  React warns.
 - The fake bridge lives in `vi.hoisted` state; subscriptions are tracked
   in it, `send` resolves from a per-name map. Every `emit` runs inside
   `act`, and promise-driven paths (the `GetConfig` bootstrap) need an
   `await act(async () => {})` flush — microtasks between statement do
   not run.
-- The provider test probes via `useConfigProvider` from vkui — **there
-  is no `useConfig` export in vkui 8**.
-- Root renders may leave `body.innerText` empty (the FAB hides layout
-  via visibility); assert on `#root` content or `useConfigProvider` data,
-  never on `body.innerText`.
+- The provider test probes via `useConfigProvider` from vkui (that is
+  the context hook name in vkui 8).
+- Assert on `#root` content or `useConfigProvider` data. The FAB hides
+  the root layout via visibility, so `body.innerText` reads empty even
+  with the app mounted.
 
 ## Publishing dance (see root AGENTS.md)
 

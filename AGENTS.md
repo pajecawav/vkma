@@ -5,7 +5,7 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 ## Structure
 
 - `packages/bridge`, `packages/deploy`, `packages/devtools`, `packages/api-schema` — publishable libraries (tsdown: ESM + dts)
-- `packages/vkui-bridge` — publishable React glue: host-driven appearance/insets/adaptivity hooks + a preassembled `VKBridgeConfigProvider`, semantics pinned 1:1 to `@vkontakte/vk-bridge-react` (peer deps bridge + vkui + react; the vkui/router templates pin it)
+- `packages/vkui-bridge` — publishable React glue (bridge↔VKUI host config; see its section below)
 - `packages/router` — TanStack-based VK Mini Apps router (v0.1 implemented, pre-release; `DESIGN.md` is the source of truth for decisions, read its `AGENTS.md` before touching)
 - `packages/bridge-schema` — JSON Schema catalogue of VK Bridge events + generated types
 - `packages/api-schema` — generated TS types + zod/valibot schemas for the VK API, built at build time from the `VKCOM/vk-api-schema` git submodule
@@ -30,12 +30,15 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 
 ## VKUI config glue (`packages/vkui-bridge`)
 
-`@vkma.dev/vkui-bridge` — read `packages/vkui-bridge/AGENTS.md` before touching. The upstream-sourced invariants:
+`@vkma.dev/vkui-bridge` — React glue between the bridge and VKUI (host-driven
+appearance/insets/adaptivity + a preassembled `VKBridgeConfigProvider`). Read
+`packages/vkui-bridge/AGENTS.md` before touching: it owns the semantics pinned
+1:1 to `@vkontakte/vk-bridge-react`, the testing pitfalls and the peers/dep
+bar. One root-level invariant:
 
-- **Semantics are 1:1 with `@vkontakte/vk-bridge-react@2.0.1`** (the npm tarball is the reference): the `isEmbedded` gate + dual `appearance`/`scheme` key filter, the two-source insets with the `bottom > 150` keyboard clamp, and the both-`viewport_*` gate on adaptivity. Never "fix" these rules without a production bug.
-- Hooks read the DEFAULT bridge singleton (parity with the upstream hard-wired `vk_bridge`); tests fake it with `vi.mock` + `vi.hoisted`, not injection. `VKWebAppGetConfig` bootstrap failures stay `console.error`-silent — outside the sandbox they are expected.
-- The provider spreads app props LAST over the bridge-computed `ConfigProvider` defaults; `hasCustomPanelHeaderAfter` stays `true` unconditionally.
-- The vkui/router templates wire it in `main.tsx` and PIN it — the same registry-pin dance as the router: template changes that import new exports must be published before pushing (CI's scaffold-e2e installs from the registry).
+- The vkui/router templates PIN the package and the CI scaffold-e2e installs
+  from the registry: template changes importing new exports must be published
+  before pushing, or CI goes red.
 
 ## API schema (`packages/api-schema`)
 

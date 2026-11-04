@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@vkma.dev/router.svg)](https://www.npmjs.com/package/@vkma.dev/router)
 [![minzip](https://img.shields.io/bundlephobia/minzip/@vkma.dev/router.svg)](https://bundlephobia.com/package/@vkma.dev/router)
 
-A VK Mini Apps router on top of [TanStack Router](https://tanstack.com/router): URL-driven views, panels, modals and popouts rendered by [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI) hosts, typed handles instead of strings, VK history and host sync (`VKWebAppSetLocation`, `VKWebAppChangeFragment`), native swipe-back management. Feature parity with `@vkontakte/vk-mini-apps-router`, **not** API parity — see the [migration guide](https://github.com/pajecawav/vkma/tree/master/packages/router/docs/migration-from-vk-mini-apps-router.md).
+A VK Mini Apps router on top of [TanStack Router](https://tanstack.com/router). Views, panels, modals and popouts are URL-driven and rendered by [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI) hosts, with typed handles instead of string ids, VK history and host sync (`VKWebAppSetLocation`, `VKWebAppChangeFragment`), and native swipe-back management. Feature parity with `@vkontakte/vk-mini-apps-router`, not API parity. The [migration guide](https://github.com/pajecawav/vkma/tree/master/packages/router/docs/migration-from-vk-mini-apps-router.md) maps the old API to the new one.
 
 ## Install
 
@@ -75,7 +75,7 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-In components, navigate with typed handles — `const navigator = useNavigator(); navigator.push(profileSettingsPanel)` — or render router links out of ANY component with `createVkLink(TabbarItem)`.
+In components, navigate with typed handles, for example `const navigator = useNavigator(); navigator.push(profileSettingsPanel)`. Render router links out of any component with `createVkLink(TabbarItem)`.
 
 ## Entry points
 
@@ -86,9 +86,9 @@ In components, navigate with typed handles — `const navigator = useNavigator()
 | `@vkma.dev/router/vkui`   | VKUI hosts: `VkView`, `Modals`, `Popouts`, `NotFound`                                                                 |
 | `@vkma.dev/router/preset` | the `createApp` builders + sugar: `AppRootShell`, `useActiveStory`, `useNavigator`, `createVkLink`, `useInflate`      |
 
-## Decisions & design
+## Decisions and design
 
-`DESIGN.md` in the repo is the source of truth for every decision (URL/history model, the `VkView` static-children world, overlay choreography, the v1 scope), with spike verdicts and implementation notes. Start with the [AGENTS.md](https://github.com/pajecawav/vkma/tree/master/packages/router/AGENTS.md) if you want to contribute.
+`DESIGN.md` in the repo is the source of truth for every decision (the URL/history model, the `VkView` static-children world, overlay choreography, the v1 scope), with spike verdicts and implementation notes. The package [AGENTS.md](https://github.com/pajecawav/vkma/tree/master/packages/router/AGENTS.md) is the contributor entry.
 
 ## License
 
