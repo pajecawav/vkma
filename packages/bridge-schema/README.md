@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@vkma.dev/bridge-schema.svg)](https://www.npmjs.com/package/@vkma.dev/bridge-schema)
 [![minzip](https://img.shields.io/bundlephobia/minzip/@vkma.dev/bridge-schema.svg)](https://bundlephobia.com/package/@vkma.dev/bridge-schema)
 
-JSON Schema catalogue of every VK Bridge event — method request props, response/receive data and the `Result`/`Failed` event wiring — with generated TypeScript types on top. Thanks to [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT) for the reference catalogue.
+JSON Schema catalogue of every VK Bridge event, covering method request props, response/receive data and the `Result`/`Failed` event wiring, with generated TypeScript types on top. Thanks to [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT) for the reference catalogue.
 
 ## Install
 
@@ -16,9 +16,9 @@ npm install @vkma.dev/bridge-schema
 
 The root entrypoint exports the payload types plus the three catalogue maps:
 
-- `RequestPropsMap` — request props of every sendable method
-- `ReceiveDataMap` — data of every receivable event
-- `ReceiveEventMap` — wiring of a method to its `Result`/`Failed` event names
+- `RequestPropsMap`: request props of every sendable method
+- `ReceiveDataMap`: data of every receivable event
+- `ReceiveEventMap`: wiring of a method to its `Result`/`Failed` event names
 
 ```ts
 import type { RequestPropsMap, UserInfo } from "@vkma.dev/bridge-schema";
@@ -52,12 +52,12 @@ After this, `send("VKWebAppMyCustomMethod", { foo: "x" })` is fully typed throug
 
 Two rules of the road:
 
-- **The augmentation target must be `@vkma.dev/bridge-schema`** — merging only applies to the module that declares the interfaces; re-exports don't merge.
+- **The augmentation target must be `@vkma.dev/bridge-schema`.** Merging only applies to the module that declares the interfaces; re-exports don't merge.
 - **Extend only.** TS interface merging cannot alter existing members; fixes to the built-in catalogue ship as schema releases.
 
 ## The catalogue as data
 
-`@vkma.dev/bridge-schema/schema` exports the raw document for runtime consumers — devtools panels, inspectors, validators:
+`@vkma.dev/bridge-schema/schema` exports the raw document for runtime consumers: devtools panels, inspectors, validators.
 
 ```ts
 import { catalogue, eventsSchema } from "@vkma.dev/bridge-schema/schema";
@@ -67,7 +67,7 @@ catalogue.events.VKWebAppGetAuthToken; // { result: "VKWebAppAccessTokenReceived
 eventsSchema.$defs.UserInfo; // the JSON Schema node
 ```
 
-`$defs` is a plain JSON Schema document — point your validator (AJV etc.) straight at `eventsSchema`.
+`$defs` is a plain JSON Schema document. Point your validator (AJV etc.) straight at `eventsSchema`.
 
 ## License
 

@@ -43,7 +43,7 @@ BaseObjectSchema.parse({ id: 1, title: "app" });
 
 ### Granular imports
 
-The barrels export everything, and in plain Node (no tree-shaking) importing one evaluates the whole package. When cold-start time matters, import a single section module instead — specifiers are extensionless:
+The barrels export everything, and in plain Node (no tree-shaking) importing one evaluates the whole package. When cold-start time matters, import a single section module instead; the specifiers are extensionless:
 
 ```ts
 import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot/base/objects";

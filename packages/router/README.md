@@ -17,7 +17,7 @@ npm install @vkma.dev/router @tanstack/react-router
 Declare a view hub, its panels and overlays, then mount the router:
 
 ```tsx
-// panels/profile/profile.panel.ts — the one place the "profile" view key is written
+// panels/profile/profile.panel.ts, the one place the "profile" view key is written
 import { defineView } from "@vkma.dev/router/preset";
 
 export const profileView = defineView("profile");
@@ -36,7 +36,7 @@ export const profileSettingsPanel = profileView.panel(
 
 ```tsx
 import { createRouter } from "@tanstack/react-router";
-// app.tsx — the app tree + the router
+// app.tsx, the app tree + the router
 import { createApp, AppRootShell } from "@vkma.dev/router/preset";
 
 export const app = createApp({
@@ -60,7 +60,7 @@ declare module "@tanstack/react-router" {
 ```
 
 ```tsx
-// main.tsx — mount + the host contract
+// main.tsx, mount + the host contract
 import bridge from "@vkma.dev/bridge";
 import { createBridgeSync, createSwipeBackManager } from "@vkma.dev/router";
 

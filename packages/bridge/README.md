@@ -5,7 +5,7 @@
 
 Independent VK Bridge for VK Mini Apps. Drop-in classic API (`send` / `subscribe` / `supportsAsync` / …) plus a built-in observability tap, per-send timeout/abort and a configurable `request_id` policy.
 
-Types come from [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme) — the catalogue of every platform event as data, with an open interface for your own events.
+Types come from [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme), the catalogue of every platform event as data, with an open interface for your own events.
 
 ## Install
 
@@ -22,9 +22,9 @@ import bridge from "@vkma.dev/bridge";
 await bridge.send("VKWebAppInit");
 const user = await bridge.send("VKWebAppGetUserInfo");
 
-// every classic subscribe returns its own off — no unsubscribe bookkeeping
+// every classic subscribe returns its own off; no unsubscribe bookkeeping
 const off = bridge.subscribe(event => {
-    // event.detail.type / event.detail.data — every event from the host
+    // event.detail.type / event.detail.data, every event from the host
 });
 ```
 
@@ -41,7 +41,7 @@ const bridge = createVKBridge("1.0.0", {
 
 ## Beyond the classic API
 
-Everything lives on the instance — no extra imports:
+Everything lives on the instance, no extra imports:
 
 ```ts
 // Every outgoing send / incoming event, always on, replayed to late subscribers
@@ -56,11 +56,11 @@ await bridge.send("VKWebAppShowWallPostBox", props, { signal: controller.signal 
 createVKBridge("1.0.0", { requestId: { inject: false } });
 ```
 
-The page-wide default instance also publishes the devtools handle on `globalThis.__vkmaDevtoolsBridge` (`{ tap, send }`) — that's the contract the [VKMA devtools](https://github.com/pajecawav/vkma/tree/master/packages/devtools#readme) collector observes. Importing the package is enough; no opt-in.
+The page-wide default instance also publishes the devtools handle on `globalThis.__vkmaDevtoolsBridge` (`{ tap, send }`). That is the contract the [VKMA devtools](https://github.com/pajecawav/vkma/tree/master/packages/devtools#readme) collector observes. Importing the package is enough; no opt-in.
 
 ## Types & custom events
 
-All payload types and the three catalogue maps are re-exported here. To teach the bridge your own (or your proxy backend's) events, extend the schema package — `send`, `subscribe` and every consumer of the types pick it up:
+All payload types and the three catalogue maps are re-exported here. To teach the bridge your own (or your proxy backend's) events, extend the schema package, and `send`, `subscribe` and every consumer of the types pick it up:
 
 ```ts
 declare module "@vkma.dev/bridge-schema" {
@@ -79,11 +79,11 @@ declare module "@vkma.dev/bridge-schema" {
 }
 ```
 
-The rules live in [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme) — augment that package's root, extend only.
+The rules live in [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme). Augment that package's root, extend only.
 
 ## Transports
 
-Web (iframe `postMessage` with the `vk-connect` envelope), Android WebView, iOS WebView and React Native WebView — with receive-side `message` / `VKWebAppEvent` listeners to match. The web transport is covered by the automated suite; the mobile WebView transports follow the platform host contracts.
+Web (iframe `postMessage` with the `vk-connect` envelope), Android WebView, iOS WebView and React Native WebView, with receive-side `message` / `VKWebAppEvent` listeners to match. The web transport is covered by the automated suite; the mobile WebView transports follow the platform host contracts.
 
 ## License
 

@@ -2,14 +2,14 @@
 
 [![npm](https://img.shields.io/npm/v/@vkma.dev/deploy.svg)](https://www.npmjs.com/package/@vkma.dev/deploy)
 
-Deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting — a modern, drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
+Deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting, a modern drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
 
 ```sh
 npx @vkma.dev/deploy        # or: pnpm dlx / yarn dlx / bunx
 vkma-deploy                 # deploys using the config in your project
 ```
 
-**Drop-in compatibility** — your existing setup keeps working:
+**Drop-in compatibility.** Your existing setup keeps working:
 
 - reads `vk-hosting-config.json` (the legacy format) as a fallback
 - reads `MINI_APPS_ACCESS_TOKEN`, `MINI_APPS_APP_ID`, `MINI_APPS_ENVIRONMENT`,
@@ -30,11 +30,11 @@ npx vkma-deploy              # deploy
 ## Configuration
 
 Discovery walks up from the current directory; at each level the first file
-found wins (closest file beats file type). One file is the whole truth —
-there is no merging between config files.
+found wins (closest file beats file type). One file is the whole truth, with
+no merging between config files.
 
-1. `vkma-deploy.config.{ts,mts,js,mjs,json}` — preferred
-2. `vk-hosting-config.json` — legacy format (snake_case, mapped
+1. `vkma-deploy.config.{ts,mts,js,mjs,json}` (preferred)
+2. `vk-hosting-config.json` (legacy format, snake_case, mapped
    automatically with warnings for anything ignored)
 
 TypeScript configs work with zero extra dependencies (native type stripping,
@@ -66,15 +66,15 @@ JSON configs get editor autocomplete via `$schema`:
 
 | Field             | Type                                 | Default                     | Notes                                                                                                                    |
 | ----------------- | ------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `appId`           | integer                              | — (required)                | Or `VKMA_APP_ID` / `MINI_APPS_APP_ID`                                                                                    |
-| `staticPath`      | string                               | — (required w/o bundle)     | Directory to zip, e.g. `"./build"` (legacy: `static_path`)                                                               |
-| `bundle`          | string                               | —                           | Prebuilt `.zip`; skips zipping (legacy: `bundleFile`)                                                                    |
-| `endpoints`       | `{mobile?, mvk?, web?}`, ≥1 required | — (required)                | Entry files per platform; only configured ones are checked & sent. VK never processes a task with no `endpoint_*` params |
+| `appId`           | integer                              | none (required)             | Or `VKMA_APP_ID` / `MINI_APPS_APP_ID`                                                                                    |
+| `staticPath`      | string                               | none (required w/o bundle)  | Directory to zip, e.g. `"./build"` (legacy: `static_path`)                                                               |
+| `bundle`          | string                               | none                        | Prebuilt `.zip`; skips zipping (legacy: `bundleFile`)                                                                    |
+| `endpoints`       | `{mobile?, mvk?, web?}`, ≥1 required | none (required)             | Entry files per platform; only configured ones are checked & sent. VK never processes a task with no `endpoint_*` params |
 | `environment`     | `"dev"\|"production"\|"both"`        | `"both"`                    | What to deploy (legacy env var values work too)                                                                          |
 | `updateProd`      | boolean                              | unset (prompted/required)   | Switch production URLs (independent of `updateDev`)                                                                      |
 | `updateDev`       | boolean                              | unset (prompted/required)   | Switch dev URLs                                                                                                          |
-| `testGroupName`   | string                               | —                           | Deploy into a named test group (dev only)                                                                                |
-| `accessToken`     | string                               | —                           | Prefer env var or `vkma-deploy login` over committing                                                                    |
+| `testGroupName`   | string                               | none                        | Deploy into a named test group (dev only)                                                                                |
+| `accessToken`     | string                               | none                        | Prefer env var or `vkma-deploy login` over committing                                                                    |
 | `apiHost`         | string                               | `https://api.vk.ru/method/` |                                                                                                                          |
 | `oauthHost`       | string                               | `https://oauth.vk.ru/`      |                                                                                                                          |
 | `apiVersion`      | string                               | `"5.199"`                   |                                                                                                                          |
@@ -122,22 +122,22 @@ Exit codes: `0` success · `1` config/user error · `2` network/timeout ·
 
 ### Interactivity
 
-By default the CLI never prompts — it is CI-safe. With `--interactive` (and a
+By default the CLI never prompts, so by default it is CI-safe. With `--interactive` (and a
 TTY) it prompts **only** for values that are not already set (flag > env >
-config > prompt), and prompted values are used for the current run only —
-nothing is written back into your config. Declining the optional test-group
+config > prompt), and prompted values are used for the current run only; nothing is written
+back into your config. Declining the optional test-group
 prompt simply deploys without a group; canceling the confirmation-code
 prompt (empty answer or Ctrl+C) aborts with exit code `130`, never a fake
 success. Note that `--interactive` cannot rescue a config missing
-`appId`/`staticPath` — resolution fails before any prompt with a
+`appId`/`staticPath`, which resolution fails before any prompt with a
 configuration error.
 
 The one unconditional prompt is the confirmation code VK sends for some
 deploys (queue event 205): in a terminal you will be asked to enter it; in CI
 provide it programmatically via the library API.
 
-Before a deploy, the CLI prints a deploy plan — target environments, URL
-switching, test group, bundle, endpoints — and asks `Deploy? (Y/n)`.
+Before a deploy, the CLI prints a deploy plan and asks `Deploy? (Y/n)`: target
+environments, URL switching, test group, bundle, endpoints.
 `Enter` proceeds, `n` cancels with exit code `130` before anything leaves
 the machine. The prompt is skipped (the plan is still logged) for `--yes`/`-y`,
 `--dry-run`, the `CI` environment variable, non-TTY stdin, and
@@ -145,13 +145,13 @@ the machine. The prompt is skipped (the plan is still logged) for `--yes`/`-y`,
 
 ### URL-switch policy (`--update-prod` / `--update-dev`)
 
-Whether the deploy switches production/dev URLs is always explicit — VK's
+Whether the deploy switches production/dev URLs is always explicit. The VK
 server default never decides it silently:
 
 - **Set** via `--update-prod`/`--no-update-prod`, `--update-dev`/
   `--no-update-dev`, or `updateProd`/`updateDev` in the config (legacy:
-  `update_prod`/`update_dev`) — used as given, no questions asked.
-- **Unset on a TTY** — the CLI asks, right before the deploy plan:
+  `update_prod`/`update_dev`). Used as given, no questions asked.
+- **Unset on a TTY.** The CLI asks, right before the deploy plan:
 
     ```
     Update production URLs? (Y/n)
@@ -160,17 +160,17 @@ server default never decides it silently:
     ```
 
     `Enter` accepts the shown default (yes), `n` pins the flag to "do not
-    switch" — declining an update prompt does **not** cancel the deploy;
+    switch", and declining an update prompt does **not** cancel the deploy;
     only answering `n` to `Deploy?` does (exit `130`). Ctrl+C aborts with
     `130`. Only flags relevant to the target environment are asked
     (`--env dev` never asks about production).
 
 - **Unset in a non-interactive run** (non-TTY stdin, `CI` env var, or
-  `--json`/`--quiet`) — the deploy fails fast with exit `1` telling you
+  `--json`/`--quiet`). The deploy fails fast with exit `1` telling you
   exactly which flag to pass. This includes `--yes`: automation must pin
   its URL policy. Migrating from upstream CI configs: add the flags (or
   the config fields) once.
-- **Unset with `--yes` or `--dry-run` on a TTY** — the flags stay unset
+- **Unset with `--yes` or `--dry-run` on a TTY.** The flags stay unset
   and VK's server default applies (the deploy plan says
   `server default`); this mirrors upstream's `noprompt`.
 
@@ -187,7 +187,7 @@ prompts still deploys (the version is uploaded without switching URLs).
       VKMA_ACCESS_TOKEN: ${{ secrets.VK_TOKEN }}
 ```
 
-Non-interactive runs require an explicit URL-switch policy — see the
+Non-interactive runs require an explicit URL-switch policy, see the
 "URL-switch policy" section above.
 Add `--json` for machine-readable, newline-delimited event records on stdout.
 
@@ -217,10 +217,10 @@ The library never calls `process.exit` and never touches global state; all
 failures are `DeployError`s with a `kind` (`config` | `user` | `network` |
 `api` | `aborted`) and the matching exit code.
 
-Granular building blocks are exported too: `resolveConfig`, `deployResolved`
-(run the flow from an already-resolved config — what the CLI uses to avoid
-resolving twice), `loginDeviceFlow`, `zipDirectory`, `uploadBundle`,
-`waitForQueue`, `callApi`, `loadCredentials`/`saveCredentials`/
+Granular building blocks are exported too: `resolveConfig`,
+`deployResolved` (run the flow from an already-resolved config; the CLI
+uses it to avoid resolving twice), `loginDeviceFlow`, `zipDirectory`,
+`uploadBundle`, `waitForQueue`, `callApi`, `loadCredentials`/`saveCredentials`/
 `clearCredentials`, `createRedactor`.
 
 ## Credentials
@@ -245,7 +245,7 @@ HTTP(S) proxy. Three sources, first match wins:
 `NO_PROXY` from the environment is always honored. Both `http://` and
 `https://` proxy URLs are accepted (credentials in the URL are masked in
 output); socks is not. Requires Node >= 22.21 / 24 (native env-proxy
-support) — on older runtimes the CLI warns and continues directly.
+support); on older runtimes the CLI warns and continues directly.
 
 The proxy is activated by the CLI only. Library consumers inject their own
 `fetchImpl` to route traffic.
@@ -254,7 +254,7 @@ The proxy is activated by the CLI only. Library consumers inject their own
 
 - Socks proxies are not supported (Node's native env-proxy layer is
   HTTP(S)-only).
-- The legacy upstream `proxy_url` config field is not supported — use the
+- The legacy upstream `proxy_url` config field is not supported. Use the
   `proxy` field or the environment variables above.
 
 ## License

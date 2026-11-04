@@ -17,8 +17,8 @@ npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe
 ```
 
 Only the adapter you use is a hard dependency: `vite` and `@devframes/vite`
-are optional peers (Vite mode), `@rsbuild/core` likewise (Rsbuild mode) —
-a Rsbuild app installs the devtools without pulling Vite, and vice versa.
+are optional peers (Vite mode), and `@rsbuild/core` likewise (Rsbuild mode).
+A Rsbuild app installs the devtools without pulling Vite, and vice versa.
 
 ```ts
 // vite.config.ts
@@ -31,13 +31,13 @@ export default {
 
 One line gives the mini app:
 
-- **`/__vkma/`** — the panel (SPA + RPC/WebSocket on Vite's own port, like
+- **`/__vkma/`.** The panel (SPA + RPC/WebSocket on Vite's own port, like
   `/__unocss` for UnoCSS).
-- **The dev alias** — `@vkontakte/vk-bridge` is aliased to `@vkma.dev/bridge`
+- **The dev alias.** `@vkontakte/vk-bridge` is aliased to `@vkma.dev/bridge`
   (set `alias: false` to opt out; apps importing `@vkma.dev/bridge` directly
-  don't need it), so every importer — dependencies included — runs through
+  don't need it), so every importer, dependencies included, runs through
   the devtools tap.
-- **The FAB** — a floating button on the app page opening the same panel as
+- **The FAB.** A floating button on the app page opening the same panel as
   an overlay. Its initial placement is configurable:
   `vkmaDevtools({ fabPosition: "bottom-left" })` (`bottom-left`, `bottom`
   or `bottom-right`, default `bottom-right`); a placement picked in the
@@ -47,19 +47,19 @@ One line gives the mini app:
 
 ## What you get
 
-- **Timeline** — a ledger of the bridge traffic: each send opens a request
+- **Timeline.** A ledger of the bridge traffic: each send opens a request
   group with its paired response nested beneath it (round-trip duration,
   ok/error mark); unsolicited VK events stand alone. Filterable by type
   and name; payloads expand into a collapsible JSON tree with copy.
-- **Execute** — send any bridge event into a chosen connected client from
+- **Execute.** Send any bridge event into a chosen connected client from
   the panel; the round-trip result lands right there.
-- **Clients** — every connected page script (desktop tab, phone on LAN,
+- **Clients.** Every connected page script (desktop tab, phone on LAN,
   iframe, standalone) with UA, platform, launch params.
-- **Embedded scope** — the FAB panel shows only its own page's traffic
+- **Embedded scope.** The FAB panel shows only its own page's traffic
   (colored client badge in the header); a page reload resets its history.
-- **MCP for coding agents** — off by default; turn on with
-  `vkmaDevtools({ mcp: true })` (or a full `McpRouteOptions` — bearer
-  `authorization` token, extra `origins` — for tunnel/LAN setups). The
+- **MCP for coding agents.** Off by default; turn on with
+  `vkmaDevtools({ mcp: true })` (or a full `McpRouteOptions` with a bearer
+  `authorization` token and extra `origins` for tunnel/LAN setups). The
   same timeline and execute are exposed as MCP tools (`vkma:mcp-state`,
   `vkma:mcp-execute`) at `/__vkma/__mcp` (Streamable-HTTP), so agents
   like OpenCode or Claude Code can read the bridge traffic and drive
@@ -70,8 +70,8 @@ One line gives the mini app:
 
 Run Vite with `--host`. Auth is always on: the first browser connects via
 the OTP printed in the dev server terminal (or the one-click link it
-prints). The WebSocket origin check is open by default — the OTP gate is
-the trust boundary; pass `allowedOrigins` to lock it down.
+prints). The WebSocket origin check is open by default; the OTP gate is
+the trust boundary, so pass `allowedOrigins` to lock it down.
 
 ## Vite DevTools dock (hub mode)
 
@@ -91,12 +91,12 @@ The hub then owns the panel mount and the RPC bridge (one WebSocket and one
 auth gate shared with every other dock); our plugin keeps the bridge
 interception and the FAB/collector injection. The MCP tools aggregate into
 the hub's endpoint (`/__devtools/__mcp`). Without `hub: true` nothing
-changes — the standalone `/__vkma/` + FAB setup runs exactly as before,
+changes. The standalone `/__vkma/` + FAB setup runs exactly as before,
 with or without Vite DevTools present.
 
 ## Non-Vite bundlers
 
-**Rsbuild / rspack** — first-class via the `@vkma.dev/devtools/rsbuild`
+**Rsbuild / rspack.** First-class via the `@vkma.dev/devtools/rsbuild`
 subpath:
 
 ```ts
@@ -109,16 +109,16 @@ export default defineConfig({
 });
 ```
 
-Same one-liner as Vite: the `/__vkma/` panel (RPC bridge rides a
-side-car WebSocket — Rsbuild never hands over HTTP upgrades), the
+Same one-liner as Vite: the `/__vkma/` panel (the RPC bridge rides a
+side-car WebSocket, Rsbuild never hands over HTTP upgrades), the
 `@vkontakte/vk-bridge → @vkma.dev/bridge` interception, the FAB + collector
 injection. Requires `@rsbuild/core` >= 1.0. See
 [`playground/mini-app-rsbuild`](https://github.com/pajecawav/vkma/tree/master/playground/mini-app-rsbuild)
 for a working setup.
 
-**Any other bundler / server** — import `@vkma.dev/bridge` instead of
+**Any other bundler / server.** Import `@vkma.dev/bridge` instead of
 `@vkontakte/vk-bridge` (or alias it yourself, skipping imports from inside
-the tap package) and mount the panel yourself via `initDevframe` — see
+the tap package) and mount the panel yourself via `initDevframe`, see
 the `vkmaDevframe` export.
 
 ## License
