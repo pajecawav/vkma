@@ -36,6 +36,7 @@ export {
 	Popouts,
 	VkView,
 	NotFound,
+	DefaultPanelPendingComponent,
 	useShowPopout,
 	useHidePopout,
 	usePopoutState,

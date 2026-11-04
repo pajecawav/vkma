@@ -149,11 +149,14 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 					// an explicit pendingComponent is deliberate — no grace delay
 					content = <Pending />;
 				} else if (isPending) {
-					content = <PanelSpinnerFallback />;
+					content = <DefaultPanelPendingComponent />;
 				} else {
-					// chunk in flight, inside the grace window: an empty panel
-					// beats a spinner that would flash for a blink
-					content = null;
+					// chunk in flight, inside the grace window: a header stub beats
+					// a spinner that would flash for a blink — and beats an empty
+					// panel: every panel SEPARATES with its own <PanelHeader>, so
+					// the stub paints the final layout slot and the arriving
+					// content fills in under it, nothing jumps
+					content = <PanelHeader />;
 				}
 				return (
 					<Panel key={id} nav={id}>
@@ -165,10 +168,16 @@ export function VkView({ view, nav, onSwipeBack }: VkViewProps) {
 	);
 }
 
-function PanelSpinnerFallback() {
-	// The canonical VKUI loading screen: a header stub keeps the layout
-	// structure while the lazy chunk is in flight, and PanelSpinner centers
-	// itself inside the panel (a bare Spinner floats at the top of a void).
+/**
+ * The canonical pending screen for a panel: a header stub keeps the layout
+ * structure while the lazy chunk is in flight, and PanelSpinner centers
+ * itself inside the panel (a bare Spinner floats at the top of a void).
+ *
+ * `VkView` renders this whenever a chunk is genuinely absent past the grace
+ * delay (see the pending branches in the render above); pass it as a
+ * panel's `pendingComponent` to opt out of the grace delay instead.
+ */
+export function DefaultPanelPendingComponent() {
 	return (
 		<>
 			<PanelHeader />

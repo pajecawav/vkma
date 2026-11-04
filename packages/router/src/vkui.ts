@@ -1,4 +1,10 @@
-export { VkView, panelIdOf, storyKeyOf, type VkViewProps } from "./vkui/vk-view.tsx";
+export {
+	VkView,
+	DefaultPanelPendingComponent,
+	panelIdOf,
+	storyKeyOf,
+	type VkViewProps,
+} from "./vkui/vk-view.tsx";
 export {
 	Modals,
 	ModalPageSurface,
