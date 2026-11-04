@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * The inspector artifact contract: ONE file, runnable as a classic
- * <script> and as a console import() — no ESM-only syntax may survive
+ * <script> and as a console import(). No ESM-only syntax may survive
  * the bundler. Skipped on a fresh clone without a build (CI builds
  * first; `pnpm build` produces dist/inspector.js).
  */

@@ -5,9 +5,9 @@ import type { HostMessage, InspectorMessage } from "../shared/protocol.ts";
 
 /**
  * The inspector side of the WebRTC link: one anonymous peer dialing the
- * panel's id forever (the page outlives any panel reload — a stable id
+ * panel's id forever (the page outlives any panel reload. A stable id
  * reconnects without touching the snippet). This layer is transport
- * only — the challenge-response gate (dial-trust.ts) owns what may
+ * only. The challenge-response gate (dial-trust.ts) owns what may
  * travel on the channel. Direct or nothing: no TURN server exists in
  * the config, an unpierceable pair just keeps retrying.
  */
@@ -86,8 +86,8 @@ export class InspectorTransport {
 			const conn = peer.connect(this.targetId, { reliable: true });
 			this.conn = conn;
 
-			// An ICE pair that never completes fires nothing on its own —
-			// hang up and redial instead of hanging silently.
+			// An ICE pair that never completes fires nothing on its own.
+			// Hang up and redial instead of hanging silently.
 			this.watchdog = setTimeout(() => {
 				if (this.conn === conn && !conn.open) {
 					conn.close();
@@ -122,12 +122,12 @@ export class InspectorTransport {
 				return;
 			}
 			if (error.type === "peer-unavailable") {
-				// the panel is closed — its id lives on the broker only while
+				// the panel is closed. Its id lives on the broker only while
 				// the page is open; keep dialing until it returns
 				this.scheduleRedial();
 				return;
 			}
-			// broker/network trouble — recycle the whole peer
+			// broker/network trouble, recycle the whole peer
 			peer.destroy();
 			if (this.peer === peer) {
 				this.peer = undefined;
@@ -154,7 +154,7 @@ export class InspectorTransport {
 		}
 		const messages = this.queue.splice(0);
 		for (const message of messages) {
-			// peerjs send() may return a promise for chunked payloads — the
+			// peerjs send() may return a promise for chunked payloads. The
 			// queue is the retry mechanism, the channel errors redial.
 			void this.conn?.send(message);
 		}

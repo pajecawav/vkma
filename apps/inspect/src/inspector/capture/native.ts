@@ -1,9 +1,9 @@
 /**
- * Native bridge interception — the vk-mini-app-spy webview lesson,
+ * Native bridge interception, the vk-mini-app-spy webview lesson,
  * hardened for a third-party page:
  *
  * FORWARD-THEN-TAP. Every wrapper runs the original native handler
- * first and reports afterwards — the page must behave exactly as if the
+ * first and reports afterwards. The page must behave exactly as if the
  * inspector were never there.
  *
  * TWO VISIBILITY LEVELS. vk-bridge (and every bridge clone) captures
@@ -33,7 +33,7 @@ export function installNativeCapture(onCall: (call: NativeCall) => void): boolea
 	return installed;
 }
 
-/** Android: `AndroidBridge[VKWebAppEvent](jsonString)` — params arrive
+/** Android: `AndroidBridge[VKWebAppEvent](jsonString)`, params arrive
  * JSON-stringified; the method NAME is the bridge event name. */
 function wrapAndroidBridge(onCall: (call: NativeCall) => void): boolean {
 	const w = window as typeof window & { AndroidBridge?: unknown };
@@ -49,7 +49,7 @@ function wrapAndroidBridge(onCall: (call: NativeCall) => void): boolean {
 		try {
 			params = JSON.parse(serialized);
 		} catch {
-			return; // not JSON — not bridge traffic
+			return; // not JSON, not bridge traffic
 		}
 		if (isPlainObject(params)) {
 			onCall({ name, params });
@@ -72,7 +72,7 @@ function wrapAndroidBridge(onCall: (call: NativeCall) => void): boolean {
 			};
 			wrapped.add(name);
 		} catch {
-			// non-writable native surface — fresh readers still get the proxy
+			// non-writable native surface, fresh readers still get the proxy
 		}
 	};
 
@@ -91,7 +91,7 @@ function wrapAndroidBridge(onCall: (call: NativeCall) => void): boolean {
 }
 
 /** iOS: `webkit.messageHandlers[VKWebAppEvent].postMessage(paramsObject)`
- * — params arrive as objects; vk-bridge's webview detection needs
+ * params arrive as objects; vk-bridge's webview detection needs
  * `VKWebAppClose` to stay reachable, so handler objects keep their
  * shape (only `postMessage` answers through a proxy). */
 function wrapIosBridge(onCall: (call: NativeCall) => void): boolean {
@@ -138,7 +138,7 @@ function wrapIosBridge(onCall: (call: NativeCall) => void): boolean {
 			collection[name] = proxy;
 			wrapped.add(name);
 		} catch {
-			// the collection rejects writes — fresh readers still get the proxy
+			// the collection rejects writes, fresh readers still get the proxy
 		}
 	};
 

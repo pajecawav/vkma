@@ -1,11 +1,11 @@
 /**
  * Web-transcript capture. Incoming (host → app) needs no interception
  * at all: the VK webview dispatches a `VKWebAppEvent` DOM CustomEvent
- * and the web host postMessages the frame — both land on `window`,
+ * and the web host postMessages the frame. Both land on `window`,
  * a listener is enough. Outgoing is only visible on a TOP-LEVEL page
  * (parent === window, the app's web transport posts to THIS window and
  * the method is wrappable); in a cross-origin iframe `parent.postMessage`
- * cannot be wrapped from the child — the documented partial mode
+ * cannot be wrapped from the child, the documented partial mode
  * (incoming events + executes only; the extension covers the full case).
  */
 
@@ -70,11 +70,11 @@ function wrapWindowPostMessage(
 		return original(...args);
 	};
 	try {
-		// A window method rebind, not a postMessage call — the rule is a
+		// A window method rebind, not a postMessage call. The rule is a
 		// false positive here (the original receives the full arg list).
 		// oxlint-disable-next-line unicorn/require-post-message-target-origin
 		window.postMessage = wrapped as typeof window.postMessage;
 	} catch {
-		// the page froze the method — outgoing stays unreported
+		// the page froze the method, outgoing stays unreported
 	}
 }

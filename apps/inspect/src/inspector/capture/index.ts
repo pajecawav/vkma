@@ -4,9 +4,9 @@ import { installNativeCapture } from "./native.ts";
 import { installWebCapture } from "./web.ts";
 
 /**
- * The capture orchestrator. Installs every hook at construction — the
- * native wrap MUST be in place before the app's bridge module imports
- * (vk-bridge freezes its transport refs at import) — and BUFFERS the
+ * The capture orchestrator. Installs every hook at construction (the
+ * native wrap MUST be in place before the app's bridge module imports,
+ * since vk-bridge freezes its transport refs at import) and BUFFERS the
  * spy-captured rows until the direct-handle question is settled:
  *
  * - `direct`: a `__vkmaDevtoolsBridge` handle was published on the page.
@@ -17,7 +17,7 @@ import { installWebCapture } from "./web.ts";
  *   independent capture.
  * - `spy`: the buffered rows flush and the hooks keep reporting. Our own
  *   execute sends ride a private @vkma.dev/bridge instance whose request
- *   ids it actually issued — the raw layers skip exactly those ids
+ *   ids it actually issued. The raw layers skip exactly those ids
  *   (issuer-scoped, one-shot), so a page tagging its own sends with the
  *   public reserved prefix can no longer elide them.
  */
@@ -55,8 +55,8 @@ export class InspectorCapture {
 	private counter = 0;
 	private buffer: TapEvent[] = [];
 	/** Bound on resolving-phase rows: ten seconds of hostile native
-	 * spam must not grow the page's memory unchecked (drop-oldest —
-	 * the newest traffic is what an operator opens the panel for). */
+	 * spam must not grow the page's memory unchecked (drop-oldest, the
+	 * newest traffic is what an operator opens the panel for). */
 	private static readonly BUFFER_CAP = 1_000;
 	private sink: (event: TapEvent) => void = event => {
 		this.buffer.push(event);
@@ -66,11 +66,11 @@ export class InspectorCapture {
 	};
 	private handle: BridgeHandle | undefined;
 	private bridge: SpyBridge | undefined;
-	/** Wire request_ids of outgoing rows already sunk (tap or raw — first
+	/** Wire request_ids of outgoing rows already sunk (tap or raw, first
 	 * reporter wins), so direct mode merges the two sources instead of
 	 * doubling every send. Bounded, insertion-order drop-oldest. */
 	private readonly sunkOutRequestIds = new Set<string>();
-	/** Request ids the private execute bridge actually issued — the ONLY
+	/** Request ids the private execute bridge actually issued, the ONLY
 	 * license for the raw layers to skip a send. */
 	private readonly issuedExecIds = new Set<string>();
 
@@ -96,8 +96,8 @@ export class InspectorCapture {
 				if (event.direction !== "out" || event.name === "vk-connect") {
 					return; // incoming is owned by the raw layers in every mode
 				}
-				// Our own row id (one counter for ALL sources — tap ids and
-				// raw ids must never collide, reqId pairing depends on it).
+				// Our own row id (one counter for ALL sources). Tap ids and
+				// raw ids must never collide, reqId pairing depends on it.
 				const id = ++this.counter;
 				const requestId = isPlainObject(event.payload)
 					? wireRequestId(event.payload)
@@ -118,7 +118,7 @@ export class InspectorCapture {
 			// The tap's replay covers the page load's outgoing traffic; the
 			// spy-era buffer keeps everything the replay does NOT already
 			// carry (incoming rows, sends the tap never saw, host
-			// reconstruction) — merged by wire request_id, never discarded.
+			// reconstruction), merged by wire request_id, never discarded.
 			for (const event of this.buffer) {
 				const requestId =
 					event.direction === "out" && isPlainObject(event.payload)
@@ -140,7 +140,7 @@ export class InspectorCapture {
 	}
 
 	/** The private execute bridge: contributes its outgoing rows in every
-	 * mode, and records the request ids it actually issued — the raw
+	 * mode, and records the request ids it actually issued, the raw
 	 * layers' only skip license. */
 	public hookSpyBridge(bridge: SpyBridge): void {
 		this.bridge = bridge;
@@ -169,7 +169,7 @@ export class InspectorCapture {
 
 	/** Execute through whichever bridge is available. The private instance
 	 * comes first: it is always present (main wires it before finalize)
-	 * and is the one route the inspected page cannot forge — the adopted
+	 * and is the one route the inspected page cannot forge. The adopted
 	 * handle's send is page JS of unverified provenance. */
 	public execute(name: string, params?: Record<string, unknown>): Promise<unknown> {
 		if (this.bridge !== undefined) {
@@ -195,19 +195,19 @@ export class InspectorCapture {
 
 	private onOutgoing(name: string, params: Record<string, unknown>): void {
 		const requestId = wireRequestId(params);
-		// Skip only sends the private execute bridge ACTUALLY issued —
+		// Skip only sends the private execute bridge ACTUALLY issued,
 		// issuer-scoped and one-shot. The reserved prefix is public
 		// (it ships in /inspector.js), so keying the skip on the wire
 		// value would let the page elide its own sends.
 		if (requestId !== undefined && this.issuedExecIds.delete(requestId)) {
 			return;
 		}
-		// Resolving-phase rows go to the buffer — their dedup against the
+		// Resolving-phase rows go to the buffer. Their dedup against the
 		// tap's replay is decided at finalize time, not here (noting them
 		// now would make the flush skip them as "already sunk").
 		if (this.mode !== "resolving") {
 			// Direct mode: the tap may have reported this send already
-			// (its replay or a live emit) — first reporter wins, no doubles.
+			// (its replay or a live emit), first reporter wins, no doubles.
 			if (requestId !== undefined && this.sunkOutRequestIds.has(requestId)) {
 				return;
 			}
@@ -231,10 +231,10 @@ export class InspectorCapture {
 
 	private onIncoming(type: string, data: Record<string, unknown>): void {
 		if (type === "VKWebAppSettings") {
-			return; // frame-id assignment — transport chatter, not VK semantics
+			return; // frame-id assignment, transport chatter, not VK semantics
 		}
-		// The raw layers own the incoming direction in EVERY mode — that
-		// is exactly what a page-planted handle must not be able to mute.
+		// The raw layers own the incoming direction in EVERY mode. That is
+		// exactly what a page-planted handle must not be able to mute.
 		const requestId = wireRequestId(data);
 		const sendId = requestId === undefined ? undefined : this.joiner.take(requestId);
 		if (sendId !== undefined) {

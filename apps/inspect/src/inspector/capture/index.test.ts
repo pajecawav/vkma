@@ -6,7 +6,7 @@ import { InspectorCapture, type BridgeHandle, type SpyBridge } from "./index.ts"
  * The capture pipeline end to end: buffer → finalize (direct/spy),
  * request_id joining across the raw layers, and the reserved-prefix
  * skip for the private execute bridge. Native hooks install in the
- * constructor — the fake AndroidBridge goes up FIRST.
+ * constructor. The fake AndroidBridge goes up FIRST.
  */
 
 afterEach(() => {
@@ -56,7 +56,7 @@ describe("InspectorCapture", () => {
 		const rows: TapEvent[] = [];
 		const capture = new InspectorCapture();
 
-		// 1_050 raw calls while resolving — the buffer caps at 1_000
+		// 1_050 raw calls while resolving, the buffer caps at 1_000
 		for (let i = 0; i < 1_050; i++) {
 			callAndroid("VKWebAppPing", { request_id: `spam_${i}` });
 		}
@@ -97,7 +97,7 @@ describe("InspectorCapture", () => {
 
 		incoming("VKWebAppGetUserInfoResult", { request_id: "1_a", response: [] });
 		incoming("VKWebAppUpdateConfig", { appearance: "light" });
-		incoming("VKWebAppSettings", { frameId: "f1" }); // transport chatter — never a row
+		incoming("VKWebAppSettings", { frameId: "f1" }); // transport chatter, never a row
 
 		expect(rows).toHaveLength(3);
 		expect(rows[1]).toMatchObject({
@@ -139,13 +139,13 @@ describe("InspectorCapture", () => {
 			rows.push(event);
 		});
 
-		// the spy-era row was NOT discarded — the tap's (empty) replay
+		// the spy-era row was NOT discarded. The tap's (empty) replay
 		// does not cover it, so it merges in
 		expect(rows).toHaveLength(1);
 		expect(rows[0]).toMatchObject({ kind: "send", name: "VKWebAppRun" });
 
 		// the tap contributes outgoing rows (one row-id space for all
-		// sources — reqId pairing depends on it)
+		// sources, reqId pairing depends on it)
 		tap.emit({ id: 9001, ts: 1, direction: "out", kind: "send", name: "VKWebAppInit" });
 		tap.emit({ id: 9002, ts: 2, direction: "out", kind: "send", name: "vk-connect" }); // chatter
 		tap.emit({ id: 9003, ts: 3, direction: "in", kind: "event", name: "TapOnlyEvent" }); // raw owns incoming
@@ -165,7 +165,7 @@ describe("InspectorCapture", () => {
 		callAndroid("VKWebAppRun", { request_id: "r2" });
 		expect(rows).toHaveLength(3);
 
-		// the raw layers are NOT muted in direct mode — a page-planted
+		// the raw layers are NOT muted in direct mode. A page-planted
 		// handle must not be able to blind the independent capture
 		callAndroid("VKWebAppRun", { request_id: "r3" });
 		incoming("VKWebAppUpdateConfig", { appearance: "light" });
@@ -192,7 +192,7 @@ describe("InspectorCapture", () => {
 			send: async () => "ok",
 		});
 
-		// our own execute send — reported through the private bridge's tap
+		// our own execute send, reported through the private bridge's tap
 		tap.emit({
 			id: 1,
 			ts: 1,

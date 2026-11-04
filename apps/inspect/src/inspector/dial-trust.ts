@@ -13,14 +13,14 @@ import { randomNonce, verifyNonce } from "../shared/signing.ts";
  * the inspector until the answering peer signs the fresh challenge:
  * hello carries the launch params (sign included), the page locator
  * and the clientId; the event backlog and exec-results are just as
- * sensitive. The peer id proves nothing — the broker hands a stopped
- * id to whoever registers it first — so the proof of the panel's
+ * sensitive. The peer id proves nothing (the broker hands a stopped
+ * id to whoever registers it first), so the proof of the panel's
  * signing key is the only accepted answer. A squatter gets a
  * challenge, times out or fails verification, and the connection is
  * dropped into the ordinary redial loop.
  *
  * Credentials queue here (bounded) while unverified and ship the
- * moment a proof verifies — never through the transport's own queue,
+ * moment a proof verifies, never through the transport's own queue,
  * which flushes to whoever opens the channel.
  */
 
@@ -32,11 +32,11 @@ export interface DialTrustLinks {
 	/** Only challenge and verified credentials go through here. */
 	send(message: InspectorMessage): void;
 	isOpen(): boolean;
-	/** Drop the live connection — the close event triggers redial. */
+	/** Drop the live connection. The close event triggers redial. */
 	drop(): void;
 	/** Verification succeeded: say hello and flush the backlog. */
 	onVerified(): void;
-	/** A verified execute — run it through the capture. */
+	/** A verified execute, run it through the capture. */
 	onExecute(request: InspectExecuteMessage): void;
 }
 
@@ -46,7 +46,7 @@ export class DialTrust {
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private warnedStale = false;
 	/** Connection generation: proofs are bound to the channel they were
-	 * challenged on — an async verify landing after a close+redial must
+	 * challenged on. An async verify landing after a close+redial must
 	 * not admit the NEW channel (its nonce was never signed). */
 	private epoch = 0;
 	private readonly credentials: InspectorMessage[] = [];
@@ -67,7 +67,7 @@ export class DialTrust {
 		this.verified = false;
 		clearTimeout(this.timer);
 		if (this.verifyKey === undefined) {
-			// A stale snippet without ?k= cannot verify anyone — shipping
+			// A stale snippet without ?k= cannot verify anyone. Shipping
 			// credentials to an unprovable peer was the bug this fixes.
 			if (!this.warnedStale) {
 				this.warnedStale = true;
@@ -84,14 +84,14 @@ export class DialTrust {
 			nonce: this.pendingNonce,
 		});
 		this.timer = setTimeout(() => {
-			// No proof — the dial landed on something that cannot sign.
+			// No proof. The dial landed on something that cannot sign.
 			this.channelClosed();
 			this.links.drop();
 		}, VERIFICATION_TIMEOUT_MS);
 	}
 
 	/** The DataChannel went down: every proof is bound to one nonce and
-	 * one connection — the next open starts over. */
+	 * one connection. The next open starts over. */
 	public channelClosed(): void {
 		this.epoch++;
 		this.verified = false;
@@ -101,7 +101,7 @@ export class DialTrust {
 
 	/** Queue a credential-bearing message (hello, event batch, exec-
 	 * result): ships the moment the connection verifies, never before.
-	 * A queued hello is replaced by newer ones — heartbeats would pile
+	 * A queued hello is replaced by newer ones, since heartbeats would pile
 	 * up stale registrations otherwise. */
 	public enqueue(message: InspectorMessage): void {
 		if (this.verified && this.links.isOpen()) {
@@ -126,7 +126,7 @@ export class DialTrust {
 			void this.onProof(message);
 			return;
 		}
-		// Executes from an unverified connection drop silently — the
+		// Executes from an unverified connection drop silently. The
 		// verified flag IS the answerer's proof of identity (the hello
 		// that discloses the clientId never reached the peer otherwise).
 		if (message.t === "execute" && this.verified) {
@@ -148,7 +148,7 @@ export class DialTrust {
 			return;
 		}
 		if (!ok) {
-			this.links.drop(); // the signer is not the panel — drop, redial
+			this.links.drop(); // the signer is not the panel. Drop, redial
 			return;
 		}
 		clearTimeout(this.timer);

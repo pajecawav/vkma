@@ -21,7 +21,7 @@ import { SetupPanel } from "./SetupPanel.tsx";
 
 const SECTION_KEY = "vkma:section";
 
-// Sorted once at module scope — the catalogue is frozen data.
+// Sorted once at module scope, the catalogue is frozen data.
 const SUGGESTED_EVENTS = Object.keys(catalogue.props).toSorted((a, b) => a.localeCompare(b));
 
 // The ignore editor suggests every catalogue name: methods + receive events.
@@ -40,8 +40,8 @@ export function App({ runtime }: { runtime: InspectRuntime }) {
 
 function PanelBody({ runtime }: { runtime: InspectRuntime }) {
 	const connection = useInspect(runtime);
-	// The setup sheet opens by default while nothing has connected yet —
-	// the first-run flow IS "copy the snippet into your mini app".
+	// The setup sheet opens by default while nothing has connected yet.
+	// The first-run flow IS "copy the snippet into your mini app".
 	const [setupOpen, setSetupOpen] = useState(() => connection.clients.length === 0);
 
 	return (

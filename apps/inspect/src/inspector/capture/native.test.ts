@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { installNativeCapture } from "./native.ts";
 
 /**
- * The native wraps against fakes — the happy-dom stand-ins for what the
+ * The native wraps against fakes, the happy-dom stand-ins for what the
  * VK webview injects. The contract under test: FORWARD FIRST (the page
  * must behave as if we were never there), then report; and both an
  * already-captured reference (in-place mutation) and a fresh reader
@@ -100,7 +100,7 @@ describe("installNativeCapture", () => {
 		expect(typeof webkit?.messageHandlers?.["VKWebAppClose"]).toBe("object");
 		// …and a reference captured before the install sees the wrap too
 		// (the collection entry was replaced with the proxy in place).
-		// The handler's postMessage is NOT window.postMessage — the rule
+		// The handler's postMessage is NOT window.postMessage. The rule
 		// is a false positive here.
 		// oxlint-disable-next-line unicorn/require-post-message-target-origin
 		handlers["VKWebAppClose"].postMessage({ request_id: "1_a" });

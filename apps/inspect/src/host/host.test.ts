@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { InspectHost, type HostChannel, type ApprovalRequest } from "./host.ts";
 
 /**
- * The host's hello/gate/exec contract, driven through fake channels —
+ * The host's hello/gate/exec contract, driven through fake channels,
  * exactly what the PeerJS layer feeds it in production.
  */
 
@@ -62,13 +62,13 @@ describe("InspectHost", () => {
 		host.addChannel(channel);
 
 		// the inspector must not ship its hello until the answering peer
-		// signs — so the challenge is answered even while undecided (and
+		// signs, so the challenge is answered even while undecided (and
 		// answering it discloses nothing: the public half is public)
 		const nonce = "a".repeat(43);
 		host.handleMessage(channel, { v: 1, t: "challenge", nonce });
 		await Promise.resolve();
 		expect(channel.sent).toEqual([{ v: 1, t: "challenge-proof", nonce, sig: `sig(${nonce})` }]);
-		// the challenge proves nothing about the sender — no admission
+		// the challenge proves nothing about the sender, no admission
 		expect(host.pendingApprovals()).toEqual([]);
 		expect(host.snapshot().clients).toEqual([]);
 	});
@@ -215,7 +215,7 @@ describe("InspectHost", () => {
 		expect(host.pendingApprovals()).toHaveLength(0);
 		expect(host.store.listClients().map(c => c.clientId)).toEqual(["c1"]);
 
-		// a fresh connection (page reload with a minted client id — or the
+		// a fresh connection (page reload with a minted client id, or the
 		// same id after the panel forgot nothing) faces the gate again
 		const second = new FakeChannel();
 		host.addChannel(second);
@@ -259,7 +259,7 @@ describe("InspectHost", () => {
 		host.handleMessage(channel, hello(info("c-live")));
 
 		// the page turned hostile AFTER it was admitted: deny must cut
-		// the live stream, not just revoke the future grant
+		// the live stream and revoke the future grant alike
 		host.deny("c-live");
 		expect(channel.closed).toBe(true);
 
@@ -323,7 +323,7 @@ describe("InspectHost", () => {
 		const host = new InspectHost();
 		host.setGateEnabled(false);
 		const now = Date.now();
-		// one connection, one identity — two clients ride two channels
+		// one connection, one identity, two clients ride two channels
 		const online = new FakeChannel();
 		host.addChannel(online);
 		host.handleMessage(online, hello(info("online", { lastSeenAt: now })));
@@ -345,8 +345,8 @@ describe("InspectHost", () => {
 		host.approve("victim", false);
 
 		// the operator executes against the victim; a rogue connection that
-		// skips hello must neither settle it nor inject timeline rows —
-		// and must never surface an approval card of its own
+		// skips hello must neither settle it nor inject timeline rows, and
+		// must never surface an approval card of its own
 		const promise = host.execute("victim", "VKWebAppGetUserInfo", {});
 		const rogue = new FakeChannel();
 		host.addChannel(rogue);
@@ -416,7 +416,7 @@ describe("InspectHost", () => {
 		host.handleMessage(tablet, hello(info("tablet")));
 
 		host.handleMessage(phone, events("tablet", [tapSend(1)])); // cross-client injection
-		host.handleMessage(phone, events("phone", [tapSend(2)])); // own identity — fine
+		host.handleMessage(phone, events("phone", [tapSend(2)])); // own identity, fine
 		host.timelineHub.flush();
 
 		const rows = host.store.snapshotEvents();

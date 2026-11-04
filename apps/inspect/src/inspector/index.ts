@@ -15,7 +15,7 @@ import { peerIdFromUrl, resolveInspectorSourceUrl, signingKeyFromUrl } from "./o
 import { InspectorTransport } from "./transport.ts";
 
 /**
- * inspector.js — the standalone collector injected into a mini app page
+ * inspector.js, the standalone collector injected into a mini app page
  * (script tag first in <head>, or a console import()). Idempotent, and
  * it must never break the host page: every hook forwards first and
  * reports second.
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
 	// the very next script tag, and it freezes transport refs at import.
 	const capture = new InspectorCapture();
 	const identity = createIdentity(() => {
-		// a duplicate tab lost the client-id claim — re-register at once
+		// a duplicate tab lost the client-id claim. Re-register at once
 		sayHello();
 	});
 
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
 	capture.hookSpyBridge({
 		tap: bridge.tap,
 		// The catalogue keys the public send; executes arrive as plain
-		// strings off the wire — the structural cast mirrors the extension
+		// strings off the wire, so the structural cast mirrors the extension
 		// collector's `request.name as never`.
 		send: (name, params) => bridge.send(name as never, params as never),
 	});
@@ -68,7 +68,7 @@ async function main(): Promise<void> {
 		if (queue.length === 0) {
 			return;
 		}
-		// Chunk to the wire bound — the host silently drops whole batches
+		// Chunk to the wire bound. The host silently drops whole batches
 		// over it, so one giant splice would blind the timeline.
 		for (const batch of eventBatches(queue.splice(0), identity.clientId)) {
 			link.enqueue(batch);
@@ -168,14 +168,14 @@ async function main(): Promise<void> {
 
 /**
  * The bridge module initializes `globalThis.__vkmaDevtoolsBridge` at
- * import time, but the app may import it later than this script — the
+ * import time, but the app may import it later than this script. The
  * handle can legitimately appear for up to BRIDGE_WAIT_MS. The tap's
  * replay buffer covers anything sent before we subscribe.
  *
  * The global is page-writable and first-writer-wins, so presence alone
  * proves nothing: only a handle shaped like a genuine @vkma.dev/bridge
  * tap (subscribe + emit + drain, drain returning rows) is adopted. This
- * raises the bar for page-planted fakes — and combined with finalize
+ * raises the bar for page-planted fakes, and combined with finalize
  * never muting the raw layers, a mimic can add rows but cannot blind
  * the independent capture.
  */

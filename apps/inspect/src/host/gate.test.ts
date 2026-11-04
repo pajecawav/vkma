@@ -45,7 +45,7 @@ describe("the approve gate", () => {
 		gate.approve("c1", true);
 		gate.deny("c1");
 		// within the load the denial masks (isDenied is checked first);
-		// across loads the grant is gone — deny survives reloads exactly
+		// across loads the grant is gone. Deny survives reloads exactly
 		// like the grant does
 		expect(gate.isDenied("c1")).toBe(true);
 		expect(new Gate().isDenied("c1")).toBe(false);

@@ -1,8 +1,8 @@
 /**
- * Finding the inspector's own URL — the target peer id rides its query
+ * Finding the inspector's own URL. The target peer id rides its query
  * string. Three levels because the two load modes see the world
  * differently: a classic <script> tag can read `document.currentScript`,
- * a console `import()` cannot (modules have no currentScript — there may
+ * a console `import()` cannot (modules have no currentScript. There may
  * not even be a tag); the resource timing entry of our own fetch keeps
  * the full URL with the query in that case.
  */
@@ -31,7 +31,7 @@ export function resolveInspectorSourceUrl(
 			return element.src;
 		}
 	}
-	// 3) The console import(): no tag at all — the resource timing entry
+	// 3) The console import(): no tag at all. The resource timing entry
 	//    of our own load is the only place the URL survives.
 	const entries = perf.getEntriesByType("resource").filter(entry => isInspectorUrl(entry.name));
 	return entries.at(-1)?.name;
@@ -48,7 +48,7 @@ export function peerIdFromUrl(url: string): string | undefined {
 }
 
 /** The `?k=` signing key of the answering panel (the public half,
- * SPKI base64url). A snippet without it cannot verify anyone — the
+ * SPKI base64url). A snippet without it cannot verify anyone. The
  * collector refuses to ship credentials over such a connection. */
 export function signingKeyFromUrl(url: string): string | undefined {
 	try {

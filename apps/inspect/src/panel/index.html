@@ -15,7 +15,8 @@
 		/>
 		<script>
 			// Theme before first paint (TopBar persists the preference in
-			// localStorage under "vkma:theme" — same key every vkma panel uses).
+			// localStorage under "vkma:theme", the same key every vkma
+			// panel uses).
 			try {
 				if (localStorage.getItem("vkma:theme") === "dark") {
 					document.documentElement.classList.add("dark");

@@ -1,13 +1,13 @@
 /**
  * The approve gate: every inspector connection parks until the human
- * behind the panel lets it in. ON by default — a leaked peer id (a
+ * behind the panel lets it in. ON by default. A leaked peer id (a
  * committed script tag is the realistic leak) grants `vkma:state` with
  * launch params (`sign`, `access_token`), so the default posture is
  * "prove a phone is actually connecting".
  *
  * "Always allow" remembers a clientId (the phone keeps it in
  * sessionStorage across reloads, so the friction is once per page
- * lifetime); denials live for this panel load only — a denied page that
+ * lifetime); denials live for this panel load only. A denied page that
  * reconnects just re-appears as pending. Denying a remembered id also
  * revokes its persisted grant: the deny gesture must survive reloads
  * exactly like the grant does.
@@ -48,7 +48,7 @@ export class Gate {
 	/** In-memory denials for this panel load. */
 	private readonly denied = new Set<string>();
 
-	/** The gate defaults to ON — the security posture is the product. */
+	/** The gate defaults to ON. The security posture is the product. */
 	public isEnabled(): boolean {
 		return readStore(GATE_KEY) !== "0";
 	}
@@ -83,7 +83,7 @@ export class Gate {
 		writeStore(APPROVED_KEY, JSON.stringify(next));
 	}
 
-	/** Rotate: trust is re-anchored to a fresh capability — remembered
+	/** Rotate: trust is re-anchored to a fresh capability. Remembered
 	 * approvals from the old world must not survive it. */
 	public clearApproved(): void {
 		writeStore(APPROVED_KEY, "[]");

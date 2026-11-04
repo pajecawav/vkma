@@ -82,7 +82,7 @@ describe("peer ids", () => {
 			const message = event.data;
 			if (message.type === "claim" && message.id === "vkma-inspect-held") {
 				claims.push(message.token);
-				// BroadcastChannel.postMessage takes only the message — there
+				// BroadcastChannel.postMessage takes only the message. There
 				// is no targetOrigin (the rule is a false positive here).
 				// oxlint-disable-next-line unicorn/require-post-message-target-origin
 				incumbent.postMessage({ type: "taken", id: message.id, token: message.token });
@@ -95,7 +95,7 @@ describe("peer ids", () => {
 			expect(id).toMatch(/^vkma-inspect-/);
 			// the replacement is this tab's session id…
 			expect(sessionStorage.getItem(PEER_ID_KEY)).toBe(id);
-			// …and the pin still names the incumbent's id — that is what
+			// …and the pin still names the incumbent's id. That is what
 			// the already-distributed snippets point at
 			expect(localStorage.getItem(PEER_ID_PIN_KEY)).toBe("vkma-inspect-held");
 		} finally {
@@ -112,7 +112,7 @@ describe("peer ids", () => {
 			expect(id).toMatch(/^vkma-inspect-/);
 			// the settled id is this tab's session id…
 			expect(sessionStorage.getItem(PEER_ID_KEY)).toBe(id);
-			// …but localStorage stays untouched — the id must not outlive
+			// …but localStorage stays untouched. The id must not outlive
 			// the tab unless the operator pinned it (the broker hands a
 			// stopped id to whoever registers it first)
 			expect(localStorage.getItem(PEER_ID_KEY)).toBeNull();
@@ -166,7 +166,7 @@ describe("peer ids", () => {
 			}
 		});
 		try {
-			// BroadcastChannel.postMessage takes only the message — there
+			// BroadcastChannel.postMessage takes only the message. There
 			// is no targetOrigin (the rule is a false positive here).
 			// oxlint-disable-next-line unicorn/require-post-message-target-origin
 			claimant.postMessage({ type: "claim", id, token: "t-other" });

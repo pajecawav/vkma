@@ -2,11 +2,11 @@ import { isLaunchParamKey, type ClientInfo } from "@vkma.dev/protocol";
 import { CLAIM_WINDOW_MS } from "../shared/config.ts";
 
 /**
- * Page-load identity — the devtools collector's contract: `clientId`
+ * Page-load identity, the devtools collector's contract: `clientId`
  * survives reloads (sessionStorage; the approval gate keys on it), a
  * fresh `sessionId` every load (the panel wipes history on change),
  * launch params off the page URL, and the duplicate-tab claim handshake
- * (sessionStorage is copied by "Duplicate Tab" — two live pages must not
+ * (sessionStorage is copied by "Duplicate Tab". Two live pages must not
  * interleave one client card).
  */
 
@@ -30,7 +30,7 @@ function getOrCreateClientId(): string {
 		sessionStorage.setItem(CLIENT_ID_KEY, id);
 		return id;
 	} catch {
-		return mintId("c"); // storage denied — the id lives for this load only
+		return mintId("c"); // storage denied, the id lives for this load only
 	}
 }
 
@@ -114,7 +114,7 @@ export function createIdentity(onClientIdChange: () => void): CollectorIdentity 
 		platform,
 		clientInfo(bridge: boolean): ClientInfo {
 			// Only the curated launch params ever leave the page as the
-			// url's query — the complete href (OAuth codes, emails,
+			// url's query. The complete href (OAuth codes, emails,
 			// fragment tokens) must not ride along beside the filtered
 			// launchParams.
 			let url: string;
@@ -153,7 +153,7 @@ function watchClientIds(onRegenerate: (next: string) => void): (() => void) | un
 	let current = getCurrentClientId();
 
 	const claim = () => {
-		// BroadcastChannel.postMessage takes only the message — there is
+		// BroadcastChannel.postMessage takes only the message. There is
 		// no targetOrigin (the rule is a false positive here).
 		// oxlint-disable-next-line unicorn/require-post-message-target-origin
 		channel.postMessage({ type: "claim", id: current, token });
@@ -172,12 +172,12 @@ function watchClientIds(onRegenerate: (next: string) => void): (() => void) | un
 			return;
 		}
 		if (message.type === "taken" && message.token === token && message.id === current) {
-			// my claim lost — mint a fresh id, re-verify it, re-register
+			// my claim lost. Mint a fresh id, re-verify it, re-register
 			current = mintId("c");
 			try {
 				sessionStorage.setItem(CLIENT_ID_KEY, current);
 			} catch {
-				// best effort — this load keeps the id in memory
+				// best effort, this load keeps the id in memory
 			}
 			onRegenerate(current);
 			claim();

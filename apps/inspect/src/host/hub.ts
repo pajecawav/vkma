@@ -1,6 +1,6 @@
 /**
  * A minimal broadcast hub for the in-process panel: subscribers get every
- * published value (copied verbatim from the extension host — there the
+ * published value (copied verbatim from the extension host. There the
  * same class feeds werpc subscription generators; here React hooks).
  */
 export class Hub<T> {
@@ -21,7 +21,7 @@ export class Hub<T> {
 }
 
 /**
- * Coalesces pushes into batches flushed on a short timer — a chatty mini
+ * Coalesces pushes into batches flushed on a short timer, since a chatty mini
  * app would otherwise re-render the panel per event.
  */
 export class BatchedHub<T> {

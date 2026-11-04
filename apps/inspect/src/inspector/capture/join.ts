@@ -1,7 +1,7 @@
 /**
  * Request↔response pairing for the spy captures. vk-bridge (and
  * @vkma.dev/bridge) inject the `request_id` into params BEFORE the
- * transport fires, so an intercepted outgoing call carries it — the only
+ * transport fires, so an intercepted outgoing call carries it, the only
  * join key between a synthesized `send` row and the raw incoming event
  * that answers it.
  */

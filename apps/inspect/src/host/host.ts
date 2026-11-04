@@ -17,7 +17,7 @@ import {
 } from "./messages.ts";
 
 /**
- * The inspect "node side" — the extension host script's counterpart,
+ * The inspect "node side", the extension host script's counterpart,
  * living in the panel page itself (panel and store share one process,
  * so the panel reads the hubs directly instead of an RPC). Transport
  * agnostic: the PeerJS layer feeds it connections and raw messages,
@@ -38,7 +38,7 @@ export interface ApprovalRequest {
 
 interface ConnState {
 	channel: HostChannel;
-	/** Set by the first hello; frozen afterwards — one connection, one
+	/** Set by the first hello; frozen afterwards, one connection, one
 	 * identity (heartbeats may not re-claim a different clientId). */
 	clientId?: string;
 	/** Gate verdict while the human has not answered yet. */
@@ -50,7 +50,7 @@ interface ConnState {
 	parkedBytes: number;
 	/** This connection passed the gate (allow-once, always-allow, or the
 	 * gate being off). Admission is a property of the CONNECTION: until
-	 * it is set, every message type parks — not only hello. */
+	 * it is set, every message type parks, hello included. */
 	admitted?: boolean;
 }
 
@@ -65,13 +65,13 @@ export class InspectHost {
 	private readonly conns = new Set<ConnState>();
 	private readonly byClient = new Map<string, ConnState>();
 	private fingerprintTimer: ReturnType<typeof setInterval> | undefined;
-	/** Signs the inspectors' challenges — the dial-direction trust anchor
+	/** Signs the inspectors' challenges, the dial-direction trust anchor
 	 * (shared/signing.ts). Set once the key pair has loaded. */
 	private signer?: (nonce: string) => Promise<string>;
 
 	public constructor() {
 		// The registry's online/offline fingerprint flips on a timer, not
-		// on hello — broadcast it like every node side does. (Also
+		// on hello. Broadcast it like every node side does. (Also
 		// recomputed on hello: a throttled background panel skips timers.)
 		let lastFingerprint = "";
 		this.fingerprintTimer = setInterval(() => {
@@ -101,8 +101,8 @@ export class InspectHost {
 	public setGateEnabled(enabled: boolean): void {
 		this.gate.setEnabled(enabled);
 		// Turning the gate off lets every undecided connection in right
-		// away — every parked connection, not only those with a pending
-		// hello — and their parked messages replay in arrival order.
+		// away (parked connections included, pending hello or not), and
+		// their parked messages replay in arrival order.
 		if (!enabled) {
 			for (const state of this.conns) {
 				if (state.admitted) {
@@ -141,7 +141,7 @@ export class InspectHost {
 
 	/** Deny a parked connection: close it and stay silent if it returns
 	 * (for this panel load). A denial also revokes any persisted
-	 * "Always allow" grant for the id — and disconnects an already
+	 * "Always allow" grant for the id, and disconnects an already
 	 * admitted connection, so a trusted-then-hostile page stops
 	 * streaming without a panel reload. */
 	public deny(clientId: string): void {
@@ -154,7 +154,7 @@ export class InspectHost {
 		this.publishApprovals();
 	}
 
-	/** Rotate: trust is re-anchored to a fresh capability — remembered
+	/** Rotate: trust is re-anchored to a fresh capability. Remembered
 	 * approvals from the old id's world must not survive it. */
 	public clearApprovals(): void {
 		this.gate.clearApproved();
@@ -165,7 +165,7 @@ export class InspectHost {
 
 	/** The dial-direction trust anchor: an inspector ships credentials
 	 * only after this signature verifies (until the key has loaded the
-	 * challenges go unanswered and dials redial — self-healing). */
+	 * challenges go unanswered and dials redial, self-healing). */
 	public setSigner(signer: (nonce: string) => Promise<string>): void {
 		this.signer = signer;
 	}
@@ -195,7 +195,7 @@ export class InspectHost {
 		channel.close();
 	}
 
-	/** The PeerJS layer's data tap — zod first, gate second. */
+	/** The PeerJS layer's data tap, zod first, gate second. */
 	public handleMessage(channel: HostChannel, data: unknown): void {
 		const state = this.find(channel);
 		if (state === undefined) {
@@ -207,16 +207,16 @@ export class InspectHost {
 		}
 		// The challenge is answered BEFORE any admission logic, by design:
 		// the proof discloses nothing (the public key ships in the
-		// snippet), and without it the inspector never sends the hello —
-		// no approval card could ever surface.
+		// snippet), and without it the inspector never sends the hello.
+		// No approval card could ever surface.
 		if (message.t === "challenge") {
 			void this.answerChallenge(state, message);
 			return;
 		}
 		// Admission is a property of the CONNECTION, not of the hello
 		// branch: an undecided connection parks EVERY message type
-		// (bounded), so a peer that never says hello — and therefore never
-		// faces an approval card — cannot reach the store at all. The
+		// (bounded), so a peer that never says hello (and therefore never
+		// faces an approval card) cannot reach the store at all. The
 		// hello itself still flows to dispatch: it is the message that
 		// decides (deny / park behind a card / auto-admit a remembered id).
 		if (!state.admitted && this.gate.isEnabled() && message.t !== "hello") {
@@ -282,7 +282,7 @@ export class InspectHost {
 	private async answerChallenge(state: ConnState, message: ParsedChallenge): Promise<void> {
 		const signer = this.signer;
 		if (signer === undefined) {
-			return; // key still loading — the inspector redials
+			return; // key still loading, the inspector redials
 		}
 		try {
 			const sig = await signer(message.nonce);
@@ -293,7 +293,7 @@ export class InspectHost {
 				sig,
 			});
 		} catch {
-			return; // signing failure is silence — the dial redials
+			return; // signing failure is silence, the dial redials
 		}
 	}
 
@@ -314,7 +314,7 @@ export class InspectHost {
 		}
 		const size = JSON.stringify(message)?.length ?? 0;
 		if (state.parkedBytes + size > MAX_PARKED_BYTES) {
-			return; // byte budget exhausted — the card still surfaces
+			return; // byte budget exhausted, the card still surfaces
 		}
 		state.buffered.push(message);
 		state.parkedBytes += size;
@@ -351,7 +351,7 @@ export class InspectHost {
 				}
 				const client = this.store.getClient(message.clientId);
 				if (client === undefined) {
-					return; // hello must precede — the store drops unknowns anyway
+					return; // hello must precede, the store drops unknowns anyway
 				}
 				const out = message.events.filter(event => event.name !== "vk-connect");
 				const stamped = this.store.pushEvents(message.clientId, out);
@@ -373,16 +373,16 @@ export class InspectHost {
 		}
 	}
 
-	/** hello semantics — the devtools/extension contract verbatim, plus
+	/** hello semantics, the devtools/extension contract verbatim, plus
 	 * the one-connection-one-identity freeze. */
 	private register(state: ConnState, info: ClientInfo): void {
 		if (state.clientId !== undefined && state.clientId !== info.clientId) {
-			return; // one connection, one identity — heartbeats only
+			return; // one connection, one identity. Heartbeats only
 		}
 		const incumbent = this.byClient.get(info.clientId);
 		if (incumbent !== undefined && incumbent !== state) {
 			// A second live connection claiming a known id: the incumbent
-			// keeps it, the claimant is closed — never a silent takeover
+			// keeps it, the claimant is closed, never a silent takeover
 			// (the operator's executes must not reroute to an unapproved
 			// peer that learned the id).
 			this.dropChannel(state.channel);

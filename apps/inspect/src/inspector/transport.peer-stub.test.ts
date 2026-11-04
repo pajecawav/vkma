@@ -6,7 +6,7 @@ import { InspectorTransport } from "./transport.ts";
 /**
  * The dial-direction trust boundary, inspector half (audit record
  * `dial.no-answerer-auth`, now FIXED): the answering peer must sign a
- * fresh challenge with the panel's key before ANY credential moves —
+ * fresh challenge with the panel's key before ANY credential moves,
  * no hello, no backlog, no execute acceptance otherwise. The broker
  * hands a stopped peer id to whoever registers it first (probed
  * against the public cloud: re-grant within ~300 ms, the registration
@@ -158,14 +158,14 @@ describe("InspectorTransport dial trust (stubbed signaling)", () => {
 		const conn = app.conn();
 		conn.accept();
 
-		// the challenge went out; no hello, no backlog — the answerer
+		// the challenge went out; no hello, no backlog. The answerer
 		// proved nothing yet
 		expect(byType(conn.sent, "challenge")).toHaveLength(1);
 		expect(byType(conn.sent, "hello")).toHaveLength(0);
 		expect(byType(conn.sent, "events")).toHaveLength(0);
 		expect(app.isVerified()).toBe(false);
 
-		// its execute is not honored either — unverified drop
+		// its execute is not honored either, unverified drop
 		conn.emit("data", {
 			v: 1,
 			t: "execute",

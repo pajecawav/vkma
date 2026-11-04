@@ -19,7 +19,7 @@ describe("RequestJoiner", () => {
 		for (let i = 0; i < 1_000; i++) {
 			joiner.record(`r${i}`, i);
 		}
-		// the flood evicts the oldest — including one that would answer
+		// the flood evicts the oldest, including one that would answer
 		joiner.record("flood", 9999);
 		expect(joiner.take("r0")).toBeUndefined();
 		// recent entries (and the newcomer) still pair

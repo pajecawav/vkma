@@ -11,7 +11,7 @@ import type { InspectConnection } from "./connection.ts";
 
 /**
  * The setup sheet: everything a developer needs to point a mini app at
- * this panel — the script snippet (the ONLY reliable injection on a
+ * this panel, the script snippet (the ONLY reliable injection on a
  * phone's VK webview), the console variant for quick desktop checks,
  * the gate toggle and the id lifecycle (Rotate).
  */
@@ -106,7 +106,7 @@ export function SetupPanel({
 							{connection.peerId ?? "settling…"}
 						</code>
 						{/* No tooltip: the paragraph below already explains what
-						    rotating does — it would only repeat it. */}
+						    rotating does, since it would only repeat it. */}
 						<Button variant="outline" size="md" onClick={connection.rotate}>
 							<RefreshIcon />
 							Rotate

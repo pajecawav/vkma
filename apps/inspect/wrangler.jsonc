@@ -1,5 +1,5 @@
 {
-	// Static delivery on Cloudflare Workers — no server code, the panel and
+	// Static delivery on Cloudflare Workers. No server code, the panel and
 	// the inspector are plain assets. SPA fallback keeps deep links alive;
 	// /inspector.js is a real file and is served as-is.
 	"name": "vkma-inspect",

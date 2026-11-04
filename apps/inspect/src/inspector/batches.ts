@@ -4,9 +4,9 @@ import { PROTOCOL_VERSION, type InspectEventsMessage } from "../shared/protocol.
 
 /**
  * The wire bound on one events batch is absolute (the host drops whole
- * batches over it — silently), so a flush must chunk. The first flush
+ * batches over it, silently), so a flush must chunk. The first flush
  * after finalize otherwise ships the tap replay (up to 500 rows) plus
- * ten seconds of resolving-phase buffer in one message — and the host
+ * ten seconds of resolving-phase buffer in one message, and the host
  * would drop the WHOLE thing, hiding exactly the traffic an operator
  * needs to see.
  */

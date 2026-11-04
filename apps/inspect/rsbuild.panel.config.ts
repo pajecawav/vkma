@@ -4,7 +4,7 @@ import { baseConfig } from "./rsbuild.config.ts";
 
 /** The panel SPA: `/` serves the same @vkma.dev/ui surface the extension
  * renders, with the DevtoolsStore and the PeerJS host in-process. The
- * `index` entry name puts the HTML at dist/index.html — what the
+ * `index` entry name puts the HTML at dist/index.html, what the
  * Workers static-assets SPA fallback expects at "/". */
 export default defineConfig({
 	...baseConfig,
@@ -26,7 +26,7 @@ export default defineConfig({
 			// keeps its own long-lived chunk, everything else from
 			// node_modules (base-ui, peerjs, zod, lucide) becomes
 			// lib-vendor. Workspace source (@vkma.dev/ui) resolves to real
-			// paths and stays with the app in index-*.js — it changes with
+			// paths and stays with the app in index-*.js, since it changes with
 			// the panel anyway.
 			splitChunks: {
 				chunks: "all",

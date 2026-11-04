@@ -3,7 +3,7 @@ import { createIdentity } from "./identity.ts";
 
 /**
  * The hello payload's data minimization: the curated launch-params subset
- * is the ONLY page data that leaves in `url` — no foreign query params,
+ * is the ONLY page data that leaves in `url`, no foreign query params,
  * no fragment, ever.
  */
 
@@ -30,7 +30,7 @@ describe("identity url minimization", () => {
 		expect(identity.launchParams["secret"]).toBe("31c");
 		expect(identity.launchParams["access_token"]).toBe("vk1.a.nicEcFQni");
 		expect(identity.launchParams["sign_keys"]).toBe("api_id,viewer_id,sid");
-		// foreign params never ride along — the minimization invariant
+		// foreign params never ride along, the minimization invariant
 		expect(identity.launchParams["code"]).toBeUndefined();
 		expect(identity.launchParams["email"]).toBeUndefined();
 		// the app id falls back to the legacy api_id
@@ -60,7 +60,7 @@ describe("identity url minimization", () => {
 		// the locator follows the page (SPA route changes ship on heartbeats)
 		expect(url.pathname).toBe("/other/");
 		// the query is rebuilt from the launchParams SNAPSHOT taken at
-		// load — foreign params of a later url must not leak in either
+		// load. Foreign params of a later url must not leak in either
 		expect(url.searchParams.get("vk_app_id")).toBe("1");
 	});
 });

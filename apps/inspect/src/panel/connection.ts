@@ -4,7 +4,7 @@ import type { ApprovalRequest, InspectRuntime } from "../host/runtime.ts";
 import { absorbEvents } from "./absorb.ts";
 
 /**
- * The panel's data layer — the extension adapter's in-process
+ * The panel's data layer, the extension adapter's in-process
  * counterpart. Panel and store share one page, so this subscribes to
  * the host's hubs directly (no RPC of any kind in between); the shape
  * stays the `PanelConnection` contract every vkma panel consumes.
@@ -52,8 +52,8 @@ export function useInspect(runtime: InspectRuntime): InspectConnection {
 	const [publicKey, setPublicKey] = useState(() => runtime.publicKey());
 	const [pinned, setPinnedState] = useState(() => runtime.pinned());
 
-	// The id and the signing key settle before the peer starts — pick
-	// them up once.
+	// The id and the signing key settle before the peer starts, so we
+	// pick them up once.
 	useEffect(() => {
 		if (peerId === undefined || publicKey === undefined) {
 			const timer = setInterval(() => {

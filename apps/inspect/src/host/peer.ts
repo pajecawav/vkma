@@ -6,14 +6,14 @@ import type { HostMessage } from "../shared/protocol.ts";
 /**
  * The UI side of the WebRTC mesh: one Peer registered on the broker
  * under the panel's stable id; every incoming DataConnection is handed
- * to the host as a channel. No TURN exists in the config — direct
+ * to the host as a channel. No TURN exists in the config. Direct
  * connection or honest failure (the STUN-only policy, see config.ts).
  */
 
 export interface PeerStatus {
 	state: "starting" | "online" | "error";
 	lastError?: string;
-	/** The broker refused our id twice — hijack or a stale registration;
+	/** The broker refused our id twice, hijack or a stale registration;
 	 * the panel offers Rotate. */
 	idTaken?: boolean;
 }
@@ -63,7 +63,7 @@ export class InspectPeer {
 		});
 
 		// The broker socket dropped (network blip, cloud restart): dial
-		// back. Live DataChannels survive this untouched — the phone keeps
+		// back. Live DataChannels survive this untouched. The phone keeps
 		// streaming; only NEW dials need the broker again.
 		peer.on("disconnected", () => {
 			if (this.peer === peer) {
@@ -76,7 +76,7 @@ export class InspectPeer {
 			if (type === "unavailable-id") {
 				// The id is taken on the broker: another live panel holds it,
 				// or a stale registration has not expired yet. One retry with
-				// the same id, then surface it — Rotate mints a fresh id.
+				// the same id, then surface it. Rotate mints a fresh id.
 				if (this.unavailableRetries++ < 1) {
 					this.retryTimer = setTimeout(() => this.start(id), 2_000);
 					return;
@@ -89,14 +89,14 @@ export class InspectPeer {
 				return;
 			}
 			if (type === "network" || type === "socket-error" || type === "socket-closed") {
-				// peerjs re-emits/reconnects the socket itself — stay online.
+				// peerjs re-emits/reconnects the socket itself, stay online.
 				return;
 			}
 			this.setStatus({ state: "error", lastError: error.message });
 		});
 	}
 
-	/** Same id, fresh peer — the panel's reconnect affordance. */
+	/** Same id, fresh peer. The panel's reconnect affordance. */
 	public restart(): void {
 		const id = this.peer?.id;
 		if (id !== undefined) {

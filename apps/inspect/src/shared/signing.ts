@@ -4,24 +4,24 @@
  * single credential (hello carries launch params, the locator and the
  * clientId; the broker hands a stopped peer id to whoever registers it
  * first, so the id alone proves nothing). The private key never leaves
- * the panel origin — hostile pages live on other origins; the snippet
+ * the panel origin. Hostile pages live on other origins; the snippet
  * URL carries the PUBLIC half only, so a leaked snippet lets anyone
  * FIND the panel but nobody else can answer the challenge.
  *
  * Shared by the panel (sign) and the inspector (verify). Dependency-
- * free and zod-free — the inspector bundle must never pull zod.
+ * free and zod-free, since the inspector bundle must never pull zod.
  */
 
 const ECDSA: EcKeyGenParams = { name: "ECDSA", namedCurve: "P-256" };
 const SIGN_ALGO: EcdsaParams = { name: "ECDSA", hash: "SHA-256" };
 const STORAGE_KEY = "vkma:inspect:signing-key";
 /** The private key persists per origin; Rotate changes the peer id but
- * deliberately keeps the key — the pubkey is public anyway, and other
+ * deliberately keeps the key. The pubkey is public anyway, and other
  * tabs' snippets embed it. */
 
 export interface SigningKey {
 	privateKey: CryptoKey;
-	/** SPKI, base64url — the snippet's `k=` parameter. */
+	/** SPKI, base64url, the snippet's `k=` parameter. */
 	publicKey: string;
 }
 
@@ -52,7 +52,7 @@ function utf8(value: string): Uint8Array<ArrayBuffer> {
 	return bytes;
 }
 
-/** 32 random bytes, base64url — one challenge per connection. */
+/** 32 random bytes, base64url, one challenge per connection. */
 export function randomNonce(): string {
 	const bytes = new Uint8Array(32);
 	crypto.getRandomValues(bytes);
@@ -66,7 +66,7 @@ function publicJwkOf(jwk: JsonWebKey): JsonWebKey {
 }
 
 /** The panel's persistent signing key: generated once, stored as JWK
- * (best effort — with storage denied the key is ephemeral and old
+ * (best effort, with storage denied the key is ephemeral and old
  * snippets stop verifying; the console error says so). */
 export async function loadOrCreateSigningKey(): Promise<SigningKey> {
 	const stored = (() => {
@@ -93,7 +93,7 @@ export async function loadOrCreateSigningKey(): Promise<SigningKey> {
 				publicKey: toBase64Url(new Uint8Array(spki)),
 			};
 		} catch {
-			// corrupted entry — fall through and regenerate
+			// corrupted entry, fall through and regenerate
 		}
 	}
 	const pair = await crypto.subtle.generateKey(ECDSA, true, ["sign", "verify"]);
@@ -122,7 +122,7 @@ export async function signNonce(privateKey: CryptoKey, nonce: string): Promise<s
 	return toBase64Url(new Uint8Array(sig));
 }
 
-/** @returns false for any garbage — import and crypto failures included. */
+/** @returns false for any garbage, import and crypto failures included. */
 export async function verifyNonce(
 	publicKeySpki: string,
 	nonce: string,

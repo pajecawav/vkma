@@ -1,7 +1,7 @@
 import type { WireEvent } from "@vkma.dev/protocol";
 
 const MAX_EVENTS = 500;
-/** Byte budget alongside the count cap — the mirror of the store's ring:
+/** Byte budget alongside the count cap. The mirror of the store's ring:
  * a count-only slice retains multi-megabyte payloads in React state. */
 const MAX_BYTES = 8 * 1024 * 1024;
 
