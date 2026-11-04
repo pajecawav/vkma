@@ -186,7 +186,7 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## v1 scope
 
-- **Environment matrix**: web (vk.com iframe), mobile webviews (iOS,
+- **Environment matrix**: web (vk.ru iframe), mobile webviews (iOS,
   Android), standalone browser (browser-history mode). Mobile transports
   are unit-tested via fakes; a manual device checklist gates each release
   (same ritual as the bridge package).

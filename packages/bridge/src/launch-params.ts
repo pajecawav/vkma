@@ -30,7 +30,7 @@ const PLATFORMS = new Set([
  * Launch params as they appear in the URL — a superset of
  * `GetLaunchParamsResponse` with the URL-only keys. The OK (Odnoklassniki)
  * keys (`vk_client`, `vk_ok_*`, `vk_original_vk_id`, `vk_are_pushes_enabled`)
- * come from the catalogue as optional — vk.com hosts never send them.
+ * come from the catalogue as optional — vk.ru hosts never send them.
  */
 export interface LaunchParams extends GetLaunchParamsResponse {
 	vk_chat_id: string;
