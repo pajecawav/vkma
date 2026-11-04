@@ -1,9 +1,5 @@
-import {
-	useNavigate,
-	useRouter,
-	useRouterState,
-	type NavigateOptions,
-} from "@tanstack/react-router";
+import { useNavigate, useRouter, type NavigateOptions } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { looseRouteOf } from "../core/loose-route.ts";
 import { MODAL_STATE_KEY } from "../core/state-keys.ts";
 import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
@@ -84,167 +80,178 @@ export interface PanelPage<TParams = Record<string, string>> {
 	types?: { params: TParams };
 }
 
+/** `"index"` and an optional leading slash normalize to the full path. */
+const pageTo = (page: PanelPage): string =>
+	page.path === "index" ? "/" : `/${page.path.replace(/^\//, "")}`;
+
+/**
+ * The one navigator. Render-passive: it subscribes to no router state —
+ * the location, modal and popout presence it needs are read from the live
+ * `router.state` at call time — so using the hook triggers no re-renders,
+ * and the returned `VkNavigator` object has a stable identity.
+ */
 export function useNavigator(): VkNavigator {
 	const router = useRouter();
 	const navigate = useNavigate();
-	const location = useRouterState({ select: state => state.location });
-	const modalOpen = useRouterState({
-		select: state => state.matches.some(match => isModalRouteId(router, match.routeId)),
-	});
 	const showPopout = useShowPopout();
 	const hidePopout = useHidePopout();
 
-	/** `"index"` and an optional leading slash normalize to the full path. */
-	const pageTo = (page: PanelPage): string =>
-		page.path === "index" ? "/" : `/${page.path.replace(/^\//, "")}`;
+	return useMemo(() => {
+		// call-time modal visibility: the hook carries no router-state
+		// subscription (matches between renders change only by navigation)
+		const anyModalOpen = () =>
+			router.state.matches.some(match => isModalRouteId(router, match.routeId));
 
-	return {
-		push: ((
-			pageOrOptions: NavigateOptions | PanelPage,
-			params?: Record<string, string>,
-			rest?: Omit<NavigateOptions, "to" | "params">,
-		) =>
-			params === undefined
-				? navigate({
-						...(pageOrOptions as NavigateOptions),
-						replace: false,
-					})
-				: navigate({
-						to: pageTo(pageOrOptions as PanelPage),
-						params,
-						replace: false,
-						...rest,
-					})) as VkNavigator["push"],
-		replace: ((
-			pageOrOptions: NavigateOptions | PanelPage,
-			params?: Record<string, string>,
-			rest?: Omit<NavigateOptions, "to" | "params">,
-		) =>
-			params === undefined
-				? navigate({
-						...(pageOrOptions as NavigateOptions),
-						replace: true,
-					})
-				: navigate({
-						to: pageTo(pageOrOptions as PanelPage),
-						params,
-						replace: true,
-						...rest,
-					})) as VkNavigator["replace"],
-		back: () => {
-			router.history.back();
-		},
-		backToFirst: () => {
-			const index =
-				(location.state as { __TSR_index?: number } | undefined)?.__TSR_index ?? 0;
-			if (index > 0) {
-				router.history.go(-index);
-			}
-		},
-		showModal: ({ props, ...options }) => {
-			// nested modal: the target route is a CHILD of the currently open
-			// modal: PUSH (back unwinds the stack); sibling modals keep the
-			// old-router replace parity
-			let nested = false;
-			if (modalOpen && typeof options.to === "string") {
-				for (let i = router.state.matches.length - 1; i >= 0; i--) {
-					const matchRouteId = router.state.matches[i]?.routeId;
-					if (matchRouteId === undefined) {
-						continue;
-					}
-					const route = looseRouteOf(router, matchRouteId);
-					if (route?.options.staticData?.modal === undefined) {
-						continue;
-					}
-					nested =
-						route.fullPath !== undefined && options.to.startsWith(`${route.fullPath}/`);
-					break;
-				}
-			}
-			// TanStack types history state as its own updater shape. Arbitrary
-			// serializable keys go through a cast (same as the popout state)
-			const withProps =
-				props !== undefined
-					? {
-							state: {
-								...(options.state as Record<string, unknown> | undefined),
-								[MODAL_STATE_KEY]: { props },
-							} as never,
-						}
-					: {};
-			return navigate({
-				...options,
-				// a modal open never changes the panel behind it. Carry the
-				// panel's search (?tab=…) onto the modal entry, or the covered
-				// panel would snap to its default search for the whole time the
-				// modal is open (and snap back on close). An explicit `search`
-				// from the caller always wins.
-				search: options.search ?? true,
-				replace: nested ? false : modalOpen,
-				...withProps,
-			});
-		},
-		hideModal: () => {
-			if (router.history.canGoBack()) {
+		return {
+			push: ((
+				pageOrOptions: NavigateOptions | PanelPage,
+				params?: Record<string, string>,
+				rest?: Omit<NavigateOptions, "to" | "params">,
+			) =>
+				params === undefined
+					? navigate({
+							...(pageOrOptions as NavigateOptions),
+							replace: false,
+						})
+					: navigate({
+							to: pageTo(pageOrOptions as PanelPage),
+							params,
+							replace: false,
+							...rest,
+						})) as VkNavigator["push"],
+			replace: ((
+				pageOrOptions: NavigateOptions | PanelPage,
+				params?: Record<string, string>,
+				rest?: Omit<NavigateOptions, "to" | "params">,
+			) =>
+				params === undefined
+					? navigate({
+							...(pageOrOptions as NavigateOptions),
+							replace: true,
+						})
+					: navigate({
+							to: pageTo(pageOrOptions as PanelPage),
+							params,
+							replace: true,
+							...rest,
+						})) as VkNavigator["replace"],
+			back: () => {
 				router.history.back();
-				return;
-			}
-			// deep-linked modal on the first entry: replace down to the panel
-			const parentPath = location.pathname.replace(/\/[^/]+$/, "") || "/";
-			void router.navigate({ href: parentPath, replace: true });
-		},
-		showPopout: (id, props) => {
-			showPopout(id, props);
-		},
-		hidePopout: () => {
-			hidePopout();
-		},
-		showGlobalModal: (id, { state, props, ...rest } = {}) => {
-			const { pathname, searchStr, hash } = router.state.location;
-			const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
-			const already = params.get("modal") === id;
-			params.set("modal", id);
-			const href = `${pathname}?${params.toString()}${hash}`;
-			// the mask keeps the visible URL at the panel path while the modal
-			// is open (the modal param rides in history.state)
-			const maskParams = new URLSearchParams(params);
-			maskParams.delete("modal");
-			const maskQuery = maskParams.toString();
-			const maskHref = `${pathname}${maskQuery !== "" ? `?${maskQuery}` : ""}${hash}`;
-			const nextState =
-				state !== undefined || props !== undefined
-					? {
-							state: {
-								...state,
-								...(props !== undefined ? { [MODAL_STATE_KEY]: { props } } : {}),
-							} as never,
+			},
+			backToFirst: () => {
+				// the entry stamp is read at call time: no location subscription
+				const state = router.state.location.state as { __TSR_index?: number } | undefined;
+				const index = state?.__TSR_index ?? 0;
+				if (index > 0) {
+					router.history.go(-index);
+				}
+			},
+			showModal: ({ props, ...options }) => {
+				const modalOpen = anyModalOpen();
+				// nested modal: the target route is a CHILD of the currently open
+				// modal: PUSH (back unwinds the stack); sibling modals keep the
+				// old-router replace parity
+				let nested = false;
+				if (modalOpen && typeof options.to === "string") {
+					for (let i = router.state.matches.length - 1; i >= 0; i--) {
+						const matchRouteId = router.state.matches[i]?.routeId;
+						if (matchRouteId === undefined) {
+							continue;
 						}
-					: {};
-			return navigate({
-				href,
-				mask: { to: maskHref },
-				replace: already || modalOpen,
-				...rest,
-				...nextState,
-			});
-		},
-		block: onLeave => {
-			const unblock = router.history.block({
-				// args infer as TanStack's BlockerFnArgs (HistoryLocation × 2 +
-				// action), assignable to our structural BlockerArgs
-				blockerFn: args =>
-					onLeave({
-						currentLocation: args.currentLocation,
-						nextLocation: args.nextLocation,
-						// TanStack distinguishes BACK/FORWARD/GO; the old router's
-						// BlockerFunction saw one POP. Keep the parity
-						action:
-							args.action === "PUSH" || args.action === "REPLACE"
-								? args.action
-								: "POP",
-					}),
-			});
-			return unblock;
-		},
-	};
+						const route = looseRouteOf(router, matchRouteId);
+						if (route?.options.staticData?.modal === undefined) {
+							continue;
+						}
+						nested =
+							route.fullPath !== undefined &&
+							options.to.startsWith(`${route.fullPath}/`);
+						break;
+					}
+				}
+				// TanStack types history state as its own updater shape. Arbitrary
+				// serializable keys go through a cast (same as the popout state)
+				const withProps =
+					props !== undefined
+						? {
+								state: {
+									...(options.state as Record<string, unknown> | undefined),
+									[MODAL_STATE_KEY]: { props },
+								} as never,
+							}
+						: {};
+				return navigate({
+					...options,
+					// a modal open never changes the panel behind it. Carry the
+					// panel's search (?tab=…) onto the modal entry, or the covered
+					// panel would snap to its default search for the whole time the
+					// modal is open (and snap back on close). An explicit `search`
+					// from the caller always wins.
+					search: options.search ?? true,
+					replace: nested ? false : modalOpen,
+					...withProps,
+				});
+			},
+			hideModal: () => {
+				if (router.history.canGoBack()) {
+					router.history.back();
+					return;
+				}
+				// deep-linked modal on the first entry: replace down to the panel
+				const parentPath = router.state.location.pathname.replace(/\/[^/]+$/, "") || "/";
+				void router.navigate({ href: parentPath, replace: true });
+			},
+			showPopout,
+			hidePopout,
+			showGlobalModal: (id, { state, props, ...rest } = {}) => {
+				const modalOpen = anyModalOpen();
+				const { pathname, searchStr, hash } = router.state.location;
+				const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
+				const already = params.get("modal") === id;
+				params.set("modal", id);
+				const href = `${pathname}?${params.toString()}${hash}`;
+				// the mask keeps the visible URL at the panel path while the modal
+				// is open (the modal param rides in history.state)
+				const maskParams = new URLSearchParams(params);
+				maskParams.delete("modal");
+				const maskQuery = maskParams.toString();
+				const maskHref = `${pathname}${maskQuery !== "" ? `?${maskQuery}` : ""}${hash}`;
+				const nextState =
+					state !== undefined || props !== undefined
+						? {
+								state: {
+									...state,
+									...(props !== undefined
+										? { [MODAL_STATE_KEY]: { props } }
+										: {}),
+								} as never,
+							}
+						: {};
+				return navigate({
+					href,
+					mask: { to: maskHref },
+					replace: already || modalOpen,
+					...rest,
+					...nextState,
+				});
+			},
+			block: onLeave => {
+				const unblock = router.history.block({
+					// args infer as TanStack's BlockerFnArgs (HistoryLocation × 2 +
+					// action), assignable to our structural BlockerArgs
+					blockerFn: args =>
+						onLeave({
+							currentLocation: args.currentLocation,
+							nextLocation: args.nextLocation,
+							// TanStack distinguishes BACK/FORWARD/GO; the old router's
+							// BlockerFunction saw one POP. Keep the parity
+							action:
+								args.action === "PUSH" || args.action === "REPLACE"
+									? args.action
+									: "POP",
+						}),
+				});
+				return unblock;
+			},
+		};
+	}, [router, navigate, showPopout, hidePopout]);
 }

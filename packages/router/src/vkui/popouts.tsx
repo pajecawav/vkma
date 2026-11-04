@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { type ComponentType } from "react";
+import { useCallback, type ComponentType } from "react";
 import { looseRouteOf } from "../core/loose-route.ts";
 import { POPOUT_STATE_KEY, readPopoutState } from "../core/state-keys.ts";
 
@@ -26,27 +26,34 @@ export function usePopoutState(): { id: string; props?: Record<string, unknown> 
 	return useRouterState({ select: state => readPopoutState(state.location.state) });
 }
 
-/** `showPopout(id, props)`. Pushes a popout entry; replaces if one is open. */
+/**
+ * `showPopout(id, props)`. Pushes a popout entry; replaces if one is open.
+ * Render-passive: the replace decision reads popout presence from the live
+ * `router.state` at call time — the hook subscribes to nothing, and the
+ * returned callback is stable.
+ */
 export function useShowPopout(): (id: string, props?: Record<string, unknown>) => void {
 	const router = useRouter();
-	const isOpen = usePopoutState() !== undefined;
-	return (id, props) => {
-		void router.navigate({
-			href: router.state.location.href,
-			state: (previous: unknown) =>
-				({
-					...((previous ?? {}) as Record<string, unknown>),
-					[POPOUT_STATE_KEY]: { id, props },
-				}) as never,
-			replace: isOpen,
-		});
-	};
+	return useCallback(
+		(id: string, props?: Record<string, unknown>) => {
+			void router.navigate({
+				href: router.state.location.href,
+				state: (previous: unknown) =>
+					({
+						...((previous ?? {}) as Record<string, unknown>),
+						[POPOUT_STATE_KEY]: { id, props },
+					}) as never,
+				replace: readPopoutState(router.state.location.state) !== undefined,
+			});
+		},
+		[router],
+	);
 }
 
 /** `hidePopout()`. Unwinds the popout entry; on the first entry, strips in place. */
 export function useHidePopout(): () => void {
 	const router = useRouter();
-	return () => {
+	return useCallback(() => {
 		if (router.history.canGoBack()) {
 			router.history.back();
 			return;
@@ -60,7 +67,7 @@ export function useHidePopout(): () => void {
 			replace: true,
 			state,
 		});
-	};
+	}, [router]);
 }
 
 /** The deepest matched panel's registry key (`${view}/${panel}`), or null. */
