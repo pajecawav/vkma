@@ -60,7 +60,7 @@ export function splitVkLinkProps<TParams extends Record<string, string>>(
 		params,
 		preload,
 		replace,
-		host: host as Record<string, unknown>,
+		host,
 	};
 }
 

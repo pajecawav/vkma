@@ -381,7 +381,7 @@ describe("subscribe fan-out", () => {
 	test("paired responses reach subscribers with the raw data, the promise strips request_id", async () => {
 		const { bridge, respond } = createHarness();
 		const seen: Array<Record<string, unknown> | undefined> = [];
-		bridge.subscribe(event => seen.push(event.detail?.data as Record<string, unknown>));
+		bridge.subscribe(event => seen.push(event.detail?.data));
 
 		const promise = bridge.send("VKWebAppGetUserInfo");
 		respond("VKWebAppGetUserInfoResult", { id: 1 }, "__vkma_1");
