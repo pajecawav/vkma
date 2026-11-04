@@ -1,0 +1,9 @@
+{
+	"extends": "../../tsconfig.lib.json",
+	"compilerOptions": {
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
+		"jsx": "react-jsx",
+		"types": ["node"]
+	},
+	"include": ["src", "tsdown.config.ts", "vitest.config.ts"]
+}

@@ -1,7 +1,7 @@
 import { RouterProvider } from "@tanstack/react-router";
 import bridge from "@vkma.dev/bridge";
 import { createBridgeSync, createSwipeBackManager } from "@vkma.dev/router";
-import { AppRoot, ConfigProvider } from "@vkontakte/vkui";
+import { VKBridgeConfigProvider } from "@vkma.dev/vkui-bridge";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { router } from "./app";
@@ -18,10 +18,8 @@ createSwipeBackManager({ history: router.history, bridge });
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<ConfigProvider>
-			<AppRoot>
-				<RouterProvider router={router} />
-			</AppRoot>
-		</ConfigProvider>
+		<VKBridgeConfigProvider>
+			<RouterProvider router={router} />
+		</VKBridgeConfigProvider>
 	</StrictMode>,
 );

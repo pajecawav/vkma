@@ -1,0 +1,74 @@
+{
+	"name": "@vkma.dev/vkui-bridge",
+	"version": "0.0.0",
+	"description": "React glue between @vkma.dev/bridge and @vkontakte/vkui — appearance, insets, adaptivity and a preassembled ConfigProvider",
+	"type": "module",
+	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/vkui-bridge#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/vkui-bridge"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vkui",
+		"vk-bridge",
+		"vk-mini-apps",
+		"mini-apps",
+		"react",
+		"typescript"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"lint:package": "publint",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"peerDependencies": {
+		"@vkma.dev/bridge": "^0.2.0",
+		"@vkontakte/vkui": "^8.0.0",
+		"react": "^18.0.0 || ^19.0.0"
+	},
+	"devDependencies": {
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vkma.dev/bridge": "workspace:^",
+		"@vkontakte/vkui": "catalog:",
+		"happy-dom": "catalog:",
+		"publint": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"tsdown": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

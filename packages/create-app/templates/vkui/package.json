@@ -3,6 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"dependencies": {
+		"@vkma.dev/vkui-bridge": "0.1.0",
 		"@vkontakte/icons": "3.78.0",
 		"@vkontakte/vkui": "8.4.0"
 	}

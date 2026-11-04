@@ -1,5 +1,5 @@
 import bridge from "@vkma.dev/bridge";
-import { AppRoot, ConfigProvider } from "@vkontakte/vkui";
+import { VKBridgeConfigProvider } from "@vkma.dev/vkui-bridge";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
@@ -10,10 +10,8 @@ void bridge.send("VKWebAppInit");
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<ConfigProvider>
-			<AppRoot>
-				<App />
-			</AppRoot>
-		</ConfigProvider>
+		<VKBridgeConfigProvider>
+			<App />
+		</VKBridgeConfigProvider>
 	</StrictMode>,
 );
