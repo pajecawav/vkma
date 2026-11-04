@@ -1,5 +1,11 @@
 # @vkma.dev/router
 
+## 0.1.4
+
+### Patch Changes
+
+- 050c0b6: `DefaultPanelPendingComponent` (renamed from the internal `PanelSpinnerFallback`) — a header stub + large spinner, exported from `/vkui` and `/preset`, and the pending grace window paints the header stub instead of an empty panel
+
 ## 0.1.3
 
 ### Patch Changes
