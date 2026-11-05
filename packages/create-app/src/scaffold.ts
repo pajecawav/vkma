@@ -42,8 +42,9 @@ function toCaretRange(version: string): string {
 }
 
 /**
- * Scaffold a project: base template → preset overlay files → assembled
- * package.json → {{token}} substitution in every text file.
+ * Scaffold a project: base template → replaced base files (the overlay's
+ * `remove` list runs before its copy) → assembled package.json →
+ * {{token}} substitution in every text file.
  */
 export async function scaffoldProject(targetDir: string, preset: Preset): Promise<ScaffoldResult> {
 	const absolute = resolve(process.cwd(), targetDir);
@@ -56,8 +57,13 @@ export async function scaffoldProject(targetDir: string, preset: Preset): Promis
 	const baseDir = join(TEMPLATES_DIR, "base");
 	await copyTemplate(baseDir, absolute);
 	if (preset.overlay !== null) {
-		await copyTemplate(join(TEMPLATES_DIR, preset.overlay), absolute);
+		// Removals run BEFORE the overlay copy: on case-insensitive
+		// filesystems (macOS APFS, Windows NTFS) a base `App.tsx` and the
+		// overlay's `app.tsx` are the same file, copying first would
+		// overwrite it and the removal list would then delete the overlay's
+		// own panel tree.
 		await applyOverlayRemovals(join(TEMPLATES_DIR, preset.overlay), absolute);
+		await copyTemplate(join(TEMPLATES_DIR, preset.overlay), absolute);
 	}
 	await restoreDotfiles(absolute);
 
