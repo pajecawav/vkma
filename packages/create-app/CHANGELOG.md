@@ -1,5 +1,11 @@
 # @vkma.dev/create-app
 
+## 0.1.1
+
+### Patch Changes
+
+- 73513c0: Fix: generated apps ship their `.gitignore` again. npm pack omits `gitignore` files from tarballs, so the template stores it dotless and the CLI writes it as `.gitignore` at scaffold time.
+
 ## 0.1.0
 
 ### Minor Changes

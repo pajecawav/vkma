@@ -1,5 +1,11 @@
 # @vkma.dev/router
 
+## 0.1.5
+
+### Patch Changes
+
+- 29ba0b2: `useNavigator()` is render-passive: no `useRouterState` subscriptions (state reads moved to call time), stable returned identity; `useShowPopout`/`useHidePopout` callbacks are stable too
+
 ## 0.1.4
 
 ### Patch Changes

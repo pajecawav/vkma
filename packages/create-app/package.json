@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/create-app",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Scaffold a VK Mini App: Vite + @vkma.dev bridge, devtools and deploy — base, VKUI and router presets",
 	"type": "module",
 	"license": "MIT",
