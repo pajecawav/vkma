@@ -22,10 +22,18 @@ vkma-deploy                 # deploys using the config in your project
 ```sh
 npm install -D @vkma.dev/deploy
 # or: pnpm add -D / yarn add -D / bun add -D
-npx vkma-deploy login        # one-time browser authorization
-npx vkma-deploy --dry-run    # validate config + bundle without uploading
-npx vkma-deploy              # deploy
+npx vkma-deploy init          # create vkma-deploy.config.ts (interactive)
+npx vkma-deploy login         # one-time browser authorization
+npx vkma-deploy --dry-run     # validate config + bundle without uploading
+npx vkma-deploy               # deploy
 ```
+
+`init` refuses to touch an existing config (pointing you at the file to
+edit instead), imports values from a legacy `vk-hosting-config.json`
+when one sits in the current directory (the token is never copied into
+the new file), and prompts only for what is still missing. In CI, pass
+the values as flags, e.g.
+`npx vkma-deploy init --app-id 42 --endpoints mobile,web`.
 
 ## Configuration
 
@@ -105,6 +113,8 @@ Precedence: CLI flags > env vars > config file > defaults.
 
 ```
 vkma-deploy [deploy] [flags]     Deploy the app (default command)
+vkma-deploy init                 Create vkma-deploy.config.ts (imports
+                                 vk-hosting-config.json, prompts on a TTY)
 vkma-deploy login                Authorize via browser, store the token
 vkma-deploy logout               Remove stored credentials
 vkma-deploy config               Print the resolved configuration
@@ -115,7 +125,9 @@ Flags: `--env <dev|production|both>`, `--config <path>`, `--timeout <sec>`,
 `--test-group <name>`, `--update-prod/--no-update-prod`,
 `--update-dev/--no-update-dev`, `--dry-run`, `--interactive`, `--yes/-y`,
 `--json`, `--verbose/-v`, `--quiet/-q`, `--no-color`, `--help/-h`,
-`--version/-V`.
+`--version/-V`. Init-only: `--app-id <id>`, `--static-path <dir>`
+(default `./dist`), `--endpoints <mobile,mvk,web>` (default: all three,
+each pointing at `index.html`).
 
 Exit codes: `0` success · `1` config/user error · `2` network/timeout ·
 `3` VK API error · `130` aborted (Ctrl+C).
@@ -134,7 +146,10 @@ configuration error.
 
 The one unconditional prompt is the confirmation code VK sends for some
 deploys (queue event 205): in a terminal you will be asked to enter it; in CI
-provide it programmatically via the library API.
+provide it programmatically via the library API. `init` is the other
+unconditional case: the wizard asks for missing values and shows the exact
+file before writing (non-TTY runs take flags instead and fail fast with a
+paste-ready example when `--app-id` is missing).
 
 Before a deploy, the CLI prints a deploy plan and asks `Deploy? (Y/n)`: target
 environments, URL switching, test group, bundle, endpoints.

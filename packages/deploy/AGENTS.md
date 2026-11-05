@@ -30,8 +30,9 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 - `src/deploy/` — `queue.ts` (long-poll with hard deadline), `flow.ts`
   (orchestration emitting the `DeployEvent` stream).
 - `src/cli/` — argv parser, prompts (TTY-only), completions, `main.ts`
-  (dispatch/rendering; returns exit codes, never calls `process.exit`).
-  `src/cli.ts` is the shebang entry that wires SIGINT.
+  (dispatch/rendering; returns exit codes, never calls `process.exit`),
+  `init.ts` (the config-scaffold wizard). `src/cli.ts` is the shebang
+  entry that wires SIGINT.
 - `src/logger/` — pretty/json/quiet renderers over one `LogRecord` pipeline.
 
 ## Invariants — do not break
@@ -51,11 +52,15 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    3 VK API · 130 aborted. Mapped via `DeployError.kind`.
 5. **Prompts are opt-in** (`--interactive`, TTY only) and fill only values
    that are not already set (precedence: flag > env > config > prompt).
-   Three exceptions, all TTY-only confirmation prompts, auto-skipped for
-   `--yes`/`--dry-run`, the `CI` env var, and `--json`/`--quiet` modes:
-   the event-205 confirmation code, the pre-deploy confirmation, and the
-   update-flag confirms (`Update production/dev URLs?`). Update-flag
-   answers are the only prompted values recorded in `meta.sources` (as
+   Four exceptions, all TTY-only, auto-skipped for the `CI` env var,
+   non-TTY stdin, and `--json`/`--quiet` modes: the event-205
+   confirmation code, the pre-deploy confirmation, the update-flag
+   confirms (`Update production/dev URLs?`), and the `init` wizard (an
+   input scaffold, not a confirmation: it prompts for whatever the
+   flags and the legacy `vk-hosting-config.json` left missing, then
+   confirms the exact file bytes before writing; a non-TTY run without
+   `--app-id` fails with `E_NO_TTY` carrying a paste-ready example, and
+   `--yes` skips its confirms). Update-flag answers are the only prompted values recorded in `meta.sources` (as
    `"prompt"`) so they reach the wire params; they never clobber explicit
    values. An unset update flag in a non-interactive run without
    `--dry-run` is a hard user error (`E_UPDATE_FLAG_REQUIRED`), never a

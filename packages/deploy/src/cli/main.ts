@@ -32,6 +32,7 @@ import { CliLogger, formatBytes, type LoggerMode } from "../logger/index.ts";
 import { createRedactor } from "../redact.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
 import { completionScript, COMPLETION_SHELLS } from "./completions.ts";
+import { runInit } from "./init.ts";
 import { openUrl } from "./opener.ts";
 import { confirm, text } from "./prompt.ts";
 import { nativeSetGlobalProxyFromEnv, setupProxy } from "./proxy.ts";
@@ -60,6 +61,8 @@ const HELP = `vkma-deploy — deploy VK Mini Apps hosting (${VERSION})
 
 Usage:
   vkma-deploy [deploy] [flags]     Deploy the app (default command)
+  vkma-deploy init                 Create vkma-deploy.config.ts (imports
+                                   vk-hosting-config.json, prompts on a TTY)
   vkma-deploy login                Authorize via browser, store the token
   vkma-deploy logout               Remove stored credentials
   vkma-deploy config               Print the resolved configuration
@@ -67,12 +70,17 @@ Usage:
 
 Flags:
   --env <dev|production|both>      Target environment (default: both)
-  --config <path>                  Explicit config file (skips discovery)
+  --config <path>                  Explicit config file (skips discovery;
+                                   not supported by init)
   --timeout <sec>                  Hosting queue deadline (default: 600)
   --test-group <name>              Deploy into a test group
   --proxy <url>                    Route traffic through an HTTP(S) proxy
                                    (precedence: --proxy > HTTP(S)_PROXY env > config;
                                    NO_PROXY honored; needs Node 22.21+/24+)
+  --app-id <id>                    init only: app id (required without a TTY)
+  --static-path <dir>              init only: directory to zip (default: ./dist)
+  --endpoints <mobile,mvk,web>     init only: endpoint platforms (default: all
+                                   three, each pointing at index.html)
   --update-prod / --no-update-prod Switch production URLs; when unset: asked
                                     on a TTY, required in non-interactive runs,
                                     VK server default with --yes/--dry-run
@@ -113,6 +121,19 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 		for (const error of parsed.errors) {
 			stderr.write(`error: ${error}\n`);
 		}
+		stderr.write("Run vkma-deploy --help for usage.\n");
+		return 1;
+	}
+	// init-only value flags must not be silently swallowed by other
+	// commands: a `deploy --app-id 5` that ignores the flag would deploy
+	// a different app than the user believes they configured.
+	if (
+		parsed.command !== "init" &&
+		(parsed.values.appId !== undefined ||
+			parsed.values.staticPath !== undefined ||
+			parsed.values.endpoints !== undefined)
+	) {
+		stderr.write("error: --app-id, --static-path and --endpoints are only supported by init\n");
 		stderr.write("Run vkma-deploy --help for usage.\n");
 		return 1;
 	}
@@ -160,6 +181,14 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 				return await runLogout({ env, logger });
 			case "config":
 				return await runConfig(parsed, { ...options, env, cwd, logger, mode, color });
+			case "init":
+				return await runInit(
+					parsed,
+					{ ...options, env, cwd, stdin, logger, mode, color },
+					// Chained login reuses the plain command end to end: same
+					// config resolution, same device flow, same exit codes.
+					() => runLogin(parsed, { ...options, env, cwd, stdin, logger, mode, color }),
+				);
 			default:
 				return await runDeploy(parsed, {
 					...options,
@@ -179,7 +208,7 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 	}
 }
 
-interface RunContext extends MainOptions {
+export interface RunContext extends MainOptions {
 	readonly env: Record<string, string | undefined>;
 	readonly cwd: string;
 	readonly logger: CliLogger;

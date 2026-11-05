@@ -355,14 +355,14 @@ describe("assertDeployReadiness", () => {
 			}),
 		).rejects.toThrow(/web/);
 	});
-	it("requires appId with template guidance when no config file was found", async () => {
+	it("requires appId pointing at init when no config file was found", async () => {
 		const { config } = await resolveConfig({ cwd: root, env: CLEAN_ENV });
 		expect(config.appId).toBeUndefined();
 		expect(() => assertDeployReadiness(config, { hasConfigFile: false, cwd: root })).toThrow(
 			/no config file found/,
 		);
 		expect(() => assertDeployReadiness(config, { hasConfigFile: false, cwd: root })).toThrow(
-			/vkma-deploy\.config\.json/,
+			/vkma-deploy init/,
 		);
 	});
 

@@ -9,7 +9,7 @@ describe("parseArgv", () => {
 	});
 
 	it("parses subcommands", () => {
-		for (const command of ["login", "logout", "config", "completions"] as const) {
+		for (const command of ["login", "logout", "config", "init", "completions"] as const) {
 			expect(parseArgv([command]).command).toBe(command);
 		}
 	});
@@ -53,6 +53,28 @@ describe("parseArgv", () => {
 	it("rejects value flags without a value", () => {
 		const parsed = parseArgv(["--env"]);
 		expect(parsed.errors[0]).toContain("requires a value");
+	});
+
+	it("validates --app-id with a round-trip", () => {
+		expect(parseArgv(["--app-id", "42"]).values.appId).toBe(42);
+		expect(parseArgv(["--app-id=42"]).values.appId).toBe(42);
+		expect(parseArgv(["--app-id", "0"]).errors[0]).toContain("--app-id");
+		expect(parseArgv(["--app-id", "1e2"]).errors[0]).toContain("--app-id");
+		expect(parseArgv(["--app-id", " 42 "]).values.appId).toBe(42);
+	});
+
+	it("parses --endpoints as a deduped platform list", () => {
+		expect(parseArgv(["--endpoints", "mobile,web"]).values.endpoints).toEqual([
+			"mobile",
+			"web",
+		]);
+		expect(parseArgv(["--endpoints=web,web"]).values.endpoints).toEqual(["web"]);
+		expect(parseArgv(["--endpoints", "mobile, desktop"]).errors[0]).toContain("--endpoints");
+		expect(parseArgv(["--endpoints", "mobile desktop"]).errors[0]).toContain("--endpoints");
+	});
+
+	it("parses --static-path as a plain string", () => {
+		expect(parseArgv(["--static-path", "./build"]).values.staticPath).toBe("./build");
 	});
 
 	it("parses boolean flags, negations, and shorts", () => {

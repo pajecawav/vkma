@@ -215,7 +215,7 @@ export function assertDeployReadiness(config: ResolvedConfig, hints: ReadinessHi
 			path: "appId",
 			message:
 				hints.hasConfigFile === false
-					? `appId is required: no config file found${hints.cwd === undefined ? "" : ` (looked up from ${hints.cwd})`} — create vkma-deploy.config.json, e.g. { "appId": 123, "staticPath": "./build", "endpoints": { "web": "index.html" } }, or set env VKMA_APP_ID / MINI_APPS_APP_ID`
+					? `appId is required: no config file found${hints.cwd === undefined ? "" : ` (looked up from ${hints.cwd})`} — run "vkma-deploy init" to create one, or set env VKMA_APP_ID / MINI_APPS_APP_ID`
 					: `appId is required: set it in the config file${hints.configPath === undefined ? "" : ` (${hints.configPath})`}, or via env VKMA_APP_ID / MINI_APPS_APP_ID`,
 		});
 	}

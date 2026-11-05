@@ -3,19 +3,42 @@
  * --no-* negations, and short options. Unknown flags are errors, not noise.
  */
 
-export type Command = "deploy" | "login" | "logout" | "config" | "completions" | "help" | "version";
+export type Command =
+	| "deploy"
+	| "login"
+	| "logout"
+	| "config"
+	| "init"
+	| "completions"
+	| "help"
+	| "version";
 
 const COMMANDS: readonly Command[] = [
 	"deploy",
 	"login",
 	"logout",
 	"config",
+	"init",
 	"completions",
 	"help",
 	"version",
 ];
 
-const VALUE_FLAGS = new Set(["--env", "--config", "--timeout", "--test-group", "--proxy"]);
+/** Endpoint platforms accepted by `--endpoints` (init). */
+export const ENDPOINT_PLATFORMS = ["mobile", "mvk", "web"] as const;
+export type EndpointPlatform = (typeof ENDPOINT_PLATFORMS)[number];
+
+const VALUE_FLAGS = new Set([
+	"--env",
+	"--config",
+	"--timeout",
+	"--test-group",
+	"--proxy",
+	// init-only; main() rejects them for every other command
+	"--app-id",
+	"--static-path",
+	"--endpoints",
+]);
 const BOOLEAN_FLAGS = new Set([
 	"--dry-run",
 	"--interactive",
@@ -48,6 +71,12 @@ export interface ParsedArgs {
 		readonly timeout?: number;
 		readonly testGroup?: string;
 		readonly proxy?: string;
+		/** init only */
+		readonly appId?: number;
+		/** init only */
+		readonly staticPath?: string;
+		/** init only */
+		readonly endpoints?: readonly EndpointPlatform[];
 	};
 	readonly booleans: {
 		readonly dryRun: boolean;
@@ -85,6 +114,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let version = false;
 	let updateProd: boolean | undefined;
 	let updateDev: boolean | undefined;
+	let appId: number | undefined;
+	let staticPath: string | undefined;
+	let endpoints: EndpointPlatform[] | undefined;
 
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i] ?? "";
@@ -143,6 +175,43 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 				case "--proxy":
 					proxy = value;
 					break;
+				case "--static-path":
+					staticPath = value;
+					break;
+				case "--app-id": {
+					const parsed = Number.parseInt(value, 10);
+					// Round-trip like --timeout: "--app-id 1e3" must fail
+					// instead of quietly becoming app 1.
+					if (
+						!Number.isInteger(parsed) ||
+						parsed < 1 ||
+						String(parsed) !== value.trim()
+					) {
+						errors.push(
+							`--app-id expects a positive integer, got ${JSON.stringify(value)}`,
+						);
+					} else {
+						appId = parsed;
+					}
+					break;
+				}
+				case "--endpoints": {
+					const isPlatform = (part: string): part is EndpointPlatform =>
+						(ENDPOINT_PLATFORMS as readonly string[]).includes(part);
+					const platforms = value
+						.split(",")
+						.map(part => part.trim())
+						.filter(part => part !== "");
+					const known = platforms.filter(isPlatform);
+					if (known.length !== platforms.length || known.length === 0) {
+						errors.push(
+							`--endpoints expects a comma-separated list of platforms (${ENDPOINT_PLATFORMS.join(", ")}), got ${JSON.stringify(value)}`,
+						);
+					} else {
+						endpoints = [...new Set(known)];
+					}
+					break;
+				}
 				case "--timeout": {
 					const parsed = Number.parseInt(value, 10);
 					// Round-trip: "--timeout 1e3" must fail instead of
@@ -218,7 +287,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	return {
 		command: command ?? "deploy",
 		shell,
-		values: { env, config, timeout, testGroup, proxy },
+		values: { env, config, timeout, testGroup, proxy, appId, staticPath, endpoints },
 		booleans: {
 			dryRun,
 			interactive,

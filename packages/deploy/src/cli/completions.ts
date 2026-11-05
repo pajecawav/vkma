@@ -6,13 +6,16 @@
 export const COMPLETION_SHELLS = ["bash", "zsh", "fish"] as const;
 export type CompletionShell = (typeof COMPLETION_SHELLS)[number];
 
-const COMMANDS = ["deploy", "login", "logout", "config", "completions"];
+const COMMANDS = ["deploy", "init", "login", "logout", "config", "completions"];
 const FLAGS = [
 	"--env",
 	"--config",
 	"--timeout",
 	"--test-group",
 	"--proxy",
+	"--app-id",
+	"--static-path",
+	"--endpoints",
 	"--dry-run",
 	"--interactive",
 	"--yes",

@@ -1,12 +1,14 @@
 /**
  * Minimal readline prompts (confirm / text).
  *
- * Prompts exist only behind --interactive, with three exceptions, all
- * TTY-only confirmation prompts: the update-flag confirms (answers feed
- * the wire params via the "prompt" config source), the pre-deploy
- * confirmation, and the event-205 confirmation code (which cannot be
- * known in advance). Without a TTY they throw a `user` DeployError
- * instead of hanging. CI pipelines never get stuck.
+ * Prompts exist only behind --interactive, with four exceptions, all
+ * TTY-only: the update-flag confirms (answers feed the wire params via
+ * the "prompt" config source), the pre-deploy confirmation, the
+ * event-205 confirmation code (which cannot be known in advance), and
+ * the init wizard (a scaffold command whose whole job is asking; its
+ * non-TTY runs take values from flags instead, E_NO_TTY otherwise).
+ * Without a TTY they throw a `user` DeployError instead of hanging.
+ * CI pipelines never get stuck.
  *
  * One readline interface is shared per input stream: sequential prompts
  * (pre-deploy confirm, then the 205 code) on a freshly created interface
