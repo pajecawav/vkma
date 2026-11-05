@@ -24,19 +24,8 @@ export const router = createRouter({
 	routeTree: app.routeTree,
 	// without routeMasks a modal open would put its own path in the URL
 	routeMasks: app.routeMasks,
-	// hash mode (old createHashRouter parity): the hash IS the location,
-	// #/item/7; the host preloader and native back keep native semantics.
-	// Legacy `#?path=` deep links resolve too. Caveats vs hash-param mode:
-	// foreign hash params can't ride the location. The devtools OTP link
-	// `#devframe_otp=…` boots the router on an unmatched path (NotFound
-	// screen) and only a reload clears it after devframe strips itself;
-	// if that dev flow matters more than plain `#/path` URLs, use the
-	// "hash-param" mode instead.
 	history: createVkHistory({ mode: "hash" }).history,
 	defaultNotFoundComponent: NotFound,
-	// VkView owns pending rendering. After the 200ms grace it shows its
-	// own canonical fallback (header stub + large PanelSpinner), so the
-	// router-level pending options would never render.
 });
 
 declare module "@tanstack/react-router" {

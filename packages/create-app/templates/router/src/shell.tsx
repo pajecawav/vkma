@@ -48,17 +48,10 @@ const TABS: TabConfig[] = [
 ];
 
 /**
- * The active story comes from the exported `useActiveStory`, the owning
- * view of the deepest match (a modal child route resolves to its panel's
- * view), null on a notFound navigation: render the NotFound screen, never
- * a story fallback (an unmatched lazy panel's chunk never loads).
- */
-
-/**
  * The app shell, mirroring the VKUI navigation guide: SplitLayout with a
  * header stub, a sidebar of Cells on desktop, Epic + Tabbar on mobile,
- * all of it driven by the ROUTER (no local activeStory state). Tabs
- * navigate with `replace`, so back never walks the tab bar.
+ * driven by the ROUTER (no local activeStory state). Tabs navigate with
+ * `replace`, so back never walks the tab bar.
  */
 export function AppShell({ app }: { app: AppHandle }) {
 	useInflate(app);

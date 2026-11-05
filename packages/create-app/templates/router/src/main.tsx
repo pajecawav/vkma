@@ -11,8 +11,6 @@ import "@vkontakte/vkui/dist/vkui.css";
 void bridge.send("VKWebAppInit");
 
 // The host must learn the app location; native swipe-back follows history.
-// The default bridge instance satisfies the router's structural
-// VkBridgeLike contract out of the box.
 createBridgeSync({ history: router.history, bridge });
 createSwipeBackManager({ history: router.history, bridge });
 
