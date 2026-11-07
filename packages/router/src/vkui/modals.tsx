@@ -15,8 +15,8 @@ import { idleChoreography, reconcile, type ChoreographyState } from "./choreogra
 
 /**
  * Modal choreography host. The state machine lives in `choreography.ts`
- * (pure: sibling closes first, nested stacks on top, back reveals the
- * parent, retarget-during-exit cancels or queues). This host binds it to
+ * (pure: every retarget closes first, including nested and back-to-parent;
+ * retarget-during-exit cancels or queues). This host binds it to
  * VKUI: exit completion is EVENT-DRIVEN. VKUI fires `onClosed` at the
  * transition end and backs it with an internal timer computed from the
  * element's real `transitionDuration` (adapts to platform/theme/reduced-
@@ -56,8 +56,6 @@ export interface ModalsProps {
 interface ModalSurfaceApi {
 	nav: string;
 	open: boolean;
-	/** Another modal is stacked on top of this one. Suppress the focus trap. */
-	stacked: boolean;
 	onClose: () => void;
 	onClosed: () => void;
 }
@@ -74,12 +72,7 @@ function useModalSurface(): ModalSurfaceApi {
 	return api;
 }
 
-/**
- * The host-owned keys VKUI actually accepts. Everything else in the api
- * (`stacked` today, future host keys tomorrow) must NOT reach the spread.
- * VKUI forwards unknown props to the DOM and React warns on booleans
- * ("Received `false` for a non-boolean attribute `stacked`").
- */
+/** The host-owned keys VKUI actually accepts. */
 export function hostProps(api: ModalSurfaceApi): {
 	nav: string;
 	open: boolean;
@@ -97,12 +90,7 @@ export function ModalPageSurface({
 }: Omit<ModalPageProps, "nav" | "open" | "onClose" | "onClosed" | "keepMounted">) {
 	const api = useModalSurface();
 	return (
-		<ModalPage
-			{...hostProps(api)}
-			keepMounted
-			disableFocusTrap={api.stacked || undefined}
-			{...surface}
-		>
+		<ModalPage {...hostProps(api)} keepMounted {...surface}>
 			{children}
 		</ModalPage>
 	);
@@ -119,12 +107,7 @@ export function ModalCardSurface({
 }: Omit<ModalCardProps, "nav" | "open" | "onClose" | "onClosed" | "keepMounted">) {
 	const api = useModalSurface();
 	return (
-		<ModalCard
-			{...hostProps(api)}
-			keepMounted
-			disableFocusTrap={api.stacked || undefined}
-			{...surface}
-		>
+		<ModalCard {...hostProps(api)} keepMounted {...surface}>
 			{children}
 		</ModalCard>
 	);
@@ -192,24 +175,23 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 		return () => clearTimeout(watchdog);
 	}, [state.awaitingExitId, exitDuration, handleClosed]);
 
-	// render the open stack (bottom → top) plus the exiting sheet; memoize
-	// the whole provider tree so the sheets (and their Suspense-mounted
-	// components) keep per-choreography identities across unrelated
-	// router-state renders
+	// Render at most one open sheet plus the exiting sheet. Memoize the whole
+	// provider tree so the sheets (and their Suspense-mounted components)
+	// keep per-choreography identities across unrelated router-state renders.
 	const rendered = useMemo(() => {
-		const list: Array<{ entry: ModalEntry; open: boolean; stacked: boolean }> = [];
-		state.stack.forEach((entry, index) => {
-			list.push({ entry, open: true, stacked: index < state.stack.length - 1 });
+		const list: Array<{ entry: ModalEntry; open: boolean }> = [];
+		state.stack.forEach(entry => {
+			list.push({ entry, open: true });
 		});
 		if (state.exiting !== null && !state.stack.some(entry => entry.id === state.exiting?.id)) {
-			list.push({ entry: state.exiting, open: false, stacked: false });
+			list.push({ entry: state.exiting, open: false });
 		}
 		return list;
 	}, [state]);
 
 	const sheets = useMemo(
 		() =>
-			rendered.map(({ entry, open, stacked }) => (
+			rendered.map(({ entry, open }) => (
 				<ModalSurfaceContext.Provider
 					key={entry.id}
 					// the enclosing useMemo rebuilds values only when the
@@ -219,7 +201,6 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 					value={{
 						nav: entry.id,
 						open,
-						stacked,
 						onClose: () => window.history.back(),
 						onClosed: () => handleClosed(entry.id),
 					}}

@@ -86,15 +86,13 @@ implementation notes — read it before touching anything here.
   `onClose`/`onClosed` — registry-declared chrome was tried and rejected:
   modal content is contextual, not declarative). Modal declarations are
   RECURSIBLE: a `{ component, modals }` entry makes its modals child
-  routes of that modal — NESTED modals stack on top of the open parent
-  (both sheets visible, the host sets `disableFocusTrap` on the covered
-  one), `showModal` PUSHES to a child route (target path starts with the
-  open modal's `fullPath`), and back unwinds exactly one level revealing
-  the parent. Sibling retargets keep the SEQUENTIAL choreography: the old
-  sheet closes first and the new one opens only after the exit completes —
-  never two sibling sheets at once (the user-reported bug from the first
-  spike implementation). The host state is a stack + one exiting sheet;
-  the nested/sibling relation is a route-id prefix check. Deep links into
+  routes of that modal. EVERY modal retarget is SEQUENTIAL, including
+  nested and back-to-parent transitions: the old sheet gets `open=false`,
+  its `onClosed` completes the exit, and only then the target gets
+  `open=true` — never two open sheets at once. `showModal` PUSHES to a
+  child route (target path starts with the open modal's `fullPath`), and
+  back unwinds exactly one history level before revealing the parent.
+  The host state is at most one open sheet + one exiting sheet. Deep links into
   (nested) modals inflate the FULL ancestor chain — parent panel + every
   modal level, outer → inner — so back walks the natural stack. Exit
   completion is EVENT-DRIVEN on the surface's

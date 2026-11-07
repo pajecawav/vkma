@@ -95,8 +95,8 @@ notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
 - **Modals are routes** (+ route masking, a documented TanStack pattern):
   back closes for free, deep links work.
     - Local modals: SIBLING child routes of a panel (chain steps are
-      siblings — nesting modal routes inside each other keeps the parent
-      matched and stacks two open sheets, the user-reported bug). URL-
+      siblings; recursive declarations may also nest modal routes, keeping
+      the parent route matched without keeping its sheet open). URL-
       masked back to the owning panel via declarative `routeMasks`
       (`app.routeMasks` → `createRouter`): the address stays at the panel
       while any level is open, the raw modal path still deep-links
@@ -109,10 +109,11 @@ notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
       dev-time error.
     - **Sequential choreography**: when the matched modal changes, the host
       closes the displayed sheet (`open={false}` + keepMounted) and opens
-      the new one only after the exit completes — never two SIBLING sheets
-      at once. NESTED modals (child routes of a modal) are the exception:
-      they stack on top of the open parent and back unwinds one level.
-      Exit completion is EVENT-DRIVEN on the surface's `onClosed`
+      the new one only after the exit completes. This applies equally to
+      sibling, nested and back-to-parent transitions — exactly one sheet
+      has `open={true}` at any moment. Back still unwinds one history level;
+      the parent reopens only after the child's exit. Exit completion is
+      EVENT-DRIVEN on the surface's `onClosed`
       (VKUI's useCSSTransition backs it with a computed-duration fallback —
       more accurate than any host constant); the host keeps only a watchdog
       for the unmount-mid-exit case, and re-targeting the displayed modal
@@ -288,7 +289,8 @@ provenance, not a live app.
   the real location (`/item/7/details`) rides in `history.state`; deep
   link to the full path opens the modal; back closes it with animation.
 - ✅ **Modal chains are just history**: `details → more → back → details`
-  works; two sheets stack without artifacts.
+  works. The spike initially stacked both open sheets; superseded on
+  2026-11-07: all modal transitions are sequential, with one open sheet.
 - ✅ **Closing animation after unmatch**: the modal host keeps every seen
   modal mounted (`keepMounted`) and flips `open` to false when its route
   stops matching — `onClose = history.back()` is the natural close.

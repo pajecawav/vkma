@@ -2,17 +2,12 @@
  * Modal choreography state machine, pure, React-free; the `<Modals>` host
  * in `modals.tsx` drives it and completes exits from the surface's
  * `onClosed`. One step per reconcile: every close is an animated exit whose
- * completion triggers the next step. Route ids are hierarchical
- * (`/view:feed/post/$id/comments`), so the nested/sibling relation is a
- * string prefix check.
+ * completion triggers the next step.
  *
- * - a SIBLING retarget (comments → share) closes the displayed sheet first
- *   and opens the new one only after the exit completes, never two sibling
- *   sheets at once (the user-reported bug from the first spike);
- * - a NESTED open (the target is a child route of the displayed modal)
- *   keeps the displayed sheet open and stacks the child ON TOP of it, two
- *   open sheets by design; back unwinds the stack one level per entry;
- * - back to the parent modal closes the top and reveals the parent.
+ * EVERY retarget closes the displayed sheet first and opens the target only
+ * after the exit completes: sibling, nested and back-to-parent transitions
+ * all share this path. At most one entry is open at any moment; route
+ * nesting still controls history, not simultaneous presentation.
  *
  * While an exit is in flight:
  * - retargeting BACK to the exiting sheet CANCELS the exit. VKUI reverses
@@ -34,7 +29,7 @@ interface ChoreographyEntry {
 export interface ChoreographyState<T extends ChoreographyEntry> {
 	/** the modal route that should be open on top right now */
 	target: T | null;
-	/** open entries, bottom → top (nested modals stack) */
+	/** the open entry, as a zero-or-one-item list */
 	stack: T[];
 	/** the entry animating out (mounted with open=false) */
 	exiting: T | null;
@@ -78,23 +73,9 @@ export function reconcile<T extends ChoreographyEntry>(
 	if (target !== null && target.id === top.id) {
 		return { ...previous, target }; // already on top, settle
 	}
-	if (target !== null && target.routeId.startsWith(`${top.routeId}/`)) {
-		// NESTED open: the target is a child route of the displayed modal.
-		// Keep it open and stack the child on top
-		return { ...previous, target, stack: [...previous.stack, target] };
-	}
-	if (target !== null && top.routeId.startsWith(`${target.routeId}/`)) {
-		// back to an ANCESTOR modal: close the top, the parent stays open
-		return {
-			...previous,
-			target,
-			stack: previous.stack.slice(0, -1),
-			exiting: top,
-			awaitingExitId: top.id,
-		};
-	}
-	// sibling/unrelated modal or close-everything: close the top first.
-	// The target opens when the exit completes
+	// Any different modal (including a nested child or parent) or
+	// close-everything: close the open sheet first. The target opens when
+	// the exit completes.
 	return {
 		...previous,
 		target,
