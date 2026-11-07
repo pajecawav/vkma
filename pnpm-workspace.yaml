@@ -1,8 +1,7 @@
 packages:
     - apps/*
     - packages/*
-    - packages/router/playground
-    - playground/*
+    - playground
 
 catalog:
     "@base-ui/react": ^1.9.0

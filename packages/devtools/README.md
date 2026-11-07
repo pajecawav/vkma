@@ -112,9 +112,14 @@ export default defineConfig({
 Same one-liner as Vite: the `/__vkma/` panel (the RPC bridge rides a
 side-car WebSocket, Rsbuild never hands over HTTP upgrades), the
 `@vkontakte/vk-bridge → @vkma.dev/bridge` interception, the FAB + collector
-injection. Requires `@rsbuild/core` >= 1.0. See
-[`playground/mini-app-rsbuild`](https://github.com/pajecawav/vkma/tree/master/playground/mini-app-rsbuild)
-for a working setup.
+injection. Requires `@rsbuild/core` >= 1.0.
+
+For repository-local manual e2e, build the local workspace packages and run
+`pnpm --filter @vkma.dev/devtools playground:rsbuild`. The command creates a
+minimal disposable app that imports `@vkma.dev/bridge` directly (the adapter
+runs with `alias: false`), starts the current local Rsbuild adapter and prints
+the app and panel URLs. `VKMA_MCP=1` enables the MCP route. Ctrl+C closes the
+server and removes only the temporary directory owned by that run.
 
 **Any other bundler / server.** Import `@vkma.dev/bridge` instead of
 `@vkontakte/vk-bridge` (or alias it yourself, skipping imports from inside

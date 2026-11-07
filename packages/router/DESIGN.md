@@ -4,10 +4,12 @@ VK Mini Apps router built on top of TanStack Router. Successor to
 `@vkontakte/vk-mini-apps-router`: **feature parity, not API parity** — a
 migration guide ships instead of drop-in compatibility.
 
-**Status: v0.1 implemented and validated end-to-end in
-`packages/router/playground`** (which consumes the package, not copies of it).
-See "Spikes" for the validation history and "Implementation notes" for the
-hard-won invariants; `AGENTS.md` distills them for agents.
+**Status: v0.1 implemented.** The original end-to-end validation used the
+former `packages/router/playground` spike app, removed after the playgrounds
+were consolidated. The current permanent manual-e2e target is
+`playground/`, a planner that consumes the built package rather than
+copies of it. See "Spikes" for the validation history and "Implementation
+notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Product frame
 
@@ -220,8 +222,13 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Spikes (throwaway prototypes, in this order)
 
-1. **Panels + animations** — ✅ done, see `packages/router/playground` (commit
-   `feat(router): spike 1`) and "Spike 1 verdict" below.
+The verdicts below are historical: all four spikes ran in the former
+`packages/router/playground`, which was removed after consolidation into
+`playground/`. The paths in the headings identify that historical
+provenance, not a live app.
+
+1. **Panels + animations** — ✅ done in the historical spike playground
+   (commit `feat(router): spike 1`), see "Spike 1 verdict" below.
 2. **Modals** — ✅ done (commit `feat(router): spike 2 — modals as routes
    with masking`), see "Spike 2 verdict" below.
 3. **VK-history** — ✅ done (commit `feat(router): spike 3 — VK history +
