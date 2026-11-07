@@ -79,7 +79,7 @@ export default function ProfilePanel(): ReactElement {
 				</CellLink>
 				<Cell
 					before={<Icon28SlidersOutline />}
-					subtitle="Те же настройки в глобальном модальном окне"
+					subtitle="Уведомления, компактный список и фильтр по умолчанию"
 					onClick={() => void navigator.showGlobalModal("settings")}
 				>
 					Быстрые настройки
@@ -96,11 +96,8 @@ export default function ProfilePanel(): ReactElement {
 					Добавить в избранное
 				</CellButton>
 			</Group>
-			<Group>
-				<Footer>
-					Профиль получен через VKWebAppGetUserInfo. Результат loader кешируется на
-					минуту.
-				</Footer>
+			<Group style={{ paddingBottom: 72 }}>
+				<Footer>Ваш профиль приходит из VK, а настройки сохраняются в приложении.</Footer>
 			</Group>
 		</>
 	);

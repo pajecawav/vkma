@@ -97,18 +97,18 @@ export default function AboutPanel(): ReactElement {
 				<Box style={{ display: "grid", gap: 8, padding: 20 }}>
 					<Title level="2">Планировщик встреч</Title>
 					<Text>
-						Playground для ручной проверки @vkma.dev/router, VK Bridge и VKUI. Встречи и
-						приглашения используют демонстрационные данные, а настройки сохраняются
-						через VK Storage.
+						Расписание собирает команда, а настройки и приглашения живут в общем
+						приложении. Здесь VKUI, VK Bridge и маршруты из vkma показаны в реальной
+						форме.
 					</Text>
 				</Box>
 			</Group>
 			<Group>
 				<CellButton
-					subtitle="VKWebAppShowSlidesSheet с реальными confirm/cancel/reject"
+					subtitle="Небольшой рассказ по экранам"
 					onClick={() => void showPlannerTour()}
 				>
-					Запустить native-тур
+					Посмотреть тур
 				</CellButton>
 			</Group>
 			<Group
@@ -127,7 +127,7 @@ export default function AboutPanel(): ReactElement {
 					href="?modal=settings"
 					chevron="always"
 					multiline
-					subtitle="?modal=settings — модалка доступна поверх любой панели и сохраняет реальные настройки."
+					subtitle="Открывается поверх любого экрана и сохраняет реальные настройки."
 					onClick={event => {
 						event.preventDefault();
 						void navigator.showGlobalModal("settings");

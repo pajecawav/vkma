@@ -14,7 +14,7 @@ export function DeleteMeetingPopout({ id, onClose }: DeleteMeetingPopoutProps): 
 		<Alert
 			title="Удалить встречу?"
 			onClosed={onClose}
-			description="Действие нельзя отменить. Исходные fixtures восстановятся после перезагрузки."
+			description="Действие нельзя отменить. Встреча исчезнет из списка."
 			actions={[
 				{ title: "Отмена", mode: "cancel", action: onClose },
 				{

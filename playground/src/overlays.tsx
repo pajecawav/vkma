@@ -12,6 +12,7 @@ export function SettingsModal(): ReactElement {
 
 	return (
 		<ModalPageSurface
+			hideCloseButton
 			header={
 				<ModalPageHeader
 					before={<PanelHeaderClose onClick={() => navigator.hideModal()} />}

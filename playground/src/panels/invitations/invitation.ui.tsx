@@ -116,7 +116,7 @@ export default function InvitationPanel(): ReactElement {
 						subtitle={
 							invitation.status === "accepted"
 								? "Встреча уже есть в вашем расписании"
-								: "Изменить ответ на это приглашение нельзя"
+								: "Ответ уже отправлен, изменить его нельзя"
 						}
 						multiline
 					>

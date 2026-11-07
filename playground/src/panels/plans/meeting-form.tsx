@@ -54,6 +54,7 @@ export function MeetingForm({
 
 	return (
 		<ModalPageSurface
+			hideCloseButton
 			header={
 				<ModalPageHeader
 					before={<PanelHeaderClose onClick={() => navigator.hideModal()} />}

@@ -32,14 +32,14 @@ export default function ProfileSettingsPanel(): ReactElement {
 			<Group header={<Header size="s">Дополнительно</Header>}>
 				<CellButton
 					before={<Icon28SlidersOutline />}
-					subtitle="Глобальная модалка поверх текущей панели"
+					subtitle="Быстрое окно настроек поверх текущего экрана"
 					onClick={() => void navigator.showGlobalModal("settings")}
 				>
 					Открыть быстрые настройки
 				</CellButton>
 				{section !== "privacy" && (
 					<CellButton
-						subtitle="Typed search: ?section=privacy"
+						subtitle="Быстрый переход к privacy-разделу"
 						onClick={() =>
 							void navigator.push({
 								to: "/settings",
@@ -66,7 +66,7 @@ export default function ProfileSettingsPanel(): ReactElement {
 			>
 				<SimpleCell
 					multiline
-					subtitle="Встречи и приглашения живут в памяти playground. Три настройки выше сохраняются в VK Storage; сброс не удаляет их."
+					subtitle="Встречи и приглашения живут внутри приложения. Настройки сохраняются и применяются сразу."
 				>
 					Как хранятся данные
 				</SimpleCell>
@@ -78,8 +78,8 @@ export default function ProfileSettingsPanel(): ReactElement {
 					Сбросить встречи и приглашения
 				</CellButton>
 			</Group>
-			<Group>
-				<Footer>Сброс восстанавливает исходные fixtures и не меняет профиль VK.</Footer>
+			<Group style={{ paddingBottom: 72 }}>
+				<Footer>Сброс возвращает встречи и настройки в исходные значения.</Footer>
 			</Group>
 		</>
 	);

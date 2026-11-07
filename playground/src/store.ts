@@ -182,7 +182,7 @@ export function resetPlanner(): void {
 		invitations: INITIAL_INVITATIONS,
 		notice: null,
 	});
-	showNotice("Встречи и приглашения вернулись к исходным fixtures");
+	showNotice("Встречи и приглашения вернулись к исходным данным");
 }
 
 export function errorText(error: unknown): string {

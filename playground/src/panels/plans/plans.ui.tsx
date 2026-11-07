@@ -42,7 +42,7 @@ export default function PlansPanel(): ReactElement {
 
 	return (
 		<>
-			<PanelHeader>Планы</PanelHeader>
+			<PanelHeader>Расписание</PanelHeader>
 			<Group>
 				<HorizontalScroll>
 					<Tabs withScrollToSelectedTab>
@@ -97,14 +97,14 @@ export default function PlansPanel(): ReactElement {
 				)}
 				<CellButton
 					onClick={() => void navigator.showGlobalModal("create")}
-					subtitle="route modal · форма с защищённым swipe-back"
+					subtitle="Добавьте время, место и описание"
 				>
 					Новая встреча
 				</CellButton>
 			</Group>
 			<Footer>
-				Встречи живут в React state и сбрасываются после reload. Фильтр по умолчанию
-				сохраняется в VK Storage.
+				Расписание хранится внутри приложения, пока оно открыто. Фильтр по умолчанию
+				сохраняется на следующий запуск.
 			</Footer>
 		</>
 	);

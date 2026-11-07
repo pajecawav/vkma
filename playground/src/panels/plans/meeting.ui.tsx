@@ -1,4 +1,5 @@
 import { useNavigator, usePanelParams, usePanelSearch } from "@vkma.dev/router/preset";
+import { Icon28DeleteOutline } from "@vkontakte/icons";
 import {
 	Box,
 	Button,
@@ -147,7 +148,7 @@ export default function MeetingPanel(): ReactElement {
 					</ButtonGroup>
 				</Box>
 				<CellButton
-					subtitle="local modal · nested invite/share"
+					subtitle="Приглашения, шеринг и удаление собраны в одном окне"
 					onClick={() =>
 						void navigator.showModal({ to: "/meeting/$id/attendees", params: { id } })
 					}
@@ -155,7 +156,9 @@ export default function MeetingPanel(): ReactElement {
 					Участники и приглашения
 				</CellButton>
 				<CellButton
-					subtitle="panel-local Alert"
+					appearance="negative"
+					before={<Icon28DeleteOutline />}
+					subtitle="Зафиксируем в приложении и подтвердим ещё раз"
 					onClick={() => navigator.showPopout("delete", { id })}
 				>
 					Удалить встречу
@@ -164,14 +167,14 @@ export default function MeetingPanel(): ReactElement {
 			<Group>
 				{nextMeeting !== undefined && nextMeeting.id !== id && (
 					<CellButton
-						subtitle="Та же панель, новый typed path param"
+						subtitle="Открывает встречу прямо из этой панели"
 						onClick={() => void navigator.push(meetingPanel, { id: nextMeeting.id })}
 					>
 						Следующая встреча
 					</CellButton>
 				)}
 				<CellButton
-					subtitle="Схлопнуть весь stack панелей"
+					subtitle="Быстрый возврат к расписанию"
 					onClick={() => navigator.backToFirst()}
 				>
 					К расписанию

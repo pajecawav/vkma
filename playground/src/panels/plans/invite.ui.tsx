@@ -48,6 +48,7 @@ export default function InviteModal(): ReactElement {
 
 	return (
 		<ModalPageSurface
+			hideCloseButton
 			header={
 				<ModalPageHeader
 					before={<PanelHeaderClose onClick={() => navigator.hideModal()} />}
@@ -57,7 +58,7 @@ export default function InviteModal(): ReactElement {
 			}
 		>
 			<Group>
-				<Footer>{meeting.title} · VKWebAppGetFriends</Footer>
+				<Footer>{meeting.title} · список друзей из VK</Footer>
 				{friendsState.status === "idle" && (
 					<Placeholder
 						title="Кого позвать?"
@@ -65,7 +66,7 @@ export default function InviteModal(): ReactElement {
 							<Button onClick={() => void loadFriends()}>Загрузить друзей VK</Button>
 						}
 					>
-						Host запросит список только после вашего действия.
+						Список друзей VK загрузится по вашему действию.
 					</Placeholder>
 				)}
 				{friendsState.status === "loading" && <PanelSpinner />}
@@ -76,13 +77,13 @@ export default function InviteModal(): ReactElement {
 							<Button onClick={() => void loadFriends()}>Попробовать снова</Button>
 						}
 					>
-						{friendsState.message}. Проверьте разрешение или выберите другой исход в
-						host debug.
+						{friendsState.message}. Проверьте разрешение на список друзей или попробуйте
+						позже.
 					</Placeholder>
 				)}
 				{friendsState.status === "ready" && friendsState.friends.length === 0 && (
 					<Placeholder title="Некого пригласить">
-						Host вернул пустой список друзей.
+						Список друзей VK пуст или недоступен.
 					</Placeholder>
 				)}
 				{friendsState.status === "ready" &&
@@ -102,7 +103,7 @@ export default function InviteModal(): ReactElement {
 			</Group>
 			<Group>
 				<Button size="l" stretched loading={inviting} onClick={() => void invite()}>
-					Открыть native invite box
+					Выбрать знакомых в VK
 				</Button>
 			</Group>
 		</ModalPageSurface>

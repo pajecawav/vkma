@@ -21,6 +21,7 @@ import {
 	Group,
 	Panel,
 	PanelHeader,
+	PanelHeaderContent,
 	Snackbar,
 	SplitCol,
 	SplitLayout,
@@ -82,7 +83,11 @@ export function AppShell({ app }: { app: AppHandle }) {
 						fixed
 					>
 						<Panel>
-							<PanelHeader>Планы</PanelHeader>
+							<PanelHeader>
+								<PanelHeaderContent subtitle="Расписание и приглашения">
+									Планировщик
+								</PanelHeaderContent>
+							</PanelHeader>
 							<Group>
 								{TABS.map(({ id, label, page, Icon }) => (
 									<CellLink
@@ -99,7 +104,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 						</Panel>
 					</SplitCol>
 				)}
-				<SplitCol maxWidth="640px" stretchedOnMobile autoSpaced>
+				<SplitCol maxWidth="900px" stretchedOnMobile autoSpaced>
 					<Epic
 						activeStory={activeStory}
 						tabbar={

@@ -11,7 +11,7 @@ export function meetingLink(meeting: Meeting): string {
 export async function shareMeeting(meeting: Meeting): Promise<boolean> {
 	try {
 		await bridge.send("VKWebAppShare", { link: meetingLink(meeting) });
-		showNotice("Ссылка на встречу передана host");
+		showNotice("Ссылка на встречу отправлена");
 		return true;
 	} catch (error) {
 		showNotice(`Поделиться не удалось: ${errorText(error)}`);
@@ -22,7 +22,7 @@ export async function shareMeeting(meeting: Meeting): Promise<boolean> {
 export async function showInviteBox(): Promise<boolean> {
 	try {
 		await bridge.send("VKWebAppShowInviteBox", {});
-		showNotice("Приглашения отправлены через native host UI");
+		showNotice("Приглашения отправлены");
 		return true;
 	} catch (error) {
 		showNotice(`Приглашение отменено или недоступно: ${errorText(error)}`);
@@ -45,15 +45,16 @@ export async function showPlannerTour(): Promise<void> {
 					media: { type: "image", url: "https://vk.ru/images/camera_200.png" },
 				},
 				{
-					title: "Проверьте host",
-					subtitle: "Host lab за ?debug=1 управляет конфигурацией и ошибками.",
+					title: "Настройте окружение",
+					subtitle:
+						"Отладочный режим помогает поймать ошибки и настроить поведение host.",
 					media: { type: "image", url: "https://vk.ru/images/camera_200.png" },
 				},
 			],
 		});
-		showNotice(result.action === "confirm" ? "Native-тур завершён" : "Native-тур закрыт");
+		showNotice(result.action === "confirm" ? "Тур завершён" : "Тур закрыт");
 	} catch (error) {
-		showNotice(`Native-тур недоступен: ${errorText(error)}`);
+		showNotice(`Тур недоступен: ${errorText(error)}`);
 	}
 }
 

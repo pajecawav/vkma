@@ -4,7 +4,7 @@ import {
 	useNavigator,
 	usePanelParams,
 } from "@vkma.dev/router/preset";
-import { Box, Button, ButtonGroup, Footnote, Text } from "@vkontakte/vkui";
+import { Box, Button, ButtonGroup, Text } from "@vkontakte/vkui";
 import { useState, type ReactElement } from "react";
 import { shareMeeting } from "../../bridge-actions";
 import { meetingOf } from "../../store";
@@ -29,7 +29,7 @@ export default function ShareMeetingCard(): ReactElement {
 	return (
 		<ModalCardSurface
 			title="Поделиться встречей"
-			description={note ?? "VK откроет выбор получателя"}
+			description={note ?? "Выберите получателя в VK или мессенджер"}
 			actions={
 				<ButtonGroup stretched gap="s">
 					<Button size="l" stretched loading={sending} onClick={() => void share()}>
@@ -49,9 +49,14 @@ export default function ShareMeetingCard(): ReactElement {
 		>
 			<Box padding="m" style={{ textAlign: "center" }}>
 				<Text weight="2">{meeting.title}</Text>
-				<Footnote style={{ marginTop: 8, color: "var(--vkui--color_text_secondary)" }}>
+				<Text
+					style={{
+						marginTop: 8,
+						color: "var(--vkui--color_text_secondary)",
+					}}
+				>
 					{meeting.day} · {meeting.time} · {meeting.place}
-				</Footnote>
+				</Text>
 			</Box>
 		</ModalCardSurface>
 	);

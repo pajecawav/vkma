@@ -13,6 +13,7 @@ export default function AttendeesModal(): ReactElement {
 
 	return (
 		<ModalPageSurface
+			hideCloseButton
 			header={
 				<ModalPageHeader
 					before={<PanelHeaderClose onClick={() => navigator.hideModal()} />}
@@ -37,7 +38,7 @@ export default function AttendeesModal(): ReactElement {
 			</Group>
 			<Group>
 				<CellButton
-					subtitle="nested modal · back вернёт к участникам"
+					subtitle="Откроется поверх текущего списка"
 					onClick={() =>
 						void navigator.showModal({
 							to: "/meeting/$id/attendees/invite",
@@ -48,7 +49,7 @@ export default function AttendeesModal(): ReactElement {
 					Пригласить друзей
 				</CellButton>
 				<CellButton
-					subtitle="nested ModalCard с runtime props"
+					subtitle="Отправьте ссылку в VK или мессенджер"
 					onClick={() =>
 						void navigator.showModal({
 							to: "/meeting/$id/attendees/share",
@@ -60,7 +61,7 @@ export default function AttendeesModal(): ReactElement {
 					Поделиться списком
 				</CellButton>
 				<CellButton
-					subtitle="sibling replace · back вернётся сразу на панель"
+					subtitle="Откроется вместо текущего окна"
 					onClick={() =>
 						void navigator.showModal({ to: "/meeting/$id/edit", params: { id } })
 					}
