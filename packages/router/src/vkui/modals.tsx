@@ -1,5 +1,11 @@
 import { useRouterState } from "@tanstack/react-router";
-import { ModalCard, ModalPage, type ModalCardProps, type ModalPageProps } from "@vkontakte/vkui";
+import {
+	ModalCard,
+	ModalPage,
+	ModalRoot,
+	type ModalCardProps,
+	type ModalPageProps,
+} from "@vkontakte/vkui";
 import {
 	type ComponentType,
 	createContext,
@@ -213,5 +219,13 @@ export function Modals({ entries, exitDuration = 420 }: ModalsProps) {
 		[rendered, handleClosed],
 	);
 
-	return <>{sheets}</>;
+	if (rendered.length === 0) {
+		return null;
+	}
+
+	// ModalRoot is VKUI's shared-overlay engine (useModalManager renders it
+	// internally too). Point activeModal at the latest target even while its
+	// sheet waits unmounted for the previous onClosed: the old sheet exits,
+	// but the shared overlay stays visible instead of fading out and back in.
+	return <ModalRoot activeModal={state.target?.id ?? null}>{sheets}</ModalRoot>;
 }

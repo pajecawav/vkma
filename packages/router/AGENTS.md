@@ -78,8 +78,13 @@ implementation notes — read it before touching anything here.
   declarative masks to the owning panel; pass `app.routeMasks` into
   `createRouter({ routeMasks })` or a modal open puts its own path in the
   address bar. Global ones via `?modal=` — deep-linkable, masked by the
-  imperative open), never `ModalRoot` (deprecated, gone in
-  VKUI v10). The Modals host drives the choreography through CONTEXT and
+  imperative open). The Modals host uses `ModalRoot` ONLY as VKUI's
+  shared-overlay/context primitive — the recommended `useModalManager`
+  renders it internally in VKUI 8 too; isolate it here for the v10 migration.
+  Its `activeModal` is the LATEST target even while that target's sheet is
+  still unmounted waiting for the previous `onClosed`, so the shared overlay
+  never exits between sequential sheets. Navigation/history stay ours. The
+  Modals host drives the sheet choreography through CONTEXT and
   the ENTRY COMPONENT renders its own surface — `ModalPageSurface` or
   `ModalCardSurface` (the component owns header/card chrome/size as
   ordinary runtime props; the host owns `nav`/`open`/`keepMounted`/

@@ -2,4 +2,4 @@
 "@vkma.dev/router": patch
 ---
 
-Serialize nested modal transitions so only one sheet is open at a time.
+Serialize modal transitions and keep the VKUI backdrop visible between sheets.

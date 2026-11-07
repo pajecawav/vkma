@@ -77,13 +77,13 @@ export default function ProfilePanel(): ReactElement {
 				>
 					Настройки
 				</CellLink>
-				<CellButton
+				<Cell
 					before={<Icon28SlidersOutline />}
 					subtitle="Те же настройки в глобальном модальном окне"
 					onClick={() => void navigator.showGlobalModal("settings")}
 				>
 					Быстрые настройки
-				</CellButton>
+				</Cell>
 				<CellLink before={<Icon28InfoCircleOutline />} chevron="always" page={aboutPanel}>
 					О приложении
 				</CellLink>

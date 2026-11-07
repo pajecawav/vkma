@@ -87,8 +87,9 @@ notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
   the `history` prop is only used for iOS swipe-back (`slice(-2)[0]`);
   `onTransition` is the completion signal; `ModalRoot` is deprecated
   (removed in v10) and `useModalManager` is imperative with its own
-  internal history — we drive modals through **controlled props**
-  (standalone `ModalPage open={bool}`), to be verified in spike 2.
+  internal history. The recommended hook still uses `ModalRoot` internally
+  as VKUI 8's shared-overlay engine. Our host isolates that primitive while
+  retaining its own route history and sequential sheet choreography.
 
 ## Overlays
 
@@ -120,6 +121,13 @@ notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
       while it exits CANCELS the exit (VKUI reverses the transition
       mid-flight). Modal→modal navigation REPLACES the history entry
       (old-router parity: back returns to the panel).
+    - **One shared VKUI overlay**: standalone ModalPage/ModalCard instances
+      each animate their own overlay, which makes the backdrop fade out and
+      in between sequential sheets. `useModalManager` avoids that through
+      `ModalRoot`; our host uses the same primitive. `activeModal` follows
+      the latest target while the target sheet waits unmounted, keeping the
+      shared overlay visible without opening two sheets. This also preserves
+      VKUI's shared-backdrop ref for bottom-sheet gestures.
     - **The entry component owns its surface**: the host binds
       nav/open/close choreography through context, and the component
       renders a `ModalPageSurface` or `ModalCardSurface` root with every
