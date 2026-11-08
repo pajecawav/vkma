@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DeployError } from "../errors.ts";
-import { StatusReporter } from "./status.ts";
+import { forcedAbortStatus, StatusReporter } from "./status.ts";
 
 const ESC_ST = "\x1b\\";
 const prefix = "\x1b]7501;";
@@ -136,5 +136,28 @@ describe("StatusReporter", () => {
 		const thrown = ttyReporter();
 		thrown.reporter.failed("just a string");
 		expect(thrown.output.join("").includes("state=error")).toBe(true);
+	});
+});
+
+describe("forcedAbortStatus()", () => {
+	const base = { isTTY: true } as const;
+	const clean = ["deploy"] as const;
+	const env = {};
+
+	it("is the buffered idle report on a real terminal", () => {
+		const report = forcedAbortStatus(clean, env, base);
+		expect(report.startsWith("\x1b]7501;state=idle:app=vkma-deploy:msg=")).toBe(true);
+		expect(report.endsWith("\x1b\\")).toBe(true);
+		expect(Buffer.from(report.split("msg=")[1] ?? "", "base64").toString("utf8")).toBe(
+			"Canceled",
+		);
+	});
+
+	it("stays silent through the same gates as the reporter", () => {
+		expect(forcedAbortStatus(clean, env, { isTTY: false })).toBe("");
+		expect(forcedAbortStatus(clean, env, {})).toBe("");
+		expect(forcedAbortStatus([...clean, "--json"], env, base)).toBe("");
+		expect(forcedAbortStatus([...clean, "--no-status"], env, base)).toBe("");
+		expect(forcedAbortStatus(clean, { VKMA_NO_STATUS: "1" }, base)).toBe("");
 	});
 });

@@ -11,6 +11,7 @@
 
 import { main } from "./cli/main.ts";
 import { closeAllPrompts } from "./cli/prompt.ts";
+import { forcedAbortStatus } from "./cli/status.ts";
 import { SHOW_CURSOR } from "./logger/index.ts";
 
 const controller = new AbortController();
@@ -18,6 +19,17 @@ let interrupted = 0;
 
 process.on("SIGINT", () => {
 	interrupted += 1;
+	// Spec (OSC 7501): an interrupt reports idle. The graceful path (main's
+	// catch on a DeployError "aborted") writes it through the reporter; the
+	// synchronous write here covers the window before unwinding and the
+	// second-Ctrl+C force-exit, which bypasses main() entirely — without
+	// it, a `working` record would survive the process and terminals that
+	// only clear records at the next shell prompt keep showing "in
+	// progress" forever.
+	const abortStatus = forcedAbortStatus(process.argv.slice(2), process.env, process.stdout);
+	if (abortStatus !== "") {
+		process.stdout.write(abortStatus);
+	}
 	if (interrupted > 1) {
 		// Second Ctrl+C: exit immediately, but never leave the terminal
 		// cursor-less (the spinner hides it and normal disposal never runs).

@@ -80,7 +80,9 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    only `src/cli` decides to write and gates on a real TTY, never in
    `--json`, honoring `--no-status`/`VKMA_NO_STATUS`. Status text is
    redacted like every other print, and the abort mapping is fixed:
-   cancel/SIGINT → `idle`, any other failure → `error`, success → `done`.
+   cancel/SIGINT → `idle` (written synchronously in the signal handler
+   too, so even the second-Ctrl+C force exit leaves a clean record), any
+   other failure → `error`, success → `done`.
 
 ## Upstream reference (@vkontakte/vk-miniapps-deploy 1.0.3)
 

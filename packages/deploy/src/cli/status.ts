@@ -18,6 +18,32 @@
 import { isDeployError } from "../errors.ts";
 import { statusSequence, type StatusKind, type StatusRecord } from "../status/index.ts";
 
+/**
+ * The idle report for interrupt paths that cannot reach the reporter
+ * through main()'s graceful shutdown — first of all the second Ctrl+C,
+ * which force-exits before any async unwinding happens. The spec says
+ * an interrupt reports `idle`, and the terminal must see the wait end
+ * the moment the key lands, so the report is a constant sequence
+ * written synchronously by the binary entry. Silent through the same
+ * gates as the reporter: no TTY, `--json`, `--no-status`, and
+ * `VKMA_NO_STATUS`.
+ */
+export function forcedAbortStatus(
+	argv: readonly string[],
+	env: Record<string, string | undefined>,
+	stdout: { isTTY?: boolean },
+): string {
+	if (
+		stdout.isTTY !== true ||
+		argv.includes("--json") ||
+		argv.includes("--no-status") ||
+		env["VKMA_NO_STATUS"] !== undefined
+	) {
+		return "";
+	}
+	return statusSequence({ state: "idle", app: "vkma-deploy", msg: "Canceled" });
+}
+
 export interface StatusReporterOptions {
 	readonly stdout: { write(text: string): void; isTTY?: boolean };
 	readonly env: Record<string, string | undefined>;
