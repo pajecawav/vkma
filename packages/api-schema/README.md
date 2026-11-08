@@ -5,6 +5,8 @@
 
 Generated TypeScript types, [zod](https://zod.dev) and [valibot](https://valibot.dev) schemas for the [VK API](https://dev.vk.com/), built from [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema) with [@pajecawav/json2code](https://github.com/pajecawav/json2code).
 
+Docs: https://vkma.dev/api-schema
+
 ## Install
 
 ```sh

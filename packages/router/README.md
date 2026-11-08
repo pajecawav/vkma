@@ -5,6 +5,8 @@
 
 A VK Mini Apps router on top of [TanStack Router](https://tanstack.com/router). Views, panels, modals and popouts are URL-driven and rendered by [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI) hosts, with typed handles instead of string ids, VK history and host sync (`VKWebAppSetLocation`, `VKWebAppChangeFragment`), and native swipe-back management. Feature parity with `@vkontakte/vk-mini-apps-router`, not API parity. The [migration guide](https://github.com/pajecawav/vkma/tree/master/packages/router/docs/migration-from-vk-mini-apps-router.md) maps the old API to the new one.
 
+Docs: https://vkma.dev/router
+
 ## Install
 
 ```sh

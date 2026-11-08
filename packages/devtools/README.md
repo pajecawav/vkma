@@ -6,6 +6,8 @@ Devtools for VK Mini Apps: a `/__vkma/` panel on your own Vite dev server
 with a live VK Bridge dialogue (outgoing sends, paired responses, incoming
 events), a connected-clients registry and an execute bridge.
 
+Docs: https://vkma.dev/devtools
+
 ## Setup
 
 ```sh

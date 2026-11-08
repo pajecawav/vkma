@@ -4,6 +4,8 @@
 
 Scaffold a VK Mini App in seconds: Vite plus the [@vkma.dev](https://github.com/pajecawav/vkma) stack (bridge, devtools, deploy), TypeScript by default.
 
+Docs: https://vkma.dev/create-app
+
 ```sh
 npm create @vkma.dev/app my-app
 # or: pnpm create @vkma.dev/app my-app · yarn create @vkma.dev/app my-app
