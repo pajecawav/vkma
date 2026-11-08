@@ -117,9 +117,13 @@ describe("llms.txt", () => {
 });
 
 describe("seo files", () => {
-	it("ships robots.txt and sitemap", () => {
+	it("ships robots.txt, sitemap and the _headers charset rules", () => {
 		expect(files).toContain("robots.txt");
 		expect(files).toContain("sitemap-index.xml");
 		expect(statSync(join(dist, "robots.txt")).size).toBeGreaterThan(0);
+		// .md and .txt endpoints must declare UTF-8 (Russian content)
+		const headers = readFileSync(join(dist, "_headers"), "utf8");
+		expect(headers).toContain("/*.md");
+		expect(headers).toContain("charset=utf-8");
 	});
 });

@@ -12,6 +12,8 @@
 		"dev": "astro dev",
 		"build": "astro build && node scripts/ai-endpoints.mjs",
 		"preview": "astro preview",
+		"preview:prod": "run-s build preview:wrangler",
+		"preview:wrangler": "pnpx wrangler dev",
 		"deploy": "run-s build deploy:wrangler",
 		"deploy:wrangler": "pnpx wrangler deploy",
 		"test": "vitest run",

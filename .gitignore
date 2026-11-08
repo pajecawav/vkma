@@ -16,3 +16,6 @@ packages/bridge-schema/src/index.d.ts*
 
 # agent/browser audit artifacts — local only
 .playwright-mcp/
+
+# wrangler dev local state
+.wrangler/

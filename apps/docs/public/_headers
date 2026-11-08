@@ -1,0 +1,10 @@
+# Markdown endpoints and llms files carry UTF-8 Russian text; without an
+# explicit charset browsers guess the encoding. Splat matches greedily,
+# so /*.md covers /deploy.md, /bridge/usage.md and /en/bridge/usage.md.
+/*.md
+	Content-Type: text/markdown; charset=utf-8
+	X-Content-Type-Options: nosniff
+
+/*.txt
+	Content-Type: text/plain; charset=utf-8
+	X-Content-Type-Options: nosniff
