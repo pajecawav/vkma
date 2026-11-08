@@ -3,6 +3,7 @@ title: bridge-schema
 description: "Каталог всех событий VK Bridge как данные: JSON Schema и типы TypeScript."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/bridge-schema` — JSON Schema каталог всех событий VK Bridge: request props методов, данные ответов и событий, проводка `Result`/`Failed`, с типами TypeScript поверх. Референсный каталог — [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT).

@@ -3,6 +3,7 @@ title: bridge-schema
 description: "A catalogue of every VK Bridge event as data: JSON Schema and TypeScript types."
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/bridge-schema` is a JSON Schema catalogue of every VK Bridge event, covering method request props, response/receive data and the `Result`/`Failed` event wiring, with generated TypeScript types on top. Thanks to [VKCOM/vk-bridge](https://github.com/VKCOM/vk-bridge) (MIT) for the reference catalogue.

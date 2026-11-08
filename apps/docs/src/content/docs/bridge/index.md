@@ -3,6 +3,7 @@ title: bridge
 description: "Независимый VK Bridge: классический API, таймауты на каждый send и встроенный tap."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/bridge` — независимый VK Bridge для VK Mini Apps. Классический API (`send` / `subscribe` / `supportsAsync` / …), встроенный observability-tap, таймаут и abort на каждый send и настраиваемая политика `request_id`.

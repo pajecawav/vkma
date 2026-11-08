@@ -3,6 +3,7 @@ title: api-schema
 description: Типы и zod/valibot-схемы всего VK API, генерированные из официальной схемы.
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/api-schema` — генерированные типы TypeScript и схемы [zod](https://zod.dev) / [valibot](https://valibot.dev) для [VK API](https://dev.vk.com/), собранные из [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema).

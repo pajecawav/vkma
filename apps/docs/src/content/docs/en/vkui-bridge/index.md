@@ -3,6 +3,7 @@ title: vkui-bridge
 description: "React glue between the bridge and VKUI: host theme, insets and adaptivity in one provider."
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/vkui-bridge` is React glue between [`@vkma.dev/bridge`](/en/bridge/) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell. Semantics copy [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react).

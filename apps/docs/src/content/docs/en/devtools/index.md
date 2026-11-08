@@ -3,6 +3,7 @@ title: devtools
 description: "The /__vkma/ panel on your dev server: a live bridge dialogue, clients and execute."
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/devtools` is devtools for VK Mini Apps: a `/__vkma/` panel on your own dev server with a live VK Bridge dialogue (outgoing sends, paired responses, incoming events), a connected-clients registry and an execute bridge.

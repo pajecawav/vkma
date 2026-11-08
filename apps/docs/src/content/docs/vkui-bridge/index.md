@@ -3,6 +3,7 @@ title: vkui-bridge
 description: "React-клей между мостом и VKUI: тема, insets и адаптивность хоста в одном провайдере."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/vkui-bridge` — React-клей между [`@vkma.dev/bridge`](/bridge/) и [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). Провайдер стримит тему хоста, safe-area insets и адаптивность из событий моста в готовую оболочку `ConfigProvider`. Семантика скопирована с [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react).

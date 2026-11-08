@@ -3,6 +3,7 @@ title: router
 description: "Роутер VK Mini Apps на TanStack Router: вьюхи, панели, модалки и popout'ы как URL."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/router` — роутер для VK Mini Apps поверх [TanStack Router](https://tanstack.com/router). Вьюхи, панели, модалки и popout'ы управляются URL и рендерятся хостами VKUI: типизированные хэндлы вместо строковых id, синхронизация с VK-историей и хостом (`VKWebAppSetLocation`, `VKWebAppChangeFragment`), управление swipe-back. Feature parity с `@vkontakte/vk-mini-apps-router`, но не API parity.

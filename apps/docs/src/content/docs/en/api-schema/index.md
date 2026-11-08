@@ -3,6 +3,7 @@ title: api-schema
 description: Types and zod/valibot schemas for the whole VK API, generated from the official schema.
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/api-schema` is generated TypeScript types plus [zod](https://zod.dev) and [valibot](https://valibot.dev) schemas for the [VK API](https://dev.vk.com/), built from [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema).

@@ -3,6 +3,7 @@ title: deploy
 description: "Deploy VK Mini Apps to VK hosting: a drop-in replacement for vk-miniapps-deploy."
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/deploy` is a deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting, a modern drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.

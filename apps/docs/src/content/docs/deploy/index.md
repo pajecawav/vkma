@@ -3,6 +3,7 @@ title: deploy
 description: "Деплой VK Mini Apps в хостинг VK: drop-in замена vk-miniapps-deploy."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/deploy` — CLI и библиотека деплоя для хостинга [VK Mini Apps](https://vk.ru/mini-apps), современная drop-in-совместимая замена `@vkontakte/vk-miniapps-deploy`.

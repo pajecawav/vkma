@@ -3,6 +3,7 @@ title: create-app
 description: "A VK Mini App scaffolder: Vite, bridge, devtools and deploy in one command."
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/create-app` scaffolds a VK Mini App in seconds: Vite plus the vkma.dev stack, TypeScript strict by default.

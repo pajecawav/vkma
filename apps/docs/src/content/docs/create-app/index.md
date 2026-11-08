@@ -3,6 +3,7 @@ title: create-app
 description: "Скаффолдер VK Mini App: Vite, мост, devtools и деплой за одну команду."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/create-app` генерирует VK Mini App за секунды: Vite плюс стек vkma.dev, TypeScript strict по умолчанию.

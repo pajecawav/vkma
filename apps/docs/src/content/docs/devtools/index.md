@@ -3,6 +3,7 @@ title: devtools
 description: "Панель /__vkma/ на твоём dev-сервере: живой диалог с мостом, клиенты и execute."
 sidebar:
     order: 0
+    label: "Описание"
 ---
 
 `@vkma.dev/devtools` — devtools для VK Mini Apps: панель `/__vkma/` на твоём собственном dev-сервере с живым диалогом VK Bridge (исходящие send'ы, парные ответы, входящие события), реестром подключённых клиентов и execute-мостом.

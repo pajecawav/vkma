@@ -3,6 +3,7 @@ title: bridge
 description: "An independent VK Bridge: the classic API, per-send timeouts and a built-in tap."
 sidebar:
     order: 0
+    label: "Overview"
 ---
 
 `@vkma.dev/bridge` is an independent VK Bridge for VK Mini Apps. Drop-in classic API (`send` / `subscribe` / `supportsAsync` / …) plus a built-in observability tap, per-send timeout/abort and a configurable `request_id` policy.
