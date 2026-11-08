@@ -24,7 +24,7 @@ import { CONFIG_BASENAME, CONFIG_EXTENSIONS, loadConfigFile } from "../config/lo
 import { DeployConfigSchema, type DeployConfigInput } from "../config/schema.ts";
 import { ConfigValidationError, DeployError } from "../errors.ts";
 import type { ParsedArgs } from "./args.ts";
-import type { RunContext } from "./main.ts";
+import { promptWithStatus, type RunContext } from "./main.ts";
 import { confirm, text, type PromptOptions } from "./prompt.ts";
 
 /** Where init writes; the only filename it ever produces. */
@@ -54,8 +54,9 @@ export async function runInit(
 	context: RunContext,
 	login: () => Promise<number>,
 ): Promise<number> {
-	const { logger, env, cwd } = context;
+	const { logger, env, cwd, status } = context;
 	const stdin = context.stdin ?? { isTTY: false };
+	status.working("Preparing the config scaffold");
 	// Same interactivity gate as the deploy prompts: TTY + pretty + no CI.
 	const interactiveRun =
 		stdin.isTTY === true && context.mode === "pretty" && env["CI"] === undefined;
@@ -74,25 +75,41 @@ export async function runInit(
 	// another project; discovery during deploy will find it anyway.
 	const legacy = await readLegacyConfig(cwd, logger);
 
-	const values = await composeValues(parsed, legacy, {
-		interactiveRun,
-		stdin,
-		signal: context.signal,
-		input: context.input,
-		output: context.stdout,
-	});
+	const values = interactiveRun
+		? await promptWithStatus(status, "question", "Answering the init wizard", () =>
+				composeValues(parsed, legacy, {
+					interactiveRun,
+					stdin,
+					signal: context.signal,
+					input: context.input,
+					output: context.stdout,
+				}),
+			)
+		: await composeValues(parsed, legacy, {
+				interactiveRun,
+				stdin,
+				signal: context.signal,
+				input: context.input,
+				output: context.stdout,
+			});
 
 	const content = renderConfigFile(values);
 
 	// A last look at the exact bytes before they land on disk.
 	if (interactiveRun && !parsed.booleans.yes) {
 		logger.info(content.trimEnd());
-		const proceed = await confirm(`Write ${OUTPUT_FILENAME}?`, true, {
-			signal: context.signal,
-			stdin,
-			input: context.input,
-			output: context.stdout,
-		});
+		const proceed = await promptWithStatus(
+			status,
+			"question",
+			`Review the proposed ${OUTPUT_FILENAME} bytes`,
+			() =>
+				confirm(`Write ${OUTPUT_FILENAME}?`, true, {
+					signal: context.signal,
+					stdin,
+					input: context.input,
+					output: context.stdout,
+				}),
+		);
 		if (!proceed) {
 			// A cancel, not an error: nothing was written (exit 130).
 			throw new DeployError("aborted", "init canceled before writing", {
@@ -102,18 +119,25 @@ export async function runInit(
 	}
 
 	await fs.writeFile(path.join(cwd, OUTPUT_FILENAME), content, "utf8");
+	status.done(`Created ${OUTPUT_FILENAME}`);
 	logger.step(`Created ${OUTPUT_FILENAME}`);
 
 	await warnWhenPackageMissing(cwd, logger);
 
 	// The login offer is a TTY-only convenience; CI gets the manual command.
 	if (interactiveRun && !parsed.booleans.yes) {
-		const wantsLogin = await confirm("Authorize now (vkma-deploy login)?", false, {
-			signal: context.signal,
-			stdin,
-			input: context.input,
-			output: context.stdout,
-		});
+		const wantsLogin = await promptWithStatus(
+			status,
+			"question",
+			"Authorize now (vkma-deploy login)?",
+			() =>
+				confirm("Authorize now (vkma-deploy login)?", false, {
+					signal: context.signal,
+					stdin,
+					input: context.input,
+					output: context.stdout,
+				}),
+		);
 		if (wantsLogin) {
 			// runLogin re-resolves the config from cwd and finds the file we
 			// just wrote; its own exit code becomes init's.

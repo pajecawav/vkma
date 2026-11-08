@@ -66,3 +66,6 @@ export type { PreflightResult } from "./preflight.ts";
 
 export { createRedactor } from "./redact.ts";
 export type { Redactor } from "./redact.ts";
+
+export { statusSequence, STATUS_LIMITS } from "./status/index.ts";
+export type { StatusRecord, StatusState, StatusKind } from "./status/index.ts";

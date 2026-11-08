@@ -47,6 +47,7 @@ const BOOLEAN_FLAGS = new Set([
 	"--quiet",
 	"--json",
 	"--no-color",
+	"--no-status",
 	"--help",
 	"--version",
 	"--update-prod",
@@ -86,6 +87,7 @@ export interface ParsedArgs {
 		readonly quiet: boolean;
 		readonly json: boolean;
 		readonly noColor: boolean;
+		readonly noStatus: boolean;
 		readonly help: boolean;
 		readonly version: boolean;
 		readonly updateProd?: boolean;
@@ -110,6 +112,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let quiet = false;
 	let json = false;
 	let noColor = false;
+	let noStatus = false;
 	let help = false;
 	let version = false;
 	let updateProd: boolean | undefined;
@@ -261,6 +264,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			case "--no-color":
 				noColor = true;
 				break;
+			case "--no-status":
+				noStatus = true;
+				break;
 			case "--help":
 				help = true;
 				break;
@@ -296,6 +302,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			quiet,
 			json,
 			noColor,
+			noStatus,
 			help,
 			version,
 			updateProd,

@@ -27,6 +27,7 @@ const FLAGS = [
 	"--quiet",
 	"--json",
 	"--no-color",
+	"--no-status",
 	"--help",
 	"--version",
 ];

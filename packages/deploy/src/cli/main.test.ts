@@ -1282,3 +1282,209 @@ describe("main()", () => {
 		expect(out.join("")).not.toContain("Using proxy");
 	});
 });
+
+describe("OSC 7501 status reports", () => {
+	// The protocol is literally defined by these escape bytes.
+	// oxlint-disable-next-line eslint/no-control-regex
+	const OSC = /\x1b\]7501;/g;
+	const reports = (text: string): string[] => text.split("\x1b\\");
+
+	function ttyStdout(): { write(text: string): void; isTTY: boolean; writes: string[] } {
+		const buffer: string[] = [];
+		return { write: text => buffer.push(text), isTTY: true, writes: buffer };
+	}
+
+	it("reports working blocks with upload progress and a final done", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const outStream = ttyStdout();
+		const code = await main([], {
+			stdout: outStream,
+			stderr,
+			stdin: { isTTY: false },
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		const text = outStream.writes.join("");
+		expect(text.match(OSC)).not.toBeNull();
+		const closed = reports(text.slice(0, -1)); // each record ends with ESC \
+		const states = closed
+			.filter(part => part.includes("state="))
+			.map(part => part.split("state=")[1]?.split(":")[0]);
+		expect(states[0]).toBe("working");
+		expect(states.at(-1)).toBe("done");
+		// Upload progress reached the terminal as integer percent records.
+		expect(closed.some(part => part.includes("progress=10"))).toBe(true);
+		// The upload's 100% is not followed by a residual error/idle record.
+		expect(states).not.toContain("error");
+		// One final done record carries the version.
+		const done = closed.findLast(part => part.includes("state=done")) ?? "";
+		const msg = done.split(":").find(pair => pair.startsWith("msg="));
+		expect(Buffer.from((msg ?? "").slice(4), "base64").toString("utf8")).toBe(
+			"Deployed version 9",
+		);
+	});
+
+	it("reports blocked while the pre-deploy prompt waits, idle on decline", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const outStream = ttyStdout();
+		const input = new PassThrough();
+		const pending = main([], {
+			stdout: outStream,
+			stderr,
+			stdin: { isTTY: true },
+			input,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		input.write("n\n");
+		const code = await pending;
+		expect(code).toBe(130);
+		expect(spy.calls.length).toBe(0);
+		const text = outStream.writes.join("");
+		const closed = reports(text);
+		expect(closed.some(part => part.includes("state=blocked:kind=question"))).toBe(true);
+		const last = closed[closed.length - 2] ?? "";
+		expect(last).toContain("state=idle");
+	});
+
+	it("maps a failing deploy onto the error state", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
+		);
+		const spy = createFetchSpy(() => ({
+			body: { error: { error_code: 15, error_msg: "VK said no" } },
+		}));
+		const outStream = ttyStdout();
+		const code = await main([], {
+			stdout: outStream,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(3);
+		const closed = reports(outStream.writes.join(""));
+		const errorRecord = closed.find(part => part.includes("state=error")) ?? "";
+		expect(errorRecord).toContain("state=error");
+		// Invariant #3: the error text is redacted (base64 must not decode
+		// the token, and nothing raw leaks alongside it).
+		expect(outStream.writes.join("")).not.toContain("cli-token-1");
+	});
+
+	it("stays off without a TTY and fires --no-status / VKMA_NO_STATUS off", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({ appId: 42, staticPath: "./build", endpoints: { web: "index.html" } }),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+
+		// Not a TTY: nothing at all.
+		const plain = ttyStdout();
+		await main([], {
+			stdout: { write: text => plain.writes.push(text), isTTY: false },
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(plain.writes.join("")).not.toMatch(OSC);
+
+		// TTY, but --no-status.
+		const disabled = ttyStdout();
+		await main(["--no-status"], {
+			stdout: disabled,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(disabled.writes.join("")).not.toMatch(OSC);
+
+		// TTY, but VKMA_NO_STATUS in the environment.
+		const envOff = ttyStdout();
+		await main([], {
+			stdout: envOff,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", VKMA_NO_STATUS: "1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(envOff.writes.join("")).not.toMatch(OSC);
+	});
+
+	it("never emits in --json even on a real TTY", async () => {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
+		);
+		const spy = createFetchSpy(route(deployRoute()));
+		const outStream = ttyStdout();
+		const code = await main(["--json"], {
+			stdout: outStream,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(0);
+		const text = outStream.writes.join("");
+		expect(text.match(OSC)).toBeNull();
+		// Every line stays parseable JSON.
+		for (const line of text.trimEnd().split("\n")) {
+			expect(() => JSON.parse(line)).not.toThrow();
+		}
+	});
+});
