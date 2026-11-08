@@ -1,0 +1,44 @@
+{
+	"name": "@vkma.dev/playground",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"engines": {
+		"node": ">=22.18.0"
+	},
+	"scripts": {
+		"dev": "vite",
+		"dev:fab": "cross-env VKMA_FAB=1 vite",
+		"dev:hub": "cross-env VKMA_HUB=1 vite",
+		"dev:mcp": "cross-env VKMA_MCP=1 vite",
+		"build": "tsc --noEmit && vite build",
+		"preview": "vite preview",
+		"deploy": "vkma-deploy"
+	},
+	"dependencies": {
+		"@tanstack/react-router": "catalog:",
+		"@vkma.dev/api-schema": "workspace:*",
+		"@vkma.dev/bridge": "workspace:*",
+		"@vkma.dev/router": "workspace:*",
+		"@vkma.dev/vkui-bridge": "workspace:*",
+		"@vkontakte/icons": "catalog:",
+		"@vkontakte/vkui": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"valibot": "catalog:"
+	},
+	"devDependencies": {
+		"@devframes/vite": "catalog:",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vitejs/devtools": "^0.8.0",
+		"@vitejs/plugin-react": "catalog:",
+		"@vkma.dev/deploy": "workspace:*",
+		"@vkma.dev/devtools": "workspace:*",
+		"cross-env": "catalog:",
+		"devframe": "catalog:",
+		"typescript": "catalog:",
+		"vite": "catalog:"
+	}
+}

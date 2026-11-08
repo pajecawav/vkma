@@ -3,9 +3,10 @@
 **Status: v0.1 implemented.** `@vkma.dev/router` is a VK Mini Apps router
 on top of TanStack Router, successor to `@vkontakte/vk-mini-apps-router`
 (**feature parity, not API parity**). The four layers are implemented and
-validated end-to-end in `packages/router/playground`; `DESIGN.md` is the
-source of truth for decisions, spike verdicts and implementation notes —
-read it before touching anything here.
+were validated end-to-end in the historical spike playground;
+`playground/` is now the permanent planner/manual-e2e target.
+`DESIGN.md` is the source of truth for decisions, spike verdicts and
+implementation notes — read it before touching anything here.
 
 ## Where things live
 
@@ -23,18 +24,15 @@ read it before touching anything here.
   TanStack tree + registries), `AppRootShell` auto-shell, `useActiveStory`,
   `useNavigator`, `createVkLink` (typed Page-object router links for
   arbitrary components, `preload="intent"`).
-- `playground` — the showcase playground (a VKUI navigation-guide style
-  app: Epic/Tabbar + desktop sidebar, four stories driven by the router).
-  It CONSUMES the package (`pnpm --filter @vkma.dev/router build` before
-  its dev server — it resolves `dist`). Manual-e2e observability (bridge
-  payloads, host stack, `__TSR_index`) hides behind `?debug=1` in the
-  router search (`#/?debug=1`) — the flag LATCHES in localStorage (the
-  panel exists to be watched while navigating); disarm via the panel's
-  hide button or `?debug=0`. Unknown URLs and `notFound()` throws render
-  the VKUI NotFound — never a first-story fallback (an unmatched lazy
-  panel would spin forever). The feature index in «О приложении» is the
-  manual e2e script: every row is a deep link to one scenario. New design
-  questions still get answered by spikes here, and every answer lands
+- `playground/` — the permanent planner and router showcase (a
+  VKUI navigation-guide style app: Epic/Tabbar + desktop sidebar, three
+  stories driven by the router, alongside bridge/devtools/api-schema/deploy
+  scenarios). It CONSUMES the package (`pnpm --filter @vkma.dev/router build`
+  before its dev server — it resolves `dist`). Unknown URLs and `notFound()`
+  throws render the VKUI NotFound — never a first-story fallback (an unmatched
+  lazy panel would spin forever). The feature index in «О приложении» is the
+  manual-e2e script: every row is a deep link to one scenario. New design
+  questions still get answered by throwaway spikes, and every answer lands
   back in DESIGN.md.
 
 ## Non-obvious invariants (from the spikes — do not rediscover them)
@@ -80,23 +78,26 @@ read it before touching anything here.
   declarative masks to the owning panel; pass `app.routeMasks` into
   `createRouter({ routeMasks })` or a modal open puts its own path in the
   address bar. Global ones via `?modal=` — deep-linkable, masked by the
-  imperative open), never `ModalRoot` (deprecated, gone in
-  VKUI v10). The Modals host drives the choreography through CONTEXT and
+  imperative open). The Modals host uses `ModalRoot` ONLY as VKUI's
+  shared-overlay/context primitive — the recommended `useModalManager`
+  renders it internally in VKUI 8 too; isolate it here for the v10 migration.
+  Its `activeModal` is the LATEST target even while that target's sheet is
+  still unmounted waiting for the previous `onClosed`, so the shared overlay
+  never exits between sequential sheets. Navigation/history stay ours. The
+  Modals host drives the sheet choreography through CONTEXT and
   the ENTRY COMPONENT renders its own surface — `ModalPageSurface` or
   `ModalCardSurface` (the component owns header/card chrome/size as
   ordinary runtime props; the host owns `nav`/`open`/`keepMounted`/
   `onClose`/`onClosed` — registry-declared chrome was tried and rejected:
   modal content is contextual, not declarative). Modal declarations are
   RECURSIBLE: a `{ component, modals }` entry makes its modals child
-  routes of that modal — NESTED modals stack on top of the open parent
-  (both sheets visible, the host sets `disableFocusTrap` on the covered
-  one), `showModal` PUSHES to a child route (target path starts with the
-  open modal's `fullPath`), and back unwinds exactly one level revealing
-  the parent. Sibling retargets keep the SEQUENTIAL choreography: the old
-  sheet closes first and the new one opens only after the exit completes —
-  never two sibling sheets at once (the user-reported bug from the first
-  spike implementation). The host state is a stack + one exiting sheet;
-  the nested/sibling relation is a route-id prefix check. Deep links into
+  routes of that modal. EVERY modal retarget is SEQUENTIAL, including
+  nested and back-to-parent transitions: the old sheet gets `open=false`,
+  its `onClosed` completes the exit, and only then the target gets
+  `open=true` — never two open sheets at once. `showModal` PUSHES to a
+  child route (target path starts with the open modal's `fullPath`), and
+  back unwinds exactly one history level before revealing the parent.
+  The host state is at most one open sheet + one exiting sheet. Deep links into
   (nested) modals inflate the FULL ancestor chain — parent panel + every
   modal level, outer → inner — so back walks the natural stack. Exit
   completion is EVENT-DRIVEN on the surface's
@@ -199,11 +200,11 @@ read it before touching anything here.
   view's home panel needs a distinct path segment (`feed`, `messages`…);
   the panel KEY should be that segment (`app.panels` keys are
   `${viewKey}/${panelKey}`).
-- **Playground consumes dist**: `packages/router/playground` resolves
-  `@vkma.dev/router` to `packages/router/dist` — after any package change,
-  `pnpm --filter @vkma.dev/router build` AND a dev-server restart (a
-  running Vite serves stale/missing dist transforms). The playground's
-  tsconfig paths point tsc at `src` for typechecking.
+- **Playground consumes dist**: `playground/` resolves
+  `@vkma.dev/router` to `packages/router/dist` through the workspace export —
+  after any package change, run `pnpm --filter @vkma.dev/router build` AND
+  restart the dev server (a running Vite serves stale/missing dist transforms).
+  Its typecheck consumes the built declarations too.
 - **VKUI housekeeping**: no deprecated `Div` (use `Box`); ship a
   VKUI-styled `defaultNotFoundComponent`; `platform="ios"` + `SplitCol
   animate` force transitions on desktop (spike testing setup).

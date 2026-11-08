@@ -4,10 +4,12 @@ VK Mini Apps router built on top of TanStack Router. Successor to
 `@vkontakte/vk-mini-apps-router`: **feature parity, not API parity** — a
 migration guide ships instead of drop-in compatibility.
 
-**Status: v0.1 implemented and validated end-to-end in
-`packages/router/playground`** (which consumes the package, not copies of it).
-See "Spikes" for the validation history and "Implementation notes" for the
-hard-won invariants; `AGENTS.md` distills them for agents.
+**Status: v0.1 implemented.** The original end-to-end validation used the
+former `packages/router/playground` spike app, removed after the playgrounds
+were consolidated. The current permanent manual-e2e target is
+`playground/`, a planner that consumes the built package rather than
+copies of it. See "Spikes" for the validation history and "Implementation
+notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Product frame
 
@@ -85,16 +87,17 @@ hard-won invariants; `AGENTS.md` distills them for agents.
   the `history` prop is only used for iOS swipe-back (`slice(-2)[0]`);
   `onTransition` is the completion signal; `ModalRoot` is deprecated
   (removed in v10) and `useModalManager` is imperative with its own
-  internal history — we drive modals through **controlled props**
-  (standalone `ModalPage open={bool}`), to be verified in spike 2.
+  internal history. The recommended hook still uses `ModalRoot` internally
+  as VKUI 8's shared-overlay engine. Our host isolates that primitive while
+  retaining its own route history and sequential sheet choreography.
 
 ## Overlays
 
 - **Modals are routes** (+ route masking, a documented TanStack pattern):
   back closes for free, deep links work.
     - Local modals: SIBLING child routes of a panel (chain steps are
-      siblings — nesting modal routes inside each other keeps the parent
-      matched and stacks two open sheets, the user-reported bug). URL-
+      siblings; recursive declarations may also nest modal routes, keeping
+      the parent route matched without keeping its sheet open). URL-
       masked back to the owning panel via declarative `routeMasks`
       (`app.routeMasks` → `createRouter`): the address stays at the panel
       while any level is open, the raw modal path still deep-links
@@ -107,16 +110,24 @@ hard-won invariants; `AGENTS.md` distills them for agents.
       dev-time error.
     - **Sequential choreography**: when the matched modal changes, the host
       closes the displayed sheet (`open={false}` + keepMounted) and opens
-      the new one only after the exit completes — never two SIBLING sheets
-      at once. NESTED modals (child routes of a modal) are the exception:
-      they stack on top of the open parent and back unwinds one level.
-      Exit completion is EVENT-DRIVEN on the surface's `onClosed`
+      the new one only after the exit completes. This applies equally to
+      sibling, nested and back-to-parent transitions — exactly one sheet
+      has `open={true}` at any moment. Back still unwinds one history level;
+      the parent reopens only after the child's exit. Exit completion is
+      EVENT-DRIVEN on the surface's `onClosed`
       (VKUI's useCSSTransition backs it with a computed-duration fallback —
       more accurate than any host constant); the host keeps only a watchdog
       for the unmount-mid-exit case, and re-targeting the displayed modal
       while it exits CANCELS the exit (VKUI reverses the transition
       mid-flight). Modal→modal navigation REPLACES the history entry
       (old-router parity: back returns to the panel).
+    - **One shared VKUI overlay**: standalone ModalPage/ModalCard instances
+      each animate their own overlay, which makes the backdrop fade out and
+      in between sequential sheets. `useModalManager` avoids that through
+      `ModalRoot`; our host uses the same primitive. `activeModal` follows
+      the latest target while the target sheet waits unmounted, keeping the
+      shared overlay visible without opening two sheets. This also preserves
+      VKUI's shared-backdrop ref for bottom-sheet gestures.
     - **The entry component owns its surface**: the host binds
       nav/open/close choreography through context, and the component
       renders a `ModalPageSurface` or `ModalCardSurface` root with every
@@ -220,8 +231,13 @@ hard-won invariants; `AGENTS.md` distills them for agents.
 
 ## Spikes (throwaway prototypes, in this order)
 
-1. **Panels + animations** — ✅ done, see `packages/router/playground` (commit
-   `feat(router): spike 1`) and "Spike 1 verdict" below.
+The verdicts below are historical: all four spikes ran in the former
+`packages/router/playground`, which was removed after consolidation into
+`playground/`. The paths in the headings identify that historical
+provenance, not a live app.
+
+1. **Panels + animations** — ✅ done in the historical spike playground
+   (commit `feat(router): spike 1`), see "Spike 1 verdict" below.
 2. **Modals** — ✅ done (commit `feat(router): spike 2 — modals as routes
    with masking`), see "Spike 2 verdict" below.
 3. **VK-history** — ✅ done (commit `feat(router): spike 3 — VK history +
@@ -281,7 +297,8 @@ hard-won invariants; `AGENTS.md` distills them for agents.
   the real location (`/item/7/details`) rides in `history.state`; deep
   link to the full path opens the modal; back closes it with animation.
 - ✅ **Modal chains are just history**: `details → more → back → details`
-  works; two sheets stack without artifacts.
+  works. The spike initially stacked both open sheets; superseded on
+  2026-11-07: all modal transitions are sequential, with one open sheet.
 - ✅ **Closing animation after unmatch**: the modal host keeps every seen
   modal mounted (`keepMounted`) and flips `open` to false when its route
   stops matching — `onClose = history.back()` is the natural close.

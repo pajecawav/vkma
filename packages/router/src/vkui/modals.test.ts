@@ -5,7 +5,6 @@ describe("ModalSurface hostProps", () => {
 	const api = {
 		nav: "/view:feed/post/$id/comments",
 		open: true,
-		stacked: true,
 		onClose: () => {},
 		onClosed: () => {},
 	};
@@ -17,12 +16,5 @@ describe("ModalSurface hostProps", () => {
 			onClose: api.onClose,
 			onClosed: api.onClosed,
 		});
-	});
-
-	it("never leaks host-owned keys into the DOM-bound spread", () => {
-		// VKUI forwards unknown props to the DOM; a boolean there makes React
-		// warn ("Received `false` for a non-boolean attribute `stacked`")
-		expect(hostProps(api)).not.toHaveProperty("stacked");
-		expect(hostProps({ ...api, stacked: false })).not.toHaveProperty("stacked");
 	});
 });

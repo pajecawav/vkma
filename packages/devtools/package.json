@@ -63,6 +63,7 @@
 		"dev:client": "vite build --config app/vite.config.ts --watch",
 		"dev:inject": "vite build --config vite.inject.config.ts --watch",
 		"lint:package": "publint",
+		"playground:rsbuild": "node scripts/rsbuild-playground.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest watch"
 	},

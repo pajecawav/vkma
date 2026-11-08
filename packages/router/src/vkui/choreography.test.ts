@@ -16,31 +16,43 @@ describe("modal choreography", () => {
 		expect(next.target).toStrictEqual(entry("comments"));
 	});
 
-	it("settles when the target is already on top", () => {
+	it("settles when the target is already open", () => {
 		const open = reconcile(idleChoreography<Entry>(), entry("comments"));
 		const again = reconcile(open, entry("comments"));
 		expect(again.stack).toStrictEqual(open.stack);
 		expect(again.exiting).toBeNull();
 	});
 
-	it("stacks a nested modal on top of the open parent", () => {
+	it("closes the parent before opening a nested modal", () => {
 		const open = reconcile(idleChoreography<Entry>(), entry("comments"));
 		const nested = reconcile(open, {
 			id: "share",
 			routeId: "/view:feed/post/$id/comments/share",
 		});
-		expect(nested.stack.map(item => item.id)).toStrictEqual(["comments", "share"]);
+		expect(nested.stack).toStrictEqual([]);
+		expect(nested.exiting?.id).toBe("comments");
+		expect(nested.target?.id).toBe("share");
+
+		const settled = completeExit(nested);
+		expect(settled.stack.map(item => item.id)).toStrictEqual(["share"]);
+		expect(settled.exiting).toBeNull();
 	});
 
-	it("back to the ancestor closes the top and keeps the parent open", () => {
+	it("back to the ancestor closes the child before reopening the parent", () => {
 		const open = reconcile(idleChoreography<Entry>(), entry("comments"));
-		const nested = reconcile(open, {
-			id: "share",
-			routeId: "/view:feed/post/$id/comments/share",
-		});
+		const nested = completeExit(
+			reconcile(open, {
+				id: "share",
+				routeId: "/view:feed/post/$id/comments/share",
+			}),
+		);
 		const back = reconcile(nested, entry("comments"));
-		expect(back.stack.map(item => item.id)).toStrictEqual(["comments"]);
+		expect(back.stack).toStrictEqual([]);
 		expect(back.exiting?.id).toBe("share");
+
+		const settled = completeExit(back);
+		expect(settled.stack.map(item => item.id)).toStrictEqual(["comments"]);
+		expect(settled.exiting).toBeNull();
 	});
 
 	it("sibling retarget closes the displayed sheet before opening the new one", () => {
@@ -71,7 +83,7 @@ describe("modal choreography", () => {
 		expect(settled.stack.map(item => item.id)).toStrictEqual(["reactions"]);
 	});
 
-	it("closing everything exits the top with no queued reopen", () => {
+	it("closing everything exits the open sheet with no queued reopen", () => {
 		const open = reconcile(idleChoreography<Entry>(), entry("comments"));
 		const closing = reconcile(open, null);
 		expect(closing.exiting?.id).toBe("comments");
