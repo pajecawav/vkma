@@ -1,15 +1,12 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import { PACKAGES, START } from "./sections.mjs";
+import { PACKAGES } from "./sections.mjs";
 
 // packages are top-level collapsed groups in PACKAGES order; the package
-// index page sorts first inside its group via sidebar.order 0
+// index page sorts first inside its group via sidebar.order 0. The start
+// page is a plain top-level link — its group wrapper would hold one item.
 const sidebar = [
-	{
-		label: START.label,
-		translations: START.translations,
-		items: [{ slug: "index" }],
-	},
+	{ slug: "index" },
 	...PACKAGES.map(directory => ({
 		label: directory,
 		collapsed: true,

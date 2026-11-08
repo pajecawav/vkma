@@ -4,8 +4,8 @@
 //
 // Packages are TOP-LEVEL sidebar entries in this order — each directory
 // becomes a collapsed group of its pages (page order comes from the
-// `sidebar.order` frontmatter field). START owns the root pages (getting
-// started).
+// `sidebar.order` frontmatter field). START drives the llms.txt heading
+// over the root pages; in the sidebar the start page is a plain link.
 export const SITE = "https://vkma.dev";
 
 export const START = {
