@@ -14,7 +14,7 @@
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SITE, SECTIONS } from "../sections.mjs";
+import { SITE, START, PACKAGES } from "../sections.mjs";
 
 const appRoot = fileURLToPath(new URL("..", import.meta.url));
 const srcDir = join(appRoot, "src", "content", "docs");
@@ -76,6 +76,7 @@ function page(rel) {
 	return {
 		rel,
 		locale,
+		slug,
 		title: fm.title,
 		description: fm.description,
 		order: fm.order,
@@ -99,21 +100,17 @@ for (const p of pages) {
 	copyFileSync(join(srcDir, p.rel), p.mdDistPath);
 }
 
-// 2. section grouping shared by llms.txt and llms-full.txt (sidebar order)
-function sectionPages(locale) {
+// 2. structure shared by llms.txt and llms-full.txt (sidebar order):
+// start pages first, then one block per package in PACKAGES order
+function structure(locale) {
 	const sorted = dir =>
 		pages
 			.filter(p => p.locale === locale && p.sectionDir === dir)
 			.toSorted((a, b) => a.order - b.order || a.slug.localeCompare(b.slug));
-	return SECTIONS.map(section => ({
-		section,
-		root: section.root ? pages.filter(p => p.locale === locale && p.slug === "") : [],
-		dirs: section.dirs.map(dir => ({ dir, pages: sorted(dir) })),
-	}));
-}
-
-function label(section, locale) {
-	return locale === "en" ? (section.translations?.en ?? section.label) : section.label;
+	return {
+		start: pages.filter(p => p.locale === locale && p.slug === ""),
+		packages: PACKAGES.map(dir => ({ dir, pages: sorted(dir) })),
+	};
 }
 
 function renderLlms(locale) {
@@ -122,26 +119,26 @@ function renderLlms(locale) {
 			? "Tooling for VK Mini Apps: bridge, router, devtools, deploy and API schemas. Every page is also served as markdown at its URL plus `.md`."
 			: "Инструменты для VK Mini Apps: мост, роутер, devtools, деплой и схемы. Каждая страница доступна как markdown по своему URL плюс `.md`.";
 	const link = p => `- [${p.title}](${p.mdUrl})${p.description ? `: ${p.description}` : ""}`;
+	const startLabel = locale === "en" ? (START.translations?.en ?? START.label) : START.label;
 	const lines = ["# vkma.dev", "", `> ${summary}`, ""];
-	for (const { section, root, dirs } of sectionPages(locale)) {
-		if (root.length === 0 && dirs.every(d => d.pages.length === 0)) {
-			continue;
-		}
-		lines.push(`## ${label(section, locale)}`, "");
-		for (const p of root) {
+	const { start, packages } = structure(locale);
+	if (start.length > 0) {
+		lines.push(`## ${startLabel}`, "");
+		for (const p of start) {
 			lines.push(link(p));
 		}
-		// one H3 per package, mirroring the nested sidebar groups
-		for (const { dir, pages: dirPages } of dirs) {
-			if (dirPages.length === 0) {
-				continue;
-			}
-			lines.push(`### ${dir}`, "");
-			for (const p of dirPages) {
-				lines.push(link(p));
-			}
-			lines.push("");
+		lines.push("");
+	}
+	// one H2 per package, mirroring the top-level sidebar entries
+	for (const { dir, pages: dirPages } of packages) {
+		if (dirPages.length === 0) {
+			continue;
 		}
+		lines.push(`## ${dir}`, "");
+		for (const p of dirPages) {
+			lines.push(link(p));
+		}
+		lines.push("");
 	}
 	const other = locale === "en" ? "Русская версия" : "English docs";
 	const otherUrl = locale === "en" ? `${SITE}/llms.txt` : `${SITE}/en/llms.txt`;
@@ -155,19 +152,9 @@ function renderLlmsFull(locale) {
 			? "# vkma.dev — full documentation dump"
 			: "# vkma.dev — полная документация одним файлом";
 	const parts = [header, ""];
-	for (const { root, dirs } of sectionPages(locale)) {
-		for (const p of [...root, ...dirs.flatMap(d => d.pages)]) {
-			parts.push(
-				"---",
-				"",
-				`# ${p.title}`,
-				"",
-				`Source: ${p.htmlUrl}`,
-				"",
-				p.body.trim(),
-				"",
-			);
-		}
+	const { start, packages } = structure(locale);
+	for (const p of [...start, ...packages.flatMap(d => d.pages)]) {
+		parts.push("---", "", `# ${p.title}`, "", `Source: ${p.htmlUrl}`, "", p.body.trim(), "");
 	}
 	return `${parts.join("\n")}\n`;
 }

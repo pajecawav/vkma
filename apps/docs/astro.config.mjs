@@ -1,21 +1,21 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import { SECTIONS } from "./sections.mjs";
+import { PACKAGES, START } from "./sections.mjs";
 
-const sidebar = SECTIONS.map(section => ({
-	label: section.label,
-	translations: section.translations,
-	items: [
-		...(section.root ? [{ slug: "index" }] : []),
-		// one nested, collapsed subgroup per package: Пакеты → create-app →
-		// its pages (the package index sorts first via sidebar.order 0)
-		...section.dirs.map(directory => ({
-			label: directory,
-			collapsed: true,
-			items: [{ autogenerate: { directory } }],
-		})),
-	],
-}));
+// packages are top-level collapsed groups in PACKAGES order; the package
+// index page sorts first inside its group via sidebar.order 0
+const sidebar = [
+	{
+		label: START.label,
+		translations: START.translations,
+		items: [{ slug: "index" }],
+	},
+	...PACKAGES.map(directory => ({
+		label: directory,
+		collapsed: true,
+		items: [{ autogenerate: { directory } }],
+	})),
+];
 
 export default defineConfig({
 	site: "https://vkma.dev",

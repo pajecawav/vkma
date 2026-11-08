@@ -93,6 +93,18 @@ describe("llms.txt", () => {
 		}
 	});
 
+	it("indexes the getting started page in both locales", () => {
+		// regression: page() once lost the slug field, silently dropping the
+		// homepage from llms.txt while package sections kept rendering
+		for (const [llms, home] of [
+			["llms.txt", "https://vkma.dev/index.md"],
+			["en/llms.txt", "https://vkma.dev/en.md"],
+		] as const) {
+			const content = readFileSync(join(dist, llms), "utf8");
+			expect(content, llms).toContain(home);
+		}
+	});
+
 	it("llms-full.txt contains every page of its locale", () => {
 		for (const [full, llms] of [
 			["llms-full.txt", "llms.txt"],
