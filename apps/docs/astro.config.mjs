@@ -7,7 +7,13 @@ const sidebar = SECTIONS.map(section => ({
 	translations: section.translations,
 	items: [
 		...(section.root ? [{ slug: "index" }] : []),
-		...section.dirs.map(directory => ({ autogenerate: { directory } })),
+		// one nested, collapsed subgroup per package: Пакеты → create-app →
+		// its pages (the package index sorts first via sidebar.order 0)
+		...section.dirs.map(directory => ({
+			label: directory,
+			collapsed: true,
+			items: [{ autogenerate: { directory } }],
+		})),
 	],
 }));
 

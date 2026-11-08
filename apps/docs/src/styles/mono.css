@@ -40,11 +40,10 @@
 	--sl-color-black: #ffffff;
 }
 
-/* Expressive Code sets token colors via inline styles; inherit wins with
-   !important and flattens every token to one gray per theme. */
-.expressive-code span {
-	color: inherit !important;
-}
+/* Code blocks keep Expressive Code's default themes (night-owl dark and
+   light) — syntax highlighting is colored and switches with the site
+   theme. The monochrome palette applies to everything else: frames,
+   borders, inline code, UI. */
 
 /* links keep the accent (a gray) plus an underline so they read as links
    without any hue */

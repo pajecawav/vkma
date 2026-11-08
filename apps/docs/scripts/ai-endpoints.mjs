@@ -101,20 +101,15 @@ for (const p of pages) {
 
 // 2. section grouping shared by llms.txt and llms-full.txt (sidebar order)
 function sectionPages(locale) {
-	return SECTIONS.map(section => {
-		const group = [];
-		if (section.root) {
-			group.push(...pages.filter(p => p.locale === locale && p.slug === ""));
-		}
-		for (const dir of section.dirs) {
-			group.push(
-				...pages
-					.filter(p => p.locale === locale && p.sectionDir === dir)
-					.toSorted((a, b) => a.order - b.order || a.slug.localeCompare(b.slug)),
-			);
-		}
-		return { section, group };
-	});
+	const sorted = dir =>
+		pages
+			.filter(p => p.locale === locale && p.sectionDir === dir)
+			.toSorted((a, b) => a.order - b.order || a.slug.localeCompare(b.slug));
+	return SECTIONS.map(section => ({
+		section,
+		root: section.root ? pages.filter(p => p.locale === locale && p.slug === "") : [],
+		dirs: section.dirs.map(dir => ({ dir, pages: sorted(dir) })),
+	}));
 }
 
 function label(section, locale) {
@@ -126,16 +121,27 @@ function renderLlms(locale) {
 		locale === "en"
 			? "Tooling for VK Mini Apps: bridge, router, devtools, deploy and API schemas. Every page is also served as markdown at its URL plus `.md`."
 			: "Инструменты для VK Mini Apps: мост, роутер, devtools, деплой и схемы. Каждая страница доступна как markdown по своему URL плюс `.md`.";
+	const link = p => `- [${p.title}](${p.mdUrl})${p.description ? `: ${p.description}` : ""}`;
 	const lines = ["# vkma.dev", "", `> ${summary}`, ""];
-	for (const { section, group } of sectionPages(locale)) {
-		if (group.length === 0) {
+	for (const { section, root, dirs } of sectionPages(locale)) {
+		if (root.length === 0 && dirs.every(d => d.pages.length === 0)) {
 			continue;
 		}
 		lines.push(`## ${label(section, locale)}`, "");
-		for (const p of group) {
-			lines.push(`- [${p.title}](${p.mdUrl})${p.description ? `: ${p.description}` : ""}`);
+		for (const p of root) {
+			lines.push(link(p));
 		}
-		lines.push("");
+		// one H3 per package, mirroring the nested sidebar groups
+		for (const { dir, pages: dirPages } of dirs) {
+			if (dirPages.length === 0) {
+				continue;
+			}
+			lines.push(`### ${dir}`, "");
+			for (const p of dirPages) {
+				lines.push(link(p));
+			}
+			lines.push("");
+		}
 	}
 	const other = locale === "en" ? "Русская версия" : "English docs";
 	const otherUrl = locale === "en" ? `${SITE}/llms.txt` : `${SITE}/en/llms.txt`;
@@ -149,8 +155,8 @@ function renderLlmsFull(locale) {
 			? "# vkma.dev — full documentation dump"
 			: "# vkma.dev — полная документация одним файлом";
 	const parts = [header, ""];
-	for (const { group } of sectionPages(locale)) {
-		for (const p of group) {
+	for (const { root, dirs } of sectionPages(locale)) {
+		for (const p of [...root, ...dirs.flatMap(d => d.pages)]) {
 			parts.push(
 				"---",
 				"",
