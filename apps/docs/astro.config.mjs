@@ -16,6 +16,9 @@ const sidebar = [
 
 export default defineConfig({
 	site: "https://vkma.dev",
+	// hover-prefetch every link: navigations serve from the memory cache
+	// instead of re-fetching, which shrinks the blank frame between loads
+	prefetch: { prefetchAll: true, defaultStrategy: "hover" },
 	integrations: [
 		starlight({
 			title: "vkma.dev",
@@ -27,6 +30,31 @@ export default defineConfig({
 			},
 			sidebar,
 			customCss: ["./src/styles/mono.css"],
+			head: [
+				// paint the pre-CSS blank canvas in the user's scheme instead
+				// of the browser-default white — kills the white flash on
+				// navigation for dark-theme readers
+				{
+					tag: "meta",
+					attrs: { name: "color-scheme", content: "dark light" },
+				},
+				{
+					tag: "meta",
+					attrs: {
+						name: "theme-color",
+						media: "(prefers-color-scheme: dark)",
+						content: "#0c0c0c",
+					},
+				},
+				{
+					tag: "meta",
+					attrs: {
+						name: "theme-color",
+						media: "(prefers-color-scheme: light)",
+						content: "#ffffff",
+					},
+				},
+			],
 			editLink: {
 				baseUrl: "https://github.com/pajecawav/vkma/edit/master/apps/docs/src/content/docs",
 			},
