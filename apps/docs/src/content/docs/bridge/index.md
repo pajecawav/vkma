@@ -22,7 +22,7 @@ import bridge from "@vkma.dev/bridge";
 await bridge.send("VKWebAppInit");
 const user = await bridge.send("VKWebAppGetUserInfo");
 
-// каждый subscribe возвращает свой off — без учёта отписок
+// каждый subscribe возвращает свою функцию отписки
 const off = bridge.subscribe(event => {
     // event.detail.type / event.detail.data, каждое событие от хоста
 });
@@ -58,7 +58,7 @@ await bridge.send("VKWebAppShowWallPostBox", props, { signal: controller.signal 
 createVKBridge("1.0.0", { requestId: { inject: false } });
 ```
 
-Инстанс по умолчанию публикует devtools-хэндл на `globalThis.__vkmaDevtoolsBridge` (`{ tap, send }`) — это контракт, который наблюдает коллектор [devtools](/devtools/). Достаточно импортировать пакет, без opt-in.
+Импорта пакета достаточно, чтобы [devtools](/devtools/) видел трафик моста: инстанс по умолчанию публикует хэндл на `globalThis.__vkmaDevtoolsBridge` (подробности — в [tap](/bridge/tap/)).
 
 ## Типы и кастомные события
 

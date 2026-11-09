@@ -53,7 +53,7 @@ TanStack — peer-зависимость, и пакет ничего не пер
 
 ## Freeze-семантика data-хуков
 
-Панель остаётся смонтированной во время back-анимации, но её маршрут уже не матчится: сырые TanStack-хуки (`useParams`, `useLoaderData`) кидают `Invariant failed: Could not find an active match` и роняют дерево мимо error boundary роутера. Поэтому используй хуки пакета — `usePanelParams`, `usePanelSearch`, `usePanelLoaderData`: они не бросают и удерживают последнее значение, пока панель смонтирована.
+Панель остаётся смонтированной во время back-анимации, но её маршрут уже не матчится — сырые TanStack-хуки (`useParams`, `useLoaderData`) в этот момент бросают ошибку. Поэтому используй хуки пакета — `usePanelParams`, `usePanelSearch`, `usePanelLoaderData`: они не бросают и удерживают последнее значение, пока панель смонтирована.
 
 ## Дальше
 

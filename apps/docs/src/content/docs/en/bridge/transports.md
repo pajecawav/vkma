@@ -16,7 +16,7 @@ The bridge picks a transport per call, in order: Android, iOS, React Native, web
 | React Native           | `window.ReactNativeWebView.postMessage`       | `postMessage(JSON.stringify({ handler: method, params: props }))` |
 | Web (iframe in a host) | anything else, given a `window`               | `parent.postMessage(envelope, "*")`                               |
 
-The web envelope is the platform interface, reproduced exactly:
+The web envelope's shape is part of the platform contract:
 
 ```ts
 parent.postMessage(
@@ -31,7 +31,7 @@ parent.postMessage(
 );
 ```
 
-The `"*"` targetOrigin is not laziness: a mini app cannot know the host origin ahead of time (vk.ru, m.vk.ru, mobile clients). It is part of the wire contract.
+The `"*"` targetOrigin is constant: a mini app cannot know the host origin ahead of time (vk.ru, m.vk.ru, mobile clients).
 
 ## Incoming
 
@@ -43,7 +43,7 @@ The `VKWebAppSettings` event is internal protocol: the host assigns the iframe i
 
 ## Lazy host detection
 
-Transports read `window.AndroidBridge` / `webkit.messageHandlers` / `parent` on every call instead of caching them at import time. In production the behavior is identical, but a fake host can be installed at any point in a unit test — the next call picks it up. The call shapes (a JSON string on Android, the object as-is on iOS, the `{ handler, params }` wrapper on RN) are platform contracts the bridge reproduces exactly.
+Transports read `window.AndroidBridge` / `webkit.messageHandlers` / `parent` on every call instead of caching them at import time: a fake host can be installed at any point in a unit test, and the next call picks it up.
 
 ## supportsAsync
 

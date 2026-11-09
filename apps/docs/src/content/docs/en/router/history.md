@@ -21,7 +21,7 @@ createVkHistory({ mode: "hash-param" }); // #?path=/meeting/7
 - **`hash-param`** — the path rides in the `path` hash param (rename it with `pathParam`). Foreign hash params are preserved, `location.search` is untouched.
 - **`browser`** — the plain browser history; just do not pass `history` to `createRouter`.
 
-A deep link written in the other hash mode resolves too (legacy tolerance) — old shared links keep working. The history is built on TanStack's `createBrowserHistory` with swapped `parseLocation`/`createHref`: blockers, popstate and throttling carry over.
+A deep link written in the other hash mode resolves too (legacy tolerance) — old shared links keep working. The history is built on TanStack's `createBrowserHistory` — blockers and popstate work as in plain TanStack.
 
 ## Host sync
 

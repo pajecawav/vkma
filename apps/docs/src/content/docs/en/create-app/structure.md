@@ -85,6 +85,6 @@ Common to every preset: `bridge.send("VKWebAppInit")` folds the host preloader, 
 
 ## package.json
 
-The package name is the sanitized directory name (`My App` → `my-app`), with `private: true`, `type: "module"` and `engines.node: >=22.18.0`. Dependency versions are caret ranges derived from the template's exact pins. The `{{appTitle}}`, `{{appName}}` and `{{presetTitle}}` tokens are substituted across all text files: the title in `index.html` and README, the name in `package.json`.
+The package name is the sanitized directory name (`My App` → `my-app`), with `private: true`, `type: "module"` and `engines.node: >=22.18.0`. Dependency versions are caret ranges. The title in `index.html` and the README is filled in from the app name.
 
 What each preset generates — in [presets](/en/create-app/presets/); controlling the generation — in the [CLI](/en/create-app/cli/).

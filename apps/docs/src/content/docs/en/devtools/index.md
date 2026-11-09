@@ -29,7 +29,7 @@ export default {
 One line gives the mini app:
 
 - **`/__vkma/`.** The panel (SPA + RPC/WebSocket on Vite's own port, like `/__unocss` for UnoCSS).
-- **The dev alias.** `@vkontakte/vk-bridge` is aliased to `@vkma.dev/bridge` (set `alias: false` to opt out; apps importing `@vkma.dev/bridge` directly don't need it), so every importer, dependencies included, runs through the devtools tap.
+- **The bridge alias.** `@vkontakte/vk-bridge` imports, dependencies included, are rewritten to `@vkma.dev/bridge` with the devtools tap — no app code changes needed. Opt out with `alias: false`.
 - **The FAB.** A floating button on the app page opening the same panel as an overlay. Its initial placement is configurable: `vkmaDevtools({ fabPosition: "bottom-left" })` (`bottom-left`, `bottom` or `bottom-right`, default `bottom-left`); a placement picked in the panel is remembered per origin and wins over the configured initial value.
 
 ## What you get

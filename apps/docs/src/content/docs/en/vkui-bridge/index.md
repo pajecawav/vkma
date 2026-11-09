@@ -52,10 +52,10 @@ Any prop the app passes explicitly wins over the computed value. The provider ac
 
 ## Hooks
 
-Every hook reads the default bridge singleton and subscribes with an isomorphic layout effect.
+Every hook reads the default bridge instance.
 
-- **`useBridgeAppearance()`** returns `ColorSchemeType | undefined`. Streams `VKWebAppUpdateConfig` and bootstraps with `VKWebAppGetConfig`. In a plain browser (not embedded) it stays `undefined`, and VKUI falls back to its own system detection.
-- **`useBridgeInsets()`** returns `SafeAreaInsets | undefined`. Reads `VKWebAppUpdateInsets` and the insets field of the config. A `bottom` beyond 150 (the virtual keyboard's ceiling) is clamped to `0`, so the layout does not absorb the transient keyboard.
+- **`useBridgeAppearance()`** returns `ColorSchemeType | undefined`. Streams `VKWebAppUpdateConfig` and bootstraps with `VKWebAppGetConfig`. Outside a mini app it returns `undefined` — VKUI resolves the theme itself.
+- **`useBridgeInsets()`** returns `SafeAreaInsets | undefined`. Reads `VKWebAppUpdateInsets` and the insets field of the config. A `bottom` beyond 150 becomes `0` — the virtual-keyboard clamp.
 - **`useBridgeAdaptivity()`** returns `{ type, viewportWidth, viewportHeight }`. `type` is the host verdict (`adaptive`, `force_mobile`, `force_mobile_compact`, or `null`) plus the viewport at the last change.
 
 ## Links

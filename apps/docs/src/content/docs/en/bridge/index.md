@@ -22,7 +22,7 @@ import bridge from "@vkma.dev/bridge";
 await bridge.send("VKWebAppInit");
 const user = await bridge.send("VKWebAppGetUserInfo");
 
-// every classic subscribe returns its own off; no unsubscribe bookkeeping
+// every classic subscribe returns its own unsubscribe function
 const off = bridge.subscribe(event => {
     // event.detail.type / event.detail.data, every event from the host
 });
@@ -56,7 +56,7 @@ await bridge.send("VKWebAppShowWallPostBox", props, { signal: controller.signal 
 createVKBridge("1.0.0", { requestId: { inject: false } });
 ```
 
-The page-wide default instance also publishes the devtools handle on `globalThis.__vkmaDevtoolsBridge` (`{ tap, send }`). That is the contract the [devtools](/en/devtools/) collector observes. Importing the package is enough; no opt-in.
+Importing the package is enough for [devtools](/en/devtools/) to see the bridge traffic: the default instance publishes a handle on `globalThis.__vkmaDevtoolsBridge` (details in [the tap](/en/bridge/tap/)).
 
 ## Types and custom events
 

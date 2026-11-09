@@ -61,8 +61,4 @@ npm create @vkma.dev/app my-app -- --preset router   # also the no-flag default
 
 All invocation forms and the remaining flags — in the [CLI](/en/create-app/cli/).
 
-## How presets work inside
-
-A preset is a directory in `templates/`: `base` is copied in full, then an overlay (`templates/vkui`, `templates/router`) layers on top. The `overlay.json` manifest lists base-template files the overlay replaces with its own structure (`src/App.tsx` and `src/App.css` for vkui and router), and the `package.json` fragment appends dependencies. Template versions are exact pins kept fresh by Renovate; when writing your `package.json` the CLI converts pins to caret ranges.
-
-Next: [CLI flags](/en/create-app/cli/) and the [structure of the generated app](/en/create-app/structure/).
+Next: the [structure of the generated app](/en/create-app/structure/).

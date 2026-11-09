@@ -59,4 +59,4 @@ Typical uses: a forced theme for a settings view, a debug platform, `locale`. Pa
 
 - `platform` is computed for `desktop_web` only; on every other platform it stays `undefined`, and VKUI derives the platform from its own heuristics.
 - `useBridgeAppearance` returns `undefined` outside the sandbox (see [hooks](/en/vkui-bridge/hooks/)) — in a plain browser VKUI resolves the theme unless you pass `colorScheme` explicitly.
-- The `VKWebAppGetConfig` bootstrap is expected to fail outside the sandbox: the error is logged with `console.error` and stays container-internal.
+- Outside a mini app the `VKWebAppGetConfig` bootstrap fails: the error lands in the console but never touches the app.

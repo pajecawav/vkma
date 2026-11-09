@@ -90,7 +90,7 @@ Two rules the host guarantees:
 - **Siblings replace the entry.** A modal → modal transition within one panel replaces — there is no modal stack, and back returns to the panel (old-router parity).
 - **Nested modals push.** A target whose path starts with the open modal's `fullPath` is pushed: back unwinds exactly one level before revealing the parent.
 
-Every retarget is sequential: the old sheet gets `open=false`, its `onClosed` completes the exit, and only then the target gets `open=true` — never two open sheets. Exit completion is event-driven: VKUI computes the timer from the element's real `transitionDuration`. Re-targeting while a sheet exits cancels the exit (VKUI reverses the transition mid-flight).
+Every retarget is sequential: the old sheet gets `open=false`, its `onClosed` completes the exit, and only then the target gets `open=true` — never two open sheets. Re-targeting while a sheet exits cancels the exit (VKUI reverses the transition mid-flight).
 
 A deep link into a nested modal inflates the full ancestor chain — the panel plus every modal level, outer to inner — so back walks the natural stack.
 

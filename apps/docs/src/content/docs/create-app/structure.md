@@ -85,6 +85,6 @@ export default defineDeployConfig({
 
 ## package.json
 
-Имя пакета — санитизированное имя каталога (`My App` → `my-app`), `private: true`, `type: "module"`, `engines.node: >=22.18.0`. Версии зависимостей — caret-диапазоны, полученные из точных пинов шаблона. Токены `{{appTitle}}`, `{{appName}}` и `{{presetTitle}}` подставляются по всем текстовым файлам: заголовок в `index.html` и README, имя в `package.json`.
+Имя пакета — санитизированное имя каталога (`My App` → `my-app`), `private: true`, `type: "module"`, `engines.node: >=22.18.0`. Версии зависимостей — caret-диапазоны. Заголовок в `index.html` и README подставляется из имени приложения.
 
 Какой пресет что генерит — в [пресетах](/create-app/presets/); как управлять генерацией — в [CLI](/create-app/cli/).

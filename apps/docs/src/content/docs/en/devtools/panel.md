@@ -44,14 +44,14 @@ Every connected page script — a desktop tab, a phone on LAN, an iframe, a stan
 
 - platform, a colored short id and the page URL (sensitive query params are masked);
 - User-Agent and the connection time ("connected 5m ago");
-- an online/offline status — an offline client is dimmed; Chrome's background-tab throttling never deletes it, and refocusing brings it back online;
+- an online/offline status — an offline client is dimmed, and refocusing its tab brings it back online;
 - launch params as a key-value grid; sensitive values (`sign`, `access_token`, `auth_key`, `sid`, `secret`) are blurred and hinted nowhere.
 
 Offline clients are removable one by one or via the Remove offline button — the server never removes live ones; they re-register on their own.
 
 ## Embedded scope (FAB)
 
-The panel opened from the FAB shows only its own page's traffic: a colored client badge in the header, the Clients tab hidden, execute pinned to that client. The dev server does the scoping — other clients' traffic never reaches such a panel at all, and an execute aimed at a foreign client through the RPC returns forbidden. The standalone `/__vkma/` tab sees everything and switches between clients with the filter.
+The panel opened from the FAB shows only its own page's traffic: a colored client badge in the header, the Clients tab hidden, execute pinned to that client. Other clients' traffic never reaches such a panel at all, and an execute aimed at a foreign client returns forbidden. The standalone `/__vkma/` tab sees everything and switches between clients with the filter.
 
 The button's own placement changes right from the panel (the DevTools position control): the pick is stored on the dev server origin and survives restarts; the initial value comes from the plugin's `fabPosition` option.
 

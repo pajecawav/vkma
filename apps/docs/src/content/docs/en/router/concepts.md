@@ -53,7 +53,7 @@ Details in [views and panels](/en/router/views-and-panels/).
 
 ## Freeze semantics of the data hooks
 
-A panel stays mounted during the back animation while its route no longer matches: raw TanStack hooks (`useParams`, `useLoaderData`) throw `Invariant failed: Could not find an active match` and take the tree down past the router's error boundary. Use the package hooks — `usePanelParams`, `usePanelSearch`, `usePanelLoaderData`: they never throw and retain the last value while the panel stays mounted.
+A panel stays mounted during the back animation while its route no longer matches — raw TanStack hooks (`useParams`, `useLoaderData`) throw at that moment. Use the package hooks — `usePanelParams`, `usePanelSearch`, `usePanelLoaderData`: they never throw and retain the last value while the panel stays mounted.
 
 ## Next
 

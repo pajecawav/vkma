@@ -81,7 +81,7 @@ export default {
 };
 ```
 
-The hub then owns the panel mount and the RPC (one WebSocket and one auth gate shared across docks); our plugin keeps the bridge interception and the FAB. [MCP](/en/devtools/mcp/) aggregates into the hub's endpoint `/__devtools/__mcp` and the `mcp` option is ignored. Without `hub: true` nothing changes — with or without Vite DevTools present.
+The hub then owns the panel and the RPC; the plugin keeps the bridge interception and the FAB. [MCP](/en/devtools/mcp/) aggregates into the hub's endpoint `/__devtools/__mcp` and the `mcp` option is ignored. Without `hub: true` nothing changes — with or without Vite DevTools present.
 
 ## Next
 

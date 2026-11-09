@@ -41,7 +41,7 @@ test("the request API version matches the package", () => {
 
 ## API_VERSION
 
-The constant is generated from the schema's `methods.json` `version` field at package build time and pinned by a test. A schema without a version field aborts the generate immediately instead of silently emitting a wrong constant.
+The constant is generated from the schema's `version` field at package build time.
 
 ## What ships in a patch
 
@@ -49,12 +49,6 @@ A patch within the minor is a regeneration of the same API snapshot: clarified d
 
 ## Schema updates
 
-The package is built from the [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema) git submodule. The update cycle:
-
-1. `pnpm update-schema` at the monorepo root — the submodule moves to upstream master and the packages regenerate.
-2. Releases ship via changesets; the minor is realigned to the new API version (`5.199` → `5.200` means minor `5200`).
-3. Generated code is never committed — it appears at build time from the submodule.
-
-On a fresh clone of the monorepo the package sources are empty until `pnpm generate` (builds generate `src/generated`); the npm package ships the generated code prebuilt.
+The package is built from [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema): when VK publishes a new API version, a release with a new minor follows (`5.199` → `5.200` means minor `5200`).
 
 Types — in [types](/en/api-schema/types/), schemas — in [validators](/en/api-schema/validators/).

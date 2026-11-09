@@ -40,7 +40,7 @@ Three directory rules per view:
 
 Chunks import the hub (never `app.tsx`), so no import cycles arise. A duplicate view key or panel path is a dev-time console error.
 
-`lazy` is a separate third parameter, not an `options` member: once the lazy arrow lands inside the inferred options type, the type graph closes into a cycle (TS7022) the moment a chunk resolves hooks against its own definition.
+`lazy` is a separate third parameter, not an `options` member: a load arrow inside the inferred options type loops type inference (TS7022).
 
 ## Types from options
 

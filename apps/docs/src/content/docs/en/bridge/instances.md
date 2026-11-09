@@ -33,7 +33,7 @@ The first argument is a version string: the web transport puts it into the envel
 | `requestId.inject`    | `boolean`                                | Auto-injection of `request_id`; default `true`        |
 | `tap`                 | `BridgeTap`                              | A foreign tap, when the event stream should be shared |
 
-Each instance keeps its own state: the `subscribe` listener list, the `send` pairing map, the `request_id` counter and its own incoming-event listener. Two instances never mix up each other's responses, even on the same page.
+Each instance keeps its own subscribers and its own request/response pairs: two instances never mix up each other's responses, even on the same page.
 
 ## The request_id policy
 

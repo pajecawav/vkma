@@ -21,7 +21,7 @@ Types come from the [`@vkma.dev/bridge-schema`](/en/bridge-schema/) catalogue: p
 
 ## How the response is paired
 
-Every `send` gets a `request_id`. By default the instance injects one itself — `__vkma_1`, `__vkma_2`, … — and files the promise controller in a pending map. When the host sends an event whose `request_id` has a pending entry:
+Every `send` gets a `request_id`. By default the instance injects one itself — `__vkma_1`, `__vkma_2`, … When the host sends an event whose `request_id` has a pending entry:
 
 - `request_id` is stripped from the payload — the promise resolves with the body without it;
 - an event carrying `error_type` rejects the promise with that same body (also without `request_id`).
@@ -77,7 +77,7 @@ const off = bridge.subscribe(event => {
 off(); // unsubscribe
 ```
 
-`subscribe` returns its own unsubscribe function; the classic `bridge.unsubscribe(listener)` exists too. A handler may unsubscribe mid-dispatch — the fan-out iterates a snapshot of the listener list.
+`subscribe` returns its own unsubscribe function; the classic `bridge.unsubscribe(listener)` exists too. A handler may unsubscribe mid-dispatch.
 
 ## Which one to use
 

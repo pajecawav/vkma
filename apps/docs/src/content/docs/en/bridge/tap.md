@@ -42,7 +42,7 @@ Each event is a `BridgeTapEvent`:
 
 A response carrying `error_type` is a `response` with `ok: false`, not a separate kind.
 
-Payloads are never mutated after emit: `send` builds a separate wire-props object precisely for this — a listener always sees a snapshot.
+Payloads are never mutated after emit — a listener always sees a snapshot taken at event time.
 
 ## The replay buffer
 
@@ -74,4 +74,4 @@ Importing the package publishes a `{ tap, send }` handle on `globalThis.__vkmaDe
 - `tap` — the default instance's shared tap;
 - `send(name, params)` — execute a call inside the app: this is what the devtools "execute" runs on.
 
-The first copy of the module on the page creates the handle; every other copy reuses its tap — duplicate package copies in a bundle do not multiply buffers. The devtools collector looks the handle up via `devtoolsBridgeGlobalKey` (the same key exported as a string) and shares no module graph with the app. Instances from `createVKBridge` publish no global handle.
+The first copy of the module on the page creates the handle; every other copy reuses its tap — duplicate package copies in a bundle do not multiply buffers. Instances from `createVKBridge` publish no global handle.

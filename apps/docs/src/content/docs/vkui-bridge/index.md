@@ -52,10 +52,10 @@ createRoot(document.getElementById("root")!).render(
 
 ## Хуки
 
-Каждый хук читает дефолтный синглтон моста и подписывается изоморфным layout-эффектом.
+Каждый хук читает дефолтный инстанс моста.
 
-- **`useBridgeAppearance()`** — `ColorSchemeType | undefined`. Стримит `VKWebAppUpdateConfig`, бутстрапится `VKWebAppGetConfig`. В обычном браузере (не в песочнице) остаётся `undefined`, и VKUI падает на собственную системную детекцию.
-- **`useBridgeInsets()`** — `SafeAreaInsets | undefined`. Читает `VKWebAppUpdateInsets` и поле insets конфига. `bottom` больше 150 (потолок виртуальной клавиатуры) клампится в `0`, чтобы layout не вбирал транзиентную клавиатуру.
+- **`useBridgeAppearance()`** — `ColorSchemeType | undefined`. Стримит `VKWebAppUpdateConfig`, бутстрапится `VKWebAppGetConfig`. Вне мини-аппа возвращает `undefined` — тему определяет сам VKUI.
+- **`useBridgeInsets()`** — `SafeAreaInsets | undefined`. Читает `VKWebAppUpdateInsets` и поле insets конфига. `bottom` больше 150 обнуляется — кламп виртуальной клавиатуры.
 - **`useBridgeAdaptivity()`** — `{ type, viewportWidth, viewportHeight }`. `type` — вердикт хоста (`adaptive`, `force_mobile`, `force_mobile_compact` или `null`) плюс viewport на момент изменения.
 
 ## Ссылки

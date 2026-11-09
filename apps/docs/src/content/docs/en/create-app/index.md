@@ -48,7 +48,7 @@ Interactive when attached to a TTY; fully flag-driven otherwise (CI-friendly).
 
 ## Keeping templates fresh
 
-Template dependencies are exact pins inside real `package.json` fragments, so Renovate bumps them natively and every scaffold hands out current versions. The CLI converts pins to caret ranges when writing the user's `package.json`.
+Template dependency versions are updated automatically, so every scaffold hands out current ones; your `package.json` gets them as caret ranges.
 
 ## Learn more
 

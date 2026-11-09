@@ -25,9 +25,9 @@ export default defineConfig({
 
 A `vkma devtools → …` line prints at dev-server startup next to the app URLs.
 
-## The Vite difference: a side-car WebSocket
+## Differences from the Vite version
 
-The panel's RPC needs a WebSocket, and Rsbuild's server stack never hands over HTTP upgrades. So the socket runs as a separate WS server on its own port, discovered by the panel via `GET /__vkma/__connection.json`. To you this is transparent: the panel URL stays `/__vkma/`, and auth is the same OTP gate on first connect. The instance survives dev-server restarts — connections and history are kept.
+The URL and the auth are the same as the Vite version's: the panel at `/__vkma/`, the OTP gate on first connect. The connection survives dev-server restarts — history is kept.
 
 Everything else matches the [Vite plugin](/en/devtools/vite/):
 

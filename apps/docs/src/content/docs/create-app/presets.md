@@ -61,8 +61,4 @@ npm create @vkma.dev/app my-app -- --preset router   # и без флага
 
 Все формы вызова и остальные флаги — в [CLI](/create-app/cli/).
 
-## Как устроены пресеты внутри
-
-Пресет — каталог в `templates/`: `base` копируется целиком, поверх накладывается оверлей (`templates/vkui`, `templates/router`). Манифест `overlay.json` перечисляет файлы базового шаблона, которые оверлей заменяет своей структурой (`src/App.tsx` и `src/App.css` у vkui и router), а фрагмент `package.json` дописывает зависимости. Версии в шаблонах запинованы точно и обновляются Renovate; при записи в твой `package.json` CLI превращает пины в caret-диапазоны.
-
-Дальше: [флаги CLI](/create-app/cli/) и [структура сгенерированного приложения](/create-app/structure/).
+Дальше: [структура сгенерированного приложения](/create-app/structure/).

@@ -16,7 +16,7 @@ sidebar:
 | React Native         | `window.ReactNativeWebView.postMessage`       | `postMessage(JSON.stringify({ handler: method, params: props }))` |
 | Web (iframe в хосте) | всё остальное при наличии `window`            | `parent.postMessage(конверт, "*")`                                |
 
-Web-конверт — платформенный интерфейс, reproduced exactly:
+Форма web-конверта — часть платформенного контракта:
 
 ```ts
 parent.postMessage(
@@ -31,7 +31,7 @@ parent.postMessage(
 );
 ```
 
-`targetOrigin` — `"*"` не по лени: мини-апп не знает origin хоста заранее (vk.ru, m.vk.ru, мобильные клиенты), это часть контракта провода.
+`targetOrigin` всегда `"*"`: мини-апп не знает origin хоста заранее (vk.ru, m.vk.ru, мобильные клиенты).
 
 ## Входящие
 
@@ -43,7 +43,7 @@ parent.postMessage(
 
 ## Ленивое чтение хоста
 
-Транспорты читают `window.AndroidBridge` / `webkit.messageHandlers` / `parent` при каждом вызове, а не кэшируют на импорте. Для продакшена разницы нет, а вот фейковый хост можно подменить в юнит-тесте в любой момент — мост подхватит его следующим вызовом. Формы вызовов (JSON-строка у Android, объект как есть у iOS, обёртка `{ handler, params }` у RN) — платформенный контракт, их мост воспроизводит точно.
+Транспорты читают `window.AndroidBridge` / `webkit.messageHandlers` / `parent` при каждом вызове, а не кэшируют на импорте: фейковый хост можно подменить в юнит-тесте в любой момент, и мост подхватит его следующим вызовом.
 
 ## supportsAsync
 
