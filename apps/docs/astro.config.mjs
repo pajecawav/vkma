@@ -29,7 +29,11 @@ export default defineConfig({
 				en: { label: "English" },
 			},
 			sidebar,
-			customCss: ["./src/styles/mono.css"],
+			customCss: [
+				"@fontsource-variable/inter",
+				"@fontsource-variable/geist-mono",
+				"./src/styles/theme.css",
+			],
 			head: [
 				// paint the pre-CSS blank canvas in the user's scheme instead
 				// of the browser-default white — kills the white flash on
@@ -43,7 +47,7 @@ export default defineConfig({
 					attrs: {
 						name: "theme-color",
 						media: "(prefers-color-scheme: dark)",
-						content: "#0c0c0c",
+						content: "#120f1a",
 					},
 				},
 				{
