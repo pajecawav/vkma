@@ -2,7 +2,7 @@
 	// Static delivery on Cloudflare Workers. No server code, the whole site
 	// is plain assets, so requests are free and unlimited on any plan.
 	// Deployed via Workers Builds (git integration, root directory apps/docs).
-	"name": "vkma-docs",
+	"name": "vkma",
 	"compatibility_date": "2026-10-01",
 	"assets": {
 		"directory": "./dist",
