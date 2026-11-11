@@ -26,10 +26,9 @@ export interface FabHandle {
 	setPosition: (position: FabPosition) => void;
 }
 
-// Outlined glyph, lucide-style: stroke rides on currentColor (the client
-// color), integer 24-grid rendered at 24px so it stays crisp. The two
-// stroke insets (x=3/14, w=7) keep a 2-unit gutter between the squares.
-const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>`;
+// The Diamond-V suite mark, filled: fill rides on currentColor (the
+// client color), integer 24-grid rendered at 24px so it stays crisp.
+const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="currentColor" stroke="none"><path d="M3.3 5.9 L11.1 21.1 L16.11 11.33 L12.55 9.5 L11.1 12.33 L7.8 5.9 Z M17.5 2.8 L21 6.3 L17.5 9.8 L14 6.3 Z"/></svg>`;
 const GLYPH_CLOSE = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
 const STYLES = `

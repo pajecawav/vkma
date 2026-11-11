@@ -11,7 +11,7 @@ import { VKMA_LOGO_PATH } from "@vkma.dev/ui/logo-path";
 const SIZES = [16, 48, 128] as const;
 
 for (const size of SIZES) {
-	// Transparent background, near-black glyph outline, the vk-mini-app-spy
+	// Transparent background, near-black glyph, the vk-mini-app-spy
 	// treatment: the toolbar surface shows through, no tile of any kind.
 	const svg =
 		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}">` +
