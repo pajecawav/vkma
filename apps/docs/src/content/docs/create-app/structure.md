@@ -39,7 +39,7 @@ my-app/
 | `preview` | `vite preview` — локальный прогон сборки                       |
 | `deploy`  | `vkma-deploy` — публикация `dist/` в хостинг VK Mini Apps      |
 
-`build` сначала прогоняет `tsc --noEmit` по strict-конфигу — сборка не начнётся, пока есть ошибки типов.
+`build` сначала прогоняет `tsc --noEmit` по strict-конфигу. Сборка не начнётся, пока есть ошибки типов.
 
 ## vite.config.ts
 
@@ -53,7 +53,7 @@ export default defineConfig({
 });
 ```
 
-Плагин `vkmaDevtools()` вешает панель devtools на `/__vkma/`: timeline всех событий моста, подключённые клиенты и интерактивный execute. У моста в приложении уже есть tap — панель видит трафик без настройки.
+Плагин `vkmaDevtools()` вешает панель devtools на `/__vkma/`: timeline всех событий моста, подключённые клиенты и интерактивный execute. У моста в приложении уже есть tap, и панель видит трафик без настройки.
 
 ## vkma-deploy.config.ts
 
@@ -73,7 +73,7 @@ export default defineDeployConfig({
 });
 ```
 
-Деплой: проставь `appId`, один раз залогинься `npx vkma-deploy login`, затем `npm run deploy`. Подробности — в разделе [deploy](/deploy/).
+Деплой: проставь `appId`, один раз залогинься `npx vkma-deploy login`, затем `npm run deploy`. Подробности в разделе [deploy](/deploy/).
 
 ## main.tsx
 
@@ -87,4 +87,4 @@ export default defineDeployConfig({
 
 Имя пакета — санитизированное имя каталога (`My App` → `my-app`), `private: true`, `type: "module"`, `engines.node: >=22.18.0`. Версии зависимостей — caret-диапазоны. Заголовок в `index.html` и README подставляется из имени приложения.
 
-Какой пресет что генерит — в [пресетах](/create-app/presets/); как управлять генерацией — в [CLI](/create-app/cli/).
+Какой пресет что генерит, рассказано в [пресетах](/create-app/presets/), а управление генерацией описано в [CLI](/create-app/cli/).

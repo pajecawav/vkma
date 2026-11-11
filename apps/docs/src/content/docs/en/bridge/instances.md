@@ -37,7 +37,7 @@ Each instance keeps its own subscribers and its own request/response pairs: two 
 
 ## The request_id policy
 
-By default every `send` without an explicit `request_id` in props gets `__vkma_<n>` injected — that is what [response pairing](/en/bridge/events/) runs on. Two knobs:
+By default every `send` without an explicit `request_id` in props gets `__vkma_<n>` injected. That is what [response pairing](/en/bridge/events/) runs on. Two knobs:
 
 `generator` — your own scheme, when the host or a backend expects a specific id format:
 
@@ -52,7 +52,7 @@ const bridge = createVKBridge("1.0.0", {
 ```ts
 const bridge = createVKBridge("1.0.0", { requestId: { inject: false } });
 
-// pairs only because the host echoes this request_id back
+// pairs only if the host echoes this request_id back
 await bridge.send("VKWebAppGetUserInfo", { request_id: "call-42" });
 ```
 
@@ -64,4 +64,4 @@ An explicit `request_id` in props always wins over the generator and over disabl
 - A non-standard host with its own `request_id` requirements — your own `generator`.
 - Isolation: the instance's traffic stays out of the shared tap and of [devtools](/en/devtools/) until you pass `tap: bridgeTap` from the root module to share the stream.
 
-A fresh instance gets its own tap with a 500-event buffer; the size is not configurable on the instance — but you can build your own via `createTap(limit)` and pass it in the options.
+A fresh instance gets its own tap with a 500-event buffer; the size is not configurable on the instance, but you can build your own via `createTap(limit)` and pass it in the options.

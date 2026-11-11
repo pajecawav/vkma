@@ -5,7 +5,7 @@ sidebar:
     order: 2
 ---
 
-An Rsbuild app needs no Vite — the adapter lives at the `@vkma.dev/devtools/rsbuild` subpath:
+An Rsbuild app needs no Vite. The adapter lives at the `@vkma.dev/devtools/rsbuild` subpath:
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe
@@ -27,7 +27,7 @@ A `vkma devtools → …` line prints at dev-server startup next to the app URLs
 
 ## Differences from the Vite version
 
-The URL and the auth are the same as the Vite version's: the panel at `/__vkma/`, the OTP gate on first connect. The connection survives dev-server restarts — history is kept.
+The URL and the auth are the same as the Vite version's: the panel at `/__vkma/`, the OTP gate on first connect. The connection survives dev-server restarts, history is kept.
 
 Everything else matches the [Vite plugin](/en/devtools/vite/):
 

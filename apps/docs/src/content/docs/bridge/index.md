@@ -8,7 +8,7 @@ sidebar:
 
 `@vkma.dev/bridge` — независимый VK Bridge для VK Mini Apps. Классический API (`send` / `subscribe` / `supportsAsync` / …), встроенный observability-tap, таймаут и abort на каждый send и настраиваемая политика `request_id`.
 
-Типы приходят из [`@vkma.dev/bridge-schema`](/bridge-schema/) — каталог всех событий платформы как данные, с открытым интерфейсом для собственных событий.
+Типы приходят из [`@vkma.dev/bridge-schema`](/bridge-schema/). Это каталог всех событий платформы как данные, с открытым интерфейсом для собственных событий.
 
 ```sh
 npm install @vkma.dev/bridge
@@ -58,11 +58,11 @@ await bridge.send("VKWebAppShowWallPostBox", props, { signal: controller.signal 
 createVKBridge("1.0.0", { requestId: { inject: false } });
 ```
 
-Импорта пакета достаточно, чтобы [devtools](/devtools/) видел трафик моста: инстанс по умолчанию публикует хэндл на `globalThis.__vkmaDevtoolsBridge` (подробности — в [tap](/bridge/tap/)).
+Импорта пакета достаточно, чтобы [devtools](/devtools/) видел трафик моста: инстанс по умолчанию публикует хэндл на `globalThis.__vkmaDevtoolsBridge` (подробности в [tap](/bridge/tap/)).
 
 ## Типы и кастомные события
 
-Все типы полезных нагрузок и три каталога-мапы реэкспортируются здесь. Чтобы научить мост своим событиям (или событиям прокси-бэкенда), расширяй schema-пакет — и `send`, `subscribe` и все потребители типов подхватят:
+Все типы полезных нагрузок и три каталога-мапы реэкспортируются здесь. Чтобы научить мост своим событиям (или событиям прокси-бэкенда), расширяй schema-пакет, и `send`, `subscribe` и все потребители типов подхватят:
 
 ```ts
 declare module "@vkma.dev/bridge-schema" {

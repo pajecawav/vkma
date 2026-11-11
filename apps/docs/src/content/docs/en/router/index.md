@@ -62,7 +62,7 @@ declare module "@tanstack/react-router" {
 
 ## VK history
 
-Two modes (default `"hash"`): the hash IS the location (`#/item/7`), or `"hash-param"` (`#?path=…` — foreign hash params preserved, `location.search` untouched). Deep links written by the other mode resolve too. The `"browser"` mode is TanStack's default history.
+Two modes (default `"hash"`): the hash is the location (`#/item/7`), or `"hash-param"` (`#?path=…`, foreign hash params preserved, `location.search` untouched). Deep links written by the other mode resolve too. The `"browser"` mode is TanStack's default history.
 
 ## Links
 

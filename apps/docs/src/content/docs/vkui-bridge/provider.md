@@ -27,7 +27,7 @@ sidebar:
 </ConfigProvider>
 ```
 
-Порядок зафиксирован: `ConfigProvider` → `AdaptivityProvider` → `AppRoot`. `AppRoot` идёт с `mode="full"` — приложение живёт не в виджете, а на всём экране хоста.
+Порядок зафиксирован: `ConfigProvider` → `AdaptivityProvider` → `AppRoot`. `AppRoot` идёт с `mode="full"`. Приложение живёт не в виджете, а на всём экране хоста.
 
 ## Что вычисляется
 
@@ -40,7 +40,7 @@ sidebar:
 | пропсы `AdaptivityProvider` | `transformVKBridgeAdaptivity(useBridgeAdaptivity())`                          |
 | `AppRoot.safeAreaInsets`    | `VKWebAppUpdateInsets` и insets конфига через `useBridgeInsets`               |
 
-Логика каждого источника — в [хуках](/vkui-bridge/hooks/): провайдер просто собирает их в одно дерево.
+Логика каждого источника описана в [хуках](/vkui-bridge/hooks/). Провайдер просто собирает их в одно дерево.
 
 ## Перекрытие
 
@@ -53,10 +53,10 @@ sidebar:
 </VKBridgeConfigProvider>
 ```
 
-Типичное применение: форс темы для вью «настроек», отладочная платформа, `locale`. Если ничего не передано — работают мостовые дефолты.
+Типичное применение: форс темы для вью «настроек», отладочная платформа, `locale`. Если ничего не передано, работают мостовые дефолты.
 
 ## Границы
 
 - `platform` вычисляется только для `desktop_web`; на остальных платформах остаётся `undefined`, и VKUI берёт платформу из собственных эвристик.
-- `useBridgeAppearance` вне песочницы возвращает `undefined` (см. [хуки](/vkui-bridge/hooks/)) — в обычном браузере тему определяет VKUI, если ты не передал `colorScheme` явно.
+- `useBridgeAppearance` вне песочницы возвращает `undefined` (см. [хуки](/vkui-bridge/hooks/)). В обычном браузере тему определяет VKUI, если ты не передал `colorScheme` явно.
 - Вне мини-аппа бутстрап-запрос конфига завершается ошибкой: она попадает в консоль, но не затрагивает приложение.

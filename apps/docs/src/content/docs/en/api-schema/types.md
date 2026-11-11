@@ -5,7 +5,7 @@ sidebar:
     order: 1
 ---
 
-Types and constants live in the root entry `@vkma.dev/api-schema` — no zod or valibot needed for them, no validator peer appears in your dependencies.
+Types and constants live in the root entry `@vkma.dev/api-schema`. No zod or valibot is needed for them, and no validator peer appears in your dependencies.
 
 ```ts
 import { API_VERSION, AppsApp, AppsGetCatalogParams, MessagesMessage } from "@vkma.dev/api-schema";
@@ -24,11 +24,11 @@ Names follow the rules of [`VKCOM/api-schema-typescript`](https://github.com/VKC
 | Response          | `apps.getCatalog` → `AppsGetCatalogResponse`                 |
 | Extended response | `apps.getFriendsList` → `AppsGetFriendsListExtendedResponse` |
 
-The `{ response: T }` wrapper from the VK schema is unwrapped: the type is the response itself, not `{ response: … }`. Object properties keep the schema's snake_case (`first_name`, `last_name`) — there is no camelCase translation.
+The `{ response: T }` wrapper from the VK schema is unwrapped: the type is the response itself, not `{ response: … }`. Object properties keep the schema's snake_case (`first_name`, `last_name`). There is no camelCase translation.
 
 ## EnumNames
 
-Definitions with `enum` + `enumNames` also get a runtime constant with an `EnumNames` suffix — a mapping from the human-readable name to the enum value:
+Definitions with `enum` + `enumNames` also get a runtime constant with an `EnumNames` suffix, a mapping from the human-readable name to the enum value:
 
 ```ts
 import { AdsAdApprovedEnumNames } from "@vkma.dev/api-schema";
@@ -43,7 +43,7 @@ AdsAdApprovedEnumNames.APPROVED; // 2
 import { API_VERSION } from "@vkma.dev/api-schema"; // "5.199"
 ```
 
-The VK API version the package was generated from — produced from the schema and pinned by a test. How it relates to the package version — in [versioning](/en/api-schema/versioning/).
+The constant carries the VK API version the package was generated from. It is produced from the schema and pinned by a test. How it relates to the package version is in [versioning](/en/api-schema/versioning/).
 
 ## MethodMap
 
@@ -63,4 +63,4 @@ type Call = <M extends keyof MethodMap>(
 
 That map is the backbone of a typed API client without codegen in your project. Responses documented for methods the schema never declares are not part of the map.
 
-Its runtime counterpart for validation is `MethodSchemas` — see [validators](/en/api-schema/validators/).
+Its runtime counterpart for validation is `MethodSchemas`, see [validators](/en/api-schema/validators/).

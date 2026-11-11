@@ -18,9 +18,9 @@ The package is `@vkma.dev/create-app`, but every manager runs it its own way:
 | yarn    | `yarn create @vkma.dev/app my-app --preset router`   |
 | bun     | `bunx @vkma.dev/create-app my-app --preset router`   |
 
-npm needs `--` before flags — otherwise it swallows them as its own options (npm strips the separator before it reaches the CLI). pnpm, yarn and bunx pass flags through; a bare `--` that still lands in argv is silently dropped together with everything after it — don't add one to those forms.
+npm needs `--` before flags. Otherwise it swallows them as its own options (npm strips the separator before it reaches the CLI). pnpm, yarn and bunx pass flags through; a bare `--` that still lands in argv is silently dropped together with everything after it, so don't add one to those forms.
 
-`my-app` is the positional argument: the project directory, relative to the current one. Interactively, with no path given the CLI asks for it (defaulting to `.` — the current directory); without a TTY the scaffold goes into the current directory.
+`my-app` is the positional argument: the project directory, relative to the current one. Interactively, with no path given the CLI asks for it (defaulting to `.`, the current directory); without a TTY the scaffold goes into the current directory.
 
 ## Flags
 
@@ -61,6 +61,6 @@ npm create @vkma.dev/app my-app -- \
   --preset base --pm npm --no-install --no-git
 ```
 
-After scaffolding the CLI prints next steps: `cd` into the directory, `<pm> install` too when `--no-install` was passed, then the dev command in your manager's shape (`npm run dev`, `pnpm dev`, `bun run dev`) and the deploy hint: set `appId` in `vkma-deploy.config.ts`, authorize once with `npx vkma-deploy login`, then run `deploy` — see [deploy](/en/deploy/).
+After scaffolding the CLI prints next steps: `cd` into the directory, `<pm> install` too when `--no-install` was passed, then the dev command in your manager's shape (`npm run dev`, `pnpm dev`, `bun run dev`) and the deploy hint: set `appId` in `vkma-deploy.config.ts`, authorize once with `npx vkma-deploy login`, then run `deploy`, see [deploy](/en/deploy/).
 
-What exactly gets generated — in the [app structure](/en/create-app/structure/).
+What exactly gets generated is covered in the [app structure](/en/create-app/structure/).

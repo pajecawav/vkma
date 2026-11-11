@@ -29,7 +29,7 @@ npm create @vkma.dev/app my-app
 - `@vkma.dev/deploy`: `vkma-deploy.config.ts`, `npm run deploy`, `npx vkma-deploy login`
 - TypeScript strict, `engines`, README, `.gitignore`
 
-В пресеты `vkui` и `router` входит `@vkma.dev/vkui-bridge` — собранный `<VKBridgeConfigProvider>` (тема хоста, safe-area insets, адаптивность, платформа `vkcom`), подключённый в `main.tsx`.
+В пресеты `vkui` и `router` входит `@vkma.dev/vkui-bridge`, собранный `<VKBridgeConfigProvider>` (тема хоста, safe-area insets, адаптивность, платформа `vkcom`), подключённый в `main.tsx`.
 
 ## CLI
 
@@ -48,7 +48,7 @@ Flags:
 
 ## Свежесть шаблонов
 
-Версии зависимостей в шаблонах обновляются автоматически — каждый скаффолд выдаёт актуальные версии; в твой `package.json` они записываются caret-диапазонами.
+Версии зависимостей в шаблонах обновляются автоматически, и каждый скаффолд выдаёт актуальные версии; в твой `package.json` они записываются caret-диапазонами.
 
 ## Подробнее
 

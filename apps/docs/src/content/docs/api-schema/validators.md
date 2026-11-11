@@ -5,7 +5,7 @@ sidebar:
     order: 2
 ---
 
-Схемы живут в двух subpath — `@vkma.dev/api-schema/zod` и `@vkma.dev/api-schema/valibot`. Имена в обоих одинаковые, с суффиксом `Schema`.
+Схемы живут в двух subpath: `@vkma.dev/api-schema/zod` и `@vkma.dev/api-schema/valibot`. Имена в обоих одинаковые, с суффиксом `Schema`.
 
 ```sh
 npm install @vkma.dev/api-schema zod      # или valibot — что используешь
@@ -27,7 +27,7 @@ import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot";
 BaseObjectSchema.parse({ id: 1, title: "app" });
 ```
 
-Для доверенных границ (ответы API, чужой ввод) удобнее `safeParse` — без исключений, с деревом ошибок:
+Для доверенных границ (ответы API, чужой ввод) удобнее `safeParse`, он не бросает исключений и возвращает дерево ошибок:
 
 ```ts
 const result = MessagesSendParamsSchema.safeParse(input);
@@ -49,11 +49,11 @@ schema.params.parse({ count: 10 });
 schema.response.parse(await callVkApi("apps.getCatalog", { count: 10 }));
 ```
 
-Правила те же, что у [MethodMap](/api-schema/types/): `params` есть у каждого метода, `response` — только у задокументировавших ответ. В рантайм-слоте `response` лежит базовый вариант (`<method>_response`); extended-варианты (`…_extended_response` и прочие) — отдельные именованные экспорты. Слоты объявлены как `z.ZodType<…>` / `v.GenericSchema<…>` — вызовы `parse`/`safeParse` доступны в обоих субпэтах одинаково.
+Правила те же, что у [MethodMap](/api-schema/types/): `params` есть у каждого метода, `response` — только у задокументировавших ответ. В рантайм-слоте `response` лежит базовый вариант (`<method>_response`); extended-варианты (`…_extended_response` и прочие) — отдельные именованные экспорты. Слоты объявлены как `z.ZodType<…>` / `v.GenericSchema<…>`. Вызовы `parse`/`safeParse` доступны в обоих субпэтах одинаково.
 
 ## Гранулярные импорты
 
-Баррели `/zod` и `/valibot` реэкспортируют всё, и в обычном Node без tree-shaking один импорт из барреля вычисляет весь пакет — тысячи схем. Когда важен cold-start (serverless, CLI), импортируй секционный модуль напрямую:
+Баррели `/zod` и `/valibot` реэкспортируют всё, и в обычном Node без tree-shaking один импорт из барреля вычисляет весь пакет, тысячи схем. Когда важен cold-start (serverless, CLI), импортируй секционный модуль напрямую:
 
 ```ts
 import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot/base/objects";
@@ -64,4 +64,4 @@ import { MessagesSendParamsSchema } from "@vkma.dev/api-schema/zod/messages/meth
 
 ## zod или valibot
 
-Имена, структура и гранулярные пути совпадают — выбирай по валидатору, который уже в проекте, и импортируй из его subpath. Версию API, под которую собраны схемы, смотри в [версиях](/api-schema/versioning/).
+Имена, структура и гранулярные пути совпадают. Выбирай по валидатору, который уже в проекте, и импортируй из его subpath. Версию API, под которую собраны схемы, смотри в [версиях](/api-schema/versioning/).

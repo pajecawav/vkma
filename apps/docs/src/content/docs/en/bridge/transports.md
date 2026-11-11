@@ -37,7 +37,7 @@ The `"*"` targetOrigin is constant: a mini app cannot know the host origin ahead
 
 - Web: the `message` event on `window`, body `{ type, data, frameId }`.
 - Android and iOS WebViews: the native layer dispatches ready-made `CustomEvent("VKWebAppEvent")` on `window`.
-- React Native on Android: `message` on `document`; RN delivers a JSON string — the bridge parses it and processes it like a web envelope.
+- React Native on Android: `message` on `document`; RN delivers a JSON string. The bridge parses it and processes it like a web envelope.
 
 The `VKWebAppSettings` event is internal protocol: the host assigns the iframe its `webFrameId`, the bridge remembers it and puts it into every outgoing envelope. It is never delivered to subscribers.
 

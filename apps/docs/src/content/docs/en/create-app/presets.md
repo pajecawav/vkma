@@ -5,13 +5,13 @@ sidebar:
     order: 1
 ---
 
-There are three presets. Every one builds on the same base template — React + Vite + `@vkma.dev/bridge`, the devtools plugin and deploy; a preset overlay adds dependencies and replaces some of the sources. Pick by what you need from the UI kit and navigation — the [structure](/en/create-app/structure/) of the generated app differs exactly here.
+There are three presets. Every one builds on the same base template: React + Vite + `@vkma.dev/bridge`, the devtools plugin and deploy; a preset overlay adds dependencies and replaces some of the sources. Pick by what you need from the UI kit and navigation. The [structure](/en/create-app/structure/) of the generated app differs exactly here.
 
 ## base
 
 React + Vite + `@vkma.dev/bridge`, no UI kit.
 
-- `src/App.tsx` — a bridge demo: a typed `send("VKWebAppGetUserInfo")` and a subscription to host events via `bridge.subscribe` (it returns its own off function — a ready `useEffect` cleanup).
+- `src/App.tsx` — a bridge demo: a typed `send("VKWebAppGetUserInfo")` and a subscription to host events via `bridge.subscribe` (it returns its own off function, a ready `useEffect` cleanup).
 - `src/main.tsx` sends `VKWebAppInit` (folds the host preloader) and mounts `<App />` in `StrictMode`.
 - Styling is a single `src/App.css`; no UI framework.
 
@@ -59,6 +59,6 @@ npm create @vkma.dev/app my-app -- --preset vkui
 npm create @vkma.dev/app my-app -- --preset router   # also the no-flag default
 ```
 
-All invocation forms and the remaining flags — in the [CLI](/en/create-app/cli/).
+All invocation forms and the remaining flags are covered in the [CLI](/en/create-app/cli/).
 
 Next: the [structure of the generated app](/en/create-app/structure/).

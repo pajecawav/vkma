@@ -5,7 +5,7 @@ sidebar:
     order: 1
 ---
 
-Типы и константы живут в корневом входе `@vkma.dev/api-schema` — zod и valibot для них не нужны, пира-валидатора в зависимостях не появится.
+Типы и константы живут в корневом входе `@vkma.dev/api-schema`. Zod и valibot для них не нужны, пира-валидатора в зависимостях не появится.
 
 ```ts
 import { API_VERSION, AppsApp, AppsGetCatalogParams, MessagesMessage } from "@vkma.dev/api-schema";
@@ -24,11 +24,11 @@ const params: AppsGetCatalogParams = { count: 10 };
 | Ответ             | `apps.getCatalog` → `AppsGetCatalogResponse`                 |
 | Расширенный ответ | `apps.getFriendsList` → `AppsGetFriendsListExtendedResponse` |
 
-Обёртка `{ response: T }` из VK-схемы снимается: тип — сам ответ, а не `{ response: … }`. Свойства объектов сохраняют snake_case из схемы (`first_name`, `last_name`) — трансляции в camelCase нет.
+Обёртка `{ response: T }` из VK-схемы снимается: тип — сам ответ, а не `{ response: … }`. Свойства объектов сохраняют snake_case из схемы (`first_name`, `last_name`). Трансляции в camelCase нет.
 
 ## EnumNames
 
-Определения с `enum` + `enumNames` получают рантайм-константу с суффиксом `EnumNames` — соответствие человекочитаемого имени значению enum:
+Определения с `enum` + `enumNames` получают рантайм-константу с суффиксом `EnumNames`, соответствие человекочитаемого имени значению enum:
 
 ```ts
 import { AdsAdApprovedEnumNames } from "@vkma.dev/api-schema";
@@ -43,7 +43,7 @@ AdsAdApprovedEnumNames.APPROVED; // 2
 import { API_VERSION } from "@vkma.dev/api-schema"; // "5.199"
 ```
 
-Версия VK API, из которой собран пакет, — генерируется из схемы и закреплена тестом. Как она связана с версией пакета — в [версиях](/api-schema/versioning/).
+Версию VK API, из которой собран пакет, генерируют из схемы и закрепляют тестом. Как она связана с версией пакета, см. в [версиях](/api-schema/versioning/).
 
 ## MethodMap
 

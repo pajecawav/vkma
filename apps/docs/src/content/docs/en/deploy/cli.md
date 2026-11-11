@@ -18,7 +18,7 @@ The binary is `vkma-deploy`; without installing run `npx @vkma.dev/deploy` (or `
 | `vkma-deploy config`              | Print the resolved config: each value's source plus warnings; the token stays hidden |
 | `vkma-deploy completions <shell>` | Shell completion script: `bash`, `zsh`, `fish`                                       |
 
-`init` refuses to touch an existing config — it points you at the file to edit. Values are imported from a legacy `vk-hosting-config.json` in the current directory (the token is never copied into the new file); only what is still missing gets prompted for. `init` flags: `--app-id <id>` (required without a TTY), `--static-path <dir>` (default `./dist`), `--endpoints <mobile,mvk,web>` (default: all three, each pointing at `index.html`).
+`init` refuses to touch an existing config and points you at the file to edit. Values are imported from a legacy `vk-hosting-config.json` in the current directory (the token is never copied into the new file); only what is still missing gets prompted for. `init` flags: `--app-id <id>` (required without a TTY), `--static-path <dir>` (default `./dist`), `--endpoints <mobile,mvk,web>` (default: all three, each pointing at `index.html`).
 
 ## Deploy flags
 
@@ -42,16 +42,16 @@ The binary is `vkma-deploy`; without installing run `npx @vkma.dev/deploy` (or `
 
 ## Interactivity
 
-By default the CLI never prompts — the default is CI-safe. `--interactive` (TTY only) asks only for values nothing else provides; precedence is flag > env > config > prompt, and prompted values are never written back into your config. `--interactive` cannot rescue a config missing `appId`/`staticPath` — resolution fails before any prompt.
+By default the CLI never prompts. That default is CI-safe. `--interactive` (TTY only) asks only for values nothing else provides; precedence is flag > env > config > prompt, and prompted values are never written back into your config. `--interactive` cannot rescue a config missing `appId`/`staticPath`. Resolution fails before any prompt.
 
 Prompted unconditionally, TTY only (skipped with the `CI` env var, non-TTY stdin, and `--json`/`--quiet`):
 
-- **The VK confirmation code** (queue event 205): VK sends a code for some deploys. An empty answer or Ctrl+C aborts with exit `130`, never a fake success. In CI the run fails fast — supply the code programmatically via the library API (`confirmCode`).
+- **The VK confirmation code** (queue event 205): VK sends a code for some deploys. An empty answer or Ctrl+C aborts with exit `130`, never a fake success. In CI the run fails fast. Supply the code programmatically via the library API (`confirmCode`).
 - **The deploy plan + `Deploy? (Y/n)`**: environments, URL switching, test group, bundle, endpoints. Enter proceeds; `n` cancels with exit `130` before anything leaves the machine.
 
 ## URL policy
 
-Switching production/dev URLs to the new version is always explicit — VK's server default never decides silently:
+Switching production/dev URLs to the new version is always explicit, and VK's server default never decides silently:
 
 - **Set** via a flag or a config field — used as given, no questions asked.
 - **Unset on a TTY** — the CLI asks right before the plan: `Enter` accepts the shown default (yes), `n` pins "do not switch". Declining an update prompt does not cancel the deploy; only `n` on `Deploy?` does.
@@ -62,7 +62,7 @@ Prompted answers never overwrite values that a flag, env var, or config file alr
 
 ## login and logout
 
-`login` runs the OAuth device flow: it opens the browser (TTY only), waits for approval and stores the token at `$XDG_CONFIG_HOME/vkma/deploy/credentials.json` with mode `0600`. The token is never printed. `appId` comes from the config, `VKMA_APP_ID`, or a prompt via `--interactive`. The first run also reads the token saved by the official `@vkontakte/vk-miniapps-deploy` — migrating needs no re-login.
+`login` runs the OAuth device flow: it opens the browser (TTY only), waits for approval and stores the token at `$XDG_CONFIG_HOME/vkma/deploy/credentials.json` with mode `0600`. The token is never printed. `appId` comes from the config, `VKMA_APP_ID`, or a prompt via `--interactive`. The first run also reads the token saved by the official `@vkontakte/vk-miniapps-deploy`, so migrating needs no re-login.
 
 `logout` removes the stored token; if the official tool's token is still installed, the CLI warns that the fallback remains usable.
 

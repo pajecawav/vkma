@@ -37,18 +37,7 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`VKBridgeConfigProvider` собирает `ConfigProvider` → `AdaptivityProvider` → `AppRoot(mode="full")` с вычисленными от моста дефолтами:
-
-| Проп ConfigProvider         | Источник                                                                         |
-| --------------------------- | -------------------------------------------------------------------------------- |
-| `colorScheme`               | `VKWebAppUpdateConfig` плюс бутстрап `VKWebAppGetConfig` (`useBridgeAppearance`) |
-| `platform`                  | `"vkcom"`, если `vk_platform === "desktop_web"` в launch params                  |
-| `isWebView`                 | `bridge.isWebView()`                                                             |
-| `hasCustomPanelHeaderAfter` | всегда `true` — угол PanelHeader резервится под контролы хоста                   |
-| пропсы `AdaptivityProvider` | адаптивность хоста через `transformVKBridgeAdaptivity(useBridgeAdaptivity())`    |
-| `AppRoot.safeAreaInsets`    | `VKWebAppUpdateInsets` и insets конфига через `useBridgeInsets`                  |
-
-Пропс, переданный явно, побеждает вычисленное значение: провайдер принимает всю поверхность пропсов `ConfigProvider` и раскладывает её последним.
+`VKBridgeConfigProvider` собирает `ConfigProvider` → `AdaptivityProvider` → `AppRoot(mode="full")` с вычисленными от моста дефолтами: тема из `VKWebAppUpdateConfig` и бутстрапа `VKWebAppGetConfig`, insets из `VKWebAppUpdateInsets`, платформа `"vkcom"` на `desktop_web`. Пропс, переданный явно, побеждает вычисленное значение. Полная таблица «проп → источник» в [провайдере](/vkui-bridge/provider/), логика источников в [хуках](/vkui-bridge/hooks/).
 
 ## Хуки
 

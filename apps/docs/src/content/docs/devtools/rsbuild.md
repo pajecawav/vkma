@@ -5,7 +5,7 @@ sidebar:
     order: 2
 ---
 
-Rsbuild-приложению Vite не нужен — адаптер живёт в субпате `@vkma.dev/devtools/rsbuild`:
+Rsbuild-приложению Vite не нужен. Адаптер живёт в субпате `@vkma.dev/devtools/rsbuild`:
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe
@@ -27,7 +27,7 @@ export default defineConfig({
 
 ## Отличия от Vite-версии
 
-Адрес и авторизация те же, что у Vite-версии: панель на `/__vkma/`, OTP-гейт при первом подключении. Соединение переживает рестарты dev-сервера — история не теряется.
+Адрес и авторизация те же, что у Vite-версии: панель на `/__vkma/`, OTP-гейт при первом подключении. Соединение переживает рестарты dev-сервера, история не теряется.
 
 Всё остальное — то же, что у [Vite-плагина](/devtools/vite/):
 

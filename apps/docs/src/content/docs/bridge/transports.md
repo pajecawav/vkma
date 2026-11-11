@@ -37,7 +37,7 @@ parent.postMessage(
 
 - Web: событие `message` на `window`, тело — `{ type, data, frameId }`.
 - Android и iOS WebView: нативный слой диспатчит готовые `CustomEvent("VKWebAppEvent")` на `window`.
-- React Native на Android: `message` на `document`; RN присылает JSON-строку — мост парсит её и дальше обрабатывает как web-конверт.
+- React Native на Android: `message` на `document`; RN присылает JSON-строку. Мост парсит её и дальше обрабатывает как web-конверт.
 
 Событие `VKWebAppSettings` — внутренний протокол: хост назначает iframe его `webFrameId`, мост запоминает и кладёт в каждый исходящий конверт. Подписчикам оно не доставляется.
 

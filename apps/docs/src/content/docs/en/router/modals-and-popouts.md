@@ -5,7 +5,7 @@ sidebar:
     order: 3
 ---
 
-A modal is not a command on top of the history — it is a child route of its panel. An open modal is visible in the URL, survives a reload, closes on the system back and is restored by a deep link.
+A modal is not a command on top of the history. It is a child route of its panel. An open modal is visible in the URL, survives a reload, closes on the system back and is restored by a deep link.
 
 ## Declaration
 
@@ -29,7 +29,7 @@ export const meetingPanel = plansView.panel(
 );
 ```
 
-A `{ component, modals }` entry makes the nested modals child routes of that modal — the declaration is recursive. Chain steps are sibling routes of the panel.
+A `{ component, modals }` entry makes the nested modals child routes of that modal. The declaration is recursive. Chain steps are sibling routes of the panel.
 
 Pass `routeMasks` into the router, or opening a modal puts its own path in the address bar:
 
@@ -62,7 +62,7 @@ export default function ShareMeetingCard(): ReactElement {
 }
 ```
 
-`ModalPageSurface` and `ModalCardSurface` take header, size and chrome as ordinary runtime props — modal content is contextual, not declarative. Panel hooks (`usePanelParams(meetingPanel)`) work inside a modal too: it reads the owning panel's params.
+`ModalPageSurface` and `ModalCardSurface` take header, size and chrome as ordinary runtime props. Modal content is contextual, not declarative. Panel hooks (`usePanelParams(meetingPanel)`) work inside a modal too: it reads the owning panel's params.
 
 ## Opening and props
 
@@ -73,7 +73,7 @@ void navigator.showModal({ to: "/meeting/$id/edit", params: { id }, props: { not
 navigator.hideModal();
 ```
 
-`props` must be serializable (structured clone): they ride in `history.state` and are read with `useModalProps()` — they survive reloads and back/forward. A departing modal retains its last props while it animates out.
+`props` must be serializable (structured clone): they ride in `history.state` and are read with `useModalProps()`. They survive reloads and back/forward. A departing modal retains its last props while it animates out.
 
 A global modal opens from any panel and is addressed via `?modal=<id>`:
 
@@ -87,23 +87,23 @@ Declare it in `createApp({ modals: { create: CreateMeetingModal } })`. The URL i
 
 Two rules the host guarantees:
 
-- **Siblings replace the entry.** A modal → modal transition within one panel replaces — there is no modal stack, and back returns to the panel (old-router parity).
+- **Siblings replace the entry.** A modal → modal transition within one panel replaces. There is no modal stack, and back returns to the panel (old-router parity).
 - **Nested modals push.** A target whose path starts with the open modal's `fullPath` is pushed: back unwinds exactly one level before revealing the parent.
 
-Every retarget is sequential: the old sheet gets `open=false`, its `onClosed` completes the exit, and only then the target gets `open=true` — never two open sheets. Re-targeting while a sheet exits cancels the exit (VKUI reverses the transition mid-flight).
+Every retarget is sequential: the old sheet gets `open=false`, its `onClosed` completes the exit, and only then the target gets `open=true`. There are never two open sheets. Re-targeting while a sheet exits cancels the exit (VKUI reverses the transition mid-flight).
 
-A deep link into a nested modal inflates the full ancestor chain — the panel plus every modal level, outer to inner — so back walks the natural stack.
+A deep link into a nested modal inflates the full ancestor chain, the panel plus every modal level from outer to inner, so back walks the natural stack.
 
 ## Popouts
 
-A popout is a transient overlay without a route: `ScreenSpinner`, `Alert`. The id and serializable props land in `history.state`, components come from the registries — the current panel's own registry (`PanelOptions.popouts`) first, then the global `createApp({ popouts })`. An id collision between them is a dev-time console error.
+A popout is a transient overlay without a route: `ScreenSpinner`, `Alert`. The id and serializable props land in `history.state`, components come from the registries: the current panel's own registry (`PanelOptions.popouts`) first, then the global `createApp({ popouts })`. An id collision between them is a dev-time console error.
 
 ```tsx
 void navigator.showPopout("delete", { id: "m1" });
 navigator.hidePopout();
 ```
 
-The host injects `onClose` — wire it into your VKUI component's `onClosed`:
+The host injects `onClose`. Wire it into your VKUI component's `onClosed`:
 
 ```tsx
 export function DeleteMeetingPopout({ id, onClose }: { id?: string; onClose: () => void }) {
@@ -123,6 +123,6 @@ export function DeleteMeetingPopout({ id, onClose }: { id?: string; onClose: () 
 }
 ```
 
-Back closes the popout; back/forward restores its props. Never store React elements in history state — ids and data only.
+Back closes the popout; back/forward restores its props. Only ids and data go into history state, never React elements.
 
-URL modes and host sync live in [history](/en/router/history/).
+URL modes and host sync are covered in [history](/en/router/history/).

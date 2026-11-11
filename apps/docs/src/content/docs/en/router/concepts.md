@@ -27,11 +27,11 @@ Two rules keep the layers clean:
 - VKUI never leaks below `/vkui` — the core runs in any React setup, with or without VKUI.
 - The bridge is a structural `{ send, subscribe }`: both `@vkma.dev/bridge` and `@vkontakte/vk-bridge` fit; there is a hard dependency on neither.
 
-Import from `/preset` when you build a VKUI app — the layer re-exports everything below it. The lower subpaths matter when you consume only part of the package.
+Import from `/preset` when you build a VKUI app. The layer re-exports everything below it. The lower subpaths matter when you consume only part of the package.
 
 ## Additive over TanStack
 
-TanStack is a peer dependency, and the package re-invents nothing on top of it. Route options (`loader`, `beforeLoad`, `validateSearch`, `lazy`, `pendingComponent`, …) pass into the routes untouched: everything TanStack Router does keeps working here. Its documentation applies to data and validation — the [bridge](/en/bridge/) and router packages answer different questions.
+TanStack is a peer dependency, and the package re-invents nothing on top of it. Route options (`loader`, `beforeLoad`, `validateSearch`, `lazy`, `pendingComponent`, …) pass into the routes untouched: everything TanStack Router does keeps working here. Its documentation applies to data and validation. The [bridge](/en/bridge/) and router packages answer different questions.
 
 ## The navigation surface
 
@@ -40,20 +40,20 @@ Everything the old router drove with string ids converges into two tools:
 - `useNavigator()` — push/replace/back/backToFirst, `showModal`/`showGlobalModal`/`hideModal`, `showPopout`/`hidePopout` and `block`. The hook subscribes to no router state: what it needs is read from the live `router.state` at call time, so using the hook triggers no re-renders and the navigator object has a stable identity.
 - `createVkLink(CellButton)` — turns any component into a typed link: the targets are the same Page objects `navigator.push` accepts.
 
-Both take panel handles instead of strings — see [views and panels](/en/router/views-and-panels/).
+Both take panel handles instead of strings, see [views and panels](/en/router/views-and-panels/).
 
 ## Static children instead of Outlet
 
 The `/vkui` layer renders every panel of a view as an always-mounted VKUI `View` child; the router only feeds `activePanel`. Two consequences look like bugs but are inherent VKUI behavior:
 
-- VKUI infers the animation direction from the declaration order of the children — a push that skips panels back animates BACK;
+- VKUI infers the animation direction from the declaration order of the children: a push that skips panels back animates BACK;
 - `replace` still animates.
 
 Details in [views and panels](/en/router/views-and-panels/).
 
 ## Freeze semantics of the data hooks
 
-A panel stays mounted during the back animation while its route no longer matches — raw TanStack hooks (`useParams`, `useLoaderData`) throw at that moment. Use the package hooks — `usePanelParams`, `usePanelSearch`, `usePanelLoaderData`: they never throw and retain the last value while the panel stays mounted.
+A panel stays mounted during the back animation while its route no longer matches. Raw TanStack hooks (`useParams`, `useLoaderData`) throw at that moment. Use the package hooks: `usePanelParams`, `usePanelSearch`, `usePanelLoaderData`. They never throw and retain the last value while the panel stays mounted.
 
 ## Next
 

@@ -10,7 +10,7 @@ The package is versioned as `0.<API version>.<patch>`: the minor segment is the 
 ## Reading the version
 
 - `@vkma.dev/api-schema@0.5199.x` ↔ VK API `5.199` — drop the dot: `5.199` → `5199`.
-- Available snapshots show up in the registry: `npm view @vkma.dev/api-schema versions --json` — every minor is its own API version.
+- Available snapshots show up in the registry: `npm view @vkma.dev/api-schema versions --json`. Every minor is its own API version.
 - The minor changes only when the API version does: types and schemas may have shifted, so treat the upgrade as a minor bump.
 - Patches within the same minor are regenerations and fixes of the same VK API snapshot.
 - Take the request's `v` parameter from the constant instead of duplicating a string:
@@ -25,7 +25,7 @@ When an app hardcodes `v` and it drifts from `API_VERSION`, the package's types 
 
 ## Updates never arrive silently
 
-On `0.x` versions the standard ranges never cross the minor: both `^0.5199.0` and `~0.5199.0` mean `>=0.5199.0 <0.5200.0`. A new VK API version is a new minor, so `npm update` will not pull it — moving to the next snapshot is always explicit (`npm install @vkma.dev/api-schema@^0.5200.0` for API `5.200`). Patches within the minor are safe — regenerations of the same snapshot.
+On `0.x` versions the standard ranges never cross the minor: both `^0.5199.0` and `~0.5199.0` mean `>=0.5199.0 <0.5200.0`. A new VK API version is a new minor, so `npm update` will not pull it. Moving to the next snapshot is always explicit (`npm install @vkma.dev/api-schema@^0.5200.0` for API `5.200`). Patches within the minor are safe. They regenerate the same snapshot.
 
 Assert your hardcoded version against the constant so drift fails in CI instead of surfacing as response shapes in production:
 
@@ -45,10 +45,10 @@ The constant is generated from the schema's `version` field at package build tim
 
 ## What ships in a patch
 
-A patch within the minor is a regeneration of the same API snapshot: clarified descriptions in the upstream schema (types and doc comments grow from them) and generator fixes. The contract of that VK API version does not change — a patch never requires app-side changes.
+A patch within the minor is a regeneration of the same API snapshot: clarified descriptions in the upstream schema (types and doc comments grow from them) and generator fixes. The contract of that VK API version does not change. A patch never requires app-side changes.
 
 ## Schema updates
 
 The package is built from [VKCOM/vk-api-schema](https://github.com/VKCOM/vk-api-schema): when VK publishes a new API version, a release with a new minor follows (`5.199` → `5.200` means minor `5200`).
 
-Types — in [types](/en/api-schema/types/), schemas — in [validators](/en/api-schema/validators/).
+Types are covered in [types](/en/api-schema/types/), schemas in [validators](/en/api-schema/validators/).

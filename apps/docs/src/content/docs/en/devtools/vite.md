@@ -21,12 +21,12 @@ export default {
 };
 ```
 
-Run `vite dev` — next to the app URL the terminal prints `vkma devtools → http://localhost:5173/__vkma/`. What lives inside the panel is covered in [its tour](/en/devtools/panel/).
+Run `vite dev`. Next to the app URL the terminal prints `vkma devtools → http://localhost:5173/__vkma/`. What lives inside the panel is covered in [its tour](/en/devtools/panel/).
 
 ## What the plugin does
 
 - **The `/__vkma/` panel.** An SPA with RPC/WebSocket on Vite's own port, like `/__unocss` for UnoCSS. No extra server is started. `/__vkma` without a trailing slash 308-redirects to `/__vkma/`.
-- **The bridge alias.** Imports of `@vkontakte/vk-bridge` — from dependencies too — resolve to `@vkma.dev/bridge` with a built-in tap, so the panel sees all of the app's traffic without touching the app's code.
+- **The bridge alias.** Imports of `@vkontakte/vk-bridge`, from dependencies too, resolve to `@vkma.dev/bridge` with a built-in tap, so the panel sees all of the app's traffic without touching the app's code.
 - **The FAB.** A floating button on the app page opens the same panel as an overlay.
 
 ## Options
@@ -52,11 +52,11 @@ vkmaDevtools({
 | `hub`            | `boolean`                                         | `false`         | Mount the panel as a [Vite DevTools](#vite-devtools-dock) dock instead of a standalone page |
 | `bridge`         | object                                            | —               | Extra RPC-bridge options, forwarded verbatim to `devframeViteBridge`                        |
 
-The plugin runs in dev only (`apply: "serve"`) — production builds are untouched.
+The plugin runs in dev only (`apply: "serve"`) and leaves production builds untouched.
 
 ## Importing @vkma.dev/bridge directly
 
-If the app imports `@vkma.dev/bridge` itself, the alias is redundant — the package publishes its own tap and the collector finds it. Turn the interception off:
+If the app imports `@vkma.dev/bridge` itself, the alias is redundant. The package publishes its own tap and the collector finds it. Turn the interception off:
 
 ```ts
 vkmaDevtools({ alias: false });
@@ -66,7 +66,7 @@ The alias exists for exactly one job: routing someone else's `@vkontakte/vk-brid
 
 ## Phones and tunnels
 
-Run `vite --host` and open the app from a phone on your LAN — it becomes another panel client. The first browser connection goes through an OTP gate: a one-time code is printed in the dev server terminal (with a one-click link next to it); trusted browsers are remembered. The WebSocket `Origin` check is open by default — the OTP stays the trust boundary; pass `allowedOrigins: ["http://192.168.1.5:5173"]` to close it as well.
+Run `vite --host` and open the app from a phone on your LAN. It becomes another panel client. The first browser connection goes through an OTP gate: a one-time code is printed in the dev server terminal (with a one-click link next to it); trusted browsers are remembered. The WebSocket `Origin` check is open by default, so the OTP stays the trust boundary. Pass `allowedOrigins: ["http://192.168.1.5:5173"]` to close the Origin check as well.
 
 ## Vite DevTools dock
 
@@ -81,7 +81,7 @@ export default {
 };
 ```
 
-The hub then owns the panel and the RPC; the plugin keeps the bridge interception and the FAB. [MCP](/en/devtools/mcp/) aggregates into the hub's endpoint `/__devtools/__mcp` and the `mcp` option is ignored. Without `hub: true` nothing changes — with or without Vite DevTools present.
+The hub then owns the panel and the RPC; the plugin keeps the bridge interception and the FAB. [MCP](/en/devtools/mcp/) aggregates into the hub's endpoint `/__devtools/__mcp` and the `mcp` option is ignored. Without `hub: true` nothing changes, with or without Vite DevTools present.
 
 ## Next
 

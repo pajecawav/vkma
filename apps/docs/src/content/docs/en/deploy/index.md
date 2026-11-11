@@ -6,7 +6,7 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/deploy` is a deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting, a modern drop-in compatible successor to `@vkontakte/vk-miniapps-deploy`.
+`@vkma.dev/deploy` is a deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting, a drop-in compatible replacement for `@vkontakte/vk-miniapps-deploy`.
 
 ```sh
 npx @vkma.dev/deploy        # or: pnpm dlx / yarn dlx / bunx

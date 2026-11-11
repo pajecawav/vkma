@@ -7,14 +7,14 @@ sidebar:
 
 ## File discovery
 
-Discovery walks up from the current directory; at each level the first file found wins — the closest file beats file type. One file is the whole truth; there is no merging between config files.
+Discovery walks up from the current directory; at each level the first file found wins, and the closest file beats file type. One file is the whole truth; there is no merging between config files.
 
 1. `vkma-deploy.config.{ts,mts,js,mjs,json}` (preferred)
 2. `vk-hosting-config.json` (legacy format, [below](#legacy-vk-hosting-configjson))
 
 `--config <path>` points at an explicit file, skipping discovery (the `init` command does not support it).
 
-TypeScript configs work with zero extra dependencies — native type stripping, Node >= 22.18:
+TypeScript configs work with zero extra dependencies thanks to native type stripping on Node >= 22.18:
 
 ```ts
 // vkma-deploy.config.ts
@@ -58,15 +58,15 @@ JSON configs get editor autocomplete via `$schema`:
 | `oauthClientId`   | integer                                 | `6670517`                                     | OAuth client for the device flow                                                   |
 | `queueTimeoutSec` | integer                                 | `600`                                         | Hosting queue deadline, seconds                                                    |
 
-An `endpoints` block with no platform is a config error: VK never processes a task without `endpoint_*` params — the queue stays silent forever. A missing entry file for a configured platform is caught in preflight.
+An `endpoints` block with no platform is a config error: VK never processes a task without `endpoint_*` params. The queue stays silent forever. A missing entry file for a configured platform is caught in preflight.
 
 ## Validation
 
-The new format is strict: an unknown or misspelled field fails validation naming the key instead of silently deploying defaults (the classic — `static_path` inside a `vkma-deploy.config.*`). `$schema` is whitelisted in JSON files for autocomplete; TS configs get their types from `defineDeployConfig` and never carry `$schema`.
+The new format is strict: an unknown or misspelled field fails validation naming the key instead of silently deploying defaults (the classic being `static_path` inside a `vkma-deploy.config.*`). `$schema` is whitelisted in JSON files for autocomplete; TS configs get their types from `defineDeployConfig` and never carry `$schema`.
 
 ## Legacy vk-hosting-config.json
 
-The legacy file is mapped automatically; every unrecognized or unsupported field produces a warning — nothing is dropped silently.
+The legacy file is mapped automatically; every unrecognized or unsupported field produces a warning. Nothing is dropped silently.
 
 | Legacy field      | Maps to         | Note                                   |
 | ----------------- | --------------- | -------------------------------------- |

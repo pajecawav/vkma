@@ -6,7 +6,7 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/vkui-bridge` is React glue between [`@vkma.dev/bridge`](/en/bridge/) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell. Semantics copy [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react).
+`@vkma.dev/vkui-bridge` is React glue between [`@vkma.dev/bridge`](/en/bridge/) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell. The semantics are 1:1 with [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react).
 
 ```sh
 npm install @vkma.dev/vkui-bridge
@@ -37,18 +37,7 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`VKBridgeConfigProvider` composes `ConfigProvider` → `AdaptivityProvider` → `AppRoot(mode="full")` with bridge-computed defaults:
-
-| ConfigProvider prop         | Source                                                                              |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `colorScheme`               | `VKWebAppUpdateConfig` plus a `VKWebAppGetConfig` bootstrap (`useBridgeAppearance`) |
-| `platform`                  | `"vkcom"` when `vk_platform === "desktop_web"` in the launch params                 |
-| `isWebView`                 | `bridge.isWebView()`                                                                |
-| `hasCustomPanelHeaderAfter` | always `true`, reserving the PanelHeader corner for the host controls               |
-| `AdaptivityProvider` props  | host adaptivity via `transformVKBridgeAdaptivity(useBridgeAdaptivity())`            |
-| `AppRoot.safeAreaInsets`    | `VKWebAppUpdateInsets` and config insets via `useBridgeInsets`                      |
-
-Any prop the app passes explicitly wins over the computed value. The provider accepts the whole `ConfigProvider` prop surface and spreads it last.
+`VKBridgeConfigProvider` composes `ConfigProvider` → `AdaptivityProvider` → `AppRoot(mode="full")` with bridge-computed defaults: the theme from `VKWebAppUpdateConfig` and a `VKWebAppGetConfig` bootstrap, insets from `VKWebAppUpdateInsets`, the `"vkcom"` platform on `desktop_web`. Any prop the app passes explicitly wins over the computed value. The full prop-to-source table is in [the provider](/en/vkui-bridge/provider/), the sources' logic in [the hooks](/en/vkui-bridge/hooks/).
 
 ## Hooks
 

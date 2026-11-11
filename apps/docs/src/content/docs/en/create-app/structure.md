@@ -5,7 +5,7 @@ sidebar:
     order: 3
 ---
 
-The tree of the `router` preset — the richest of the three (differences below):
+The tree of the `router` preset, the richest of the three (differences below):
 
 ```
 my-app/
@@ -39,7 +39,7 @@ In `base`, the `app.tsx`/`shell.tsx`/`panels/` part collapses to a single `App.t
 | `preview` | `vite preview` — serve the production build locally            |
 | `deploy`  | `vkma-deploy` — publish `dist/` to VK Mini Apps hosting        |
 
-`build` runs `tsc --noEmit` against the strict config first — the bundle never starts while type errors remain.
+`build` runs `tsc --noEmit` against the strict config first. The bundle never starts while type errors remain.
 
 ## vite.config.ts
 
@@ -53,7 +53,7 @@ export default defineConfig({
 });
 ```
 
-The `vkmaDevtools()` plugin mounts the devtools panel at `/__vkma/`: a timeline of every bridge event, connected clients and interactive execute. The app's bridge already carries a tap — the panel sees the traffic with zero setup.
+The `vkmaDevtools()` plugin mounts the devtools panel at `/__vkma/`: a timeline of every bridge event, connected clients and interactive execute. The app's bridge already carries a tap, so the panel sees the traffic with zero setup.
 
 ## vkma-deploy.config.ts
 
@@ -87,4 +87,4 @@ Common to every preset: `bridge.send("VKWebAppInit")` folds the host preloader, 
 
 The package name is the sanitized directory name (`My App` → `my-app`), with `private: true`, `type: "module"` and `engines.node: >=22.18.0`. Dependency versions are caret ranges. The title in `index.html` and the README is filled in from the app name.
 
-What each preset generates — in [presets](/en/create-app/presets/); controlling the generation — in the [CLI](/en/create-app/cli/).
+What each preset generates is covered in [presets](/en/create-app/presets/), and controlling the generation in the [CLI](/en/create-app/cli/).

@@ -29,7 +29,7 @@ eventsSchema.$defs.UserInfo; // the payload's JSON Schema node
 - `$defs` — 270 payload definitions (plain objects, enums, `anyOf` branches);
 - `x-vkma-catalogue` — three wiring tables: `props` (96 sendable methods), `receive` (115 receivable names), `events` (94 methods with `Result`/`Failed` wiring).
 
-Table entries reference `$defs` by name. The TypeScript types in the root entrypoint are generated from this same document — data and types cannot drift apart.
+Table entries reference `$defs` by name. The TypeScript types in the root entrypoint are generated from this same document. Data and types cannot drift apart.
 
 ```ts
 import type { EventsCatalogue, EventsSchemaDocument } from "@vkma.dev/bridge-schema/schema";
@@ -67,4 +67,4 @@ stubs.VKWebAppShowWallPostBox; // { attachments: "" }
 
 The use case is a "pick a method, get a props skeleton" form: the devtools execute panel and the inspector prefill fields this way, without shipping the whole `$defs` document.
 
-`declare module` augmentation does not affect the data — [`extending the catalogue`](/en/bridge-schema/extending/) extends types only.
+`declare module` augmentation does not affect the data. [`Extending the catalogue`](/en/bridge-schema/extending/) extends types only.

@@ -46,7 +46,7 @@ createVkHistory({ mode: "hash-param" }); // = старый createHashParamRouter
 
 Оба hash-режима разрешают глубокие ссылки, записанные в другом режиме (легаси-толерантность).
 
-Инлайн-форма `views: Record<string, ViewOptions>` выше — для маленьких приложений: она даёт типизированную карту `app.panels`. Для реальных приложений рекомендованы хабы `defineView` — см. [вьюхи и панели](/router/views-and-panels/).
+Инлайн-форма `views: Record<string, ViewOptions>` выше — для маленьких приложений: она даёт типизированную карту `app.panels`. Для реальных приложений рекомендованы хабы `defineView`, см. [вьюхи и панели](/router/views-and-panels/).
 
 ## Конфиг маршрутов → билдеры
 
@@ -101,7 +101,7 @@ navigator.showModal({ to: "/item/$id/details", params: { id } });
 navigator.hideModal();
 ```
 
-Глубокие ссылки в пути модалок работают; глобальные модалки `?modal=<id>` открываются с любой панели через `navigator.showGlobalModal(id)` (URL маскируется обратно к пути панели). Подробности — в [модалках и popout'ах](/router/modals-and-popouts/).
+Глубокие ссылки в пути модалок работают; глобальные модалки `?modal=<id>` открываются с любой панели через `navigator.showGlobalModal(id)` (URL маскируется обратно к пути панели). Подробности в [модалках и popout'ах](/router/modals-and-popouts/).
 
 ## Popout'ы
 
@@ -116,7 +116,7 @@ navigator.showPopout("confirm", { itemId: 42 });
 navigator.hidePopout();
 ```
 
-Компонент popout'а получает `onClose` от хоста — прокинь его в `onClosed` своего VKUI-компонента.
+Компонент popout'а получает `onClose` от хоста. Прокинь его в `onClosed` своего VKUI-компонента.
 
 ## Хуки
 
@@ -139,6 +139,6 @@ navigator.hidePopout();
 ## Что не перенесено
 
 - Маршрутизация `Root`/`Epic` с мульти-сториями: рендер `VkView` на каждую историю внутри собственного `Epic` (билдеры и так работают на уровне вьюх).
-- Пропсы `interval`/`throttled` у RouterProvider: не нужны — панели остаются смонтированными во время переходов в модели статических детей.
+- Пропсы `interval`/`throttled` у RouterProvider: не нужны, панели остаются смонтированными во время переходов в модели статических детей.
 
-История и swipe-back — в [истории и хосте](/router/history/).
+История и swipe-back описаны в [истории и хосте](/router/history/).

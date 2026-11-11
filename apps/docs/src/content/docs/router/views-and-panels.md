@@ -28,9 +28,9 @@ export const plansPanel = plansView.panel(
 export const meetingPanel = plansView.panel("meeting/$id", {/* … */}, () => import("./meeting.ui"));
 ```
 
-`defineView("plans")` создаёт хаб: единственное место, где пишется ключ вьюхи. `plansView.panel(path, options, lazy?)` — вид-скопированный `definePanel`: создаёт определение и регистрирует его в порядке вызова.
+`defineView("plans")` создаёт хаб: единственное место, где пишется ключ вьюхи. `plansView.panel(path, options, lazy?)` — вид-скопированный `definePanel`. Он создаёт определение и регистрирует его в порядке вызова.
 
-Порядок объявления — это порядок JSX-детей VKUI `View`, то есть направление push/pop-анимации. Объявляй панели в логике навигации: `index`, потом `meeting/$id` — переход между ними анимируется вперёд.
+Порядок объявления — это порядок JSX-детей VKUI `View`, то есть направление push/pop-анимации. Объявляй панели в логике навигации: `index`, потом `meeting/$id`. Переход между ними анимируется вперёд.
 
 Три правила каталога на вьюху:
 
@@ -110,9 +110,9 @@ export default function MeetingPanel(): ReactElement {
 }
 ```
 
-Передавай хукам сам хэндл панели — типы params/search/loaderData выводятся автоматически. Хуки не бросают во время back-анимации (freeze-семантика, см. [концепции](/router/concepts/)).
+Передавай хукам сам хэндл панели. Типы params/search/loaderData выводятся автоматически. Хуки не бросают во время back-анимации (freeze-семантика, см. [концепции](/router/concepts/)).
 
-Ссылки из любых компонентов — через `createVkLink`:
+Ссылки из любых компонентов идут через `createVkLink`:
 
 ```tsx
 const CellButtonLink = createVkLink(CellButton);
@@ -122,4 +122,4 @@ const CellButtonLink = createVkLink(CellButton);
 </CellButtonLink>;
 ```
 
-`preload="intent"` по умолчанию: чанк и loaderData подгружаются на hover/focus/touchstart — до тапа. Оверлеи — в [модалках и popout'ах](/router/modals-and-popouts/), режимы URL — в [истории](/router/history/).
+`preload="intent"` по умолчанию: чанк и loaderData подгружаются на hover/focus/touchstart, ещё до тапа. Оверлеи описаны в [модалках и popout'ах](/router/modals-and-popouts/), режимы URL в [истории](/router/history/).

@@ -6,7 +6,7 @@ sidebar:
     label: "Описание"
 ---
 
-`@vkma.dev/deploy` — CLI и библиотека деплоя для хостинга [VK Mini Apps](https://vk.ru/mini-apps), современная drop-in-совместимая замена `@vkontakte/vk-miniapps-deploy`.
+`@vkma.dev/deploy` — CLI и библиотека деплоя для хостинга [VK Mini Apps](https://vk.ru/mini-apps), drop-in-совместимая замена `@vkontakte/vk-miniapps-deploy`.
 
 ```sh
 npx @vkma.dev/deploy        # или: pnpm dlx / yarn dlx / bunx

@@ -5,13 +5,13 @@ sidebar:
     order: 1
 ---
 
-Пресетов три. Каждый строится на одном базовом шаблоне — React + Vite + `@vkma.dev/bridge`, devtools-плагин и деплой; пресет-оверлей добавляет зависимости и заменяет часть исходников. Выбирай по потребности в UI-ките и навигации — [структура](/create-app/structure/) готового приложения отличается именно здесь.
+Пресетов три. Каждый строится на одном базовом шаблоне: React + Vite + `@vkma.dev/bridge`, devtools-плагин и деплой; пресет-оверлей добавляет зависимости и заменяет часть исходников. Выбирай по потребности в UI-ките и навигации. [Структура](/create-app/structure/) готового приложения отличается именно здесь.
 
 ## base
 
 React + Vite + `@vkma.dev/bridge`, без UI-кита.
 
-- `src/App.tsx` — демка моста: типизированный `send("VKWebAppGetUserInfo")` и подписка на события хоста через `bridge.subscribe` (возвращает функцию off — готовый cleanup для `useEffect`).
+- `src/App.tsx` — демка моста: типизированный `send("VKWebAppGetUserInfo")` и подписка на события хоста через `bridge.subscribe` (возвращает функцию off, готовый cleanup для `useEffect`).
 - `src/main.tsx` отправляет `VKWebAppInit` (сворачивает прелоадер хоста) и монтирует `<App />` в `StrictMode`.
 - Стилизация — единственный `src/App.css`, никакого UI-фреймворка.
 
@@ -59,6 +59,6 @@ npm create @vkma.dev/app my-app -- --preset vkui
 npm create @vkma.dev/app my-app -- --preset router   # и без флага
 ```
 
-Все формы вызова и остальные флаги — в [CLI](/create-app/cli/).
+Все формы вызова и остальные флаги описаны в [CLI](/create-app/cli/).
 
 Дальше: [структура сгенерированного приложения](/create-app/structure/).

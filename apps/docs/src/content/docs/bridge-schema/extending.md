@@ -9,7 +9,7 @@ sidebar:
 
 ## Куда положить объявление
 
-Создай ambient `.d.ts` внутри include твоего `tsconfig` — например `src/bridge-catalogue.d.ts`:
+Создай ambient `.d.ts` внутри include твоего `tsconfig`, например `src/bridge-catalogue.d.ts`:
 
 ```ts
 // src/bridge-catalogue.d.ts
@@ -46,7 +46,7 @@ declare module "@vkma.dev/bridge-schema" {
 
 ## Push-событие без запроса
 
-Хост сообщает сам, без `send` — добавь одну запись в `ReceiveDataMap`:
+Хост сообщает сам, без `send`. Добавь одну запись в `ReceiveDataMap`:
 
 ```ts
 declare module "@vkma.dev/bridge-schema" {
@@ -88,7 +88,7 @@ try {
 
 ## Правила
 
-- Цель аугментации — корень `@vkma.dev/bridge-schema`. Declaration merging работает только против модуля, объявляющего интерфейсы; `@vkma.dev/bridge` лишь реэкспортирует мапы — `declare module "@vkma.dev/bridge"` не смержится.
+- Цель аугментации — корень `@vkma.dev/bridge-schema`. Declaration merging работает только против модуля, объявляющего интерфейсы; `@vkma.dev/bridge` лишь реэкспортирует мапы. `declare module "@vkma.dev/bridge"` не смержится.
 - Только расширение. TS interface merging не меняет и не удаляет существующие члены. Правка встроенного каталога (VK поменял payload) — релиз схемы с новой версией, не аугментация.
 
-Сырой JSON-документ каталога, если нужен в рантайме, — [каталог как данные](/bridge-schema/data/).
+Если сырой JSON-документ каталога нужен в рантайме, см. [каталог как данные](/bridge-schema/data/).

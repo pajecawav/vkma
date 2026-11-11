@@ -6,7 +6,7 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/bridge` is an independent VK Bridge for VK Mini Apps. Drop-in classic API (`send` / `subscribe` / `supportsAsync` / …) plus a built-in observability tap, per-send timeout/abort and a configurable `request_id` policy.
+`@vkma.dev/bridge` is an independent VK Bridge for VK Mini Apps. The classic API (`send` / `subscribe` / `supportsAsync` / …) plus a built-in observability tap, per-send timeout/abort and a configurable `request_id` policy.
 
 Types come from [`@vkma.dev/bridge-schema`](/en/bridge-schema/), the catalogue of every platform event as data, with an open interface for your own events.
 
@@ -79,7 +79,7 @@ declare module "@vkma.dev/bridge-schema" {
 }
 ```
 
-The rules live in [`@vkma.dev/bridge-schema`](/en/bridge-schema/). Augment that package's root, extend only.
+The rules live in [`@vkma.dev/bridge-schema`](/en/bridge-schema/). Augment that package's root, extending it rather than overriding it.
 
 ## Transports
 

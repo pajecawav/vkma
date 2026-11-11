@@ -5,7 +5,7 @@ sidebar:
     order: 4
 ---
 
-The panel can hand its data to coding agents (OpenCode, Claude Code, any MCP client) through an MCP server on your dev server. The route is off by default — turn it on deliberately:
+The panel can hand its data to coding agents (OpenCode, Claude Code, any MCP client) through an MCP server on your dev server. The route is off by default. Turn it on deliberately:
 
 ```ts
 vkmaDevtools({ mcp: true }); // or vkmaDevtoolsRsbuild({ mcp: true })
@@ -17,7 +17,7 @@ The endpoint is Streamable HTTP at `<base>__mcp`, by default `http://localhost:5
 
 Enabling `mcp: true` gives you a zero-config setup with two gates:
 
-1. **Origin is required.** A request without an `Origin` header gets 403; with one, it must be loopback (`localhost`, `127.0.0.1`, `::1`). This is DNS-rebinding protection: a non-browser MCP client must send an Origin explicitly.
+1. **Origin is required.** A request without an `Origin` header gets 403. With one, it must be loopback (`localhost`, `127.0.0.1`, `::1`). This is DNS-rebinding protection: a non-browser MCP client must send an Origin explicitly.
 2. **Loopback peer.** The connection must come from your machine (the address is checked server-side and cannot be forged).
 
 For tunnels and LAN setups widen trust with an object instead of `true`:
@@ -57,11 +57,11 @@ Add the server to your MCP client config with headers; `Authorization` is only n
 ## Tools
 
 - **`vkma:mcp-state`** (read). Connected clients (platform, URL, online) and the last 500 bridge events, newest last. Payloads are sanitized to plain JSON.
-- **`vkma:mcp-execute`** (action). Executes a VK Bridge method on a client and awaits the round-trip result. Input: `{ "clientId": "…", "name": "VKWebAppGetUserInfo", "params": {} }` — `clientId` and `name` are required; take ids from `vkma:mcp-state`. It mutates the running app's state.
+- **`vkma:mcp-execute`** (action). Executes a VK Bridge method on a client and awaits the round-trip result. Input: `{ "clientId": "…", "name": "VKWebAppGetUserInfo", "params": {} }`. `clientId` and `name` are required, ids come from `vkma:mcp-state`. It mutates the running app's state.
 
 The typical flow: the agent reads `vkma:mcp-state`, finds the client it needs, then replays or verifies calls through `vkma:mcp-execute` without opening a browser.
 
-In [hub mode](/en/devtools/vite/#vite-devtools-dock) the endpoint aggregates into `/__devtools/__mcp` — the `mcp` option is ignored.
+In [hub mode](/en/devtools/vite/#vite-devtools-dock) the endpoint aggregates into `/__devtools/__mcp`, and the `mcp` option is ignored.
 
 ## Next
 

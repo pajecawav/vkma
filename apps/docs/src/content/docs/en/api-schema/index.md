@@ -41,7 +41,7 @@ import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot";
 BaseObjectSchema.parse({ id: 1, title: "app" });
 ```
 
-### Granular imports
+## Granular imports
 
 The barrels export everything, and in plain Node (no tree-shaking) importing one evaluates the whole package. When cold-start time matters, import a single section module instead; the specifiers are extensionless:
 
@@ -50,7 +50,7 @@ import { BaseObjectSchema } from "@vkma.dev/api-schema/valibot/base/objects";
 import { MessagesSendParamsSchema } from "@vkma.dev/api-schema/zod/messages/methods";
 ```
 
-### Method map
+## Method map
 
 `MethodMap` (root) types every documented method by its dotted name; `MethodSchemas` (zod/valibot) is the runtime counterpart. `params` is always present, `response` only where the VK schema documents one; methods with several response variants (extended etc.) get a union of them.
 
@@ -68,7 +68,7 @@ MethodSchemas["ads.getAccounts"].params.parse({});
 
 The runtime `response` slot holds the base variant (`<method>_response`); extended variants (`…_extended_response` and friends) stay available as their own exports.
 
-### Versioning
+## Versioning
 
 The package minor encodes the API version (`0.5199.x` ↔ API `5.199`); `API_VERSION` comes from the schema and a test asserts it.
 

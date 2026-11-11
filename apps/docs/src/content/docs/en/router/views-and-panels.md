@@ -1,6 +1,6 @@
 ---
 title: "Views and panels"
-description: "defineView and definePanel: typed handles, animation order, and owning «/»."
+description: 'defineView and definePanel: typed handles, animation order, and owning "/".'
 sidebar:
     order: 2
 ---
@@ -28,9 +28,9 @@ export const plansPanel = plansView.panel(
 export const meetingPanel = plansView.panel("meeting/$id", {/* … */}, () => import("./meeting.ui"));
 ```
 
-`defineView("plans")` creates a hub: the single place the view key is written. `plansView.panel(path, options, lazy?)` is the view-scoped `definePanel` — it creates the definition and registers it in call order.
+`defineView("plans")` creates a hub: the single place the view key is written. `plansView.panel(path, options, lazy?)` is the view-scoped `definePanel`. It creates the definition and registers it in call order.
 
-The declaration order is the JSX children order of the VKUI `View`, i.e. the push/pop animation direction. Declare panels in navigation logic: `index`, then `meeting/$id` — the transition between them animates forward.
+The declaration order is the JSX children order of the VKUI `View`, i.e. the push/pop animation direction. Declare panels in navigation logic: `index`, then `meeting/$id`. The transition between them animates forward.
 
 Three directory rules per view:
 
@@ -92,7 +92,7 @@ export function AppShell({ app }: { app: AppHandle }) {
 }
 ```
 
-Pass `nav` explicitly: Epic matches children by `getNavId` over the element props, and `VkView`'s internal default sits one level below that inspection. The value is the view key — the same key `useActiveStory` returns, so `activeStory === tab.id` compares user-authored keys on both sides.
+Pass `nav` explicitly: Epic matches children by `getNavId` over the element props, and `VkView`'s internal default sits one level below that inspection. The value is the view key, the same key `useActiveStory` returns, so `activeStory === tab.id` compares user-authored keys on both sides.
 
 ## Data and navigation inside a panel
 
@@ -110,7 +110,7 @@ export default function MeetingPanel(): ReactElement {
 }
 ```
 
-Pass the panel handle itself to the hooks — params/search/loaderData types come out automatically. The hooks never throw during the back animation (freeze semantics, see [concepts](/en/router/concepts/)).
+Pass the panel handle itself to the hooks. Params/search/loaderData types come out automatically. The hooks never throw during the back animation (freeze semantics, see [concepts](/en/router/concepts/)).
 
 Links out of any component go through `createVkLink`:
 
@@ -122,4 +122,4 @@ const CellButtonLink = createVkLink(CellButton);
 </CellButtonLink>;
 ```
 
-`preload="intent"` by default: the chunk and loader data are fetched on hover/focus/touchstart — before the tap. Overlays live in [modals and popouts](/en/router/modals-and-popouts/), URL modes in [history](/en/router/history/).
+`preload="intent"` by default: the chunk and loader data are fetched on hover/focus/touchstart, before the tap. Overlays live in [modals and popouts](/en/router/modals-and-popouts/), URL modes in [history](/en/router/history/).

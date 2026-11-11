@@ -29,7 +29,7 @@ eventsSchema.$defs.UserInfo; // JSON Schema узел полезной нагру
 - `$defs` — 270 определений полезных нагрузок (обычные объекты, enum'ы, `anyOf`-ветки);
 - `x-vkma-catalogue` — три таблицы проводки: `props` (96 отправляемых методов), `receive` (115 принимаемых имён), `events` (94 метода с проводкой `Result`/`Failed`).
 
-Записи таблиц ссылаются на `$defs` по имени. Типы TypeScript в корневом entrypoint сгенерированы из этого же документа — данные и типы не расходятся.
+Записи таблиц ссылаются на `$defs` по имени. Типы TypeScript в корневом entrypoint сгенерированы из этого же документа. Данные и типы не расходятся.
 
 ```ts
 import type { EventsCatalogue, EventsSchemaDocument } from "@vkma.dev/bridge-schema/schema";
@@ -67,4 +67,4 @@ stubs.VKWebAppShowWallPostBox; // { attachments: "" }
 
 Применение — панель с формой «выбери метод, получи заготовку props»: devtools execute и инспектор так предзаполняют поля, не таща весь `$defs` в бандл.
 
-Аугментация `declare module` на данные не влияет — [`extending`](/bridge-schema/extending/) расширяет только типы.
+Аугментация `declare module` на данные не влияет. [`extending`](/bridge-schema/extending/) расширяет только типы.

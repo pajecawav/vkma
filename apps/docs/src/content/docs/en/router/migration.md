@@ -46,7 +46,7 @@ createVkHistory({ mode: "hash-param" }); // = old createHashParamRouter (#?path=
 
 Both hash modes resolve deep links written by the other (legacy tolerance).
 
-The inline `views: Record<string, ViewOptions>` form above is for small apps: it yields the typed `app.panels` map. Real apps should prefer `defineView` hubs — see [views and panels](/en/router/views-and-panels/).
+The inline `views: Record<string, ViewOptions>` form above is for small apps: it yields the typed `app.panels` map. Real apps should prefer `defineView` hubs, see [views and panels](/en/router/views-and-panels/).
 
 ## Route config → builders
 
@@ -116,7 +116,7 @@ navigator.showPopout("confirm", { itemId: 42 });
 navigator.hidePopout();
 ```
 
-The popout component receives `onClose` from the host — wire it to your VKUI component's `onClosed`.
+The popout component receives `onClose` from the host. Wire it to your VKUI component's `onClosed`.
 
 ## Hooks
 
@@ -127,7 +127,7 @@ The popout component receives `onClose` from the host — wire it to your VKUI c
 | `useMetaParams`                                | `location.state` (`useRouterState`)                                                                                                          |
 | `useActiveVkuiLocation` / `useGetPanelForView` | not needed — `VkView` drives VKUI directly; position via VKUI `useNavId`                                                                     |
 | `useFirstPageCheck`                            | `!router.history.canGoBack()`                                                                                                                |
-| `useHistoryManager`                            | internal (the panels mirror); expose on request                                                                                              |
+| `useHistoryManager`                            | internal (the panels mirror); we can expose it on request                                                                                    |
 | `useBlocker` / `routeNavigator.block`          | `navigator.block(onLeave)` — the callback gets `{ currentLocation, nextLocation, action }` (back/forward/go = POP); or TanStack `useBlocker` |
 | `useEnableSwipeBack`                           | `useEnableSwipeBack(enabled, panelRef)` — per-panel override; hard opt-out `createSwipeBackManager({ enabled: false })`                      |
 | `RouterLink`                                   | TanStack `Link` (import from `@tanstack/react-router`)                                                                                       |
@@ -139,6 +139,6 @@ A deep link restores the exact screen, including modals. On a cold start onto a 
 ## Not carried over
 
 - `Root`/`Epic` multi-story routing: render `VkView` per story inside your own `Epic` (the builders already work per view).
-- `interval`/`throttled` RouterProvider props: unnecessary — panels stay mounted during transitions in the static-children model.
+- `interval`/`throttled` RouterProvider props: unnecessary, since panels stay mounted during transitions in the static-children model.
 
-History and swipe-back — in [history and the host](/en/router/history/).
+History and swipe-back are covered in [history and the host](/en/router/history/).

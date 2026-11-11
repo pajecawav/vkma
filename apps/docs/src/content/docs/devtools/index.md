@@ -6,7 +6,7 @@ sidebar:
     label: "Описание"
 ---
 
-`@vkma.dev/devtools` — devtools для VK Mini Apps: панель `/__vkma/` на твоём собственном dev-сервере с живым диалогом VK Bridge (исходящие send'ы, парные ответы, входящие события), реестром подключённых клиентов и execute-мостом.
+`@vkma.dev/devtools` — devtools для VK Mini Apps: панель `/__vkma/` на твоём собственном dev-сервере с живым диалогом VK Bridge (исходящие send'ы, парные ответы, входящие события), реестром подключённых клиентов и execute.
 
 ```sh
 # Vite:
@@ -29,7 +29,7 @@ export default {
 Одна строка даёт мини-аппу:
 
 - **`/__vkma/`.** Панель (SPA + RPC/WebSocket на порту самого Vite, как `/__unocss` у UnoCSS).
-- **Алиас моста.** Импорты `@vkontakte/vk-bridge`, включая зависимости, ведут на `@vkma.dev/bridge` с tap devtools — код приложения менять не нужно. Отключается `alias: false`.
+- **Алиас моста.** Импорты `@vkontakte/vk-bridge`, включая зависимости, ведут на `@vkma.dev/bridge` с tap devtools. Код приложения менять не нужно. Отключается `alias: false`.
 - **FAB.** Плавающая кнопка на странице приложения, открывающая ту же панель оверлеем. Начальное место настраивается: `vkmaDevtools({ fabPosition: "bottom-left" })` (`bottom-left`, `bottom` или `bottom-right`, по умолчанию `bottom-left`); место, выбранное в панели, запоминается на origin и побеждает настройку.
 
 ## Что получаешь

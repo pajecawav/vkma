@@ -5,7 +5,7 @@ sidebar:
     order: 1
 ---
 
-`send` is request-response: you call a method, the host answers with a `Result` or `Failed` event. `subscribe` is the incoming stream: everything the host sends, including answers to your `send` calls.
+`send` is request-response: you call a method, the host answers with a `Result` or `Failed` event. `subscribe` is the incoming stream: everything the host sends, including answers to `send` calls.
 
 ## send
 
@@ -21,12 +21,12 @@ Types come from the [`@vkma.dev/bridge-schema`](/en/bridge-schema/) catalogue: p
 
 ## How the response is paired
 
-Every `send` gets a `request_id`. By default the instance injects one itself — `__vkma_1`, `__vkma_2`, … When the host sends an event whose `request_id` has a pending entry:
+Every `send` gets a `request_id`. By default the instance injects one itself: `__vkma_1`, `__vkma_2`, … When the host sends an event whose `request_id` has a pending entry:
 
-- `request_id` is stripped from the payload — the promise resolves with the body without it;
+- `request_id` is stripped from the payload, and the promise resolves with the body without it;
 - an event carrying `error_type` rejects the promise with that same body (also without `request_id`).
 
-Pass your own `request_id` in props when the host side needs it for its own logic — the instance policy never touches an explicit identifier:
+Pass your own `request_id` in props when the host side needs it for its own logic. The instance policy never touches an explicit identifier:
 
 ```ts
 await bridge.send("VKWebAppGetUserInfo", { request_id: "sync-1" });
@@ -36,7 +36,7 @@ A response without `request_id` (or with a foreign one) is an event, not an answ
 
 ## Errors
 
-The rejection is not an `Error` — it is the `Failed` event body. Discriminate by `error_type`:
+The rejection is not an `Error`. It is the `Failed` event body. Discriminate by `error_type`:
 
 ```ts
 import type { ErrorData } from "@vkma.dev/bridge";
@@ -56,7 +56,7 @@ try {
 }
 ```
 
-If no answer ever arrives, the promise hangs forever — add a [`timeout` or `signal`](/en/bridge/send-options/).
+If no answer ever arrives, the promise hangs forever. Add a [`timeout` or `signal`](/en/bridge/send-options/).
 
 ## subscribe
 
@@ -84,6 +84,6 @@ off(); // unsubscribe
 - You need an answer — `send`: `VKWebAppGetUserInfo`, `VKWebAppStorageGet`, `VKWebAppShowWallPostBox` (the promise resolves when the user closes the box).
 - The host reports on its own — `subscribe`: `VKWebAppUpdateConfig`, `VKWebAppLocationChanged`, `VKWebAppAudioPaused`, `VKWebAppUpdateInsets`.
 
-Responses to your own `send` calls also land in `subscribe` — if you write a global handler, filter out payloads carrying `request_id`.
+Responses also land in `subscribe`, whether they paired or not. If you write a global handler, filter out payloads carrying `request_id`.
 
-What happens to every event along the way is visible in the [tap](/en/bridge/tap/) — it records sends, responses and events alike.
+What happens to every event along the way is visible in the [tap](/en/bridge/tap/). It records sends, responses and events alike.
