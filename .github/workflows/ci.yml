@@ -27,12 +27,6 @@ jobs:
             - name: Build
               run: pnpm build
 
-            - name: Build extension (firefox)
-              run: pnpm --filter @vkma.dev/devtools-extension build:firefox
-
-            - name: Build extension (chrome)
-              run: pnpm --filter @vkma.dev/devtools-extension build:chrome
-
             - name: Lint
               run: pnpm lint
 
@@ -44,9 +38,16 @@ jobs:
                   pnpm --filter @vkma.dev/create-app build
                   pnpm --filter @vkma.dev/create-app test:e2e
 
-            - name: Upload extension artifacts
+            - name: Upload the firefox zip
               uses: actions/upload-artifact@v7
               with:
-                  name: devtools-extension
-                  path: apps/devtools-extension/web-ext-artifacts/
+                  name: devtools-extension-firefox
+                  path: apps/devtools-extension/web-ext-artifacts/vkma-devtools-firefox-*.zip
+                  if-no-files-found: error
+
+            - name: Upload the chrome zip
+              uses: actions/upload-artifact@v7
+              with:
+                  name: devtools-extension-chrome
+                  path: apps/devtools-extension/web-ext-artifacts/vkma-devtools-chrome-*.zip
                   if-no-files-found: error

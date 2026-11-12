@@ -45,7 +45,9 @@ not, and the shim picks the promise-capable one at runtime. Never call
 ## Develop
 
 ```sh
-pnpm build          # rsbuild + web-ext zip (chrome manifest by default)
+pnpm build          # both zips: chrome, then firefox
+pnpm build:chrome   # rsbuild + web-ext zip, chrome manifest
+pnpm build:firefox  # rsbuild + web-ext zip, firefox manifest
 pnpm start          # web-ext run (chromium)
 pnpm start:firefox  # BROWSER=firefox build + web-ext run (firefox)
 BROWSER=firefox pnpm build:rsbuild   # firefox manifest only
