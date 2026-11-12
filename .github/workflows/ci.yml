@@ -30,6 +30,9 @@ jobs:
             - name: Build extension (firefox)
               run: pnpm --filter @vkma.dev/devtools-extension build:firefox
 
+            - name: Build extension (chrome)
+              run: pnpm --filter @vkma.dev/devtools-extension build:chrome
+
             - name: Lint
               run: pnpm lint
 
