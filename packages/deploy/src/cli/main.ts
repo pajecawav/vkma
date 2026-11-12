@@ -30,12 +30,14 @@ import { DeployError, isDeployError } from "../errors.ts";
 import { paint } from "../logger/color.ts";
 import { CliLogger, formatBytes, type LoggerMode } from "../logger/index.ts";
 import { createRedactor } from "../redact.ts";
+import type { StatusKind } from "../status/index.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
 import { completionScript, COMPLETION_SHELLS } from "./completions.ts";
 import { runInit } from "./init.ts";
 import { openUrl } from "./opener.ts";
 import { confirm, text } from "./prompt.ts";
 import { nativeSetGlobalProxyFromEnv, setupProxy } from "./proxy.ts";
+import { StatusReporter } from "./status.ts";
 
 const VERSION = pkg.version;
 
@@ -97,6 +99,8 @@ Flags:
   --verbose, -v                    Debug output incl. HTTP requests (redacted)
   --quiet, -q                      Errors only
   --no-color                       Disable colors (also honors NO_COLOR)
+  --status                         Enable OSC 7501 terminal status reports
+                                     (opt-in, off by default)
   --help, -h / --version, -V
 
 Config discovery (first found wins, walking up from cwd):
@@ -173,21 +177,69 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 		stderr,
 	});
 
+	// Terminal status reports (OSC 7501): opt-in via --status, then gated
+	// to real TTYs and no --json (src/cli/status).
+	const status = new StatusReporter({
+		stdout,
+		enabled: parsed.booleans.status,
+		json: mode === "json",
+		app: "vkma-deploy",
+		// Invariant #3 applies to status records too: a token that reached
+		// the redactor (addSecret below) must not survive into a record.
+		redact: text => logger.redactString(text),
+	});
+
 	try {
 		switch (parsed.command) {
 			case "login":
-				return await runLogin(parsed, { ...options, env, cwd, stdin, logger, mode, color });
+				return await runLogin(parsed, {
+					...options,
+					env,
+					cwd,
+					stdin,
+					logger,
+					mode,
+					color,
+					status,
+				});
 			case "logout":
 				return await runLogout({ env, logger });
 			case "config":
-				return await runConfig(parsed, { ...options, env, cwd, logger, mode, color });
+				return await runConfig(parsed, {
+					...options,
+					env,
+					cwd,
+					logger,
+					mode,
+					color,
+					status,
+				});
 			case "init":
 				return await runInit(
 					parsed,
-					{ ...options, env, cwd, stdin, logger, mode, color },
+					{
+						...options,
+						env,
+						cwd,
+						stdin,
+						logger,
+						mode,
+						color,
+						status,
+					},
 					// Chained login reuses the plain command end to end: same
 					// config resolution, same device flow, same exit codes.
-					() => runLogin(parsed, { ...options, env, cwd, stdin, logger, mode, color }),
+					() =>
+						runLogin(parsed, {
+							...options,
+							env,
+							cwd,
+							stdin,
+							logger,
+							mode,
+							color,
+							status,
+						}),
 				);
 			default:
 				return await runDeploy(parsed, {
@@ -198,10 +250,14 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 					logger,
 					mode,
 					color,
+					status,
 				});
 		}
 	} catch (error) {
 		logger.fail(error, parsed.booleans.verbose);
+		// A cancel (exit 130, incl. SIGINT) reads as an interrupt; any other
+		// failure leaves an error record behind before the exit.
+		status.failed(error);
 		return isDeployError(error) ? error.exitCode : 1;
 	} finally {
 		logger.dispose();
@@ -215,11 +271,16 @@ export interface RunContext extends MainOptions {
 	readonly mode: LoggerMode;
 	/** Colors resolved once in main() (TTY + pretty + NO_COLOR/--no-color). */
 	readonly color: boolean;
+	/** OSC 7501 reporter; silent unless `--status` on a real TTY. */
+	readonly status: StatusReporter;
 }
 
 async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<number> {
-	const { logger, env, cwd, color } = context;
+	const { logger, env, cwd, color, status } = context;
 	const stdin = context.stdin ?? { isTTY: false };
+	// The terminal record exists before any prompt can appear: resolution
+	// failures then end on an error record from main()'s catch.
+	status.working("Reading config…");
 	const overrides: Record<string, unknown> = {};
 	if (parsed.values.env !== undefined) {
 		overrides["environment"] = normalizeEnvironment(parsed.values.env);
@@ -267,19 +328,27 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 	// explicit flag, env var, or config value.
 	let effectiveConfig = config;
 	if (parsed.booleans.interactive && stdin.isTTY === true && config.testGroupName === undefined) {
-		const wantsGroup = await confirm("Deploy into a test group?", false, {
-			signal: context.signal,
-			stdin,
-			input: context.input,
-			output: context.stdout,
-		});
+		const wantsGroup = await promptWithStatus(
+			status,
+			"question",
+			"Deploy into a test group?",
+			() =>
+				confirm("Deploy into a test group?", false, {
+					signal: context.signal,
+					stdin,
+					input: context.input,
+					output: context.stdout,
+				}),
+		);
 		if (wantsGroup) {
-			const name = await text("Test group name:", {
-				signal: context.signal,
-				stdin,
-				input: context.input,
-				output: context.stdout,
-			});
+			const name = await promptWithStatus(status, "question", "Test group name", () =>
+				text("Test group name:", {
+					signal: context.signal,
+					stdin,
+					input: context.input,
+					output: context.stdout,
+				}),
+			);
 			if (name !== "") {
 				effectiveConfig = { ...config, testGroupName: name };
 			}
@@ -323,25 +392,33 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 				// the safe dev question stays neutral for contrast.
 				effectiveConfig = {
 					...effectiveConfig,
-					updateProd: await confirm("Update production URLs?", true, {
-						signal: context.signal,
-						stdin,
-						input: context.input,
-						output: context.stdout,
-						questionColor: color ? "yellow" : undefined,
-					}),
+					updateProd: await promptWithStatus(
+						status,
+						"question",
+						"Update production URLs?",
+						() =>
+							confirm("Update production URLs?", true, {
+								signal: context.signal,
+								stdin,
+								input: context.input,
+								output: context.stdout,
+								questionColor: color ? "yellow" : undefined,
+							}),
+					),
 				};
 				sources["updateProd"] = "prompt";
 			}
 			if (devUndecided) {
 				effectiveConfig = {
 					...effectiveConfig,
-					updateDev: await confirm("Update dev URLs?", true, {
-						signal: context.signal,
-						stdin,
-						input: context.input,
-						output: context.stdout,
-					}),
+					updateDev: await promptWithStatus(status, "question", "Update dev URLs?", () =>
+						confirm("Update dev URLs?", true, {
+							signal: context.signal,
+							stdin,
+							input: context.input,
+							output: context.stdout,
+						}),
+					),
 				};
 				sources["updateDev"] = "prompt";
 			}
@@ -366,12 +443,21 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 					logger.info(
 						"Please, confirm deploy on your phone (VK sent a confirmation code).",
 					);
-					const code = await text("Confirmation code:", {
-						signal: context.signal,
-						stdin,
-						input: context.input,
-						output: context.stdout,
-					});
+					// Variable the terminal can see mid-queue: this wait has
+					// no logger spinner of its own (it goes through the
+					// queue's), so the report is the only live signal here.
+					const code = await promptWithStatus(
+						status,
+						"question",
+						"Enter the confirmation code VK sent you on the phone",
+						() =>
+							text("Confirmation code:", {
+								signal: context.signal,
+								stdin,
+								input: context.input,
+								output: context.stdout,
+							}),
+					);
 					if (code === "") {
 						// An empty answer means the user refuses to continue,
 						// a cancel, not a config problem (exit 130).
@@ -386,6 +472,7 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 			: undefined;
 
 	renderDeployPlan(logger, context.mode, effectiveConfig, effectiveMeta, color);
+	status.working(deployStatusMsg(effectiveConfig));
 
 	// Pre-deploy confirmation: interactive humans get a last look at where
 	// the deploy goes before anything leaves the machine. Auto-skipped for
@@ -398,12 +485,14 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		env["CI"] === undefined &&
 		!parsed.booleans.dryRun
 	) {
-		const proceed = await confirm("Deploy?", true, {
-			signal: context.signal,
-			stdin,
-			input: context.input,
-			output: context.stdout,
-		});
+		const proceed = await promptWithStatus(status, "question", "Deploy?", () =>
+			confirm("Deploy?", true, {
+				signal: context.signal,
+				stdin,
+				input: context.input,
+				output: context.stdout,
+			}),
+		);
 		if (!proceed) {
 			// A cancel, not an error: nothing was uploaded (exit 130).
 			throw new DeployError("aborted", "Deploy canceled before upload", {
@@ -419,8 +508,14 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 		sleep: context.sleep,
 		confirmCode,
 		dryRun: parsed.booleans.dryRun,
-		onEvent: event => renderDeployEvent(logger, event),
-		onQueueEvent: event => renderQueueEvent(logger, event),
+		onEvent: event => {
+			renderDeployEvent(logger, event);
+			reportDeployStatus(status, event);
+		},
+		onQueueEvent: event => {
+			renderQueueEvent(logger, event);
+			reportQueueStatus(status, event);
+		},
 	};
 
 	// The config is already resolved above; deployResolved skips the second
@@ -432,12 +527,15 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 	);
 	if (parsed.booleans.dryRun) {
 		logger.info("Dry run: no upload was performed.", { result });
+		// The dry-run flow returns early without the deploy:success event,
+		// so the terminal record is closed here (spec: leave a final record).
+		status.done(dryRunStatusMsg(result));
 	}
 	return 0;
 }
 
 async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number> {
-	const { logger, env, cwd } = context;
+	const { logger, env, cwd, status } = context;
 	const stdin = context.stdin ?? { isTTY: false };
 	// Resolution demands neither deploy completeness nor appId. Login
 	// asks for the app itself, so a missing appId is a login concern:
@@ -457,12 +555,18 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 	let appId = config.appId;
 	if (!Number.isInteger(appId) || appId < 1) {
 		if (parsed.booleans.interactive && stdin.isTTY === true) {
-			const answer = await text("App ID to authorize:", {
-				signal: context.signal,
-				stdin,
-				input: context.input,
-				output: context.stdout,
-			});
+			const answer = await promptWithStatus(
+				status,
+				"question",
+				"Enter the app ID to authorize",
+				() =>
+					text("App ID to authorize:", {
+						signal: context.signal,
+						stdin,
+						input: context.input,
+						output: context.stdout,
+					}),
+			);
 			appId = Number.parseInt(answer, 10);
 		}
 		if (!Number.isInteger(appId) || appId < 1) {
@@ -476,6 +580,7 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 		}
 	}
 
+	status.working(`Authorizing app ${appId} via the browser flow`);
 	const result = await loginDeviceFlow({
 		appId,
 		oauthHost: config.oauthHost,
@@ -483,12 +588,16 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 		signal: context.signal,
 		fetchImpl: context.fetchImpl,
 		sleep: context.sleep,
-		onAuthUrl: url =>
+		onAuthUrl: url => {
 			// rawOut: the confirm URL's single-use code= parameter must stay
 			// readable; emit() would mask it via the redactor.
 			logger.rawOut(
 				`Open this URL to authorize vkma-deploy (browser should open automatically):\n  ${url}`,
-			),
+			);
+			// From here until the flow resolves, the user (not the CLI) is
+			// the limiting step; the spec kind is exactly `auth`.
+			status.blocked("auth", "Waiting for the authorization to be approved");
+		},
 		// The browser opens only in interactive runs; CI/tests/pipe stdin
 		// just get the printed URL.
 		openBrowser: stdin.isTTY === true ? (context.openUrl ?? openUrl) : undefined,
@@ -501,6 +610,7 @@ async function runLogin(parsed: ParsedArgs, context: RunContext): Promise<number
 	logger.addSecret(result.accessToken);
 	logger.step(`Token saved to ${savedTo}`);
 	logger.info("Credentials file is mode 0600. For CI use the VKMA_ACCESS_TOKEN env variable.");
+	status.done(`Token saved to ${savedTo}`);
 	return 0;
 }
 
@@ -806,5 +916,93 @@ function renderSuccess(logger: CliLogger, result: DeployResult): void {
 	);
 	if (result.testGroupUrl !== undefined) {
 		logger.info(`Test group URL: ${result.testGroupUrl}`);
+	}
+}
+
+// -- OSC 7501 status mapping ---------------------------------------------
+
+/** One-line terminal record text for the deploy target. */
+function deployStatusMsg(config: ResolvedConfig): string {
+	const target =
+		config.environment === "production"
+			? "production"
+			: config.environment === "dev"
+				? "dev"
+				: "production + dev";
+	const group =
+		config.testGroupName === undefined ? "" : ` (test group: ${config.testGroupName})`;
+	return `Deploying app ${config.appId} to ${target}${group}`;
+}
+
+/** One-line terminal record text for a finished dry run. */
+function dryRunStatusMsg(result: DeployResult): string {
+	return `Dry run passed (bundle ${formatBytes(result.bundleBytes ?? 0)} is ready)`;
+}
+
+/**
+ * DeployEvent stream → status records. Silent by design for the fast
+ * informational events (config/token resolution, HTTP retries) the
+ * terminal would only flip through.
+ */
+function reportDeployStatus(status: StatusReporter, event: DeployEvent): void {
+	switch (event.type) {
+		case "preflight:done":
+			status.working("Zipping the bundle…");
+			break;
+		case "upload:start":
+			status.working(`Uploading the bundle (${formatBytes(event.total)})…`, 0);
+			break;
+		case "upload:progress":
+			status.working(
+				`Uploading the bundle (${formatBytes(event.total)})…`,
+				Math.floor((event.sent / Math.max(event.total, 1)) * 100),
+			);
+			break;
+		case "upload:done":
+			status.working("Hosting is processing the upload…");
+			break;
+		case "task:created":
+			status.working(`Waiting for the hosting queue (version ${event.version})…`);
+			break;
+		case "deploy:success": {
+			const result = event.result;
+			status.done(
+				result.dryRun ? dryRunStatusMsg(result) : `Deployed version ${result.version}`,
+			);
+			break;
+		}
+	}
+}
+
+/**
+ * QueueEvent → status: the pushing-based phone confirmation is the one
+ * genuine blocked state mid-queue; every other event is covered by the
+ * surrounding reports.
+ */
+function reportQueueStatus(status: StatusReporter, event: QueueEvent): void {
+	if (event.code === 203) {
+		status.blocked("permission", "Confirm the deploy on your phone");
+		return;
+	}
+	if (event.code === 204) {
+		status.resume();
+	}
+}
+
+/**
+ * Wraps one interactive prompt so the terminal sees `blocked` while it
+ * waits for the user and the previous `working` record again after.
+ */
+export async function promptWithStatus<T>(
+	status: StatusReporter,
+	kind: StatusKind,
+	message: string,
+	run: () => Promise<T>,
+): Promise<T> {
+	status.blocked(kind, message);
+	try {
+		return await run();
+	} finally {
+		status.resume();
 	}
 }

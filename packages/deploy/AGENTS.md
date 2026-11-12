@@ -34,6 +34,10 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
   `init.ts` (the config-scaffold wizard). `src/cli.ts` is the shebang
   entry that wires SIGINT.
 - `src/logger/` — pretty/json/quiet renderers over one `LogRecord` pipeline.
+- `src/status/` — pure OSC 7501 (Program Status Protocol) report formatter:
+  one function, no I/O. `src/cli/status.ts` owns the writing (TTY gating,
+  `--json` gate, `--status` opt-in, prompt/working memory);
+  `main.ts` maps the `DeployEvent`/`QueueEvent` streams and prompts onto it.
 
 ## Invariants — do not break
 
@@ -71,6 +75,14 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    Node stdlib. Adding a dependency requires an explicit user decision.
 7. Node >= 22.18 (native TS stripping for config files); `engines` is
    meaningful, don't lower it silently.
+8. **OSC 7501 status is a CLI seam with library formatting.** The pure
+   `statusSequence()` builder lives in `src/status` (exported; no I/O);
+   only `src/cli` decides to write and gates on the `--status` opt-in
+   (default off), a real TTY, and never in `--json`. Status text is
+   redacted like every other print, and the abort mapping is fixed:
+   cancel/SIGINT → `idle` (written synchronously in the signal handler
+   too, so even the second-Ctrl+C force exit leaves a clean record), any
+   other failure → `error`, success → `done`.
 
 ## Upstream reference (@vkontakte/vk-miniapps-deploy 1.0.3)
 

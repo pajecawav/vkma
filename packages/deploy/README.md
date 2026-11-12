@@ -195,6 +195,28 @@ Unlike the upstream CLI, prompted answers never overwrite values that a
 flag, env var, or config file already provided, and declining both update
 prompts still deploys (the version is uploaded without switching URLs).
 
+### Terminal status (OSC 7501)
+
+On a real terminal the CLI reports what it is doing through
+[OSC 7501](https://www.superlogical.com/rex/docs/build/program-status), the
+Program Status Protocol, so the terminal itself (Rex, Ghostty, …) can show
+progress, blocked prompts, and the final result outside the log:
+
+- `working` while the bundle is zipped and uploaded (with byte progress),
+  while the hosting queue is processed, and while VK builds the version
+- `blocked` whenever the run waits **on you**: the update-flag and pre-deploy
+  prompts, the VK push confirmation (event 203), the confirmation-code prompt
+  (event 205), or the browser step of `vkma-deploy login`
+- `done` with the deployed version, `error` with the failure message, and
+  `idle` when you cancel (Ctrl+C)
+
+Reports are opt-in (`--status`) and emitted only when stdout is a terminal;
+`--json` output stays escape-free, and piped/CI runs send nothing. Status
+text passes through the same redaction as every printed line, so tokens
+never appear in a record.
+Library consumers can join in: the pure `statusSequence()` formatter is
+exported from the package, the I/O is left to the consumer.
+
 ### CI
 
 ```yaml

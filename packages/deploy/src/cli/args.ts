@@ -47,6 +47,7 @@ const BOOLEAN_FLAGS = new Set([
 	"--quiet",
 	"--json",
 	"--no-color",
+	"--status",
 	"--help",
 	"--version",
 	"--update-prod",
@@ -86,6 +87,8 @@ export interface ParsedArgs {
 		readonly quiet: boolean;
 		readonly json: boolean;
 		readonly noColor: boolean;
+		/** Opt-in `--status`: OSC 7501 terminal status reports. */
+		readonly status: boolean;
 		readonly help: boolean;
 		readonly version: boolean;
 		readonly updateProd?: boolean;
@@ -110,6 +113,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let quiet = false;
 	let json = false;
 	let noColor = false;
+	let status = false;
 	let help = false;
 	let version = false;
 	let updateProd: boolean | undefined;
@@ -261,6 +265,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			case "--no-color":
 				noColor = true;
 				break;
+			case "--status":
+				status = true;
+				break;
 			case "--help":
 				help = true;
 				break;
@@ -296,6 +303,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			quiet,
 			json,
 			noColor,
+			status,
 			help,
 			version,
 			updateProd,
