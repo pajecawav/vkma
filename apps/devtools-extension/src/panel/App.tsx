@@ -1,4 +1,4 @@
-import { catalogue } from "@vkma.dev/bridge-schema/catalogue";
+import { catalogue, stubs } from "@vkma.dev/bridge-schema/catalogue";
 import type { CaptureMode, ClientStatus, WireEvent } from "@vkma.dev/protocol";
 import {
 	Button,
@@ -195,6 +195,7 @@ function Sections({
 					events={events}
 					execute={execute}
 					suggestedEvents={SUGGESTED_EVENTS}
+					paramsStub={name => stubs[name]}
 					emptyState={
 						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
 							No mini app clients yet. Open one — then execute bridge events here.
