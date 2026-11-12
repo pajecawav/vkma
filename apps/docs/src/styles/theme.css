@@ -1,0 +1,18 @@
+/* vkma.dev theme: Starlight's stock palette (blue accent, blue-tinted
+   neutrals) with self-hosted Inter Variable + Geist Mono via Fontsource.
+   The families below only name the fonts; every color token is stock. */
+
+:root {
+	--sl-font: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	--sl-font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Code blocks keep Expressive Code's default themes (night-owl dark and
+   light) — syntax highlighting is colored and switches with the site
+   theme. */
+
+/* links keep the accent plus an underline so they read as links */
+main a {
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+}

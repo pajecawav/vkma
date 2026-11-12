@@ -47,10 +47,3 @@ jobs:
                   name: devtools-extension
                   path: apps/devtools-extension/web-ext-artifacts/
                   if-no-files-found: error
-
-            - name: Upload web artifact
-              uses: actions/upload-artifact@v7
-              with:
-                  name: web
-                  path: apps/web/dist/
-                  if-no-files-found: error

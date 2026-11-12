@@ -10,7 +10,7 @@ import type { FabPosition } from "@vkma.dev/ui/fab-position";
  * see @vkma.dev/ui/fab-position.
  */
 
-const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>`;
+const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="currentColor" stroke="none"><path d="M3.3 5.9 L11.1 21.1 L16.11 11.33 L12.55 9.5 L11.1 12.33 L7.8 5.9 Z M17.5 2.8 L21 6.3 L17.5 9.8 L14 6.3 Z"/></svg>`;
 const GLYPH_CLOSE = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
 const STYLES = `

@@ -5,6 +5,8 @@
 
 React glue between [`@vkma.dev/bridge`](https://github.com/pajecawav/vkma/tree/master/packages/bridge#readme) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell. Semantics copy [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react), the hooks package VK ships next to vk-bridge.
 
+Docs: https://vkma.dev/vkui-bridge
+
 ## Install
 
 ```sh

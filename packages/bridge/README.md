@@ -5,6 +5,8 @@
 
 Independent VK Bridge for VK Mini Apps. Drop-in classic API (`send` / `subscribe` / `supportsAsync` / …) plus a built-in observability tap, per-send timeout/abort and a configurable `request_id` policy.
 
+Docs: https://vkma.dev/bridge
+
 Types come from [`@vkma.dev/bridge-schema`](https://github.com/pajecawav/vkma/tree/master/packages/bridge-schema#readme), the catalogue of every platform event as data, with an open interface for your own events.
 
 ## Install
