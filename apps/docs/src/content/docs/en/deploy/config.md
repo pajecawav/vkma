@@ -1,8 +1,9 @@
 ---
-title: "Configuration"
+title: "vkma-deploy configuration and legacy vk-hosting-config.json"
 description: "vkma-deploy.config.ts fields, file discovery, the legacy vk-hosting-config.json."
 sidebar:
     order: 2
+    label: "Configuration"
 ---
 
 ## File discovery

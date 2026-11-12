@@ -1,8 +1,9 @@
 ---
-title: "Transports"
+title: "VK Bridge transports: WebView, postMessage, vk-connect"
 description: "The vk-connect envelope, Android/iOS/RN WebViews and lazy per-call host detection."
 sidebar:
     order: 5
+    label: "Transports"
 ---
 
 The bridge picks a transport per call, in order: Android, iOS, React Native, web.

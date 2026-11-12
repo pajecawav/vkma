@@ -1,5 +1,5 @@
 ---
-title: create-app
+title: "@vkma.dev/create-app — скаффолдер VK Mini App"
 description: "Скаффолдер VK Mini App: Vite, мост, devtools и деплой за одну команду."
 sidebar:
     order: 0

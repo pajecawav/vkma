@@ -1,8 +1,9 @@
 ---
-title: "Instances and request_id"
+title: "createVKBridge: instances and the request_id policy"
 description: "The default singleton, createVKBridge for isolated instances and the request_id policy."
 sidebar:
     order: 3
+    label: "Instances and request_id"
 ---
 
 The package's default export is one instance per page. Everything else is `createVKBridge`.

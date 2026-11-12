@@ -1,8 +1,9 @@
 ---
-title: "Env и CI"
+title: "vkma-deploy в CI: env-переменные и прокси"
 description: "Переменные VKMA_* и MINI_APPS_*, токен из секрета, прокси."
 sidebar:
     order: 3
+    label: "Env и CI"
 ---
 
 ## Переменные окружения

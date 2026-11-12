@@ -1,8 +1,9 @@
 ---
-title: "MCP"
+title: "MCP в devtools: инструменты для AI-агентов"
 description: "Инструменты vkma:mcp-state и vkma:mcp-execute для кодинг-агентов на /__vkma/__mcp."
 sidebar:
     order: 4
+    label: "MCP"
 ---
 
 Панель умеет отдавать свои данные кодинг-агентам (OpenCode, Claude Code и любой MCP-клиент) через MCP-сервер на твоём dev-сервере. Роут выключен по умолчанию. Включай осознанно:

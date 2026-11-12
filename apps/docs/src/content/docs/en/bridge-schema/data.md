@@ -1,8 +1,9 @@
 ---
-title: "The catalogue as data"
+title: "The VK Bridge catalogue as data: /schema and /catalogue"
 description: "The /schema and /catalogue subpaths: the raw JSON document, wiring tables and payload stubs."
 sidebar:
     order: 2
+    label: "The catalogue as data"
 ---
 
 Besides types, the package exports the catalogue as runtime data: a JSON Schema document and wiring tables. Devtools panels, inspectors and validators read these.

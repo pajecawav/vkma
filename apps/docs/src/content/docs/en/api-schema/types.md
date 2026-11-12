@@ -1,8 +1,9 @@
 ---
-title: Types
+title: "VK API types: naming, EnumNames, MethodMap"
 description: "Types from the package root: objects, params, responses, EnumNames constants and API_VERSION."
 sidebar:
     order: 1
+    label: "Types"
 ---
 
 Types and constants live in the root entry `@vkma.dev/api-schema`. No zod or valibot is needed for them, and no validator peer appears in your dependencies.

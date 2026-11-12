@@ -1,8 +1,9 @@
 ---
-title: "Provider"
+title: "VKBridgeConfigProvider: composition and prop overrides"
 description: "VKBridgeConfigProvider: computed defaults, prop overrides, and composition order."
 sidebar:
     order: 2
+    label: "Provider"
 ---
 
 `VKBridgeConfigProvider` is the preassembled VKUI shell of a mini app: three VKUI providers with defaults computed from the bridge. Wrap the whole app, inside `StrictMode`, outside your root component.

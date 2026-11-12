@@ -1,8 +1,9 @@
 ---
-title: "Views and panels"
+title: "Views and panels: defineView and typed handles"
 description: 'defineView and definePanel: typed handles, animation order, and owning "/".'
 sidebar:
     order: 2
+    label: "Views and panels"
 ---
 
 A panel is declared once and becomes a typed handle: navigation type-checks params through it, and hooks derive search and loaderData types from it. No string ids.

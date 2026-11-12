@@ -1,8 +1,9 @@
 ---
-title: "Migrating from vk-mini-apps-router"
+title: "Migrating from vk-mini-apps-router to @vkma.dev/router"
 description: "Moving an app off @vkontakte/vk-mini-apps-router: the API mapping and rules."
 sidebar:
     order: 5
+    label: "Migration"
 ---
 
 The new router is feature-compatible with `@vkontakte/vk-mini-apps-router`, but the API differs: TanStack code-based routes, typed navigation through the registered tree, and VKUI rendered by the package's hosts. Below is the mapping, piece by piece.

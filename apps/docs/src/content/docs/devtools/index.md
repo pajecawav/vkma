@@ -1,5 +1,5 @@
 ---
-title: devtools
+title: "@vkma.dev/devtools — панель VK Bridge на dev-сервере"
 description: "Панель /__vkma/ на твоём dev-сервере: живой диалог с мостом, клиенты и execute."
 sidebar:
     order: 0

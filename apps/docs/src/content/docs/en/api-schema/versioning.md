@@ -1,8 +1,9 @@
 ---
-title: Versioning
+title: "api-schema versioning: the minor is the VK API version"
 description: "The package minor encodes the VK API version: 0.5199.x is built from API 5.199."
 sidebar:
     order: 3
+    label: "Versioning"
 ---
 
 The package is versioned as `0.<API version>.<patch>`: the minor segment is the VK API version the types and schemas were generated from. `0.5199.3` is API `5.199`, the third package build on it. Current VK API versions have major `5`, so the minor reads directly: `5199` → `5.199`, `5200` → `5.200`.

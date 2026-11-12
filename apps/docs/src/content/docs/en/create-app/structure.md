@@ -1,8 +1,9 @@
 ---
-title: App structure
+title: "create-app structure: the generated app"
 description: "What the scaffolder generates: the file tree, scripts, devtools and deploy configs."
 sidebar:
     order: 3
+    label: "Structure"
 ---
 
 The tree of the `router` preset, the richest of the three (differences below):

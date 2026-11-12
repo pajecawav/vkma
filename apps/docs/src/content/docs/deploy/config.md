@@ -1,8 +1,9 @@
 ---
-title: "Конфигурация"
+title: "Конфигурация vkma-deploy и легаси vk-hosting-config.json"
 description: "Поля vkma-deploy.config.ts, поиск файла, легаси vk-hosting-config.json."
 sidebar:
     order: 2
+    label: "Конфигурация"
 ---
 
 ## Поиск файла

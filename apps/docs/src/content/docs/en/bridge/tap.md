@@ -1,8 +1,9 @@
 ---
-title: "The tap and devtools"
+title: "The VK Bridge tap: onSend, onEvent, replay buffer"
 description: "onSend and onEvent, the 500-event replay buffer and the globalThis.__vkmaDevtoolsBridge contract."
 sidebar:
     order: 4
+    label: "The tap and devtools"
 ---
 
 Every bridge instance writes everything passing through it into a tap, an always-on stream of outgoing `send` calls, paired responses and host events.

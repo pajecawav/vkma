@@ -1,5 +1,5 @@
 ---
-title: vkui-bridge
+title: "@vkma.dev/vkui-bridge — тема и адаптивность VKUI из моста"
 description: "React-клей между мостом и VKUI: тема, insets и адаптивность хоста в одном провайдере."
 sidebar:
     order: 0

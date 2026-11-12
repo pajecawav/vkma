@@ -1,8 +1,9 @@
 ---
-title: "Events and subscriptions"
+title: "VK Bridge events: send, subscribe, response pairing"
 description: "How send pairs responses by request_id and how to subscribe to host events."
 sidebar:
     order: 1
+    label: "Events and subscriptions"
 ---
 
 `send` is request-response: you call a method, the host answers with a `Result` or `Failed` event. `subscribe` is the incoming stream: everything the host sends, including answers to `send` calls.

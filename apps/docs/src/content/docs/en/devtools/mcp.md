@@ -1,8 +1,9 @@
 ---
-title: "MCP"
+title: "Devtools MCP: tools for coding agents"
 description: "The vkma:mcp-state and vkma:mcp-execute tools for coding agents at /__vkma/__mcp."
 sidebar:
     order: 4
+    label: "MCP"
 ---
 
 The panel can hand its data to coding agents (OpenCode, Claude Code, any MCP client) through an MCP server on your dev server. The route is off by default. Turn it on deliberately:

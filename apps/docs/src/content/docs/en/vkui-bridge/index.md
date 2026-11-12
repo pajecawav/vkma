@@ -1,5 +1,5 @@
 ---
-title: vkui-bridge
+title: "@vkma.dev/vkui-bridge — host theme and adaptivity for VKUI"
 description: "React glue between the bridge and VKUI: host theme, insets and adaptivity in one provider."
 sidebar:
     order: 0

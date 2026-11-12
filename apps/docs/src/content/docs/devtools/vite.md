@@ -1,8 +1,9 @@
 ---
-title: "Vite-плагин"
+title: "vkmaDevtools: Vite-плагин, алиас моста и FAB"
 description: "vkmaDevtools в vite.config: панель /__vkma/, алиас моста и FAB одной строкой."
 sidebar:
     order: 1
+    label: "Vite-плагин"
 ---
 
 Установи devtools, [мост](/bridge/) и Vite-адаптер devframe:

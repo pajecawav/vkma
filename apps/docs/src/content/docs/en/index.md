@@ -1,5 +1,5 @@
 ---
-title: Getting started
+title: "VK Mini Apps quick start"
 description: What vkma.dev is, a quick start with create-app, and the package map.
 ---
 

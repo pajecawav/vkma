@@ -1,8 +1,9 @@
 ---
-title: "Миграция с vk-mini-apps-router"
+title: "Миграция с vk-mini-apps-router на @vkma.dev/router"
 description: "Перенос приложения с @vkontakte/vk-mini-apps-router: маппинг API и правила."
 sidebar:
     order: 5
+    label: "Миграция"
 ---
 
 Новый роутер даёт feature parity со старым `@vkontakte/vk-mini-apps-router`, но API другой: кодовые маршруты TanStack, типизированная навигация по зарегистрированному дереву, VKUI рендерится хостами пакета. Ниже — маппинг по кускам.

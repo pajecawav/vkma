@@ -1,5 +1,5 @@
 ---
-title: router
+title: "@vkma.dev/router — роутер VK Mini Apps на TanStack"
 description: "Роутер VK Mini Apps на TanStack Router: вьюхи, панели, модалки и popout'ы как URL."
 sidebar:
     order: 0

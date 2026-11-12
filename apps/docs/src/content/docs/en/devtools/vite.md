@@ -1,8 +1,9 @@
 ---
-title: "Vite plugin"
+title: "vkmaDevtools: Vite plugin, bridge alias, FAB"
 description: "vkmaDevtools in vite.config: the /__vkma/ panel, the bridge alias and the FAB in one line."
 sidebar:
     order: 1
+    label: "Vite plugin"
 ---
 
 Install the devtools, the [bridge](/en/bridge/) and the devframe Vite adapter:

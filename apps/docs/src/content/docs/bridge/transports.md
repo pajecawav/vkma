@@ -1,8 +1,9 @@
 ---
-title: "Транспорты"
+title: "Транспорты VK Bridge: WebView, postMessage, vk-connect"
 description: "vk-connect конверт, Android/iOS/RN WebView и ленивое чтение хоста при каждом вызове."
 sidebar:
     order: 5
+    label: "Транспорты"
 ---
 
 Мост выбирает транспорт на каждый вызов, в порядке: Android, iOS, React Native, web.

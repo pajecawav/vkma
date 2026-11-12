@@ -1,8 +1,9 @@
 ---
-title: "Hooks"
+title: "vkui-bridge hooks: appearance, insets, adaptivity"
 description: "useBridgeAppearance, useBridgeInsets, useBridgeAdaptivity: signatures and boundaries."
 sidebar:
     order: 1
+    label: "Hooks"
 ---
 
 Three hooks stream the host's verdict out of bridge events: the theme, safe-area insets and adaptivity. The semantics are 1:1 with `@vkontakte/vk-bridge-react`. Every hook reads the default `@vkma.dev/bridge` instance.

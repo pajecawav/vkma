@@ -1,8 +1,9 @@
 ---
-title: "Инстансы и request_id"
+title: "createVKBridge: инстансы и политика request_id"
 description: "Дефолтный синглтон, createVKBridge для изолированных инстансов и политика request_id."
 sidebar:
     order: 3
+    label: "Инстансы и request_id"
 ---
 
 Дефолтный экспорт пакета — один инстанс на страницу. Для всего остального есть `createVKBridge`.

@@ -1,8 +1,9 @@
 ---
-title: "Modals and popouts"
+title: "Modals and popouts as routes"
 description: "Overlays as routes: showModal, useModalProps, and sequential choreography."
 sidebar:
     order: 3
+    label: "Modals and popouts"
 ---
 
 A modal is not a command on top of the history. It is a child route of its panel. An open modal is visible in the URL, survives a reload, closes on the system back and is restored by a deep link.

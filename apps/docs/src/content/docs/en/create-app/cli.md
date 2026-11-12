@@ -1,8 +1,9 @@
 ---
-title: CLI
+title: "create-app CLI: flags and CI mode"
 description: "create-app flags: preset, package manager, --no-install and --no-git; interactive and CI modes."
 sidebar:
     order: 2
+    label: "CLI"
 ---
 
 The invocation shape is `create <path> [flags]`. On a TTY the CLI asks for whatever is missing; without one it runs entirely on flags.

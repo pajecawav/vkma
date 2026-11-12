@@ -1,5 +1,5 @@
 ---
-title: Начало работы
+title: "Быстрый старт VK Mini Apps"
 description: Что такое vkma.dev, быстрый старт через create-app и карта пакетов.
 ---
 

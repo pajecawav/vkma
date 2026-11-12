@@ -1,8 +1,9 @@
 ---
-title: "CLI"
+title: "CLI vkma-deploy: команды, флаги, exit-коды"
 description: "Команды vkma-deploy: init, login, deploy, флаги, промпты и exit-коды."
 sidebar:
     order: 1
+    label: "CLI"
 ---
 
 Бинарник — `vkma-deploy`; без установки запускай `npx @vkma.dev/deploy` (или `pnpm dlx` / `yarn dlx` / `bunx`).

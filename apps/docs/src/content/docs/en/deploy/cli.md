@@ -1,8 +1,9 @@
 ---
-title: "CLI"
+title: "The vkma-deploy CLI: commands, flags, exit codes"
 description: "vkma-deploy commands: init, login, deploy, flags, prompts and exit codes."
 sidebar:
     order: 1
+    label: "CLI"
 ---
 
 The binary is `vkma-deploy`; without installing run `npx @vkma.dev/deploy` (or `pnpm dlx` / `yarn dlx` / `bunx`).

@@ -1,8 +1,9 @@
 ---
-title: "Timeouts and cancellation"
+title: "VK Bridge send options: timeout and AbortSignal"
 description: "The third argument of send: timeout, AbortSignal and what happens to a late response."
 sidebar:
     order: 2
+    label: "Timeouts and cancellation"
 ---
 
 The third argument of `send` bounds how long the call waits. Without it, a send the host never answers never settles.

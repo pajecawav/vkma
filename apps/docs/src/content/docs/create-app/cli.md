@@ -1,8 +1,9 @@
 ---
-title: CLI
+title: "CLI create-app: флаги и CI-режим"
 description: "Флаги create-app: пресет, менеджер пакетов, --no-install и --no-git; интерактивный и CI-режим."
 sidebar:
     order: 2
+    label: "CLI"
 ---
 
 Форма вызова: `create <путь> [флаги]`. В TTY CLI спрашивает недостающее, без TTY работает полностью на флагах.

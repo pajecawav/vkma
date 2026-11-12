@@ -1,5 +1,5 @@
 ---
-title: api-schema
+title: "@vkma.dev/api-schema — VK API types and schemas"
 description: Types and zod/valibot schemas for the whole VK API, generated from the official schema.
 sidebar:
     order: 0

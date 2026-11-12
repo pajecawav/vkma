@@ -1,8 +1,9 @@
 ---
-title: Валидаторы
+title: "Zod и valibot схемы VK API: MethodSchemas"
 description: "zod и valibot: суффикс Schema, MethodSchemas и гранулярные импорты ради cold-start."
 sidebar:
     order: 2
+    label: "Валидаторы"
 ---
 
 Схемы живут в двух subpath: `@vkma.dev/api-schema/zod` и `@vkma.dev/api-schema/valibot`. Имена в обоих одинаковые, с суффиксом `Schema`.

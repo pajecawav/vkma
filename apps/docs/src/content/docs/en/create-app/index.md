@@ -1,5 +1,5 @@
 ---
-title: create-app
+title: "@vkma.dev/create-app — VK Mini App scaffolder"
 description: "A VK Mini App scaffolder: Vite, bridge, devtools and deploy in one command."
 sidebar:
     order: 0

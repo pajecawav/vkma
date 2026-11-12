@@ -1,8 +1,9 @@
 ---
-title: "Env and CI"
+title: "vkma-deploy in CI: env vars and proxies"
 description: "VKMA_* and MINI_APPS_* variables, the token from a secret, proxies."
 sidebar:
     order: 3
+    label: "Env and CI"
 ---
 
 ## Environment variables

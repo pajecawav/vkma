@@ -1,8 +1,9 @@
 ---
-title: "Concepts"
+title: "Router concepts: URL-driven navigation, four layers"
 description: "The URL-driven model, the four package layers, and additivity over TanStack Router."
 sidebar:
     order: 1
+    label: "Concepts"
 ---
 
 All navigation state lives in the URL: a view, a panel, a modal and a popout are TanStack Router routes. The host's back button, a reload and a deep link restore the screen with no separate navigation store.

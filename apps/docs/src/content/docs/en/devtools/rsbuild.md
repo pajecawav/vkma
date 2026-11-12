@@ -1,8 +1,9 @@
 ---
-title: "Rsbuild adapter"
+title: "vkmaDevtoolsRsbuild: the devtools panel in Rsbuild"
 description: "vkmaDevtoolsRsbuild: the same /__vkma/ panel in Rsbuild, no Vite involved."
 sidebar:
     order: 2
+    label: "Rsbuild adapter"
 ---
 
 An Rsbuild app needs no Vite. The adapter lives at the `@vkma.dev/devtools/rsbuild` subpath:

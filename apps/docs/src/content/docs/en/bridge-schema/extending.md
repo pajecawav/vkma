@@ -1,8 +1,9 @@
 ---
-title: "Extending the catalogue"
+title: "Extending the VK Bridge catalogue with declare module"
 description: "Augmenting the three maps via declare module: your own methods, push events and the merging rules."
 sidebar:
     order: 1
+    label: "Extending the catalogue"
 ---
 
 The event catalogue is a set of interfaces in the root of `@vkma.dev/bridge-schema`; extend them with `declare module`, no forks needed.

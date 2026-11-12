@@ -34,11 +34,11 @@ function walk(dir) {
 	return out;
 }
 
-/** Minimal frontmatter read: title, description, sidebar.order. */
+/** Minimal frontmatter read: title, description, sidebar.order, sidebar.label. */
 function parseFrontmatter(source) {
 	const block = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 	if (!block) {
-		return { title: "", description: "", order: 0, body: source };
+		return { title: "", description: "", order: 0, label: "", body: source };
 	}
 	const yaml = block[1];
 	const unquote = value => value.trim().replace(/^["'](.*)["']$/s, "$1");
@@ -47,7 +47,10 @@ function parseFrontmatter(source) {
 	const order = Number(
 		yaml.match(/^sidebar:\s*\n(?:[ \t]+.*\n)*?[ \t]+order:\s*(\d+)/m)?.[1] ?? 0,
 	);
-	return { title, description, order, body: source.slice(block[0].length) };
+	const label = unquote(
+		yaml.match(/^sidebar:\s*\n(?:[ \t]+.*\n)*?[ \t]+label:\s*(.+)$/m)?.[1] ?? "",
+	);
+	return { title, description, order, label, body: source.slice(block[0].length) };
 }
 
 /**
@@ -77,9 +80,11 @@ function page(rel) {
 		rel,
 		locale,
 		slug,
+		isIndex,
 		title: fm.title,
 		description: fm.description,
 		order: fm.order,
+		label: fm.label,
 		body: fm.body,
 		sectionDir: slug === "" ? "" : slug.split("/")[0],
 		htmlUrl: `${SITE}/${urlPath === "" ? "" : `${urlPath}/`}`,
@@ -118,7 +123,14 @@ function renderLlms(locale) {
 		locale === "en"
 			? "Tooling for VK Mini Apps: bridge, router, devtools, deploy and API schemas. Every page is also served as markdown at its URL plus `.md`."
 			: "Инструменты для VK Mini Apps: мост, роутер, devtools, деплой и схемы. Каждая страница доступна как markdown по своему URL плюс `.md`.";
-	const link = p => `- [${p.title}](${p.mdUrl})${p.description ? `: ${p.description}` : ""}`;
+	// Subpages link by their short sidebar label — the "## package" section
+	// heading carries the context, the SEO title would only parrot the
+	// description. Package indexes keep their title: it is the package
+	// identity line ("@vkma.dev/bridge — …") an agent scans for. llms-full
+	// keeps titles everywhere: a flat dump has no section headings, so its
+	// headings must be self-contained (pinned by tests/ai-endpoints.test.ts).
+	const name = p => (p.isIndex || !p.label ? p.title : p.label);
+	const link = p => `- [${name(p)}](${p.mdUrl})${p.description ? `: ${p.description}` : ""}`;
 	const startLabel = locale === "en" ? (START.translations?.en ?? START.label) : START.label;
 	const lines = ["# vkma.dev", "", `> ${summary}`, ""];
 	const { start, packages } = structure(locale);

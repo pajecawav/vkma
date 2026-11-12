@@ -1,8 +1,9 @@
 ---
-title: "The panel"
+title: "The devtools panel: bridge timeline, execute, clients"
 description: "The bridge timeline, clients and execute in /__vkma/."
 sidebar:
     order: 3
+    label: "The panel"
 ---
 
 The panel lives at `/__vkma/` on your dev server (the URL prints at startup) or opens from the FAB right on the app page. It is the same SPA: light and dark themes follow the system, with a toggle in the header. Three sections: Timeline, Execute, Clients.

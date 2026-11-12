@@ -1,8 +1,9 @@
 ---
-title: Типы
+title: "Типы VK API: именование, EnumNames, MethodMap"
 description: "Типы из корня пакета: объекты, параметры, ответы, константы EnumNames и API_VERSION."
 sidebar:
     order: 1
+    label: "Типы"
 ---
 
 Типы и константы живут в корневом входе `@vkma.dev/api-schema`. Zod и valibot для них не нужны, пира-валидатора в зависимостях не появится.

@@ -1,8 +1,9 @@
 ---
-title: Presets
+title: "create-app presets: base, vkui and router"
 description: "base, vkui and router: what each one scaffolds and who it is for."
 sidebar:
     order: 1
+    label: "Presets"
 ---
 
 There are three presets. Every one builds on the same base template: React + Vite + `@vkma.dev/bridge`, the devtools plugin and deploy; a preset overlay adds dependencies and replaces some of the sources. Pick by what you need from the UI kit and navigation. The [structure](/en/create-app/structure/) of the generated app differs exactly here.

@@ -105,6 +105,19 @@ describe("llms.txt", () => {
 		}
 	});
 
+	it("links subpages by sidebar label, package indexes by title", () => {
+		// llms.txt is sectioned (## bridge …): subpages use the short
+		// sidebar label so the link text doesn't parrot the description;
+		// package indexes keep their title — the package identity line.
+		// llms-full keeps titles everywhere (flat dump, no section context).
+		const ru = readFileSync(join(dist, "llms.txt"), "utf8");
+		expect(ru).toContain("- [События и подписки](https://vkma.dev/bridge/events.md)");
+		expect(ru).toContain(
+			"- [@vkma.dev/bridge — независимый VK Bridge](https://vkma.dev/bridge.md)",
+		);
+		expect(ru).not.toContain("События VK Bridge: send");
+	});
+
 	it("llms-full.txt contains every page of its locale", () => {
 		for (const [full, llms] of [
 			["llms-full.txt", "llms.txt"],

@@ -1,12 +1,12 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import { PACKAGES } from "./sections.mjs";
+import { PACKAGES, START } from "./sections.mjs";
 
 // packages are top-level collapsed groups in PACKAGES order; the package
 // index page sorts first inside its group via sidebar.order 0. The start
 // page is a plain top-level link — its group wrapper would hold one item.
 const sidebar = [
-	{ slug: "index" },
+	{ slug: "index", label: START.label, translations: START.translations },
 	...PACKAGES.map(directory => ({
 		label: directory,
 		collapsed: true,
@@ -57,6 +57,37 @@ export default defineConfig({
 						media: "(prefers-color-scheme: light)",
 						content: "#ffffff",
 					},
+				},
+				// Starlight emits twitter:card but no image of any kind; link
+				// previews (Telegram, Slack, X) render bare text without these
+				{
+					tag: "meta",
+					attrs: { property: "og:image", content: "https://vkma.dev/og.png" },
+				},
+				{
+					tag: "meta",
+					attrs: { property: "og:image:width", content: "1200" },
+				},
+				{
+					tag: "meta",
+					attrs: { property: "og:image:height", content: "630" },
+				},
+				{
+					tag: "meta",
+					attrs: { name: "twitter:image", content: "https://vkma.dev/og.png" },
+				},
+				{
+					tag: "link",
+					attrs: {
+						rel: "icon",
+						href: "/favicon-96.png",
+						sizes: "96x96",
+						type: "image/png",
+					},
+				},
+				{
+					tag: "link",
+					attrs: { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
 				},
 			],
 			editLink: {

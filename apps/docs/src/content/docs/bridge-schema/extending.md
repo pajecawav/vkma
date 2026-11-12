@@ -1,8 +1,9 @@
 ---
-title: "Расширение каталога"
+title: "Расширение каталога VK Bridge через declare module"
 description: "Аугментация трёх мап через declare module: свои методы, push-события и правила мержинга."
 sidebar:
     order: 1
+    label: "Расширение каталога"
 ---
 
 Каталог событий — интерфейсы в корне `@vkma.dev/bridge-schema`, расширяй их через `declare module` без форков пакета.

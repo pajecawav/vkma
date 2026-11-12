@@ -1,8 +1,9 @@
 ---
-title: "Провайдер"
+title: "VKBridgeConfigProvider: композиция и перекрытия"
 description: "VKBridgeConfigProvider: вычисленные дефолты, перекрытие пропсами и порядок композиции."
 sidebar:
     order: 2
+    label: "Провайдер"
 ---
 
 `VKBridgeConfigProvider` — собранная VKUI-оболочка мини-аппа: три провайдера VKUI с дефолтами, вычисленными из моста. Оборачивает приложение целиком, внутри `StrictMode` и снаружи корневого компонента.

@@ -1,8 +1,9 @@
 ---
-title: "Tap и devtools"
+title: "Tap моста: onSend, onEvent и replay-буфер"
 description: "onSend и onEvent, replay-буфер на 500 событий и контракт globalThis.__vkmaDevtoolsBridge."
 sidebar:
     order: 4
+    label: "Tap и devtools"
 ---
 
 Каждый инстанс моста пишет всё, что через него проходит, в tap, всегда включённый поток исходящих `send`, парных ответов и событий хоста.

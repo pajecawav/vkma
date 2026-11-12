@@ -1,8 +1,9 @@
 ---
-title: "History and the host"
+title: "Router history and the host: hash modes, swipe-back"
 description: "hash and hash-param modes, VKWebAppSetLocation sync, and swipe-back management."
 sidebar:
     order: 4
+    label: "History and the host"
 ---
 
 A mini app lives in a webview iframe: it has no address bar of its own, and "back" is a system gesture or a host button. The package owns three things: where the URL lives, how the host learns about it, and when the native swipe-back is on.

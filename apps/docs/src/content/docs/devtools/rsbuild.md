@@ -1,8 +1,9 @@
 ---
-title: "Rsbuild-адаптер"
+title: "vkmaDevtoolsRsbuild: панель devtools в Rsbuild"
 description: "vkmaDevtoolsRsbuild: та же панель /__vkma/ в Rsbuild, без Vite."
 sidebar:
     order: 2
+    label: "Rsbuild-адаптер"
 ---
 
 Rsbuild-приложению Vite не нужен. Адаптер живёт в субпате `@vkma.dev/devtools/rsbuild`:

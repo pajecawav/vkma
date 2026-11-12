@@ -1,8 +1,9 @@
 ---
-title: Validators
+title: "Zod and valibot VK API schemas: MethodSchemas"
 description: "zod and valibot schemas: the Schema suffix, MethodSchemas and granular imports for cold start."
 sidebar:
     order: 2
+    label: "Validators"
 ---
 
 Schemas live in two subpaths: `@vkma.dev/api-schema/zod` and `@vkma.dev/api-schema/valibot`. Names are identical in both, carrying a `Schema` suffix.

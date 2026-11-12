@@ -1,5 +1,5 @@
 ---
-title: bridge
+title: "@vkma.dev/bridge — an independent VK Bridge"
 description: "An independent VK Bridge: the classic API, per-send timeouts and a built-in tap."
 sidebar:
     order: 0

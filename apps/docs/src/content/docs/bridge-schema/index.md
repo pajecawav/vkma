@@ -1,5 +1,5 @@
 ---
-title: bridge-schema
+title: "@vkma.dev/bridge-schema — каталог событий VK Bridge"
 description: "Каталог всех событий VK Bridge как данные: JSON Schema и типы TypeScript."
 sidebar:
     order: 0
