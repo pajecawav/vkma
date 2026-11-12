@@ -9,6 +9,7 @@ Schemas live in two subpaths: `@vkma.dev/api-schema/zod` and `@vkma.dev/api-sche
 
 ```sh
 npm install @vkma.dev/api-schema zod      # or valibot — the one you use
+# or: pnpm add / yarn add / bun add
 ```
 
 Both peers are optional and needed exactly when you import the corresponding subpath: zod ^4, valibot ^1. Types-only consumers importing from the root pull neither.

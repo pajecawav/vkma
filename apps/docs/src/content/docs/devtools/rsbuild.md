@@ -9,6 +9,7 @@ Rsbuild-приложению Vite не нужен. Адаптер живёт в 
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe
+# или: pnpm add -D / yarn add -D / bun add -D
 ```
 
 Peer-зависимость — `@rsbuild/core` >= 1.0. Подключи плагин в `rsbuild.config.ts`:

@@ -9,6 +9,7 @@ Install the devtools, the [bridge](/en/bridge/) and the devframe Vite adapter:
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
+# or: pnpm add -D / yarn add -D / bun add -D
 ```
 
 Add the plugin to `vite.config.ts`:

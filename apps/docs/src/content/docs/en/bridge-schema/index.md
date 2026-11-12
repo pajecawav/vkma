@@ -10,6 +10,7 @@ sidebar:
 
 ```sh
 npm install @vkma.dev/bridge-schema
+# or: pnpm add / yarn add / bun add
 ```
 
 ## Types

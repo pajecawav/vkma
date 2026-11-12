@@ -51,6 +51,7 @@ The scaffolder is optional. The bridge into an existing project:
 
 ```sh
 npm install @vkma.dev/bridge
+# or: pnpm add / yarn add / bun add
 ```
 
 ```ts
@@ -64,6 +65,7 @@ Devtools on top (Vite):
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
+# or: pnpm add -D / yarn add -D / bun add -D
 ```
 
 ```ts
@@ -79,6 +81,7 @@ Deploy:
 
 ```sh
 npm install -D @vkma.dev/deploy
+# or: pnpm add -D / yarn add -D / bun add -D
 npx vkma-deploy init
 npx vkma-deploy login
 npx vkma-deploy

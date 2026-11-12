@@ -12,6 +12,7 @@ Types come from [`@vkma.dev/bridge-schema`](/en/bridge-schema/), the catalogue o
 
 ```sh
 npm install @vkma.dev/bridge
+# or: pnpm add / yarn add / bun add
 ```
 
 ## Use

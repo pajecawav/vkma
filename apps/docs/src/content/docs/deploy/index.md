@@ -23,6 +23,7 @@ vkma-deploy                 # деплой по конфигу в проекте
 
 ```sh
 npm install -D @vkma.dev/deploy
+# или: pnpm add -D / yarn add -D / bun add -D
 npx vkma-deploy init          # создать vkma-deploy.config.ts (интерактивно)
 npx vkma-deploy login         # разовая авторизация в браузере
 npx vkma-deploy --dry-run     # проверить конфиг и собрать без загрузки

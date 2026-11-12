@@ -51,6 +51,7 @@ Devtools-панель уже вшита в dev-сервер: открой `/__vk
 
 ```sh
 npm install @vkma.dev/bridge
+# или: pnpm add / yarn add / bun add
 ```
 
 ```ts
@@ -64,6 +65,7 @@ Devtools к нему (Vite):
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
+# или: pnpm add -D / yarn add -D / bun add -D
 ```
 
 ```ts
@@ -79,6 +81,7 @@ export default {
 
 ```sh
 npm install -D @vkma.dev/deploy
+# или: pnpm add -D / yarn add -D / bun add -D
 npx vkma-deploy init
 npx vkma-deploy login
 npx vkma-deploy

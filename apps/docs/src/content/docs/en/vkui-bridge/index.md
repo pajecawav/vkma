@@ -10,6 +10,7 @@ sidebar:
 
 ```sh
 npm install @vkma.dev/vkui-bridge
+# or: pnpm add / yarn add / bun add
 # peers: @vkma.dev/bridge ^0.2.0, @vkontakte/vkui ^8.0.0, react ^18 | ^19
 ```
 

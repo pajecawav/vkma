@@ -9,6 +9,7 @@ sidebar:
 
 ```sh
 npm install @vkma.dev/api-schema zod      # или valibot — что используешь
+# или: pnpm add / yarn add / bun add
 ```
 
 Оба пира опциональны и нужны ровно тогда, когда ты импортируешь соответствующий subpath: zod ^4, valibot ^1. Потребители только типов из корня не тянут ни тот, ни другой.

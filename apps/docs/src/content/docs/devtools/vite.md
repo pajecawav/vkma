@@ -9,6 +9,7 @@ sidebar:
 
 ```sh
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
+# или: pnpm add -D / yarn add -D / bun add -D
 ```
 
 Добавь плагин в `vite.config.ts`:

@@ -11,6 +11,7 @@ Docs: https://vkma.dev/router
 
 ```sh
 npm install @vkma.dev/router @tanstack/react-router
+# or: pnpm add / yarn add / bun add
 # peers: @tanstack/react-router ^1.170, @vkontakte/vkui ^8 (optional), react ^18 | ^19
 ```
 

@@ -10,6 +10,7 @@ sidebar:
 
 ```sh
 npm install @vkma.dev/router @tanstack/react-router
+# или: pnpm add / yarn add / bun add
 # peers: @tanstack/react-router ^1.170, @vkontakte/vkui ^8 (опционально), react ^18 | ^19
 ```
 

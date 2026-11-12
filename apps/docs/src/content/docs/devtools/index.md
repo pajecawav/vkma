@@ -13,6 +13,7 @@ sidebar:
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe @devframes/vite
 # Rsbuild (vite не нужен):
 npm install -D @vkma.dev/devtools @vkma.dev/bridge devframe
+# или: pnpm add -D / yarn add -D / bun add -D
 ```
 
 Жёсткая зависимость — только используемый адаптер: `vite` и `@devframes/vite` опциональные пиры (Vite-режим), `@rsbuild/core` — тоже (Rsbuild-режим).

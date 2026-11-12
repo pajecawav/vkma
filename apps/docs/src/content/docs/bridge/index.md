@@ -12,6 +12,7 @@ sidebar:
 
 ```sh
 npm install @vkma.dev/bridge
+# или: pnpm add / yarn add / bun add
 ```
 
 ## Использование

@@ -10,6 +10,7 @@ sidebar:
 
 ```sh
 npm install @vkma.dev/api-schema
+# or: pnpm add / yarn add / bun add
 # optional peers, only if you use the corresponding subpath
 npm install zod      # for @vkma.dev/api-schema/zod
 npm install valibot  # for @vkma.dev/api-schema/valibot

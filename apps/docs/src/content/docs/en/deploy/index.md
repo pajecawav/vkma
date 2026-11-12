@@ -23,6 +23,7 @@ vkma-deploy                 # deploys using the config in your project
 
 ```sh
 npm install -D @vkma.dev/deploy
+# or: pnpm add -D / yarn add -D / bun add -D
 npx vkma-deploy init          # create vkma-deploy.config.ts (interactive)
 npx vkma-deploy login         # one-time browser authorization
 npx vkma-deploy --dry-run     # validate config + bundle without uploading
