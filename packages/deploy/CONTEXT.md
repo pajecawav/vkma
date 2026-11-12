@@ -42,8 +42,8 @@ deliberate exemption is `rawOut`: the OAuth confirm URL, whose one-time
 
 A `report` is one escape sequence; a `record` is what the terminal keeps.
 The pure builder (`statusSequence`) turns a `StatusRecord` into the wire
-bytes; the CLI's `StatusReporter` owns when one goes out (TTY-only, no
-`--json`, `--no-status`/`VKMA_NO_STATUS` opt-out) and remembers the last
+bytes; the CLI's `StatusReporter` owns when one goes out (opt-in `--status`,
+TTY-only, no `--json`) and remembers the last
 `working` record so a prompt can `resume()`. Aborted runs map to `idle`,
 other failures to `error`, success to `done` — records survive process
 exit; `working`/`blocked` do not.

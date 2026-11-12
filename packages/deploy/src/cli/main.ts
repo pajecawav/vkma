@@ -99,8 +99,8 @@ Flags:
   --verbose, -v                    Debug output incl. HTTP requests (redacted)
   --quiet, -q                      Errors only
   --no-color                       Disable colors (also honors NO_COLOR)
-  --no-status                      Disable OSC 7501 terminal status reports
-                                    (also honors VKMA_NO_STATUS)
+  --status                         Enable OSC 7501 terminal status reports
+                                     (opt-in, off by default)
   --help, -h / --version, -V
 
 Config discovery (first found wins, walking up from cwd):
@@ -108,7 +108,7 @@ Config discovery (first found wins, walking up from cwd):
   vk-hosting-config.json                    legacy upstream format
 
 Env: VKMA_ACCESS_TOKEN, VKMA_APP_ID, VKMA_ENVIRONMENT, VKMA_TEST_GROUP,
-     VKMA_TIMEOUT, VKMA_NO_STATUS (+ legacy MINI_APPS_*, CI_URLS aliases)
+     VKMA_TIMEOUT (+ legacy MINI_APPS_*, CI_URLS aliases)
 
 Exit codes: 0 ok · 1 config/user · 2 network/timeout · 3 VK API · 130 aborted
 Docs: https://github.com/vkma-dev/vkma (packages/deploy)`;
@@ -177,13 +177,12 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 		stderr,
 	});
 
-	// Terminal status reports (OSC 7501): same stdout, gated to real TTYs,
-	// --json, and the --no-status / VKMA_NO_STATUS opt-outs (src/cli/status).
+	// Terminal status reports (OSC 7501): opt-in via --status, then gated
+	// to real TTYs and no --json (src/cli/status).
 	const status = new StatusReporter({
 		stdout,
-		env,
+		enabled: parsed.booleans.status,
 		json: mode === "json",
-		disabled: parsed.booleans.noStatus,
 		app: "vkma-deploy",
 		// Invariant #3 applies to status records too: a token that reached
 		// the redactor (addSecret below) must not survive into a record.
@@ -272,7 +271,7 @@ export interface RunContext extends MainOptions {
 	readonly mode: LoggerMode;
 	/** Colors resolved once in main() (TTY + pretty + NO_COLOR/--no-color). */
 	readonly color: boolean;
-	/** OSC 7501 reporter; silent unless stdout is a TTY without opt-outs. */
+	/** OSC 7501 reporter; silent unless `--status` on a real TTY. */
 	readonly status: StatusReporter;
 }
 

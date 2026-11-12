@@ -1308,7 +1308,7 @@ describe("OSC 7501 status reports", () => {
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const outStream = ttyStdout();
-		const code = await main([], {
+		const code = await main(["--status"], {
 			stdout: outStream,
 			stderr,
 			stdin: { isTTY: false },
@@ -1353,7 +1353,7 @@ describe("OSC 7501 status reports", () => {
 		const spy = createFetchSpy(route(deployRoute()));
 		const outStream = ttyStdout();
 		const input = new PassThrough();
-		const pending = main([], {
+		const pending = main(["--status"], {
 			stdout: outStream,
 			stderr,
 			stdin: { isTTY: true },
@@ -1390,7 +1390,7 @@ describe("OSC 7501 status reports", () => {
 			body: { error: { error_code: 15, error_msg: "VK said no" } },
 		}));
 		const outStream = ttyStdout();
-		const code = await main([], {
+		const code = await main(["--status"], {
 			stdout: outStream,
 			stderr,
 			stdin,
@@ -1408,7 +1408,7 @@ describe("OSC 7501 status reports", () => {
 		expect(outStream.writes.join("")).not.toContain("cli-token-1");
 	});
 
-	it("stays off without a TTY and fires --no-status / VKMA_NO_STATUS off", async () => {
+	it("stays off by default and without a TTY even with --status", async () => {
 		await makeProject();
 		await fs.writeFile(
 			path.join(root, "vkma-deploy.config.json"),
@@ -1416,9 +1416,9 @@ describe("OSC 7501 status reports", () => {
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 
-		// Not a TTY: nothing at all.
+		// Not a TTY: nothing at all, --status or not.
 		const plain = ttyStdout();
-		await main([], {
+		await main(["--status"], {
 			stdout: { write: text => plain.writes.push(text), isTTY: false },
 			stderr,
 			stdin,
@@ -1429,9 +1429,9 @@ describe("OSC 7501 status reports", () => {
 		});
 		expect(plain.writes.join("")).not.toMatch(OSC);
 
-		// TTY, but --no-status.
+		// TTY, but the feature is opt-in: no --status, no records.
 		const disabled = ttyStdout();
-		await main(["--no-status"], {
+		await main([], {
 			stdout: disabled,
 			stderr,
 			stdin,
@@ -1441,19 +1441,6 @@ describe("OSC 7501 status reports", () => {
 			sleep: instantSleep,
 		});
 		expect(disabled.writes.join("")).not.toMatch(OSC);
-
-		// TTY, but VKMA_NO_STATUS in the environment.
-		const envOff = ttyStdout();
-		await main([], {
-			stdout: envOff,
-			stderr,
-			stdin,
-			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1", VKMA_NO_STATUS: "1" }),
-			cwd: root,
-			fetchImpl: spy.fetchImpl,
-			sleep: instantSleep,
-		});
-		expect(envOff.writes.join("")).not.toMatch(OSC);
 	});
 
 	it("never emits in --json even on a real TTY", async () => {
@@ -1470,7 +1457,9 @@ describe("OSC 7501 status reports", () => {
 		);
 		const spy = createFetchSpy(route(deployRoute()));
 		const outStream = ttyStdout();
-		const code = await main(["--json"], {
+		// --status is passed to prove --json's gate alone keeps stdout
+		// escape-free (the reporter's other gates would hide it otherwise).
+		const code = await main(["--status", "--json"], {
 			stdout: outStream,
 			stderr,
 			stdin,

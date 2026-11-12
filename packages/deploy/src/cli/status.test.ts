@@ -19,8 +19,8 @@ function ttyReporter(
 	const ttyOut = { write: (text: string) => output.push(text), isTTY: true };
 	const reporter = new StatusReporter({
 		stdout: ttyOut,
-		env: {},
 		app: "vkma-deploy",
+		enabled: true,
 		...options,
 	});
 	return { output, reporter, ttyOut };
@@ -40,7 +40,7 @@ describe("StatusReporter", () => {
 		const output: string[] = [];
 		const reporter = new StatusReporter({
 			stdout: { write: text => output.push(text), isTTY: false },
-			env: {},
+			enabled: true,
 		});
 		reporter.working("Deploying");
 		reporter.done("Deployed");
@@ -51,19 +51,26 @@ describe("StatusReporter", () => {
 		const output: string[] = [];
 		const reporter = new StatusReporter({
 			stdout: { write: text => output.push(text) },
-			env: {},
+			enabled: true,
 		});
 		reporter.working("Deploying");
 		expect(output.join("")).toBe("");
 	});
 
-	it("is silent in --json and with --no-status / VKMA_NO_STATUS", () => {
-		for (const options of [
-			{ json: true },
-			{ disabled: true },
-			{ env: { VKMA_NO_STATUS: "1" } },
-		] as const) {
-			const { output, reporter } = ttyReporter({ env: {}, ...options });
+	it("is opt-in: silent by default on a real TTY", () => {
+		const output: string[] = [];
+		const reporter = new StatusReporter({
+			stdout: { write: (text: string) => output.push(text), isTTY: true },
+			app: "vkma-deploy",
+		});
+		reporter.working("Deploying");
+		reporter.done("Deployed");
+		expect(output.join("")).toBe("");
+	});
+
+	it("stays silent with enabled: false and in --json", () => {
+		for (const options of [{ enabled: false }, { json: true }] as const) {
+			const { output, reporter } = ttyReporter({ ...options });
 			reporter.working("Deploying");
 			reporter.done("Deployed");
 			expect(output.join("")).toBe("");
@@ -142,10 +149,9 @@ describe("StatusReporter", () => {
 describe("forcedAbortStatus()", () => {
 	const base = { isTTY: true } as const;
 	const clean = ["deploy"] as const;
-	const env = {};
 
-	it("is the buffered idle report on a real terminal", () => {
-		const report = forcedAbortStatus(clean, env, base);
+	it("is the buffered idle report on a real terminal with --status", () => {
+		const report = forcedAbortStatus([...clean, "--status"], base);
 		expect(report.startsWith("\x1b]7501;state=idle:app=vkma-deploy:msg=")).toBe(true);
 		expect(report.endsWith("\x1b\\")).toBe(true);
 		expect(Buffer.from(report.split("msg=")[1] ?? "", "base64").toString("utf8")).toBe(
@@ -154,10 +160,10 @@ describe("forcedAbortStatus()", () => {
 	});
 
 	it("stays silent through the same gates as the reporter", () => {
-		expect(forcedAbortStatus(clean, env, { isTTY: false })).toBe("");
-		expect(forcedAbortStatus(clean, env, {})).toBe("");
-		expect(forcedAbortStatus([...clean, "--json"], env, base)).toBe("");
-		expect(forcedAbortStatus([...clean, "--no-status"], env, base)).toBe("");
-		expect(forcedAbortStatus(clean, { VKMA_NO_STATUS: "1" }, base)).toBe("");
+		expect(forcedAbortStatus([...clean, "--status"], { isTTY: false })).toBe("");
+		expect(forcedAbortStatus([...clean, "--status"], {})).toBe("");
+		expect(forcedAbortStatus([...clean, "--status", "--json"], base)).toBe("");
+		// Opt-in: without --status nothing is written at all.
+		expect(forcedAbortStatus(clean, base)).toBe("");
 	});
 });

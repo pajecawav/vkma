@@ -210,10 +210,10 @@ progress, blocked prompts, and the final result outside the log:
 - `done` with the deployed version, `error` with the failure message, and
   `idle` when you cancel (Ctrl+C)
 
-Reports are emitted only when stdout is a terminal; `--json` output stays
-escape-free, piped/CI runs send nothing, and you can opt out explicitly with
-`--no-status` or the `VKMA_NO_STATUS` env var. Status text passes through the
-same redaction as every printed line, so tokens never appear in a record.
+Reports are opt-in (`--status`) and emitted only when stdout is a terminal;
+`--json` output stays escape-free, and piped/CI runs send nothing. Status
+text passes through the same redaction as every printed line, so tokens
+never appear in a record.
 Library consumers can join in: the pure `statusSequence()` formatter is
 exported from the package, the I/O is left to the consumer.
 

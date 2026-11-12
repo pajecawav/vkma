@@ -36,7 +36,7 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
 - `src/logger/` — pretty/json/quiet renderers over one `LogRecord` pipeline.
 - `src/status/` — pure OSC 7501 (Program Status Protocol) report formatter:
   one function, no I/O. `src/cli/status.ts` owns the writing (TTY gating,
-  `--json`/`--no-status`/`VKMA_NO_STATUS` opt-outs, prompt/working memory);
+  `--json` gate, `--status` opt-in, prompt/working memory);
   `main.ts` maps the `DeployEvent`/`QueueEvent` streams and prompts onto it.
 
 ## Invariants — do not break
@@ -77,8 +77,8 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    meaningful, don't lower it silently.
 8. **OSC 7501 status is a CLI seam with library formatting.** The pure
    `statusSequence()` builder lives in `src/status` (exported; no I/O);
-   only `src/cli` decides to write and gates on a real TTY, never in
-   `--json`, honoring `--no-status`/`VKMA_NO_STATUS`. Status text is
+   only `src/cli` decides to write and gates on the `--status` opt-in
+   (default off), a real TTY, and never in `--json`. Status text is
    redacted like every other print, and the abort mapping is fixed:
    cancel/SIGINT → `idle` (written synchronously in the signal handler
    too, so even the second-Ctrl+C force exit leaves a clean record), any

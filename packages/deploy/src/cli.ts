@@ -26,7 +26,7 @@ process.on("SIGINT", () => {
 	// it, a `working` record would survive the process and terminals that
 	// only clear records at the next shell prompt keep showing "in
 	// progress" forever.
-	const abortStatus = forcedAbortStatus(process.argv.slice(2), process.env, process.stdout);
+	const abortStatus = forcedAbortStatus(process.argv.slice(2), process.stdout);
 	if (abortStatus !== "") {
 		process.stdout.write(abortStatus);
 	}

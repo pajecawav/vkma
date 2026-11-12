@@ -3,12 +3,11 @@
  *
  * The library never touches `process` (invariant #2), so the writing
  * lives here: the pure formatter (`src/status`) builds each report and
- * this reporter decides when one goes out — only on a real terminal
- * (stdout is a TTY), never in `--json` (machine-readable stdout must
- * stay escape-free), and never when `--no-status` or the `VKMA_NO_STATUS`
- * env var opted out. Messages pass through the redactor before encoding,
- * so a leaked token cannot survive into a status record either
- * (invariant #3).
+ * this reporter decides when one goes out — only when the run opted in
+ * (`--status`), only on a real terminal (stdout is a TTY), and never in
+ * `--json` (machine-readable stdout must stay escape-free). Messages
+ * pass through the redactor before encoding, so a leaked token cannot
+ * survive into a status record either (invariant #3).
  *
  * Every report replaces its record completely (`app` is therefore resent
  * every time), and the reporter remembers the last `working` record so a
@@ -25,20 +24,10 @@ import { statusSequence, type StatusKind, type StatusRecord } from "../status/in
  * an interrupt reports `idle`, and the terminal must see the wait end
  * the moment the key lands, so the report is a constant sequence
  * written synchronously by the binary entry. Silent through the same
- * gates as the reporter: no TTY, `--json`, `--no-status`, and
- * `VKMA_NO_STATUS`.
+ * gates as the reporter: no TTY, `--json`, and no `--status`.
  */
-export function forcedAbortStatus(
-	argv: readonly string[],
-	env: Record<string, string | undefined>,
-	stdout: { isTTY?: boolean },
-): string {
-	if (
-		stdout.isTTY !== true ||
-		argv.includes("--json") ||
-		argv.includes("--no-status") ||
-		env["VKMA_NO_STATUS"] !== undefined
-	) {
+export function forcedAbortStatus(argv: readonly string[], stdout: { isTTY?: boolean }): string {
+	if (stdout.isTTY !== true || argv.includes("--json") || !argv.includes("--status")) {
 		return "";
 	}
 	return statusSequence({ state: "idle", app: "vkma-deploy", msg: "Canceled" });
@@ -46,11 +35,10 @@ export function forcedAbortStatus(
 
 export interface StatusReporterOptions {
 	readonly stdout: { write(text: string): void; isTTY?: boolean };
-	readonly env: Record<string, string | undefined>;
+	/** `--status`: reports are opt-in and default to off. */
+	readonly enabled?: boolean;
 	/** `--json`: stdout is machine-readable; escape bytes would corrupt it. */
 	readonly json?: boolean;
-	/** `--no-status`. */
-	readonly disabled?: boolean;
 	/** Stable app name carried on every report, e.g. `vkma-deploy`. */
 	readonly app?: string;
 	/** Applied to every free-text field before it is encoded. */
@@ -70,10 +58,7 @@ export class StatusReporter {
 
 	public constructor(options: StatusReporterOptions) {
 		this.enabled =
-			options.stdout.isTTY === true &&
-			options.json !== true &&
-			options.disabled !== true &&
-			options.env["VKMA_NO_STATUS"] === undefined;
+			options.enabled === true && options.stdout.isTTY === true && options.json !== true;
 		this.app = options.app;
 		this.redact = options.redact ?? ((text: string) => text);
 		this.stdout = options.stdout;
