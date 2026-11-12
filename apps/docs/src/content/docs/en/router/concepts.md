@@ -33,7 +33,7 @@ Import from `/preset` when you build a VKUI app. The layer re-exports everything
 
 TanStack is a peer dependency, and the package re-invents nothing on top of it. Route options (`loader`, `beforeLoad`, `validateSearch`, `lazy`, `pendingComponent`, …) pass into the routes untouched: everything TanStack Router does keeps working here. Its documentation applies to data and validation. The [bridge](/en/bridge/) and router packages answer different questions.
 
-## The navigation surface
+## Navigation tools
 
 Everything the old router drove with string ids converges into two tools:
 

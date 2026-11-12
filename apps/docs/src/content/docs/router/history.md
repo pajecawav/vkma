@@ -35,7 +35,7 @@ createBridgeSync({ history: router.history, bridge });
 
 - Каждый зафиксированный шаг истории отправляется хосту как `VKWebAppSetLocation` с `replace_state: true`. URL шеринга и кнопка «назад» хоста отражают состояние приложения. Локация старта отправляется один раз при создании.
 - Входящие `VKWebAppChangeFragment` и `VKWebAppLocationChanged` (прыжок, инициированный хостом) превращаются в `history.replace(href)`. Эхо собственной локации игнорируется, цикл не возникает.
-- «Назад» хоста — это территория `VKWebAppClose`: ChangeFragment не является pop'ом фрагмента.
+- Хост обрабатывает «назад» через `VKWebAppClose`: ChangeFragment не является pop'ом фрагмента.
 
 Кодеки payload зависят от режима: hash отправляет содержимое хэша, hash-param — `?path=…` с сохранением чужих параметров. Вызывай sync после создания роутера (не в module scope рядом с его объявлением), иначе цикл модулей падает с TDZ.
 

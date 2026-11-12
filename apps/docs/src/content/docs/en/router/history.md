@@ -35,7 +35,7 @@ createBridgeSync({ history: router.history, bridge });
 
 - Every committed history change goes to the host as `VKWebAppSetLocation` with `replace_state: true`. The share URL and the host's back reflect the app state. The startup location is sent once at creation.
 - Incoming `VKWebAppChangeFragment` and `VKWebAppLocationChanged` (host-initiated jumps) become `history.replace(href)`. An echo of your own location is ignored, so no loop arises.
-- The host's "back" is `VKWebAppClose` territory: ChangeFragment is not a fragment pop.
+- The host handles "back" via `VKWebAppClose`: ChangeFragment is not a fragment pop.
 
 The payload codecs depend on the mode: hash sends the hash content, hash-param sends `?path=…` preserving foreign params. Call the sync after the router exists (not in module scope next to its declaration), otherwise a module cycle dies with a TDZ crash.
 

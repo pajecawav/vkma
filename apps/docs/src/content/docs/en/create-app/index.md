@@ -6,7 +6,7 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/create-app` scaffolds a VK Mini App in seconds: Vite plus the vkma.dev stack, TypeScript strict by default.
+`@vkma.dev/create-app` scaffolds a VK Mini App in one command: Vite plus the vkma.dev stack, TypeScript strict by default.
 
 ```sh
 npm create @vkma.dev/app my-app

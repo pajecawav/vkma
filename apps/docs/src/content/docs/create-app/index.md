@@ -6,7 +6,7 @@ sidebar:
     label: "Описание"
 ---
 
-`@vkma.dev/create-app` генерирует VK Mini App за секунды: Vite плюс стек vkma.dev, TypeScript strict по умолчанию.
+`@vkma.dev/create-app` генерирует VK Mini App за одну команду: Vite плюс стек vkma.dev, TypeScript strict по умолчанию.
 
 ```sh
 npm create @vkma.dev/app my-app

@@ -26,7 +26,7 @@ Above the log sits the filter row:
 
 A separate mechanism is **ignored events**: platform noise stays out of the log by default (`VKWebAppScrollTop`, `VKWebAppResizeWindow`, `SetSupportedHandlers`, `VKWebAppUpdateInsets`, `VKWebAppUpdateConfig`, `VKWebAppUpdateInfo`). Every row has an "Ignore <name>" action. The event hides immediately and from now on (a request together with its paired response); the full list editor opens from the filter row: add names, re-enable defaults with the toggles, or switch the filter off entirely with the eye toggle.
 
-History lives on the dev server: the last 500 events. Open the panel long after the app started and it replays the buffer. Reloading the app page starts a new session. That client's history is purged on every surface.
+History lives on the dev server: the last 500 events. Open the panel long after the app started and it replays the buffer. Reloading the app page starts a new session. That client's history is purged in every panel variant.
 
 ## Execute
 

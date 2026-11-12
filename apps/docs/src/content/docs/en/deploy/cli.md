@@ -38,6 +38,7 @@ The binary is `vkma-deploy`; without installing run `npx @vkma.dev/deploy` (or `
 | `--verbose`, `-v`                    | Debug output including HTTP requests (secrets masked)              |
 | `--quiet`, `-q`                      | Errors only                                                        |
 | `--no-color`                         | Disable colors (`NO_COLOR` is honored too)                         |
+| `--status`                           | Enable OSC 7501 terminal status reports (off by default)           |
 | `--help`, `-h` / `--version`, `-V`   | Help / version                                                     |
 
 ## Interactivity
@@ -59,6 +60,10 @@ Switching production/dev URLs to the new version is always explicit, and VK's se
 - **Unset with `--yes` or `--dry-run` on a TTY** — the flags stay unset and VK's server default applies (the plan says `server default`).
 
 Prompted answers never overwrite values that a flag, env var, or config file already provided.
+
+## Terminal status
+
+`--status` enables OSC 7501 reports (the Program Status Protocol): a compatible terminal (Rex, Ghostty) shows what the CLI is doing outside the log. `working` while zipping and uploading (with percentages), `blocked` on prompts and the phone confirmation (queue event 203), `done` with the deployed version, `error` with the failure message, `idle` after Ctrl+C. Reports are written to a TTY only, `--json` output stays escape-free, and the text passes the same secret masking as every printed line.
 
 ## login and logout
 

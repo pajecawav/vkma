@@ -22,7 +22,7 @@ sidebar:
 | `@vkma.dev/router/vkui`   | VKUI-хосты: `VkView`, `Modals`, `Popouts`, `NotFound`, `ModalPageSurface`       |
 | `@vkma.dev/router/preset` | `createApp` + `defineView`/`definePanel`, `useNavigator`, `createVkLink`, сахар |
 
-Два правила держат сли чистыми:
+Два правила держат слои чистыми:
 
 - VKUI не протекает ниже `/vkui`: core работает в любом React-окружении, даже без VKUI.
 - Мост — структурный `{ send, subscribe }`: подойдёт и `@vkma.dev/bridge`, и `@vkontakte/vk-bridge`; жёсткой зависимости нет ни на один.
@@ -33,7 +33,7 @@ sidebar:
 
 TanStack — peer-зависимость, и пакет ничего не переизобретает поверх него. Опции маршрутов (`loader`, `beforeLoad`, `validateSearch`, `lazy`, `pendingComponent`, …) проходят в маршруты нетронутыми: всё, что умеет TanStack Router, работает и здесь. Документация TanStack применима к данным и валидации. Пакеты [bridge](/bridge/) и router отвечают за другое.
 
-## Поверхность навигации
+## Инструменты навигации
 
 Всё, чем старый роутер управлял строковыми id, собрано в два инструмента:
 

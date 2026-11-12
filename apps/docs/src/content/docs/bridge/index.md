@@ -86,7 +86,7 @@ declare module "@vkma.dev/bridge-schema" {
 
 ## Транспорты
 
-Web (iframe `postMessage` с конвертом `vk-connect`), Android WebView, iOS WebView и React Native WebView, с приёмными листенерами `message` / `VKWebAppEvent` в придачу.
+Web (iframe `postMessage` с конвертом `vk-connect`), Android WebView, iOS WebView и React Native WebView. Входящие листенеры — `message` / `VKWebAppEvent`, детали ниже.
 
 ## Подробнее
 
