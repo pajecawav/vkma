@@ -1,5 +1,11 @@
 # @vkma.dev/devtools
 
+## 0.2.2
+
+### Patch Changes
+
+- c6174fa: New suite mark: the Diamond-V logo glyph replaces the grid glyph (inject FAB).
+
 ## 0.2.1
 
 ### Patch Changes

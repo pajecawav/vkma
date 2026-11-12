@@ -1,5 +1,16 @@
 # @vkma.dev/deploy
 
+## 0.3.0
+
+### Minor Changes
+
+- 6f13dbc: Terminal status reports via OSC 7501 (Program Status Protocol): the CLI now
+  tells compatible terminals what it is doing (working with upload progress,
+  blocked on prompts and phone confirmation, done/error/idle at the end).
+  Reports are opt-in and only fire on a real terminal: pass `--status` to turn
+  them on. `statusSequence()` is exported so library consumers can join in.
+- d5c1a9d: init command: scaffold vkma-deploy.config.ts (legacy vk-hosting-config.json import, TTY wizard, CI flags)
+
 ## 0.2.1
 
 ### Patch Changes

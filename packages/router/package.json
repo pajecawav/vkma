@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/router",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"description": "VK Mini Apps router on top of TanStack Router — VKUI views/panels/modals/popouts, VK history and bridge sync",
 	"type": "module",
 	"license": "MIT",

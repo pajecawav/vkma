@@ -1,5 +1,11 @@
 # @vkma.dev/router
 
+## 0.1.6
+
+### Patch Changes
+
+- 41e682d: Serialize modal transitions and keep the VKUI backdrop visible between sheets.
+
 ## 0.1.5
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @vkma.dev/create-app
 
+## 0.1.2
+
+### Patch Changes
+
+- 6bc6bb2: Run the overlay removal list before copying overlay files, fixing an empty src/app.tsx on case-insensitive filesystems (macOS, Windows)
+- e0acfc3: Drop maintainer-only comments from the router template (hash-mode history internals, pending-render caveat)
+
 ## 0.1.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @vkma.dev/devtools-extension
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [c6174fa]
+    - @vkma.dev/devtools@0.2.2
+
 ## 0.2.2
 
 ### Patch Changes

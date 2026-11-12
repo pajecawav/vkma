@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/devtools-extension",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Browser devtools extension for VK Mini Apps — the vkma.dev panel on any vk.ru page",
 	"private": true,
 	"type": "module",
