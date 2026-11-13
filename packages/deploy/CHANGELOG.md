@@ -1,5 +1,11 @@
 # @vkma.dev/deploy
 
+## 0.3.1
+
+### Patch Changes
+
+- cce05f1: Deploy: paint the phone-confirmation line bold yellow instead of plain bold
+
 ## 0.3.0
 
 ### Minor Changes
