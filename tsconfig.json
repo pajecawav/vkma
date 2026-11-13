@@ -9,6 +9,7 @@
 		{ "path": "./packages/devtools" },
 		{ "path": "./packages/create-app" },
 		{ "path": "./packages/protocol" },
+		{ "path": "./packages/router" },
 		{ "path": "./packages/ui" }
 	]
 }

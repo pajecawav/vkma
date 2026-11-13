@@ -1,8 +1,20 @@
+import type { BlockerFnArgs } from "@tanstack/history";
 import { useNavigate, useRouter, type NavigateOptions } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { looseRouteOf } from "../core/loose-route.ts";
 import { MODAL_STATE_KEY } from "../core/state-keys.ts";
 import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
+import { type ParamsArg, type ParamsMember } from "./link.tsx";
+import {
+	type GlobalModalDefinition,
+	isModalHandle,
+	isPopoutHandle,
+	type ModalHandle,
+	type PopoutComponent,
+	type PopoutDefinition,
+	type PopoutHandle,
+	type PopoutPropsOf,
+} from "./overlays.ts";
 
 /**
  * The parity navigator over TanStack primitives: push/replace/back/
@@ -10,8 +22,22 @@ import { useHidePopout, useShowPopout } from "../vkui/popouts.tsx";
  * navigation REPLACES the entry (the host closes one modal before opening
  * the next. There is no modal stack); back from a modal returns to its
  * panel. `push`/`replace`/`showModal` accept full TanStack NavigateOptions,
- * typed by the registered route tree.
+ * typed by the registered route tree. The overlay methods have TYPED
+ * handle overloads (the panel definition's `modals`/`popouts` maps,
+ * `defineGlobalModal`/`definePopout` definitions) — the loose string
+ * forms remain as fallbacks.
  */
+
+/**
+ * The typed `showModal` options: the handle's params (required when the
+ * owning panel has `$param` segments — {@link ParamsMember} makes the
+ * optionality itself conditional) and its props phantom; the rest of
+ * TanStack's NavigateOptions passes through untouched.
+ */
+export type ModalOpenOptions<
+	TParams extends Record<string, string> = Record<string, string>,
+	TProps = unknown,
+> = Omit<NavigateOptions, "to" | "params"> & { props?: TProps } & ParamsMember<TParams>;
 
 export interface VkNavigator {
 	push<TParams extends Record<string, string>>(
@@ -29,20 +55,46 @@ export interface VkNavigator {
 	back(): void;
 	/** Pop all the way to the first history entry. */
 	backToFirst(): void;
-	/** Open a modal route; replaces the entry if another modal is open.
-	 * `props` (serializable) land in history.state and are read by
-	 * `useModalProps()` inside the modal component. */
+	/**
+	 * Typed: a modal handle from the owning panel definition
+	 * (`panel.modals.share`) — params and props type-check against the
+	 * handle's phantom.
+	 */
+	showModal<TParams extends Record<string, string>, TProps>(
+		handle: ModalHandle<TParams, TProps>,
+		options: ModalOpenOptions<TParams, TProps>,
+	): Promise<void>;
+	/**
+	 * Loose: open a modal route; replaces the entry if another modal is
+	 * open. `props` (serializable) land in history.state and are read by
+	 * `useModalProps()` inside the modal component.
+	 */
 	showModal(options: NavigateOptions & { props?: unknown }): Promise<void>;
 	/** Close the current modal (back, or replace to the panel on first entry). */
 	hideModal(): void;
 	/**
-	 * Open a global (`?modal=<id>`) modal from any panel, masking the URL so
-	 * the visible path stays at the panel. Back closes it.
+	 * Typed: a `defineGlobalModal` definition — the id and props
+	 * type-check against the definition's phantom.
+	 */
+	showGlobalModal<K extends string, TProps>(
+		handle: GlobalModalDefinition<K, TProps>,
+		options?: { state?: Record<string, unknown>; props?: TProps } & Omit<NavigateOptions, "to">,
+	): Promise<void>;
+	/**
+	 * Loose: open a global (`?modal=<id>`) modal from any panel, masking
+	 * the URL so the visible path stays at the panel. Back closes it.
 	 */
 	showGlobalModal(
 		id: string,
 		options?: { state?: Record<string, unknown>; props?: unknown },
 	): Promise<void>;
+	/** Typed: a `definePopout` definition — props type-check from the component's signature. */
+	showPopout<C extends PopoutComponent>(
+		definition: PopoutDefinition<string, C>,
+		props?: ParamsArg<PopoutPropsOf<C>>,
+	): void;
+	/** Typed: a panel-local popout handle — props type-check from the component's signature. */
+	showPopout<TProps>(handle: PopoutHandle<TProps>, props?: ParamsArg<TProps>): void;
 	showPopout(id: string, props?: Record<string, unknown>): void;
 	hidePopout(): void;
 	/**
@@ -146,7 +198,18 @@ export function useNavigator(): VkNavigator {
 					router.history.go(-index);
 				}
 			},
-			showModal: ({ props, ...options }) => {
+			showModal: (handleOrOptions: unknown, optionsMaybe?: unknown): Promise<void> => {
+				// the typed handle form funnels into the same navigation as
+				// the loose options form: one body, two entries
+				const normalized: NavigateOptions & { props?: unknown } = isModalHandle(
+					handleOrOptions,
+				)
+					? ({
+							...(optionsMaybe as object | undefined),
+							to: handleOrOptions.path,
+						} as never)
+					: (handleOrOptions as NavigateOptions & { props?: unknown });
+				const { props, ...options } = normalized;
 				const modalOpen = anyModalOpen();
 				// nested modal: the target route is a CHILD of the currently open
 				// modal: PUSH (back unwinds the stack); sibling modals keep the
@@ -200,9 +263,26 @@ export function useNavigator(): VkNavigator {
 				const parentPath = router.state.location.pathname.replace(/\/[^/]+$/, "") || "/";
 				void router.navigate({ href: parentPath, replace: true });
 			},
-			showPopout,
+			showPopout: (handleOrId: unknown, props?: unknown) => {
+				const id =
+					typeof handleOrId === "string"
+						? handleOrId
+						: isPopoutHandle(handleOrId)
+							? handleOrId.id
+							: (handleOrId as PopoutDefinition).popout;
+				showPopout(id, props as Record<string, unknown> | undefined);
+			},
 			hidePopout,
-			showGlobalModal: (id, { state, props, ...rest } = {}) => {
+			showGlobalModal: (
+				handleOrId: unknown,
+				optionsArg: { state?: Record<string, unknown>; props?: unknown } = {},
+			): Promise<void> => {
+				// a definition carries its own id (`?modal=` key)
+				const id =
+					typeof handleOrId === "string"
+						? handleOrId
+						: (handleOrId as GlobalModalDefinition).modal;
+				const { state, props, ...rest } = optionsArg;
 				const modalOpen = anyModalOpen();
 				const { pathname, searchStr, hash } = router.state.location;
 				const params = new URLSearchParams(searchStr.replace(/^\?/, ""));
@@ -236,9 +316,10 @@ export function useNavigator(): VkNavigator {
 			},
 			block: onLeave => {
 				const unblock = router.history.block({
-					// args infer as TanStack's BlockerFnArgs (HistoryLocation × 2 +
-					// action), assignable to our structural BlockerArgs
-					blockerFn: args =>
+					// args would infer from TanStack's BlockerFn, but the
+					// history instance flows through our own structural
+					// types — annotate against the exported args shape
+					blockerFn: (args: BlockerFnArgs) =>
 						onLeave({
 							currentLocation: args.currentLocation,
 							nextLocation: args.nextLocation,

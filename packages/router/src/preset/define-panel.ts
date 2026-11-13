@@ -6,6 +6,12 @@ import type {
 	ParamsOfKey,
 	SearchOf,
 } from "./builders.ts";
+import {
+	type ModalHandlesOf,
+	modalHandlesOf,
+	type PopoutHandlesOf,
+	popoutHandlesOf,
+} from "./overlays.ts";
 
 /** Brand distinguishing a {@link PanelDefinition} from raw inline options. */
 export const PANEL_DEFINITION = "__vkmaPanel" as const;
@@ -39,6 +45,18 @@ export interface PanelDefinition<
 	readonly options: PanelOptions;
 	/** Runtime route id by convention (`/view:${view}/${path}`). */
 	readonly routeId: PanelRouteId<V, P>;
+	/**
+	 * Typed MODAL handles, flattened (`meetingPanel.modals.share`,
+	 * `meetingPanel.modals["attendees.invite"]` for nested chains). The
+	 * stored map is loose at runtime (paths only); the per-entry phantom
+	 * `types` carries the panel's params + the declaration's props.
+	 */
+	readonly modals: ModalHandlesOf<P, O>;
+	/**
+	 * Typed POPOUT handles (`meetingPanel.popouts.delete`); the props
+	 * phantom infers from the declared component's signature.
+	 */
+	readonly popouts: PopoutHandlesOf<O>;
 	/**
 	 * Phantom carrying the option-derived data types for the /react hooks.
 	 * `O` is the options WITHOUT `lazy` (the loader is a separate factory
@@ -94,6 +112,12 @@ export function definePanel<
 		view,
 		path,
 		options: lazy === undefined ? options : { ...options, lazy },
+		// the overlay handle maps: the SAME formula createApp uses for raw
+		// options (overlays.ts). The stored maps are loose (paths/ids only);
+		// the cast records that the per-entry phantoms match the declared
+		// options — same guarantee pattern as the routeId cast below
+		modals: modalHandlesOf(path, options.modals ?? {}) as ModalHandlesOf<P, O>,
+		popouts: popoutHandlesOf(options.popouts ?? {}) as PopoutHandlesOf<O>,
 		// same formula as panelRouteId. TS cannot see the literal through the
 		// template, the cast records the guarantee
 		routeId: panelRouteId(view, path) as PanelRouteId<V, P>,

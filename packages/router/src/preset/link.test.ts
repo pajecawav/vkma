@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { splitVkLinkProps, vkLinkTarget } from "./link.tsx";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { type ParamsArg, splitVkLinkProps, vkLinkTarget } from "./link.tsx";
 
 describe("vkLinkTarget", () => {
 	it("index normalizes to /", () => {
@@ -30,6 +30,9 @@ describe("splitVkLinkProps", () => {
 	it("an explicit preload and replace pass through", () => {
 		const split = splitVkLinkProps({
 			page: { path: "settings" },
+			// a bare page carries no phantom: params stay required (safe
+			// default — an empty record satisfies them)
+			params: {},
 			preload: false,
 			replace: true,
 		});
@@ -37,5 +40,13 @@ describe("splitVkLinkProps", () => {
 		expect(split.replace).toBe(true);
 		expect(split.host).not.toHaveProperty("preload");
 		expect(split.host).not.toHaveProperty("replace");
+	});
+});
+
+describe("ParamsArg", () => {
+	it("a keyed params type stays required, the loose default demands params", () => {
+		expectTypeOf<ParamsArg<{ id: string }>>().toEqualTypeOf<{ id: string }>();
+		// the loose default (a bare PanelPage) demands params
+		expectTypeOf<ParamsArg<Record<string, string>>>().toEqualTypeOf<Record<string, string>>();
 	});
 });

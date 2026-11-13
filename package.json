@@ -13,7 +13,7 @@
 		"dev": "pnpm -r --if-present --parallel dev",
 		"format": "pt format",
 		"lint": "pnpm --filter @vkma.dev/api-schema --filter @vkma.dev/bridge-schema generate && run-p -l lint:*",
-		"lint:apps": "pnpm --filter './apps/*' exec tsc --noEmit",
+		"lint:apps": "pnpm --filter './apps/*' --filter '@vkma.dev/playground' exec tsc --noEmit",
 		"lint:format": "pt format --check",
 		"lint:oxlint": "oxlint .",
 		"lint:package": "pnpm -r --if-present --workspace-concurrency=1 lint:package",

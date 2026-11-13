@@ -84,16 +84,33 @@ export function usePanelLoaderData(refOrFrom: PanelRef | string): unknown {
 }
 
 /**
- * Runtime props of the open modal: `showModal({ to, params, props })` /
- * `showGlobalModal(id, { props })` stash them in `history.state` (so they
- * survive reload and back/forward) and the modal entry component reads them
- * here. Serializable values only (structured clone); same freeze semantics
- * as the panel hooks. The departing modal keeps its last props while it
- * animates out.
+ * Structural twin of the preset's overlay handles (the same trick as
+ * `PanelRef`): anything carrying a `types.props` phantom — a modal
+ * handle from a panel definition, a `defineGlobalModal` definition.
  */
-export function useModalProps<T = unknown>(): T | undefined {
+export interface ModalRef<TProps = unknown> {
+	readonly types?: { props: TProps };
+}
+
+/**
+ * Runtime props of the open modal: `showModal(handle, { props })` /
+ * `showGlobalModal(def, { props })` stash them in `history.state` (so
+ * they survive reload and back/forward) and the modal entry component
+ * reads them here. Serializable values only (structured clone); same
+ * freeze semantics as the panel hooks. The departing modal keeps its
+ * last props while it animates out.
+ *
+ * Pass the TYPED handle (`useModalProps(meetingPanel.modals.share)`) —
+ * the props type flows from the declaration's phantom. The bare generic
+ * form stays for untyped/loose declarations.
+ */
+export function useModalProps<TProps>(ref: ModalRef<TProps>): TProps | undefined;
+export function useModalProps<T = unknown>(): T | undefined;
+export function useModalProps(_ref?: ModalRef): unknown {
+	// the handle is a TYPE-LEVEL anchor only: the props ride history.state
+	void _ref;
 	const modal = useRouterState({ select: state => readModalState(state.location.state) });
-	return useLastWhileUndefined(modal?.props) as T | undefined;
+	return useLastWhileUndefined(modal?.props);
 }
 
 /**

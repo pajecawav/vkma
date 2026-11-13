@@ -149,9 +149,11 @@ notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
     3. Callbacks cannot be serialized: `onClose` is injected by the router
        (→ back / hidePopout); business callbacks become navigation or store
        subscriptions.
-- Popout props are typed from the declared component:
-  `popouts: { 'delete-confirm': ConfirmDelete }` ⇒
-  `showPopout('delete-confirm', { itemId })` type-checks.
+- Popout props are typed from the declared component (2026-11-13
+  implementation, see "Type safety"): `popouts: { 'delete-confirm':
+  ConfirmDelete }` ⇒ `panel.popouts['delete-confirm']` is a typed handle
+  and `showPopout(handle, { itemId })` type-checks against the
+  component's own props (minus the injected `onClose`).
 
 ## Preset facade (`/preset`)
 
@@ -193,7 +195,64 @@ notes" for the hard-won invariants; `AGENTS.md` distills them for agents.
   TanStack `navigate`/history; the router instance stays reachable. A
   typed page object (the panel definition or handle) is accepted in place
   of `to` — `push(panelDef, params)` — with the params type flowing from
-  the definition's phantom.
+  the definition's phantom. The overlay methods have typed handle
+  overloads (see "Type safety"); the loose string forms stay as
+  fallbacks.
+
+## Type safety (audit 2026-11-13)
+
+A probe of eleven deliberately broken navigation calls in the playground
+caught exactly one compile error (`push(meetingPanel, {})` — missing
+param). The findings and the decisions:
+
+- **Typed**: the panel phantom handles — `push/replace(panelDef,
+  params)`, `usePanelParams/Search/LoaderData(handle)`, and required
+  `params` on `createVkLink` targets (fixed 2026-11-13: `params` was
+  optional on links, so a `$param` page linked without params compiled
+  and broke at runtime).
+- **The route tree is `AnyRoute` by construction** — a recorded
+  decision, not an accident to "fix" locally: `createApp` builds routes
+  in runtime loops over `Object.entries`, so every `createRoute` call
+  site gets one widened type; a typed tree needs per-entry static types
+  (user-unrolled builder chains — rejected, the hub ergonomics exist to
+  avoid that) or codegen — the problem TanStack's own file-based
+  `routeTree.gen.ts` generator exists to solve. Consequence: `declare
+  module Register` registers an erased tree, so raw TanStack
+  `to`/`params`/`search` typing (`navigate`, `Link`, `useLinkProps`)
+  is INERT in builder apps — nonexistent routes, missing params and bad
+  search all compile. Decision: v0.x stays loose on the TanStack
+  primitives; the typed surface is the preset's handles + navigator
+  sugar, and the loose string/`NavigateOptions` forms remain the escape
+  hatch everywhere. A typed tree via a codegen step is an open v2
+  question (see Open questions).
+- **Overlays are definition-typed** (2026-11-13, closing the gap
+  between the popout promise above and the code — every overlay channel
+  was `string` ids + `unknown` props):
+    - A modal declaration carries its props as a phantom (`props: {} as
+      ShareProps` — inert at runtime); the panel definition exposes
+      FLATTENED typed handles — `panel.modals.share`,
+      `panel.modals['owner.invite']` for nested chains — with the panel's
+      path params and the declaration's props in the phantom.
+    - `showModal(handle, { params, props })`, `showGlobalModal(handle,
+      { props })`, `showPopout(handle, props)` and `useModalProps(handle)`
+      type-check against the handle's phantom; the loose string forms
+      stay as fallbacks.
+    - Global modals and popouts are declared as definitions OUTSIDE the
+      app (`defineGlobalModal('settings', { component, props })`,
+      `definePopout(ResetPopout)`) — mirrors `defineView` hubs: the id is
+      written once where the overlay lives, `createApp` nests it and
+      mismatches are dev-time console errors. This keeps overlay modules
+      (imported by the app) from importing the app back.
+    - Popout props infer from the component's own signature (the declared
+      component IS the props declaration); modal props cannot — the entry
+      component renders from context and `useModalProps`, so nothing
+      React-props-shaped to infer from: the phantom carrier is explicit.
+    - Props phantoms are declared DECOUPLED from chunk component types:
+      a component type riding the definition's phantom re-opens the
+      TS7022 inference cycle the definition boundary exists to break (a
+      modal chunk imports its panel's hub for the handle). Popout
+      components imported into a hub must carry annotated signatures if
+      their module imports the hub back (same rule as UI chunks).
 
 ## v1 scope
 
@@ -366,6 +425,12 @@ provenance, not a live app.
 
 ## Open questions
 
+- **Typed route tree via codegen** (2026-11-13 audit): the only known
+  way to give raw TanStack primitives real `to`/`params`/`search`
+  typing in builder apps is a generator step (a `routeTree.gen.ts`
+  emitted from the declared views/panels/modals, TanStack's own
+  file-based solution to the same problem). v0.x compensates with typed
+  preset handles; revisit if raw-`Link` typing demand grows.
 - Global modal masking strategy (imperative `mask` on the open action vs
   per-panel declarative masks) — decide during implementation.
 - Peer versions to pin: `@vkontakte/vkui` `^8` (v7 compatibility to be
@@ -386,3 +451,7 @@ provenance, not a live app.
 - Prefer Standard Schema validators over function `validateSearch` (spike 4).
 - Ship a VKUI `defaultNotFoundComponent`; avoid deprecated VKUI `Div`
   (use `Box`) and build for a `ModalRoot`-free future (spikes 2).
+- 2026-11-13: the Popouts host now DELIVERS the props stashed by
+  `showPopout(id, props)` (they were silently dropped — the playground's
+  delete confirmation closed without deleting); `onClose` is injected
+  after the spread so a component cannot override it.

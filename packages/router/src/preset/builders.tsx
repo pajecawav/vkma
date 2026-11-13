@@ -11,6 +11,20 @@ import type { PopoutEntry } from "../vkui/popouts.tsx";
 import { AppRootShell } from "./app.tsx";
 import { PANEL_DEFINITION, type PanelDefinition } from "./define-panel.ts";
 import { VIEW_DEFINITION, type ViewDefinition } from "./define-view.ts";
+import {
+	asDeclaration,
+	isGlobalModalDefinition,
+	isPopoutDefinition,
+	type GlobalModalDefinition,
+	type ModalHandle,
+	type ModalHandlesOf,
+	modalHandlesOf,
+	type PopoutComponent,
+	type PopoutDefinition,
+	type PopoutHandle,
+	type PopoutHandlesOf,
+	popoutHandlesOf,
+} from "./overlays.ts";
 
 /**
  * Typed builders that generate the TanStack route tree in the /vkui
@@ -45,10 +59,14 @@ export type ModalEntryComponent = ComponentType | LazyExoticComponent<ComponentT
  * A declared modal: a renderable component, or a component with ITS OWN
  * nested modals. Nested modals are child routes of their parent modal and
  * stack ON TOP of it (back unwinds the stack instead of closing everything).
+ * `props` is a TYPE-ONLY carrier for the modal's runtime props (read via
+ * `useModalProps`): the value is never used, the declaration site writes
+ * `props: {} as ShareProps`.
  */
 export interface ModalDeclaration {
 	component: ModalEntryComponent;
 	modals?: Record<string, ModalComponent>;
+	props?: unknown;
 }
 
 /** What a modals record accepts: either shape. */
@@ -68,9 +86,10 @@ export interface PanelOptions extends LooseRouteOptions {
 	/**
 	 * Panel-local popouts: resolved BEFORE the global registry while this
 	 * panel is the deepest matched one. The same id declared globally is a
-	 * dev-time error.
+	 * dev-time error. Values are components (props infer from the
+	 * signature) or `definePopout` definitions.
 	 */
-	popouts?: Record<string, PopoutEntry["Component"]>;
+	popouts?: Record<string, PopoutComponent | PopoutDefinition>;
 }
 
 /**
@@ -97,6 +116,8 @@ export interface PanelHandle<
 	TParams = Record<string, string>,
 	TSearch = Record<string, unknown>,
 	TLoaderData = unknown,
+	TModals extends Record<string, ModalHandle> = Record<string, ModalHandle>,
+	TPopouts extends Record<string, PopoutHandle> = Record<string, PopoutHandle>,
 > {
 	/** Full TanStack route id, the `from` for the /react data hooks. */
 	readonly routeId: string;
@@ -104,6 +125,10 @@ export interface PanelHandle<
 	path: string;
 	/** The view route id the panel belongs to. */
 	viewId: string;
+	/** Typed modal handles (flattened dotted keys for nested chains). */
+	modals: TModals;
+	/** Typed popout handles (props phantom from the declared components). */
+	popouts: TPopouts;
 	/** Phantom carrier, the panel's data types for the /react hooks. */
 	readonly types?: { params: TParams; search: TSearch; loaderData: TLoaderData };
 }
@@ -148,6 +173,7 @@ type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) ext
  * types: `app.panels["feed/post/$id"]` autocompletes, is never undefined,
  * its `routeId` is the literal runtime id, and `usePanelParams(handle)` &
  * co. resolve params / search / loaderData from the declared options.
+ * `modals` / `popouts` are the typed overlay handle maps.
  */
 export type PanelHandlesOf<TViews extends Record<string, ViewOptions>> = UnionToIntersection<
 	{
@@ -155,7 +181,9 @@ export type PanelHandlesOf<TViews extends Record<string, ViewOptions>> = UnionTo
 			[P in keyof TViews[V]["panels"] & string as `${V}/${P}`]: PanelHandle<
 				ParamsOfKey<P>,
 				SearchOf<OptionsOf<TViews[V]["panels"][P]>>,
-				LoaderDataOf<OptionsOf<TViews[V]["panels"][P]>>
+				LoaderDataOf<OptionsOf<TViews[V]["panels"][P]>>,
+				ModalHandlesOf<P, OptionsOf<TViews[V]["panels"][P]>>,
+				PopoutHandlesOf<OptionsOf<TViews[V]["panels"][P]>>
 			> & {
 				readonly routeId: PanelRouteId<V, P>;
 			};
@@ -207,10 +235,17 @@ export interface AppOptionsBase {
 	 * (TS7022). Typed panel handles are read from the RETURN value.
 	 */
 	root?: (props: { app: AppHandle }) => ReactNode;
-	/** Global modals: `?modal=<id>` opens them from any panel. */
-	modals?: Record<string, ModalEntryComponent>;
-	/** Global popout registry. */
-	popouts?: Record<string, PopoutEntry["Component"]>;
+	/**
+	 * Global modals: `?modal=<id>` opens them from any panel. Values are
+	 * components or `defineGlobalModal` definitions (the recommended
+	 * form — the definition doubles as the typed handle).
+	 */
+	modals?: Record<string, ModalEntryComponent | GlobalModalDefinition>;
+	/**
+	 * Global popout registry. Values are components (props infer from the
+	 * signature) or `definePopout` definitions (the typed-handle form).
+	 */
+	popouts?: Record<string, PopoutComponent | PopoutDefinition>;
 	/**
 	 * Inflate (default `true`): a cold start on a deep-linked panel replays
 	 * the panel flow before it, so back walks the natural chain.
@@ -286,14 +321,6 @@ function normalizeViews(views: unknown): DeclaredView[] {
 	});
 }
 
-/** Normalize a declared modal into its declaration form. */
-function asDeclaration(value: ModalComponent): ModalDeclaration {
-	// shape check, NOT typeof: lazy/memo/forwardRef components are objects
-	return typeof value === "object" && value !== null && "component" in value
-		? value
-		: { component: value };
-}
-
 /**
  * Build a modal subtree under `parentRoute` (a panel or a parent modal) and
  * register every entry (flat) into the host registry. Nested modals are
@@ -365,7 +392,18 @@ export function createApp<const TViews extends Record<string, ViewOptions>>(
 export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	const modals: ModalEntry[] = [];
 	const pendingMasks: Array<{ from: string; to: string }> = [];
-	const popouts: PopoutEntry[] = Object.entries(options.popouts ?? {}).map(([id, Component]) => ({
+	const globalPopoutComponents = Object.entries(options.popouts ?? {}).map(([id, declared]) => {
+		if (isPopoutDefinition(declared) && declared.popout !== id) {
+			console.error(
+				`[vkma-router] popout "${declared.popout}" is nested under key "${id}"; the definition's id and the nesting key must match`,
+			);
+		}
+		return {
+			id,
+			Component: isPopoutDefinition(declared) ? declared.Component : declared,
+		};
+	});
+	const popouts: PopoutEntry[] = globalPopoutComponents.map(({ id, Component }) => ({
 		id,
 		Component,
 	}));
@@ -377,12 +415,16 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 	 * TanStack finalizes route ids in `route.init()` during `createRouter`.
 	 * They are not readable at build time. The handle therefore exposes
 	 * GETTERS: consumers read `routeId` at render time, when the router
-	 * (and the ids) already exist.
+	 * (and the ids) already exist. The overlay handle maps are computed
+	 * at build time (paths and registry ids are static), but deferred to
+	 * the same loop so definitions and raw options flow through one path.
 	 */
 	const deferredPanels: Array<{
 		key: string;
 		path: string;
 		route: AnyRoute;
+		modals: Record<string, ModalHandle>;
+		popouts: Record<string, PopoutHandle>;
 	}> = [];
 	/** full panel path → owning panel key, for the duplicate-path dev check */
 	const usedPaths = new Map<string, string>();
@@ -429,7 +471,12 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			// a dev-time error (the local declaration would shadow it)
 			const panelRegistryKey = `${viewKey}/${panelKey}`;
 			const localPopoutIds = new Set<string>();
-			for (const [popoutId, Component] of Object.entries(panelPopouts ?? {})) {
+			for (const [popoutId, declared] of Object.entries(panelPopouts ?? {})) {
+				if (isPopoutDefinition(declared) && declared.popout !== popoutId) {
+					console.error(
+						`[vkma-router] popout "${declared.popout}" is nested under key "${popoutId}" on panel "${panelRegistryKey}"; the definition's id and the nesting key must match`,
+					);
+				}
 				if (globalPopoutIds.has(popoutId)) {
 					console.error(
 						`[vkma-router] popout "${popoutId}" is declared both globally and on panel "${panelRegistryKey}"; the local one shadows the global — rename one of them`,
@@ -442,7 +489,11 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 					continue;
 				}
 				localPopoutIds.add(popoutId);
-				popouts.push({ id: popoutId, Component, panel: panelRegistryKey });
+				popouts.push({
+					id: popoutId,
+					Component: isPopoutDefinition(declared) ? declared.Component : declared,
+					panel: panelRegistryKey,
+				});
 			}
 			const panelPath = panelKey === "index" ? "/" : panelKey;
 			// dev check: two panels with the same full path silently break
@@ -493,10 +544,21 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			// (per-modal calls would orphan every modal but the last)
 			panelRoute.addChildren(modalRoutes);
 			panelRoutes.push(panelRoute);
+			// the overlay handle maps: a definition already carries them
+			// (built from the same options by definePanel — one formula,
+			// no drift); raw options get them computed here
 			deferredPanels.push({
 				key: `${viewKey}/${panelKey}`,
 				path: panelPath,
 				route: panelRoute,
+				modals:
+					PANEL_DEFINITION in declared
+						? declared.modals
+						: modalHandlesOf(panelKey, panelModals ?? {}),
+				popouts:
+					PANEL_DEFINITION in declared
+						? declared.popouts
+						: popoutHandlesOf(panelPopouts ?? {}),
 			});
 		}
 
@@ -523,7 +585,13 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 			} as never) as RouteMask<any>,
 	);
 
-	for (const { key, path, route } of deferredPanels) {
+	for (const {
+		key,
+		path,
+		route,
+		modals: panelModalHandles,
+		popouts: panelPopoutHandles,
+	} of deferredPanels) {
 		panels[key] = {
 			get routeId() {
 				return route.id;
@@ -537,17 +605,34 @@ export function createApp(options: AppOptions | AppDefinitionOptions): any {
 				const match = String(route.id).match(/^\/?view:([^/]+)/);
 				return match?.[1] ?? String(route.id);
 			},
+			modals: panelModalHandles,
+			popouts: panelPopoutHandles,
 		};
 	}
 
 	// global modals: no route. The Modals host opens them from the
 	// `?modal=<id>` search param on any panel (deep-linkable; the
 	// imperative open in useNavigator masks the URL back to the panel)
-	for (const [modalKey, Modal] of Object.entries(options.modals ?? {})) {
+	for (const [modalKey, declared] of Object.entries(options.modals ?? {})) {
+		if (isGlobalModalDefinition(declared)) {
+			// the id is written where the modal lives; the nesting key must
+			// agree or the deep link and the handle would disagree
+			if (declared.modal !== modalKey) {
+				console.error(
+					`[vkma-router] global modal "${declared.modal}" is nested under key "${modalKey}"; the definition's id and the nesting key must match`,
+				);
+			}
+			modals.push({
+				routeId: `?modal=${modalKey}`,
+				id: modalKey,
+				Component: declared.component,
+			});
+			continue;
+		}
 		modals.push({
 			routeId: `?modal=${modalKey}`,
 			id: modalKey,
-			Component: Modal,
+			Component: declared,
 		});
 	}
 

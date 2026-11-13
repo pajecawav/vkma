@@ -3,6 +3,7 @@ import {
 	createElement,
 	type ComponentType,
 	type CSSProperties,
+	type FunctionComponent,
 	type MouseEvent,
 	type ReactNode,
 } from "react";
@@ -13,11 +14,9 @@ import { type PanelPage } from "./navigator.ts";
  * `navigator.push(page, params)`. The `page` is a panel definition/handle
  * (its phantom `types.params` drives the `params` prop type).
  */
-export interface VkLinkProps<TParams extends Record<string, string> = Record<string, string>> {
+export type VkLinkProps<TParams extends Record<string, string> = Record<string, string>> = {
 	/** The typed page target: a panel definition/handle or a bare PanelPage. */
 	page: PanelPage<TParams>;
-	/** Path params, required for pages with `$param` segments. */
-	params?: TParams;
 	/**
 	 * Route preload trigger. Default `"intent"`: hover/focus on desktop,
 	 * touchstart on mobile. The chunk (and loader data) is fetched BEFORE
@@ -35,12 +34,31 @@ export interface VkLinkProps<TParams extends Record<string, string> = Record<str
 	disabled?: boolean;
 	"aria-label"?: string;
 	onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
-}
+} & ParamsMember<TParams>;
 
 /** `"index"` and an optional leading slash normalize to the router path (navigator parity). */
 export function vkLinkTarget(page: PanelPage): string {
 	return page.path === "index" ? "/" : `/${page.path.replace(/^\//, "")}`;
 }
+
+/**
+ * Params become REQUIRED when the type has keys (`{ id: string }`),
+ * optional when empty (`ParamsOfKey<"feed">` is `{}`). The tuple wrap
+ * (`[keyof T] extends [never]`) blocks distribution over union keys.
+ * For POSITIONAL arguments (navigator.push-style).
+ */
+export type ParamsArg<TParams> = [keyof TParams] extends [never] ? TParams | undefined : TParams;
+
+/**
+ * The `params` MEMBER shape: the optionality itself is conditional —
+ * `params?: T` on param-less targets, `params: T` (required) on keyed
+ * ones. A plain `params?: ParamsArg<T>` stays optional forever (the `?`
+ * wins over the conditional type); the intersection makes TS enforce
+ * presence exactly when the phantom has keys.
+ */
+export type ParamsMember<TParams> = [keyof TParams] extends [never]
+	? { params?: TParams }
+	: { params: TParams };
 
 export interface SplitVkLinkProps {
 	to: string;
@@ -85,6 +103,11 @@ export function splitVkLinkProps<TParams extends Record<string, string>>(
 export function createVkLink<TCompProps>(
 	Comp: ComponentType<TCompProps>,
 ): <TParams extends Record<string, string>>(props: TCompProps & VkLinkProps<TParams>) => ReactNode {
+	// `as never`: the conditional `params` member (ParamsMember) makes the
+	// generic implementation fail function-variance checking against its
+	// own annotation (TS instantiates the annotation's TParams at its
+	// constraint, keyed ⇒ required params, while the implementation's
+	// stays deferred). The annotation owns the per-call contract.
 	return function VkLink<TParams extends Record<string, string>>(
 		props: TCompProps & VkLinkProps<TParams>,
 	): ReactNode {
@@ -96,16 +119,22 @@ export function createVkLink<TCompProps>(
 			replace,
 		} as UseLinkPropsOptions;
 		const anchor = useLinkProps(options);
-		return createElement(Comp, {
-			...host,
-			...anchor,
-			onClick: (event: MouseEvent<HTMLAnchorElement>) => {
-				onClick?.(event);
-				// TanStack's handler preventDefaults and navigates client-side
-				if (!event.defaultPrevented) {
-					anchor.onClick?.(event);
-				}
-			},
-		} as TCompProps);
-	};
+		// createElement's overloads reject a ComponentType UNION and an
+		// unresolved generic; concretize both sides — the cast is
+		// type-level only, the runtime handles class components too
+		return createElement(
+			Comp as FunctionComponent<Record<string, unknown>>,
+			{
+				...host,
+				...anchor,
+				onClick: (event: MouseEvent<HTMLAnchorElement>) => {
+					onClick?.(event);
+					// TanStack's handler preventDefaults and navigates client-side
+					if (!event.defaultPrevented) {
+						anchor.onClick?.(event);
+					}
+				},
+			} as Record<string, unknown>,
+		);
+	} as never;
 }

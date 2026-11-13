@@ -13,7 +13,13 @@ import { POPOUT_STATE_KEY, readPopoutState } from "../core/state-keys.ts";
 
 export interface PopoutEntry {
 	id: string;
-	Component: ComponentType<{ onClose: () => void }>;
+	/**
+	 * The popout component. `any` props on purpose: the host spreads the
+	 * props stashed in history.state (`showPopout(id, props)`) and
+	 * injects `onClose`; the typed surface is the preset's popout
+	 * handles, which infer the props from the concrete signature.
+	 */
+	Component: ComponentType<any>;
 	/**
 	 * The owning panel key (`${view}/${panel}`) for a panel-local popout.
 	 * It resolves only while that panel is the deepest matched one.
@@ -109,5 +115,7 @@ export function Popouts({ entries }: { entries: PopoutEntry[] }) {
 	if (!entry) {
 		return null;
 	}
-	return <entry.Component onClose={hide} />;
+	// the stashed props ride history.state (survive back/forward); onClose
+	// is always injected last so a component cannot override it
+	return <entry.Component {...popout.props} onClose={hide} />;
 }

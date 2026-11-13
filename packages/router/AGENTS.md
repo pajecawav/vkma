@@ -23,7 +23,9 @@ implementation notes — read it before touching anything here.
 - `src/preset` — `createApp` typed builders (views/panels/modals/popouts →
   TanStack tree + registries), `AppRootShell` auto-shell, `useActiveStory`,
   `useNavigator`, `createVkLink` (typed Page-object router links for
-  arbitrary components, `preload="intent"`).
+  arbitrary components, `preload="intent"`), `overlays.ts` (typed overlay
+  handles: brands, `defineGlobalModal`/`definePopout`, phantom props
+  extraction, runtime handle maps).
 - `playground/` — the permanent planner and router showcase (a
   VKUI navigation-guide style app: Epic/Tabbar + desktop sidebar, three
   stories driven by the router, alongside bridge/devtools/api-schema/deploy
@@ -135,6 +137,47 @@ implementation notes — read it before touching anything here.
   `panels`/`modals` handles therefore expose `routeId` as GETTERS, and
   `staticData` panel/modal ids use build-time keys
   (`${viewKey}/${panelKey}`), never `route.id`.
+- **The route tree is `AnyRoute` by construction** (2026-11-13 audit,
+  recorded in DESIGN "Type safety"): `createApp` builds routes in runtime
+  loops, so every `createRoute` call gets one widened type — a typed tree
+  needs codegen (TanStack's own file-based solution). Consequence: raw
+  TanStack `to`/`params`/`search` typing (`navigate`, `Link`,
+  `useLinkProps`) is INERT in builder apps. The typed surface is the
+  preset's handles + navigator; loose string/`NavigateOptions` forms are
+  the documented fallback everywhere. The package is in the ROOT
+  `tsc -b` references — `pnpm exec tsc -p tsconfig.json` is the fast
+  local check.
+- **Overlays are definition-typed** (2026-11-13): a modal declaration
+  carries its props as a phantom (`props: {} as ShareProps` — the value
+  is NEVER read at runtime); popout props infer from the component's own
+  signature (minus the injected `onClose`). The panel definition exposes
+  flattened typed handles — `panel.modals.share`,
+  `panel.modals["attendees.invite"]` (dotted keys for nested chains),
+  `panel.popouts.delete` — and `showModal/showGlobalModal/showPopout/
+  useModalProps` have typed handle overloads. Global overlays are
+  declared as definitions OUTSIDE the app (`defineGlobalModal`,
+  `definePopout` — the id written once where the overlay lives;
+  `createApp` nesting-key mismatches are dev-time console errors, the
+  same pattern as view hubs). Non-negotiable rules:
+    1. Props phantoms stay DECOUPLED from chunk component types — a
+       component type riding the definition's phantom re-opens the
+       TS7022 cycle the definition boundary exists to break (a modal
+       chunk imports its panel's hub for the handle).
+    2. Popout components imported into a hub must carry annotated
+       signatures if their module imports the hub back (same rule as UI
+       chunks).
+    3. The Popouts host spreads the history-state props onto the
+       component with `onClose` injected LAST (a component cannot
+       override it); never store React elements in history state.
+- **Required params are enforced through `ParamsMember`** (2026-11-13):
+  `params?: ParamsArg<T>` stays optional forever (the `?` wins over the
+  conditional type) — conditional REQUIRED members are built as
+  intersections (`{ base } & ParamsMember<TParams>`, see `VkLinkProps` /
+  `ModalOpenOptions`). Bare `PanelPage` objects (no phantom) demand
+  params under the safe default — pass typed hub handles instead.
+  `createVkLink`'s returned function is cast `as never` against its own
+  annotation: the conditional member fails generic-function variance
+  checking (the annotation owns the per-call contract).
 - **Typed panel handles** (preset): two shapes.
   **`defineView` hubs + `definePanel` are the recommended one.** A view hub
   (`export const feedView = defineView("feed")` in

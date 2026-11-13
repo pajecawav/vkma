@@ -6,6 +6,8 @@ const panel = (routeId: string, path: string): PanelHandle => ({
 	routeId,
 	path,
 	viewId: "/view:main",
+	modals: {},
+	popouts: {},
 });
 
 const panels = [
