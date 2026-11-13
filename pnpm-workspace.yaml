@@ -23,7 +23,7 @@ catalog:
     "@vitejs/devtools-kit": ^0.8.0
     "@rsbuild/core": ^2.2.14
     "@rsbuild/plugin-react": ^2.1.1
-    astro: ^7.4.0
+    astro: ^7.4.7
     cross-env: ^10.1.0
     devframe: ^1.2.6
     happy-dom: ^21.0.4
