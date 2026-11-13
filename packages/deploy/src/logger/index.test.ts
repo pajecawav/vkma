@@ -112,7 +112,7 @@ describe("CliLogger", () => {
 		expect(out.join("")).toContain("vk_app_dev_url=https://dev");
 	});
 
-	it("actionRequired renders bold with air around it (pretty)", () => {
+	it("actionRequired renders bold yellow with air around it (pretty)", () => {
 		const out: string[] = [];
 		const logger = new CliLogger({
 			mode: "pretty",
@@ -124,7 +124,7 @@ describe("CliLogger", () => {
 		});
 		logger.actionRequired("Confirm the deploy on your phone");
 		const text = out.join("");
-		expect(text).toContain("\x1b[1mConfirm the deploy on your phone\x1b[0m");
+		expect(text).toContain("\x1b[1;33mConfirm the deploy on your phone\x1b[0m");
 		// Air: a blank line before and after.
 		expect(text.startsWith("\n")).toBe(true);
 	});

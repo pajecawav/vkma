@@ -382,8 +382,9 @@ export class CliLogger {
 
 	/**
 	 * A mid-run action the user must take (e.g. "confirm the push on your
-	 * phone"), bold with air around it, so it cannot drown in the queue
-	 * output. JSON mode emits a structured `action_required` event.
+	 * phone"), bold yellow with air around it: plain bold drowns in the
+	 * queue output, and yellow alone is the warn level. JSON mode emits a
+	 * structured `action_required` event.
 	 */
 	public actionRequired(message: string): void {
 		if (this.mode === "json") {
@@ -398,7 +399,7 @@ export class CliLogger {
 		}
 		const resume = this.pauseSpinner();
 		this.writeOut("");
-		this.writeOut(this.paint(this.redactor.redactString(message), "bold"));
+		this.writeOut(this.paint(this.redactor.redactString(message), "boldYellow"));
 		this.writeOut("");
 		resume();
 	}

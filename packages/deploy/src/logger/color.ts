@@ -2,7 +2,7 @@
  * ANSI palette shared by the logger and the CLI prompts.
  *
  * Colors are semantic, not decorative: red errors, yellow caution,
- * green success, cyan progress, dim secondary info, bold action
+ * green success, cyan progress, dim secondary info, bold yellow action
  * required. Every `paint` call passes an explicit `enabled` flag. The
  * decision (TTY + pretty mode + NO_COLOR/--no-color) belongs to the
  * caller, never to this module.
@@ -16,6 +16,7 @@ export const COLORS = {
 	green: 32,
 	yellow: 33,
 	cyan: 36,
+	boldYellow: "1;33",
 } as const;
 
 export type ColorName = keyof typeof COLORS;
