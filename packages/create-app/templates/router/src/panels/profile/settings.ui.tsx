@@ -8,6 +8,7 @@ import {
 	SimpleCell,
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
+import { logoutPopout } from "../../overlays";
 
 export default function ProfileSettingsPanel(): ReactElement {
 	const navigator = useNavigator();
@@ -21,7 +22,7 @@ export default function ProfileSettingsPanel(): ReactElement {
 				<SimpleCell subtitle="глубокая ссылка /settings">Экран настроек профиля</SimpleCell>
 				<CellButton
 					subtitle="popout — транзиентный оверлей"
-					onClick={() => void navigator.showPopout("logout")}
+					onClick={() => void navigator.showPopout(logoutPopout)}
 				>
 					Выйти из аккаунта
 				</CellButton>

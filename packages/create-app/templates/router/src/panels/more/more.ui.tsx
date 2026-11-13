@@ -2,6 +2,7 @@ import { createVkLink, useNavigator } from "@vkma.dev/router/preset";
 import { Icon28Notifications } from "@vkontakte/icons";
 import { Cell, CellButton, Footer, Group, PanelHeader } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
+import { settingsModal } from "../../overlays";
 import { notificationsPanel } from "./more.panel";
 
 const CellLink = createVkLink(Cell);
@@ -22,7 +23,7 @@ export default function MorePanel(): ReactElement {
 				</CellLink>
 				<CellButton
 					subtitle="глобальная модалка — с любой панели"
-					onClick={() => void navigator.showGlobalModal("settings")}
+					onClick={() => void navigator.showGlobalModal(settingsModal)}
 				>
 					Настройки
 				</CellButton>

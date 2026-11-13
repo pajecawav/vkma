@@ -1,6 +1,7 @@
 import { createVkLink, useNavigator, usePanelLoaderData } from "@vkma.dev/router/preset";
 import { Avatar, Caption, CellButton, Group, Header, PanelHeader, Title } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
+import { settingsModal } from "../../overlays";
 import { profilePanel, profileSettingsPanel } from "./profile.panel";
 
 const CellButtonLink = createVkLink(CellButton);
@@ -50,7 +51,7 @@ export default function ProfilePanel(): ReactElement {
 				</CellButtonLink>
 				<CellButton
 					subtitle="глобальная модалка — с любой панели"
-					onClick={() => void navigator.showGlobalModal("settings")}
+					onClick={() => void navigator.showGlobalModal(settingsModal)}
 				>
 					Настройки приложения
 				</CellButton>

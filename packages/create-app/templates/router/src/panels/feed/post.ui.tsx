@@ -31,6 +31,17 @@ export default function PostPanel(): ReactElement {
 				))}
 			</Group>
 			<Group>
+				<RichCell
+					subtitle="модалка-маршрут: params и props проверяются по хендлу"
+					onClick={() =>
+						void navigator.showModal(postPanel.modals.share, {
+							params: { id },
+							props: { note: "Ссылка откроет именно эту запись" },
+						})
+					}
+				>
+					Поделиться записью
+				</RichCell>
 				<RichCellLink
 					subtitle="та же панель, новый параметр"
 					page={postPanel}

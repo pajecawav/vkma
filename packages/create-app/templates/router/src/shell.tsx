@@ -7,7 +7,6 @@ import {
 	VkView,
 	useInflate,
 	type AppHandle,
-	type PanelPage,
 } from "@vkma.dev/router/preset";
 // Epic matches its children by the ELEMENT-level nav prop. VkView computes
 // its default one level down, so shells must pass nav explicitly
@@ -30,6 +29,9 @@ import {
 	useAdaptivityConditionalRender,
 } from "@vkontakte/vkui";
 import type { ComponentType } from "react";
+import { feedPanel } from "./panels/feed/feed.panel";
+import { morePanel } from "./panels/more/more.panel";
+import { profilePanel } from "./panels/profile/profile.panel";
 
 const CellLink = createVkLink(Cell);
 const TabbarItemLink = createVkLink(TabbarItem);
@@ -37,14 +39,16 @@ const TabbarItemLink = createVkLink(TabbarItem);
 interface TabConfig {
 	id: string;
 	label: string;
-	page: PanelPage;
+	// the typed hub handles: the tabs' links type-check their (empty)
+	// params; a bare `{ path }` object would demand params explicitly
+	page: typeof profilePanel | typeof feedPanel | typeof morePanel;
 	Icon: ComponentType;
 }
 
 const TABS: TabConfig[] = [
-	{ id: "profile", label: "Профиль", page: { path: "index" }, Icon: Icon28UserCircleOutline },
-	{ id: "feed", label: "Лента", page: { path: "feed" }, Icon: Icon28NewsfeedOutline },
-	{ id: "more", label: "Ещё", page: { path: "more" }, Icon: Icon28MoreHorizontal },
+	{ id: "profile", label: "Профиль", page: profilePanel, Icon: Icon28UserCircleOutline },
+	{ id: "feed", label: "Лента", page: feedPanel, Icon: Icon28NewsfeedOutline },
+	{ id: "more", label: "Ещё", page: morePanel, Icon: Icon28MoreHorizontal },
 ];
 
 /**

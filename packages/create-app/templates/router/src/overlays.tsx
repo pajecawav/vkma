@@ -1,4 +1,9 @@
-import { ModalPageSurface, useNavigator } from "@vkma.dev/router/preset";
+import {
+	defineGlobalModal,
+	definePopout,
+	ModalPageSurface,
+	useNavigator,
+} from "@vkma.dev/router/preset";
 import {
 	Alert,
 	Footer,
@@ -12,6 +17,9 @@ import {
 /**
  * App-wide overlays: the global settings modal (openable from any panel,
  * the URL stays masked) and the logout popout (a transient overlay).
+ * Both are declared as definitions next to their components — the id is
+ * written once here and the definition doubles as the typed handle its
+ * call sites import.
  */
 export function SettingsModal() {
 	const navigator = useNavigator();
@@ -40,6 +48,8 @@ export function SettingsModal() {
 	);
 }
 
+export const settingsModal = defineGlobalModal("settings", { component: SettingsModal });
+
 export function LogoutPopout({ onClose }: { onClose: () => void }) {
 	return (
 		<Alert
@@ -53,3 +63,5 @@ export function LogoutPopout({ onClose }: { onClose: () => void }) {
 		/>
 	);
 }
+
+export const logoutPopout = definePopout("logout", LogoutPopout);
