@@ -124,8 +124,7 @@ export default function MeetingPanel(): ReactElement {
 							mode="secondary"
 							stretched
 							onClick={() =>
-								void navigator.showModal({
-									to: "/meeting/$id/edit",
+								void navigator.showModal(meetingPanel.modals.edit, {
 									params: { id },
 								})
 							}
@@ -136,8 +135,7 @@ export default function MeetingPanel(): ReactElement {
 							mode="secondary"
 							stretched
 							onClick={() =>
-								void navigator.showModal({
-									to: "/meeting/$id/share",
+								void navigator.showModal(meetingPanel.modals.share, {
 									params: { id },
 									props: { note: "Ссылка откроет именно эту встречу" },
 								})
@@ -150,7 +148,7 @@ export default function MeetingPanel(): ReactElement {
 				<CellButton
 					subtitle="Приглашения, шеринг и удаление собраны в одном окне"
 					onClick={() =>
-						void navigator.showModal({ to: "/meeting/$id/attendees", params: { id } })
+						void navigator.showModal(meetingPanel.modals.attendees, { params: { id } })
 					}
 				>
 					Участники и приглашения
@@ -159,7 +157,7 @@ export default function MeetingPanel(): ReactElement {
 					appearance="negative"
 					before={<Icon28DeleteOutline />}
 					subtitle="Зафиксируем в приложении и подтвердим ещё раз"
-					onClick={() => navigator.showPopout("delete", { id })}
+					onClick={() => navigator.showPopout(meetingPanel.popouts.delete, { id })}
 				>
 					Удалить встречу
 				</CellButton>

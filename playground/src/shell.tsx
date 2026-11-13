@@ -7,7 +7,6 @@ import {
 	useInflate,
 	VkView,
 	type AppHandle,
-	type PanelPage,
 } from "@vkma.dev/router/preset";
 import { storyKeyOf } from "@vkma.dev/router/vkui";
 import {
@@ -42,7 +41,9 @@ const TabbarItemLink = createVkLink(TabbarItem);
 interface TabConfig {
 	id: string;
 	label: string;
-	page: PanelPage;
+	// the typed hub handles: all tab roots are param-less, so the links
+	// demand no params; a bare `PanelPage` default would demand them
+	page: typeof plansPanel | typeof invitationsPanel | typeof profilePanel;
 	Icon: ComponentType;
 }
 

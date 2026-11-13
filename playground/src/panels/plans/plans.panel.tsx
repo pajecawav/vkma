@@ -1,5 +1,5 @@
 import { notFound } from "@tanstack/react-router";
-import { defineView } from "@vkma.dev/router/preset";
+import { defineView, modalProps } from "@vkma.dev/router/preset";
 import { PanelHeader, ScreenSpinner } from "@vkontakte/vkui";
 import { lazy } from "react";
 import { findMeeting, type MeetingFilter } from "../../store";
@@ -48,12 +48,20 @@ export const meetingPanel = plansView.panel(
 		}),
 		modals: {
 			edit: lazy(() => import("./edit.ui")),
-			share: lazy(() => import("./share.ui")),
+			// props: TYPE-ONLY carrier — the value is never read, the phantom
+			// types showModal(...) and useModalProps(handle)
+			share: {
+				component: lazy(() => import("./share.ui")),
+				props: modalProps<{ note?: string }>(),
+			},
 			attendees: {
 				component: lazy(() => import("./attendees.ui")),
 				modals: {
 					invite: lazy(() => import("./invite.ui")),
-					share: lazy(() => import("./share.ui")),
+					share: {
+						component: lazy(() => import("./share.ui")),
+						props: modalProps<{ note?: string }>(),
+					},
 				},
 			},
 		},

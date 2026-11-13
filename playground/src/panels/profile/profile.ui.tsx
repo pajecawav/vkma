@@ -20,6 +20,7 @@ import {
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
 import { addAppToFavorites } from "../../bridge-actions";
+import { settingsModal } from "../../overlays";
 import { InitialsAvatar } from "../../ui";
 import { aboutPanel, profilePanel, profileSettingsPanel } from "./profile.panel";
 
@@ -80,7 +81,7 @@ export default function ProfilePanel(): ReactElement {
 				<Cell
 					before={<Icon28SlidersOutline />}
 					subtitle="Уведомления, компактный список и фильтр по умолчанию"
-					onClick={() => void navigator.showGlobalModal("settings")}
+					onClick={() => void navigator.showGlobalModal(settingsModal)}
 				>
 					Быстрые настройки
 				</Cell>

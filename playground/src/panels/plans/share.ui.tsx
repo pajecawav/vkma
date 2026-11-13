@@ -12,7 +12,8 @@ import { meetingPanel } from "./plans.panel";
 
 export default function ShareMeetingCard(): ReactElement {
 	const { id } = usePanelParams(meetingPanel);
-	const { note } = useModalProps<{ note?: string }>() ?? {};
+	// the handle carries the props phantom declared in plans.panel.tsx
+	const { note } = useModalProps(meetingPanel.modals.share) ?? {};
 	const navigator = useNavigator();
 	const [sending, setSending] = useState(false);
 	const meeting = meetingOf(id);

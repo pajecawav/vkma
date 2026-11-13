@@ -15,6 +15,7 @@ import type { ReactElement } from "react";
 import { personOf } from "../../data";
 import { usePlannerState, type MeetingFilter } from "../../store";
 import { InitialsAvatar } from "../../ui";
+import { createMeetingModal } from "./create.ui";
 import { meetingPanel, plansPanel } from "./plans.panel";
 
 const RichCellLink = createVkLink(RichCell);
@@ -96,7 +97,7 @@ export default function PlansPanel(): ReactElement {
 					</Placeholder>
 				)}
 				<CellButton
-					onClick={() => void navigator.showGlobalModal("create")}
+					onClick={() => void navigator.showGlobalModal(createMeetingModal)}
 					subtitle="Добавьте время, место и описание"
 				>
 					Новая встреча

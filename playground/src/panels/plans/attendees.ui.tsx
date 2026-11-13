@@ -40,8 +40,7 @@ export default function AttendeesModal(): ReactElement {
 				<CellButton
 					subtitle="Откроется поверх текущего списка"
 					onClick={() =>
-						void navigator.showModal({
-							to: "/meeting/$id/attendees/invite",
+						void navigator.showModal(meetingPanel.modals["attendees.invite"], {
 							params: { id },
 						})
 					}
@@ -51,8 +50,7 @@ export default function AttendeesModal(): ReactElement {
 				<CellButton
 					subtitle="Отправьте ссылку в VK или мессенджер"
 					onClick={() =>
-						void navigator.showModal({
-							to: "/meeting/$id/attendees/share",
+						void navigator.showModal(meetingPanel.modals["attendees.share"], {
 							params: { id },
 							props: { note: "Отправьте ссылку тем, кого добавили в список" },
 						})
@@ -63,7 +61,7 @@ export default function AttendeesModal(): ReactElement {
 				<CellButton
 					subtitle="Откроется вместо текущего окна"
 					onClick={() =>
-						void navigator.showModal({ to: "/meeting/$id/edit", params: { id } })
+						void navigator.showModal(meetingPanel.modals.edit, { params: { id } })
 					}
 				>
 					Изменить встречу

@@ -1,4 +1,9 @@
-import { ModalPageSurface, useNavigator } from "@vkma.dev/router/preset";
+import {
+	defineGlobalModal,
+	definePopout,
+	ModalPageSurface,
+	useNavigator,
+} from "@vkma.dev/router/preset";
 import { Alert, ModalPageHeader, PanelHeaderClose } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
 import { SettingsControls } from "./panels/profile/settings-controls";
@@ -6,7 +11,12 @@ import { resetPlanner } from "./store";
 
 const noop = (): void => undefined;
 
-/** Global ?modal=settings route modal with the same live settings as the panel. */
+/**
+ * Global `?modal=settings` route modal with the same live settings as the
+ * panel. Declared as a definition next to the component: the id is
+ * written once here, the definition doubles as the typed handle for
+ * `showGlobalModal(settingsModal)`.
+ */
 export function SettingsModal(): ReactElement {
 	const navigator = useNavigator();
 
@@ -25,6 +35,8 @@ export function SettingsModal(): ReactElement {
 		</ModalPageSurface>
 	);
 }
+
+export const settingsModal = defineGlobalModal("settings", { component: SettingsModal });
 
 /** App-wide confirmation for restoring the planner fixtures. */
 export function ResetPopout({ onClose }: { onClose: () => void }): ReactElement {
@@ -53,3 +65,6 @@ export function ResetPopout({ onClose }: { onClose: () => void }): ReactElement 
 		/>
 	);
 }
+
+/** The typed handle for `showPopout(resetPopout)`; props infer from the component. */
+export const resetPopout = definePopout("reset", ResetPopout);

@@ -1,3 +1,4 @@
+import { defineGlobalModal } from "@vkma.dev/router/preset";
 import type { ReactElement } from "react";
 import { addMeeting, showNotice } from "../../store";
 import { MeetingForm } from "./meeting-form";
@@ -16,3 +17,8 @@ export default function CreateMeetingModal(): ReactElement {
 		/>
 	);
 }
+
+/** The typed handle for `showGlobalModal(createMeetingModal)`. */
+export const createMeetingModal = defineGlobalModal("create", {
+	component: CreateMeetingModal,
+});

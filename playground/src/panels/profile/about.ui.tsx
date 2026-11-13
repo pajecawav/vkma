@@ -13,6 +13,7 @@ import {
 } from "@vkontakte/vkui";
 import type { ReactElement } from "react";
 import { showPlannerTour } from "../../bridge-actions";
+import { settingsModal } from "../../overlays";
 
 interface ChecklistItem {
 	href: string;
@@ -130,7 +131,7 @@ export default function AboutPanel(): ReactElement {
 					subtitle="Открывается поверх любого экрана и сохраняет реальные настройки."
 					onClick={event => {
 						event.preventDefault();
-						void navigator.showGlobalModal("settings");
+						void navigator.showGlobalModal(settingsModal);
 					}}
 				>
 					Глобальные настройки

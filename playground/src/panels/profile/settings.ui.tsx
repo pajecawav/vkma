@@ -10,6 +10,7 @@ import {
 	SimpleCell,
 } from "@vkontakte/vkui";
 import { useEffect, type ReactElement } from "react";
+import { resetPopout, settingsModal } from "../../overlays";
 import { profileSettingsPanel } from "./profile.panel";
 import { SettingsControls } from "./settings-controls";
 
@@ -33,7 +34,7 @@ export default function ProfileSettingsPanel(): ReactElement {
 				<CellButton
 					before={<Icon28SlidersOutline />}
 					subtitle="Быстрое окно настроек поверх текущего экрана"
-					onClick={() => void navigator.showGlobalModal("settings")}
+					onClick={() => void navigator.showGlobalModal(settingsModal)}
 				>
 					Открыть быстрые настройки
 				</CellButton>
@@ -73,7 +74,7 @@ export default function ProfileSettingsPanel(): ReactElement {
 				<CellButton
 					before={<Icon28DeleteOutline />}
 					appearance="negative"
-					onClick={() => navigator.showPopout("reset")}
+					onClick={() => navigator.showPopout(resetPopout)}
 				>
 					Сбросить встречи и приглашения
 				</CellButton>
