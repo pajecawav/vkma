@@ -31,9 +31,11 @@ Keep all comments, commits, and docs in English.
 - `src/providers/opentunnel.ts` — the only provider + the
   `OpenTunnelStorage` adapter over our record files (NOT the SDK's XDG
   store: our format, shared metadata beside the identity).
-- `src/cli/` — argv parser, `main.ts` (dispatch/rendering; returns exit
-  codes, never calls `process.exit`), `qr.ts`, `opener.ts`. `src/cli.ts`
-  is the shebang entry wiring SIGINT.
+- `src/cli/` — argv parser, `logger.ts` (pretty/json/quiet renderers,
+  elapsed-time spinner — adapted from deploy's CliLogger), `main.ts`
+  (dispatch/rendering; returns exit codes, never calls `process.exit`),
+  `qr.ts`, `opener.ts`. `src/cli.ts` is the shebang entry wiring
+  SIGINT/SIGTERM.
 - `src/vite.ts` — the plugin (dev + preview), `allowedHosts` management.
 
 ## Invariants — do not break

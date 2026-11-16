@@ -22,7 +22,7 @@ import {
 	type ProfileRecord,
 } from "../index.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
-import { paint } from "./color.ts";
+import { TunnelLogger, paint, type LoggerMode } from "./logger.ts";
 import { openUrl } from "./opener.ts";
 import { renderQr } from "./qr.ts";
 
@@ -74,7 +74,9 @@ Flags:
   --open                          Open the tunnel URL in the browser
   --no-keepalive                  Disable the periodic self-probe that
                                   keeps idle bridges from being dropped
-  --json                          Machine-readable output (list/status)
+  --json                          Machine-readable output (list/status,
+                                  and NDJSON lifecycle events for run)
+  --quiet, -q                     Errors only (the URL is still printed)
   --no-color                      Disable colors (also honors NO_COLOR)
   --help, -h / --version, -V
 
@@ -116,40 +118,44 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
 		return 0;
 	}
 
+	const mode: LoggerMode = parsed.booleans.json
+		? "json"
+		: parsed.booleans.quiet
+			? "quiet"
+			: "pretty";
 	const color =
+		mode === "pretty" &&
 		!parsed.booleans.noColor &&
-		!parsed.booleans.json &&
 		env["NO_COLOR"] === undefined &&
 		stdout.isTTY === true;
+	const logger = new TunnelLogger({ mode, color, stdout, stderr });
 
 	try {
 		switch (parsed.command) {
 			case "reset":
-				return await runReset(parsed, { dataDir, cwd, stdout, env });
+				return await runReset(parsed, { dataDir, cwd, stdout, env, logger, color });
 			case "list":
-				return await runList(parsed, { dataDir, stdout });
+				return await runList(parsed, { dataDir, stdout, logger, color });
 			case "status":
-				return await runStatus(parsed, { dataDir, cwd, stdout, env });
+				return await runStatus(parsed, { dataDir, cwd, stdout, env, logger, color });
 			default:
 				return await runTunnel(parsed, {
 					env,
 					cwd,
 					stdout,
-					stderr,
 					dataDir,
 					color,
+					logger,
 					signal: options.signal,
 					open: options.openUrl ?? openUrl,
 					createTunnel: options.createTunnel ?? createTunnel,
 				});
 		}
 	} catch (error) {
-		if (isTunnelError(error)) {
-			stderr.write(`error: ${error.message}\n`);
-			return error.exitCode;
-		}
-		stderr.write(`error: ${error instanceof Error ? error.message : String(error)}\n`);
-		return 1;
+		logger.fail(error instanceof Error ? error.message : String(error));
+		return isTunnelError(error) ? error.exitCode : 1;
+	} finally {
+		logger.dispose();
 	}
 }
 
@@ -158,6 +164,8 @@ interface RunContext {
 	readonly cwd: string;
 	readonly stdout: { write(text: string): void; isTTY?: boolean };
 	readonly env: Record<string, string | undefined>;
+	readonly logger: TunnelLogger;
+	readonly color: boolean;
 }
 
 /** CLI flags -> config overrides (only what the user actually passed). */
@@ -184,35 +192,75 @@ function flagOverrides(parsed: ParsedArgs) {
 	return overrides;
 }
 
+/** Provisioning stages → human labels (opentunnel ids, provider-supplied). */
+const STAGE_LABELS: Readonly<Record<string, string>> = {
+	"checking-certificate": "Checking stored certificate",
+	"creating-tunnel": "Creating tunnel",
+	"generating-key": "Generating key",
+	"generating-csr": "Generating certificate request",
+	"resuming-certificate": "Resuming certificate",
+	"requesting-certificate": "Requesting certificate",
+	"waiting-certificate": "Waiting for certificate issuance",
+	"saving-identity": "Saving identity",
+	ready: "Ready",
+};
+
 async function runTunnel(
 	parsed: ParsedArgs,
 	context: {
 		env: Record<string, string | undefined>;
 		cwd: string;
 		stdout: { write(text: string): void };
-		stderr: { write(text: string): void };
 		dataDir: string;
 		color: boolean;
+		logger: TunnelLogger;
 		signal?: AbortSignal;
 		open: (url: string) => void;
 		createTunnel: typeof createTunnel;
 	},
 ): Promise<number> {
+	const { logger, color } = context;
 	const { config } = await resolveTunnelConfig({
 		cwd: context.cwd,
 		configPath: parsed.values.config,
 		overrides: flagOverrides(parsed),
 	});
 
+	if (logger.json) {
+		logger.emit({
+			level: "info",
+			event: "starting",
+			message: "starting tunnel",
+			data: { ...config },
+		});
+	} else {
+		logger.spinnerStart("Starting tunnel…");
+	}
+
 	let bannerShown = false;
 	let lastDisconnectReason: string | undefined;
+	let lastStage: string | undefined;
 	const handle = await context.createTunnel({
 		...config,
 		dataDir: context.dataDir,
 		env: context.env,
 		signal: context.signal,
 		keepAlive: !parsed.booleans.noKeepAlive,
-		onProgress: stage => renderProgress(stage, context),
+		onProgress: stage => {
+			// The SDK repeats the current stage on every poll; dedupe so a
+			// spinner swaps only on real transitions and non-TTY runs print
+			// one line per stage.
+			if (stage === lastStage) {
+				return;
+			}
+			lastStage = stage;
+			const label = STAGE_LABELS[stage] ?? stage;
+			if (logger.json) {
+				logger.emit({ level: "info", event: "progress", message: label, data: { stage } });
+				return;
+			}
+			logger.spinnerStart(`${label}…`);
+		},
 		onEvent: event => {
 			if (event.type === "disconnected") {
 				lastDisconnectReason = event.reason;
@@ -222,24 +270,41 @@ async function runTunnel(
 			if (event.type === "connected" && !bannerShown) {
 				return;
 			}
-			renderEvent(event, context, lastDisconnectReason);
+			renderEvent(event, logger, lastDisconnectReason);
 		},
 	});
 	bannerShown = true;
 
-	const url = paint(handle.primaryUrl, "cyan", context.color);
-	context.stdout.write(
-		`${paint("➜", "green", context.color)}  ${paint("tunnel", "bold", context.color)}  ${paint("→", "dim", context.color)}  ${url}\n`,
-	);
-	context.stdout.write(
-		paint(
-			`  profile ${handle.profile} · target ${config.host}:${String(config.port)} · provider ${handle.provider}\n`,
-			"dim",
-			context.color,
-		),
-	);
-	if (parsed.booleans.qr) {
-		context.stdout.write(renderQr(handle.primaryUrl));
+	if (logger.json) {
+		logger.emit({
+			level: "info",
+			event: "url",
+			message: handle.primaryUrl,
+			data: {
+				url: handle.primaryUrl,
+				profile: handle.profile,
+				hostname: handle.hostname,
+				target: `${config.host}:${String(config.port)}`,
+				provider: handle.provider,
+			},
+		});
+	} else {
+		// rawOut (not step): the URL is the one thing quiet mode must print.
+		logger.rawOut("");
+		logger.rawOut(
+			`  ${paint("➜", "green", color)}  ${paint("tunnel", "bold", color)}  ${paint("→", "dim", color)}  ${paint(handle.primaryUrl, "cyan", color)}`,
+		);
+		logger.rawOut(
+			paint(
+				`    profile ${handle.profile} · target ${config.host}:${String(config.port)} · provider ${handle.provider}`,
+				"dim",
+				color,
+			),
+		);
+		logger.rawOut("");
+	}
+	if (parsed.booleans.qr && !logger.json) {
+		logger.rawOut(renderQr(handle.primaryUrl));
 	}
 	if (parsed.booleans.open) {
 		context.open(handle.primaryUrl);
@@ -260,7 +325,7 @@ async function runTunnel(
 		// Fatal tunnel failure: the error already surfaced as a `stopped`
 		// event; keep the message on stderr with the mapped exit code.
 		const message = error instanceof Error ? error.message : String(error);
-		context.stderr.write(`error: tunnel stopped: ${message}\n`);
+		logger.fail(`tunnel stopped: ${message}`);
 		exitCode = 2;
 	} finally {
 		await boundedClose(handle);
@@ -307,58 +372,57 @@ function boundedClose(handle: TunnelHandle): Promise<void> {
 	});
 }
 
-function renderProgress(
-	stage: string,
-	context: { stdout: { write(text: string): void }; color: boolean },
-): void {
-	context.stdout.write(paint(`  tunnel: ${stage}…\n`, "dim", context.color));
-}
-
-function renderEvent(
-	event: TunnelEvent,
-	context: { stdout: { write(text: string): void }; color: boolean },
-	reason?: string,
-): void {
+function renderEvent(event: TunnelEvent, logger: TunnelLogger, reason?: string): void {
 	switch (event.type) {
 		case "connecting":
-			context.stdout.write(
-				paint(
-					`  tunnel: connecting (attempt ${String(event.attempt)})\n`,
-					"dim",
-					context.color,
-				),
-			);
+			logger.emit({
+				level: "debug",
+				event: "connecting",
+				message: `  tunnel: connecting (attempt ${String(event.attempt)})`,
+				data: event,
+			});
 			break;
 		case "reconnecting":
-			context.stdout.write(
-				paint(
-					`  tunnel: reconnecting (attempt ${String(event.attempt)}, in ${String(event.delayMs)}ms)${reason === undefined ? "" : ` — ${reason}`}\n`,
-					"yellow",
-					context.color,
-				),
-			);
+			logger.emit({
+				level: "warn",
+				event: "reconnecting",
+				message: `  tunnel: reconnecting (attempt ${String(event.attempt)}, in ${String(event.delayMs)}ms)${reason === undefined ? "" : ` — ${reason}`}`,
+				data: { ...event, reason },
+			});
 			break;
 		case "connected":
 			// Subsequent attaches (after a reconnect); the first one is
 			// reported by the URL banner itself.
-			context.stdout.write(paint("  tunnel: connected\n", "dim", context.color));
+			logger.emit({
+				level: "debug",
+				event: "connected",
+				message: "  tunnel: connected",
+				data: event,
+			});
 			break;
 		case "route-conflict":
-			context.stdout.write(
-				paint(
-					`  tunnel: route held by another bridge (${event.routes.join(", ")}), taking over…\n`,
-					"yellow",
-					context.color,
-				),
-			);
+			logger.emit({
+				level: "warn",
+				event: "route-conflict",
+				message: `  tunnel: route held by another bridge (${event.routes.join(", ")}), taking over…`,
+				data: event,
+			});
 			break;
 		case "stopped":
 			if (event.error !== undefined) {
-				context.stdout.write(
-					paint(`  tunnel: stopped — ${event.error}\n`, "red", context.color),
-				);
+				logger.emit({
+					level: "error",
+					event: "stopped",
+					message: `  tunnel: stopped — ${event.error}`,
+					data: event,
+				});
 			} else {
-				context.stdout.write(paint("  tunnel: stopped\n", "dim", context.color));
+				logger.emit({
+					level: "debug",
+					event: "stopped",
+					message: "  tunnel: stopped",
+					data: event,
+				});
 			}
 			break;
 		default:
@@ -381,26 +445,27 @@ async function resolveProfile(parsed: ParsedArgs, context: RunContext): Promise<
 }
 
 async function runReset(parsed: ParsedArgs, context: RunContext): Promise<number> {
+	const { logger } = context;
 	if (parsed.booleans.all) {
 		const removed = await removeAllProfileRecords(context.dataDir);
 		if (removed.length === 0) {
-			context.stdout.write("No stored tunnel identities.\n");
+			logger.info("No stored tunnel identities.");
 			return 0;
 		}
 		for (const profile of removed) {
-			context.stdout.write(`Removed identity for profile "${profile}"\n`);
+			logger.step(`Removed identity for profile "${profile}"`);
 		}
-		context.stdout.write("Next runs mint fresh public URLs.\n");
+		logger.info("Next runs mint fresh public URLs.");
 		return 0;
 	}
 	const profile = await resolveProfile(parsed, context);
 	const removed = await removeProfileRecord(context.dataDir, profile);
 	if (!removed) {
-		context.stdout.write(`No stored identity for profile "${profile}".\n`);
+		logger.info(`No stored identity for profile "${profile}".`);
 		return 0;
 	}
-	context.stdout.write(`Removed identity for profile "${profile}"\n`);
-	context.stdout.write("The next run mints a fresh public URL.\n");
+	logger.step(`Removed identity for profile "${profile}"`);
+	logger.info("The next run mints a fresh public URL.");
 	return 0;
 }
 
@@ -410,7 +475,12 @@ function recordUrl(record: ProfileRecord): string {
 
 async function runList(
 	parsed: ParsedArgs,
-	context: { dataDir: string; stdout: { write(text: string): void } },
+	context: {
+		dataDir: string;
+		stdout: { write(text: string): void };
+		logger: TunnelLogger;
+		color: boolean;
+	},
 ): Promise<number> {
 	const records = await listProfileRecords(context.dataDir);
 	if (parsed.booleans.json) {
@@ -424,9 +494,10 @@ async function runList(
 		return 0;
 	}
 	if (records.length === 0) {
-		context.stdout.write("No stored tunnel identities — run vkma-tunnel to create one.\n");
+		context.logger.info("No stored tunnel identities — run vkma-tunnel to create one.");
 		return 0;
 	}
+	const { color } = context;
 	const rows = records.map(record => ({
 		profile: record.profile,
 		url: recordUrl(record),
@@ -438,12 +509,18 @@ async function runList(
 		url: Math.max(...rows.map(row => row.url.length), "url".length),
 		target: Math.max(...rows.map(row => row.target.length), "target".length),
 	};
-	context.stdout.write(
-		`  ${"profile".padEnd(widths.profile)}  ${"url".padEnd(widths.url)}  ${"target".padEnd(widths.target)}  updated\n`,
+	// Pad on plain text, paint after: ANSI escapes are zero-width and must
+	// not inflate the padding math.
+	context.logger.rawOut(
+		paint(
+			`  ${"profile".padEnd(widths.profile)}  ${"url".padEnd(widths.url)}  ${"target".padEnd(widths.target)}  updated`,
+			"dim",
+			color,
+		),
 	);
 	for (const row of rows) {
-		context.stdout.write(
-			`  ${row.profile.padEnd(widths.profile)}  ${row.url.padEnd(widths.url)}  ${row.target.padEnd(widths.target)}  ${row.updated}\n`,
+		context.logger.rawOut(
+			`  ${paint(row.profile.padEnd(widths.profile), "bold", color)}  ${paint(row.url.padEnd(widths.url), "cyan", color)}  ${row.target.padEnd(widths.target)}  ${row.updated}`,
 		);
 	}
 	return 0;
@@ -456,14 +533,15 @@ async function runStatus(
 		cwd: string;
 		stdout: { write(text: string): void };
 		env: Record<string, string | undefined>;
+		logger: TunnelLogger;
+		color: boolean;
 	},
 ): Promise<number> {
+	const { logger, color } = context;
 	const profile = parsed.profileArg ?? (await resolveProfile(parsed, context));
 	const record = await readProfileRecord(context.dataDir, profile);
 	if (record === undefined) {
-		context.stdout.write(
-			`No stored tunnel for profile "${profile}" — run vkma-tunnel first.\n`,
-		);
+		logger.info(`No stored tunnel for profile "${profile}" — run vkma-tunnel first.`);
 		return 1;
 	}
 
@@ -493,14 +571,16 @@ async function runStatus(
 		return 0;
 	}
 
-	context.stdout.write(`profile:    ${record.profile}\n`);
-	context.stdout.write(`url:        ${url}\n`);
-	context.stdout.write(
-		`target:     ${record.lastTarget ?? "—"} ${targetReachable ? "(listening)" : "(not reachable)"}\n`,
+	const state = (ok: boolean, good: string, bad: string): string =>
+		paint(ok ? good : bad, ok ? "green" : "red", color);
+	logger.rawOut(`profile:    ${paint(record.profile, "bold", color)}`);
+	logger.rawOut(`url:        ${paint(url, "cyan", color)}`);
+	logger.rawOut(
+		`target:     ${record.lastTarget ?? "—"} ${state(targetReachable, "(listening)", "(not reachable)")}`,
 	);
-	context.stdout.write(`tunnel:     ${tunnelReachable ? "responding" : "not responding"}\n`);
+	logger.rawOut(`tunnel:     ${state(tunnelReachable, "responding", "not responding")}`);
 	if (record.createdAt !== undefined) {
-		context.stdout.write(`created at: ${record.createdAt}\n`);
+		logger.rawOut(`created at: ${record.createdAt}`);
 	}
 	return 0;
 }

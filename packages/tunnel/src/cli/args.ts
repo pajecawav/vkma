@@ -23,12 +23,14 @@ const BOOLEAN_FLAGS = new Set([
 	"--all",
 	"--no-keepalive",
 	"--json",
+	"--quiet",
 	"--no-color",
 	"--help",
 	"--version",
 ]);
 const SHORT_FLAGS = new Map([
 	["-h", "--help"],
+	["-q", "--quiet"],
 	["-V", "--version"],
 ]);
 
@@ -53,6 +55,7 @@ export interface ParsedArgs {
 		/** Disable the periodic self-probe that keeps idle bridges from being dropped. */
 		readonly noKeepAlive: boolean;
 		readonly json: boolean;
+		readonly quiet: boolean;
 		readonly noColor: boolean;
 		readonly help: boolean;
 		readonly version: boolean;
@@ -75,6 +78,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let open = false;
 	let all = false;
 	let noKeepAlive = false;
+	let quiet = false;
 	let json = false;
 	let noColor = false;
 	let help = false;
@@ -187,6 +191,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			case "--json":
 				json = true;
 				break;
+			case "--quiet":
+				quiet = true;
+				break;
 			case "--no-color":
 				noColor = true;
 				break;
@@ -205,7 +212,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 		command: command ?? "run",
 		profileArg,
 		values: { provider, port, host, route, profile, config, api },
-		booleans: { qr, open, all, noKeepAlive, json, noColor, help, version },
+		booleans: { qr, open, all, noKeepAlive, json, quiet, noColor, help, version },
 		errors,
 	};
 }

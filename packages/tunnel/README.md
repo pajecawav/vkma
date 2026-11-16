@@ -29,7 +29,8 @@ vkma-tunnel --port 3000 --host 127.0.0.1 --route mobile --qr
 | `vkma-tunnel status [profile] [--json]`      | stored identity + live probes (local target, public URL) |
 
 Flags: `--provider`, `--port`, `--host`, `--route`, `--profile`, `--api`,
-`--config`, `--qr`, `--open`, `--no-keepalive`, `--json`, `--no-color`.
+`--config`, `--qr`, `--open`, `--no-keepalive`, `--json` (NDJSON lifecycle
+events for `run` too), `--quiet`, `--no-color`.
 
 ## Vite plugin
 

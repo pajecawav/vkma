@@ -224,4 +224,38 @@ describe("run shutdown resilience", () => {
 		});
 		expect(code).toBe(0);
 	});
+
+	it("emits NDJSON lifecycle records in --json mode", async () => {
+		out = [];
+		errOut = [];
+		const code = await main(["--json"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			createTunnel: async options => ({
+				...wedgedTunnel(),
+				closed: new Promise<void>(resolve => {
+					setTimeout(() => {
+						options.onEvent?.({ type: "stopped" });
+						resolve(undefined);
+					}, 20);
+				}),
+				close: async () => undefined,
+			}),
+		});
+		expect(code).toBe(0);
+		const text = out.join("");
+		const records = text
+			.split("\n")
+			.filter(line => line !== "")
+			.map(line => JSON.parse(line) as Record<string, unknown>);
+		const events = records.map(record => record["event"]);
+		expect(events).toContain("starting");
+		expect(events).toContain("url");
+		expect(events).toContain("stopped");
+		const urlRecord = records.find(record => record["event"] === "url");
+		expect(urlRecord?.["message"]).toBe("https://wedged.opentunnel.xyz");
+	});
 });

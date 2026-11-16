@@ -10,6 +10,7 @@
  * clean stop, and a wedged tunnel must never hold the terminal hostage.
  */
 
+import { SHOW_CURSOR } from "./cli/logger.ts";
 import { main } from "./cli/main.ts";
 
 const controller = new AbortController();
@@ -18,8 +19,11 @@ let interrupted = 0;
 function onSignal(): void {
 	interrupted += 1;
 	if (interrupted > 1) {
-		// Second Ctrl+C: exit immediately; the tunnel bridge dies with the
-		// process, the identity stays stored for the next run.
+		// Second Ctrl+C: exit immediately, but never leave the terminal
+		// cursor-less (the spinner hides it and normal disposal never
+		// runs). The bridge dies with the process; the identity stays
+		// stored for the next run.
+		process.stdout.write(SHOW_CURSOR);
 		process.exit(130);
 	}
 	controller.abort();
