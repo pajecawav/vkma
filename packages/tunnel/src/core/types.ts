@@ -97,11 +97,12 @@ export interface TunnelProviderConnectOptions {
 	/** Provider provisioning stages; human-readable, provider-specific. */
 	readonly onProgress?: (stage: string) => void;
 	/**
-	 * Keep the bridge busy with a periodic self-probe through the public
-	 * URL (default `true`). Idle bridges get dropped silently by NATs and
-	 * the service, and a silent drop leaves the route bound to a ghost
-	 * session — the takeover then takes minutes of `route_conflict`
-	 * retries. One small request every ~20 s prevents both.
+	 * Health watchdog (default `true`): a probe through the public URL
+	 * every ~20 s. It keeps idle bridges from being dropped silently AND
+	 * detects a wedged server-side relay (bridge "connected" but visitor
+	 * connections hang forever): two consecutive soft timeouts with a
+	 * reachable local target trigger a graceful bridge restart — same
+	 * identity, same public URL, fresh relay.
 	 */
 	readonly keepAlive?: boolean;
 }

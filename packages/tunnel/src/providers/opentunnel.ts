@@ -13,6 +13,7 @@
  */
 
 import fs from "node:fs/promises";
+import net from "node:net";
 import {
 	create,
 	OpenTunnelClientError,
@@ -97,14 +98,170 @@ async function connectOpenTunnel(
 		throw mapClientError(error);
 	}
 
-	let connection: Awaited<ReturnType<typeof client.tunnel.connect>>;
-	try {
-		connection = await client.tunnel.connect({
+	type SdkConnection = Awaited<ReturnType<typeof client.tunnel.connect>>;
+
+	// -- supervised connection ---------------------------------------------
+	//
+	// The service's per-connection relay can wedge while the bridge
+	// WebSocket stays "connected": visitor connections open (the `open`
+	// control arrives) but no byte ever comes back, and the SDK — seeing a
+	// healthy bridge — sits like that forever. The supervisor wraps the
+	// SDK connection with a health watchdog: probes through the public URL
+	// and, when the relay is wedged (soft timeouts with a reachable local
+	// target), gracefully closes the bridge and attaches a fresh one. The
+	// identity — and with it the public URL — never changes.
+
+	let current: SdkConnection;
+	let tornDown = false;
+	let restarting = false;
+	let watchdogTimer: ReturnType<typeof setInterval> | undefined;
+	let timeoutStreak = 0;
+	let restarts = 0;
+
+	// Merged event stream: every SDK connection (initial + restarts) feeds
+	// one AsyncIterable + the caller's onEvent.
+	const eventQueue: TunnelEvent[] = [];
+	let eventNotify: (() => void) | undefined;
+	const sink = (event: TunnelEvent): void => {
+		eventQueue.push(event);
+		options.onEvent?.(event);
+		eventNotify?.();
+	};
+
+	let settleResolve: () => void = () => undefined;
+	let settleReject: (error: unknown) => void = () => undefined;
+	const settleClosed = new Promise<void>((resolve, reject) => {
+		settleResolve = resolve;
+		settleReject = reject;
+	});
+
+	const fatal = (error: unknown): void => {
+		if (tornDown) {
+			return;
+		}
+		tornDown = true;
+		stopWatchdog();
+		void bounded(current.close());
+		void bounded(client.dispose());
+		settleReject(error);
+	};
+
+	const attach = async (): Promise<SdkConnection> => {
+		const connection = await client.tunnel.connect({
 			profile: options.profile,
 			routes: { [options.route]: target },
 			signal: options.signal,
-			onEvent: event => options.onEvent?.(mapEvent(event)),
+			onEvent: event => {
+				const mapped = mapEvent(event);
+				// `stopped` from the SDK belongs to the supervisor: a
+				// watchdog restart closes the old bridge (its clean
+				// `stopped` must not leak as a scary mid-run line), and
+				// fatals surface through `closed` instead.
+				if (mapped.type === "stopped") {
+					return;
+				}
+				sink(mapped);
+			},
 		});
+		// Resolution is our own (graceful teardown or watchdog restart);
+		// rejection is a fatal the supervisor surfaces as `closed`.
+		void connection.closed.catch((error: unknown) => {
+			if (!restarting && !tornDown) {
+				fatal(error);
+			}
+		});
+		return connection;
+	};
+
+	const restart = async (): Promise<void> => {
+		restarts += 1;
+		restarting = true;
+		timeoutStreak = 0;
+		sink({
+			type: "disconnected",
+			reason: "health watchdog: bridge unresponsive, restarting bridge",
+		});
+		await bounded(current.close());
+		current = await attach();
+		restarting = false;
+		sink({
+			type: "connected",
+			session: `watchdog-restart-${String(restarts)}`,
+			routes: [options.route],
+		});
+	};
+
+	const stopWatchdog = (): void => {
+		if (watchdogTimer !== undefined) {
+			clearInterval(watchdogTimer);
+			watchdogTimer = undefined;
+		}
+	};
+
+	/** One health check: local target first, then through the public URL. */
+	const healthCheck = async (): Promise<void> => {
+		if (mapStatus(current.status()).state !== "connected") {
+			// The SDK is reconnecting on its own; probes here prove nothing.
+			timeoutStreak = 0;
+			return;
+		}
+		// A dead local target is not a bridge problem — don't restart.
+		if (!(await probeTcp(options.host, options.port))) {
+			timeoutStreak = 0;
+			return;
+		}
+		try {
+			const response = await fetch(publicUrl(options.route, current.tunnel.hostname), {
+				signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+				redirect: "manual",
+			});
+			response.body?.cancel().catch(() => undefined);
+			// Any HTTP answer means the whole chain (server -> bridge ->
+			// TLS -> target -> back) is alive.
+			timeoutStreak = 0;
+			return;
+		} catch (error) {
+			// A FAST network failure is the relay resetting us — proof the
+			// path works (e.g. target refused, TLS aborted). Only a soft
+			// timeout (nothing came back at all) counts as wedged.
+			if (error instanceof DOMException && error.name === "TimeoutError") {
+				timeoutStreak += 1;
+				return;
+			}
+			if (error instanceof Error && error.name === "AbortError") {
+				timeoutStreak += 1;
+				return;
+			}
+			if (error instanceof TypeError) {
+				timeoutStreak = 0;
+				return;
+			}
+			timeoutStreak += 1;
+		}
+	};
+
+	const startWatchdog = (): void => {
+		if (options.keepAlive === false || watchdogTimer !== undefined) {
+			return;
+		}
+		watchdogTimer = setInterval(() => {
+			const check = async (): Promise<void> => {
+				await healthCheck();
+				if (timeoutStreak >= PROBE_FAILURE_LIMIT && !restarting && !tornDown) {
+					try {
+						await restart();
+					} catch (error) {
+						fatal(error);
+					}
+				}
+			};
+			void check();
+		}, PROBE_INTERVAL_MS);
+		watchdogTimer.unref?.();
+	};
+
+	try {
+		current = await attach();
 	} catch (error) {
 		await bounded(client.dispose());
 		// Aborting mid-attach rejects with the signal's reason: report the
@@ -118,66 +275,64 @@ async function connectOpenTunnel(
 		throw mapClientError(error);
 	}
 
-	// The SDK's own abort listener closes the connection concurrently with
-	// ours; the guard keeps teardown single-shot and the bounds keep a
-	// half-dead bridge from hanging `close()` forever (a stuck SDK teardown
-	// must never wedge the CLI process).
-	let tornDown = false;
-	const stopKeepAlive = startBridgeKeepAlive(connection, options);
+	startWatchdog();
 
 	const teardown = async (): Promise<void> => {
 		if (tornDown) {
 			return;
 		}
 		tornDown = true;
-		stopKeepAlive();
-		await bounded(connection.close());
+		stopWatchdog();
+		await bounded(current.close());
 		await bounded(client.dispose());
+		// The supervisor owns the `stopped` semantics (SDK copies are
+		// filtered in attach): one clean stop when the user asks for it.
+		sink({ type: "stopped" });
+		settleResolve();
 	};
 
+	async function* mergedEvents(): AsyncGenerator<TunnelEvent> {
+		for (;;) {
+			while (eventQueue.length > 0) {
+				yield eventQueue.shift() as TunnelEvent;
+			}
+			await new Promise<void>(resolve => {
+				eventNotify = resolve;
+			});
+		}
+	}
+
 	return {
-		hostname: connection.tunnel.hostname,
-		urls: connection.urls,
-		events: mapEventIterable(connection.events),
-		status: () => mapStatus(connection.status()),
+		hostname: current.tunnel.hostname,
+		get urls() {
+			return current.urls;
+		},
+		events: mergedEvents(),
+		status: () => mapStatus(current.status()),
 		close: teardown,
-		closed: connection.closed.finally(() => {
-			void teardown();
-		}),
+		closed: settleClosed,
 	};
 }
 
-/**
- * Periodic self-probe through the public URL. Idle bridges get dropped
- * silently (NATs, the service's own idle policy), and a silent drop means
- * the close frame is never delivered — the server keeps the route bound
- * to the ghost session until its own timeout, and every reconnect hits
- * `route_conflict`. A visitor connection every ~20 s keeps bytes flowing
- * in both directions, which keeps pongs coming and the route alive.
- * Unref'd: the timer never holds the process open.
- */
-function startBridgeKeepAlive(
-	connection: Awaited<ReturnType<ReturnType<typeof create>["tunnel"]["connect"]>>,
-	options: TunnelProviderConnectOptions,
-): () => void {
-	if (options.keepAlive === false) {
-		return () => undefined;
-	}
-	const url = publicUrl(options.route, connection.tunnel.hostname);
-	const timer = setInterval(() => {
-		// Only while a bridge is actually attached: mid-reconnect probes
-		// would just burn the timeout.
-		if (mapStatus(connection.status()).state !== "connected") {
-			return;
-		}
-		void fetch(url, { signal: AbortSignal.timeout(10_000), redirect: "manual" })
-			.then(response => {
-				response.body?.cancel().catch(() => undefined);
-			})
-			.catch(() => undefined);
-	}, 20_000);
-	timer.unref?.();
-	return () => clearInterval(timer);
+/** Soft timeout before a probe counts as "no answer at all". */
+const PROBE_TIMEOUT_MS = 10_000;
+/** Consecutive wedged probes before the watchdog restarts the bridge. */
+const PROBE_FAILURE_LIMIT = 2;
+/** Health-probe / keepalive cadence. */
+const PROBE_INTERVAL_MS = 20_000;
+
+/** TCP liveness check of the local target (watchdog precondition). */
+function probeTcp(host: string, port: number, timeoutMs = 1500): Promise<boolean> {
+	return new Promise<boolean>(resolve => {
+		const socket = net.connect({ host, port });
+		const finish = (ok: boolean): void => {
+			socket.destroy();
+			resolve(ok);
+		};
+		socket.setTimeout(timeoutMs, () => finish(false));
+		socket.once("connect", () => finish(true));
+		socket.once("error", () => finish(false));
+	});
 }
 
 /** Swallows rejections AND never waits longer than `ms` (SDK teardown can hang on a dead bridge). */
@@ -245,15 +400,6 @@ function mapClientError(error: unknown): TunnelError {
 
 function mapEvent(event: OpenTunnelClientEvent): TunnelEvent {
 	return { ...event };
-}
-
-/** Adapts the SDK's AsyncIterable to our (identical) event union. */
-async function* mapEventIterable(
-	events: AsyncIterable<OpenTunnelClientEvent>,
-): AsyncGenerator<TunnelEvent> {
-	for await (const event of events) {
-		yield mapEvent(event);
-	}
 }
 
 function mapStatus(status: OpenTunnelStatus): {
