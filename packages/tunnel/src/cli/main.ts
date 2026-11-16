@@ -202,7 +202,6 @@ const STAGE_LABELS: Readonly<Record<string, string>> = {
 	"requesting-certificate": "Requesting certificate",
 	"waiting-certificate": "Waiting for certificate issuance",
 	"saving-identity": "Saving identity",
-	ready: "Ready",
 };
 
 async function runTunnel(
@@ -254,6 +253,15 @@ async function runTunnel(
 				return;
 			}
 			lastStage = stage;
+			// Provisioning done — the bridge attach follows within moments
+			// and the URL banner right after it. Flashing "Ready" (or a
+			// "ready" line) buys nothing: keep the spinner honest instead.
+			if (stage === "ready") {
+				if (!logger.json) {
+					logger.spinnerUpdate("Attaching bridge…");
+				}
+				return;
+			}
 			const label = STAGE_LABELS[stage] ?? stage;
 			if (logger.json) {
 				logger.emit({ level: "info", event: "progress", message: label, data: { stage } });
@@ -266,14 +274,19 @@ async function runTunnel(
 				lastDisconnectReason = event.reason;
 				return;
 			}
-			// The first attach is announced by the URL banner itself.
-			if (event.type === "connected" && !bannerShown) {
+			// The first attach sequence (connecting/connected) is announced
+			// by the URL banner itself.
+			if (!bannerShown && (event.type === "connected" || event.type === "connecting")) {
 				return;
 			}
 			renderEvent(event, logger, lastDisconnectReason);
 		},
 	});
 	bannerShown = true;
+	// The banner is the final word of the startup phase: stop the spinner
+	// BEFORE printing it — rawOut only pauses/resumes, and a resumed
+	// spinner would keep spinning under the printed URL forever.
+	logger.spinnerStop();
 
 	if (logger.json) {
 		logger.emit({

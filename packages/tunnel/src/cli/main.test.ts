@@ -225,6 +225,40 @@ describe("run shutdown resilience", () => {
 		expect(code).toBe(0);
 	});
 
+	it("suppresses pre-banner noise: no Ready stage, no first connecting/connected lines", async () => {
+		out = [];
+		errOut = [];
+		const code = await main([], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			createTunnel: async options => {
+				options.onProgress?.("creating-tunnel");
+				options.onProgress?.("creating-tunnel"); // dedupe
+				options.onProgress?.("ready");
+				options.onEvent?.({ type: "connecting", attempt: 0 });
+				options.onEvent?.({ type: "connected", session: "s", routes: ["@"] });
+				return {
+					...wedgedTunnel(),
+					closed: new Promise<void>(resolve => {
+						setTimeout(() => resolve(undefined), 20);
+					}),
+					close: async () => undefined,
+				};
+			},
+		});
+		expect(code).toBe(0);
+		const text = out.join("");
+		expect(text).toContain("Creating tunnel…");
+		expect(text).toContain("https://wedged.opentunnel.xyz");
+		expect(text).not.toContain("Ready");
+		expect(text).not.toContain("Attaching bridge");
+		expect(text).not.toContain("connecting (attempt 0)");
+		expect(text).not.toContain("  tunnel: connected");
+	});
+
 	it("emits NDJSON lifecycle records in --json mode", async () => {
 		out = [];
 		errOut = [];
