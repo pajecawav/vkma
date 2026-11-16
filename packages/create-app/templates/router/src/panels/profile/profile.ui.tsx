@@ -12,8 +12,9 @@ const CellButtonLink = createVkLink(CellButton);
  */
 export default function ProfilePanel(): ReactElement {
 	const navigator = useNavigator();
-	// the hook returns undefined until the panel's loader has settled.
-	// In THIS panel it resolves before the first mount, normalize to null
+	// the hook returns undefined until the panel's loader has settled;
+	// outside the VK host the loader settles with a null user (timeout)
+	// and the stub below renders instead
 	const user = usePanelLoaderData(profilePanel)?.user ?? null;
 
 	return (
