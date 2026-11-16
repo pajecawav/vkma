@@ -1,0 +1,84 @@
+{
+	"name": "@vkma.dev/tunnel",
+	"version": "0.0.1",
+	"description": "Public HTTPS tunnels for local VK Mini App dev servers. CLI (vkma-tunnel), Node API and a Vite plugin.",
+	"type": "module",
+	"license": "MIT",
+	"author": "pajecawav",
+	"homepage": "https://github.com/pajecawav/vkma/tree/master/packages/tunnel#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pajecawav/vkma.git",
+		"directory": "packages/tunnel"
+	},
+	"bugs": {
+		"url": "https://github.com/pajecawav/vkma/issues"
+	},
+	"keywords": [
+		"vk",
+		"vkontakte",
+		"vk-mini-apps",
+		"tunnel",
+		"devtools",
+		"vite",
+		"opentunnel"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22.18"
+	},
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"bin": {
+		"vkma-tunnel": "./dist/cli.js"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./vite": {
+			"types": "./dist/vite.d.ts",
+			"import": "./dist/vite.js"
+		},
+		"./schema": "./schema/vkma-tunnel.config.schema.json"
+	},
+	"files": [
+		"dist",
+		"schema",
+		"src",
+		"!src/**/*.test.ts"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"schema": "node --experimental-strip-types scripts/gen-schema.ts",
+		"lint:package": "publint",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"dependencies": {
+		"@opentunnel/client": "^0.6.2",
+		"@sinclair/typebox": "^0.34.39",
+		"qrcode-terminal": "^0.12.0"
+	},
+	"peerDependencies": {
+		"vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+	},
+	"peerDependenciesMeta": {
+		"vite": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"@types/qrcode-terminal": "^0.12.2",
+		"publint": "catalog:",
+		"tsdown": "catalog:",
+		"vite": "catalog:",
+		"vitest": "catalog:"
+	}
+}

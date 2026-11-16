@@ -1,0 +1,51 @@
+{
+	"additionalProperties": false,
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://unpkg.com/@vkma.dev/tunnel/schema/vkma-tunnel.config.schema.json",
+	"title": "vkma-tunnel configuration",
+	"description": "Configuration for @vkma.dev/tunnel (vkma-tunnel).",
+	"type": "object",
+	"properties": {
+		"$schema": {
+			"description": "JSON Schema reference for this file.",
+			"type": "string"
+		},
+		"provider": {
+			"minLength": 1,
+			"default": "opentunnel",
+			"description": "Tunnel provider. v0.1 supports \"opentunnel\" only.",
+			"type": "string"
+		},
+		"port": {
+			"minimum": 1,
+			"maximum": 65535,
+			"default": 5173,
+			"description": "Local port to expose through the tunnel. Default: 5173.",
+			"type": "integer"
+		},
+		"host": {
+			"minLength": 1,
+			"default": "127.0.0.1",
+			"description": "Local host the tunnel forwards to. Default: \"127.0.0.1\".",
+			"type": "string"
+		},
+		"route": {
+			"pattern": "^(@|[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)$",
+			"default": "@",
+			"description": "Route name: \"@\" (apex, https://<id>.opentunnel.xyz) or a lowercase DNS label for a subdomain. Default: \"@\".",
+			"type": "string"
+		},
+		"profile": {
+			"pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+			"minLength": 1,
+			"maxLength": 64,
+			"description": "Identity-store profile. Defaults to the project directory name. A stable profile keeps the public URL stable across runs (reset with `vkma-tunnel reset`).",
+			"type": "string"
+		},
+		"api": {
+			"pattern": "^https?://",
+			"description": "Provider API endpoint for self-hosted servers, e.g. \"https://opentunnel.example\". Optional; the opentunnel client also honors the OPENTUNNEL_API env var.",
+			"type": "string"
+		}
+	}
+}
