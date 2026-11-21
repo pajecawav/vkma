@@ -45,15 +45,20 @@ Keep all comments, commits, and docs in English.
 1. **Stable URL by default.** Identity persists per profile in
    `$XDG_DATA_HOME/vkma/tunnel/<profile>.json` (0600, atomic writes).
    `reset` is the only rotation path. Provider records must keep the
-   shared fields (`hostname`, `lastTarget`, `lastRoute`, `createdAt`,
-   `updatedAt`) — the CLI list/status read them provider-neutrally.
+   shared fields (`hostname`, `lastTarget`, `lastRoute`, `pid`,
+   `startedAt`, `createdAt`, `updatedAt`) — the CLI list/status read
+   them provider-neutrally, and `pid` powers the route-conflict hint
+   ("was also attached by process N — is another vkma-tunnel / vite dev
+   still running?").
 2. **Layering is fixed**: CLI flags / plugin options > config file >
    auto-detected server values (plugin) > defaults. No env layer by
    design; `OPENTUNNEL_API` is read natively by the SDK, don't shadow it.
 3. **The library never touches `process`** outside injected `env`
-   (identity store default param, `resolveTunnelConfig` cwd default) and
-   the documented `stripTypeScriptTypes` warning shim. Only `src/cli*`
-   and `src/vite.ts` (console logging, browser opener) may.
+   (identity store default param, `resolveTunnelConfig` cwd default), the
+   documented `stripTypeScriptTypes` warning shim, and `process.pid`
+   (stamped into the profile record so route conflicts can point at the
+   rival process — no side effects). Only `src/cli*` and `src/vite.ts`
+   (console logging, browser opener) may.
 4. **A fatal tunnel never kills the dev server** (plugin prints a red
    line, devtools policy). The CLI maps failures to exit codes:
    0 ok · 1 config/user · 2 network · 130 aborted — via `TunnelError.kind`.

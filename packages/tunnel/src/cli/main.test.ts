@@ -160,6 +160,76 @@ describe("config errors", () => {
 });
 
 describe("run shutdown resilience", () => {
+	it("hints about a rival process on route conflicts", async () => {
+		out = [];
+		errOut = [];
+		await mergeRecordFile(dataDir, "hinted", {
+			hostname: "hint.opentunnel.xyz",
+			pid: 999999,
+			startedAt: "2026-11-21T10:00:00.000Z",
+		});
+		const code = await main(["--profile", "hinted"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			createTunnel: async options => ({
+				...wedgedTunnel(),
+				profile: "hinted",
+				primaryUrl: "https://hint.opentunnel.xyz",
+				urls: { "@": "https://hint.opentunnel.xyz" },
+				closed: new Promise<void>(resolve => {
+					setTimeout(() => {
+						options.onEvent?.({ type: "route-conflict", routes: ["@"] });
+						options.onEvent?.({ type: "stopped" });
+						resolve(undefined);
+					}, 20);
+				}),
+				close: async () => undefined,
+			}),
+		});
+		expect(code).toBe(0);
+		// The hint's record read is async — give it a tick to land.
+		await new Promise(resolve => {
+			setTimeout(resolve, 100);
+		});
+		// The hint is a warn → stderr.
+		expect(errOut.join("")).toContain("also attached by process 999999");
+	});
+
+	it("does not self-hint when the record pid is our own", async () => {
+		out = [];
+		errOut = [];
+		await mergeRecordFile(dataDir, "selfpid", {
+			hostname: "self.opentunnel.xyz",
+			pid: process.pid,
+		});
+		const code = await main([], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			createTunnel: async options => ({
+				...wedgedTunnel(),
+				profile: "selfpid",
+				primaryUrl: "https://self.opentunnel.xyz",
+				urls: { "@": "https://self.opentunnel.xyz" },
+				closed: new Promise<void>(resolve => {
+					setTimeout(() => {
+						options.onEvent?.({ type: "route-conflict", routes: ["@"] });
+						options.onEvent?.({ type: "stopped" });
+						resolve(undefined);
+					}, 20);
+				}),
+				close: async () => undefined,
+			}),
+		});
+		expect(code).toBe(0);
+		expect(out.join("")).not.toContain("also attached by process");
+	});
+
 	/** A tunnel that NEVER settles `closed` and hangs inside `close()`. */
 	function wedgedTunnel(): TunnelHandle {
 		const forever = new Promise<void>(() => undefined);

@@ -26,6 +26,10 @@ export interface ProfileRecord {
 	readonly lastTarget?: string;
 	/** Route name of the last run (`"@"` when unknown) — builds list/status URLs. */
 	readonly lastRoute?: string;
+	/** Process id of the last attach — route-conflict hints point here. */
+	readonly pid?: number;
+	/** ISO time of that attach. */
+	readonly startedAt?: string;
 	readonly createdAt?: string;
 	readonly updatedAt?: string;
 }
@@ -139,6 +143,8 @@ async function readRecordFile(
 		hostname,
 		lastTarget: typeof record["lastTarget"] === "string" ? record["lastTarget"] : undefined,
 		lastRoute: typeof record["lastRoute"] === "string" ? record["lastRoute"] : undefined,
+		pid: typeof record["pid"] === "number" ? record["pid"] : undefined,
+		startedAt: typeof record["startedAt"] === "string" ? record["startedAt"] : undefined,
 		createdAt: typeof record["createdAt"] === "string" ? record["createdAt"] : undefined,
 		updatedAt: typeof record["updatedAt"] === "string" ? record["updatedAt"] : undefined,
 	};

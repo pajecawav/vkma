@@ -82,6 +82,8 @@ export interface CreateTunnelOptions {
 	readonly onProgress?: (stage: string) => void;
 	/** Keep the bridge busy with a periodic self-probe (default `true`); see `TunnelProviderConnectOptions.keepAlive`. */
 	readonly keepAlive?: boolean;
+	/** Process id stamped into the profile record on attach (route-conflict hints). Default: `process.pid`. */
+	readonly pid?: number;
 	/**
 	 * Rewrite the tunnel hostname to a same-length `*.localhost` alias in
 	 * requests forwarded to the local target (default `true`). Vite's

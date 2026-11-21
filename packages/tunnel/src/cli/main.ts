@@ -242,6 +242,24 @@ async function runTunnel(
 	let bannerShown = false;
 	let lastDisconnectReason: string | undefined;
 	let lastStage: string | undefined;
+	let conflictHintShown = false;
+	const ownPid = process.pid;
+	const hintProfile = config.profile ?? defaultProfile(context.cwd);
+	const showConflictHint = (): void => {
+		if (conflictHintShown) {
+			return;
+		}
+		conflictHintShown = true;
+		void readProfileRecord(context.dataDir, hintProfile)
+			.then(record => {
+				if (record?.pid !== undefined && record.pid !== ownPid) {
+					logger.warn(
+						`  tunnel: profile "${hintProfile}" was also attached by process ${String(record.pid)}${record.startedAt === undefined ? "" : ` (started ${record.startedAt})`} — is another vkma-tunnel / vite dev still running?`,
+					);
+				}
+			})
+			.catch(() => undefined);
+	};
 	const handle = await context.createTunnel({
 		...config,
 		dataDir: context.dataDir,
@@ -249,6 +267,7 @@ async function runTunnel(
 		signal: context.signal,
 		keepAlive: !parsed.booleans.noKeepAlive,
 		hostRewrite: !parsed.booleans.noHostRewrite,
+		pid: ownPid,
 		onProgress: stage => {
 			// The SDK repeats the current stage on every poll; dedupe so a
 			// spinner swaps only on real transitions and non-TTY runs print
@@ -277,6 +296,9 @@ async function runTunnel(
 			if (event.type === "disconnected") {
 				lastDisconnectReason = event.reason;
 				return;
+			}
+			if (event.type === "route-conflict") {
+				showConflictHint();
 			}
 			// The first attach sequence (connecting/connected) is announced
 			// by the URL banner itself.

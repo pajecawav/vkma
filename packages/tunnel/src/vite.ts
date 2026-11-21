@@ -23,9 +23,9 @@
 
 import type { Plugin } from "vite";
 import { resolveTunnelConfig } from "./config/resolve.ts";
+import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle, TunnelEvent } from "./core/types.ts";
-
 export interface VkmaTunnelPluginOptions {
 	/** Set `false` to keep the plugin in the list inert (e.g. CI). Default `true`. */
 	enabled?: boolean;
@@ -178,17 +178,40 @@ async function startTunnel(
 		});
 		let announced = false;
 		let lastReason: string | undefined;
+		let lastStage: string | undefined;
+		let conflictHintShown = false;
 		tunnel = await createTunnel({
 			...config,
 			port,
 			host,
 			keepAlive: options.keepAlive,
 			hostRewrite: options.hostRewrite,
-			onProgress: stage => serverLog(`tunnel: ${stage}…`, "dim"),
+			pid: process.pid,
+			onProgress: stage => {
+				if (stage === lastStage || stage === "ready") {
+					// "ready" ends provisioning; the banner follows moments later.
+					return;
+				}
+				lastStage = stage;
+				serverLog(`tunnel: ${stage}…`, "dim");
+			},
 			onEvent: event => {
 				if (event.type === "disconnected") {
 					lastReason = event.reason;
 					return;
+				}
+				if (event.type === "route-conflict" && !conflictHintShown) {
+					conflictHintShown = true;
+					void readProfileRecord(tunnelDataDir(), tunnel.profile)
+						.then(record => {
+							if (record?.pid !== undefined && record.pid !== process.pid) {
+								serverLog(
+									`tunnel: profile "${tunnel.profile}" was also attached by process ${String(record.pid)} — is another vkma-tunnel / vite dev still running?`,
+									"yellow",
+								);
+							}
+						})
+						.catch(() => undefined);
 				}
 				// The first attach is announced by the URL banner itself.
 				if (event.type === "connected" && !announced) {

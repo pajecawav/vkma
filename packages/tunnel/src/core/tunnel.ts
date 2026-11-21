@@ -79,9 +79,14 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 	// Shared metadata for `list`/`status` — the REAL target, stamped even
 	// when the run never reaches a healthy connection. The forwarding
 	// proxy (if any) is an implementation detail and must not leak here.
+	// `pid` identifies the live bridge holder: on a route_conflict the
+	// record tells the loser which process to look for.
+	const pid = options.pid ?? process.pid;
 	await mergeRecordFile(dataDir, profile, {
 		lastTarget: `${host}:${String(port)}`,
 		lastRoute: route,
+		pid,
+		startedAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	});
 
