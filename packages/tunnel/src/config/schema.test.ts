@@ -56,7 +56,7 @@ describe("TunnelConfigSchema", () => {
 		const properties = TunnelConfigSchema.properties as Record<string, { default?: unknown }>;
 		expect(properties["provider"]?.default).toBe("opentunnel");
 		expect(properties["port"]?.default).toBe(5173);
-		expect(properties["host"]?.default).toBe("127.0.0.1");
+		expect(properties["host"]?.default).toBe("localhost");
 		expect(properties["route"]?.default).toBe("@");
 	});
 });

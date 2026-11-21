@@ -51,10 +51,27 @@ that Vite answers tunneled requests with 403. HMR works through the tunnel
 (the bridge forwards bytes, WebSocket included).
 
 Options (all optional, each overrides `vkma-tunnel.config.ts`): `enabled`,
-`config`, `provider`, `port`, `host`, `route`, `profile`, `api`, `qr`, `open`.
+`config`, `provider`, `port`, `host`, `route`, `profile`, `api`, `qr`, `open`,
+`keepAlive`, `hostRewrite`.
 
 A fatal tunnel failure never kills the dev server — you get a red line, the
 app keeps running.
+
+## CLI + stock vite dev/preview (no plugin)
+
+Vite's DNS-rebinding protection rejects requests whose `Host` header is not
+`localhost` — a CLI-driven tunnel hits "Blocked request" out of the box. The
+CLI therefore runs a small loopback proxy that rewrites the tunnel hostname
+into a **same-length `*.localhost` alias** (`m3f2vu5sb237.opentunnel.xyz` →
+`m3f2vu5sb237.open.localhost`): `*.localhost` is always allowed, the byte
+length is preserved, so Host/Origin/Referer are rewritten by pure byte
+substitution and WebSocket upgrades pass through untouched. No vite config
+changes needed. Disable with `--no-host-rewrite` / `hostRewrite: false`
+(e.g. when the target serves its own TLS or routes on the public Host).
+
+The default forward target is `localhost` (resolves to `::1` or `127.0.0.1` —
+`vite preview` on modern Node often binds IPv6 loopback only, where
+`127.0.0.1` would refuse).
 
 ## Node API
 

@@ -13,7 +13,6 @@
  */
 
 import fs from "node:fs/promises";
-import net from "node:net";
 import {
 	create,
 	OpenTunnelClientError,
@@ -60,13 +59,6 @@ async function connectOpenTunnel(
 	options: TunnelProviderConnectOptions,
 ): Promise<TunnelProviderConnection> {
 	const target = `${options.host}:${options.port}`;
-	// Stamp the shared metadata before connecting: `list`/`status` must see
-	// the target even if this run never reaches a healthy connection.
-	await mergeRecordFile(options.dataDir, options.profile, {
-		lastTarget: target,
-		lastRoute: options.route,
-		updatedAt: new Date().toISOString(),
-	});
 
 	const client = create({
 		api: options.api,
@@ -146,10 +138,15 @@ async function connectOpenTunnel(
 		settleReject(error);
 	};
 
+	// Forward target — mutable: the core may retarget the live bridge to
+	// its host-rewriting proxy right after the first attach; watchdog
+	// restarts must then attach to the swapped target too.
+	let forwardTarget = target;
+
 	const attach = async (): Promise<SdkConnection> => {
 		const connection = await client.tunnel.connect({
 			profile: options.profile,
-			routes: { [options.route]: target },
+			routes: { [options.route]: forwardTarget },
 			signal: options.signal,
 			onEvent: event => {
 				const mapped = mapEvent(event);
@@ -171,6 +168,14 @@ async function connectOpenTunnel(
 			}
 		});
 		return connection;
+	};
+
+	const setRoutes = async (routes: Readonly<Record<string, string>>): Promise<void> => {
+		const ownRoute = routes[options.route];
+		if (typeof ownRoute === "string") {
+			forwardTarget = ownRoute;
+		}
+		await current.setRoutes(routes);
 	};
 
 	const restart = async (): Promise<void> => {
@@ -198,46 +203,36 @@ async function connectOpenTunnel(
 		}
 	};
 
-	/** One health check: local target first, then through the public URL. */
+	/** One health check: direct target probe first, then through the public URL. */
 	const healthCheck = async (): Promise<void> => {
 		if (mapStatus(current.status()).state !== "connected") {
 			// The SDK is reconnecting on its own; probes here prove nothing.
 			timeoutStreak = 0;
 			return;
 		}
-		// A dead local target is not a bridge problem — don't restart.
-		if (!(await probeTcp(options.host, options.port))) {
+
+		// Baseline: the target answering DIRECTLY (plain http://localhost —
+		// vite always allows localhost). A target that fails directly is
+		// the problem itself; restarting bridges would fix nothing.
+		const direct = await probeHttp(`http://${options.host}:${String(options.port)}`);
+		if (!direct) {
 			timeoutStreak = 0;
 			return;
 		}
-		try {
-			const response = await fetch(publicUrl(options.route, current.tunnel.hostname), {
-				signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-				redirect: "manual",
-			});
-			response.body?.cancel().catch(() => undefined);
-			// Any HTTP answer means the whole chain (server -> bridge ->
-			// TLS -> target -> back) is alive.
-			timeoutStreak = 0;
-			return;
-		} catch (error) {
-			// A FAST network failure is the relay resetting us — proof the
-			// path works (e.g. target refused, TLS aborted). Only a soft
-			// timeout (nothing came back at all) counts as wedged.
-			if (error instanceof DOMException && error.name === "TimeoutError") {
-				timeoutStreak += 1;
-				return;
-			}
-			if (error instanceof Error && error.name === "AbortError") {
-				timeoutStreak += 1;
-				return;
-			}
-			if (error instanceof TypeError) {
-				timeoutStreak = 0;
-				return;
-			}
+
+		// The tunneled probe: soft timeout (nothing at all) or a mid-handshake
+		// reset — BOTH mean a wedged relay. This service resets TLS handshakes
+		// within a second when its relay dies, so "fast error" is NOT proof of
+		// health; the direct probe above is what proves the target is fine.
+		const tunneled = await probeHttp(
+			publicUrl(options.route, current.tunnel.hostname),
+			PROBE_TIMEOUT_MS,
+		);
+		if (!tunneled) {
 			timeoutStreak += 1;
+			return;
 		}
+		timeoutStreak = 0;
 	};
 
 	const startWatchdog = (): void => {
@@ -309,6 +304,7 @@ async function connectOpenTunnel(
 		},
 		events: mergedEvents(),
 		status: () => mapStatus(current.status()),
+		setRoutes,
 		close: teardown,
 		closed: settleClosed,
 	};
@@ -316,23 +312,29 @@ async function connectOpenTunnel(
 
 /** Soft timeout before a probe counts as "no answer at all". */
 const PROBE_TIMEOUT_MS = 10_000;
+/** Direct-target probe deadline (the watchdog baseline). */
+const DIRECT_PROBE_TIMEOUT_MS = 5_000;
 /** Consecutive wedged probes before the watchdog restarts the bridge. */
 const PROBE_FAILURE_LIMIT = 2;
 /** Health-probe / keepalive cadence. */
 const PROBE_INTERVAL_MS = 20_000;
 
-/** TCP liveness check of the local target (watchdog precondition). */
-function probeTcp(host: string, port: number, timeoutMs = 1500): Promise<boolean> {
-	return new Promise<boolean>(resolve => {
-		const socket = net.connect({ host, port });
-		const finish = (ok: boolean): void => {
-			socket.destroy();
-			resolve(ok);
-		};
-		socket.setTimeout(timeoutMs, () => finish(false));
-		socket.once("connect", () => finish(true));
-		socket.once("error", () => finish(false));
-	});
+/**
+ * HEAD probe with a deadline: any HTTP response counts as alive
+ * (4xx/5xx included — presence of a reply is the signal, not the code).
+ */
+async function probeHttp(url: string, timeoutMs = DIRECT_PROBE_TIMEOUT_MS): Promise<boolean> {
+	try {
+		const response = await fetch(url, {
+			method: "HEAD",
+			signal: AbortSignal.timeout(timeoutMs),
+			redirect: "manual",
+		});
+		response.body?.cancel().catch(() => undefined);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /** Swallows rejections AND never waits longer than `ms` (SDK teardown can hang on a dead bridge). */

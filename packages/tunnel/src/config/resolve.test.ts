@@ -39,7 +39,7 @@ describe("resolveTunnelConfig", () => {
 			expect(config).toEqual({
 				provider: "opentunnel",
 				port: 5173,
-				host: "127.0.0.1",
+				host: "localhost",
 				route: "@",
 				profile: undefined,
 				api: undefined,
@@ -63,7 +63,7 @@ describe("resolveTunnelConfig", () => {
 			expect(config.port).toBe(3000);
 			expect(config.profile).toBe("custom");
 			expect(config.provider).toBe("opentunnel");
-			expect(config.host).toBe("127.0.0.1");
+			expect(config.host).toBe("localhost");
 			expect(config.route).toBe("@");
 			expect(meta.configPath).toBe(path.join(isolated, "vkma-tunnel.config.json"));
 		} finally {

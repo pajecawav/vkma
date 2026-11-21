@@ -31,6 +31,8 @@ Keep all comments, commits, and docs in English.
 - `src/providers/opentunnel.ts` — the only provider + the
   `OpenTunnelStorage` adapter over our record files (NOT the SDK's XDG
   store: our format, shared metadata beside the identity).
+- `src/proxy.ts` — the loopback host-rewriting forward proxy (same-length
+  `*.localhost` alias: pure byte substitution, WS upgrades pass through).
 - `src/cli/` — argv parser, `logger.ts` (pretty/json/quiet renderers,
   elapsed-time spinner — adapted from deploy's CliLogger), `main.ts`
   (dispatch/rendering; returns exit codes, never calls `process.exit`),
@@ -63,14 +65,19 @@ Keep all comments, commits, and docs in English.
    as SIGINT — a hard kill skips the bridge close and the server keeps
    the route bound to a ghost session, which is exactly the
    `route_conflict` takeover storm the next run must fight through.
-6. **Provider registry is closed** (v0.1: `opentunnel` only). The
-   `TunnelProvider` type is public; adding a provider is a package
-   release, not a runtime plugin API.
-7. **The Vite plugin must add the tunnel hostname to
+6. **The Vite plugin must add the tunnel hostname to
    `server.allowedHosts`/`preview.allowedHosts`** before the URL is
    usable — Vite >= 5.4.12 answers foreign Host headers with 403.
-   Auto-detect the real listening port (port 0/strict ports), don't trust
-   the configured one blindly.
+   The core additionally routes through the host-rewriting proxy
+   (`hostRewrite`, default on): a same-length `*.localhost` alias keeps
+   the byte substitution trivial and covers the CLI, which cannot touch
+   the user's vite config. Auto-detect the real listening port (port
+   0/strict ports), don't trust the configured one blindly. Default the
+   forward target to `localhost` — vite preview on modern Node binds
+   IPv6 loopback only.
+7. **Provider registry is closed** (v0.1: `opentunnel` only). The
+   `TunnelProvider` type is public; adding a provider is a package
+   release, not a runtime plugin API.
 8. Node >= 22.18 (native TS stripping for config files); `engines` is
    meaningful, don't lower it silently.
 

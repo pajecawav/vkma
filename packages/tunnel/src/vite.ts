@@ -34,7 +34,7 @@ export interface VkmaTunnelPluginOptions {
 	provider?: string;
 	/** Overrides the auto-detected server port. */
 	port?: number;
-	/** Overrides the default forward target host (`127.0.0.1`). */
+	/** Overrides the default forward target host (`localhost`). */
 	host?: string;
 	/** Route name: `"@"` (apex, default) or a subdomain label. */
 	route?: string;
@@ -48,6 +48,15 @@ export interface VkmaTunnelPluginOptions {
 	open?: boolean;
 	/** Keep the bridge busy with a periodic self-probe (default `true`); see `createTunnel({ keepAlive })`. */
 	keepAlive?: boolean;
+	/**
+	 * Rewrite the tunnel hostname to a same-length `*.localhost` alias in
+	 * the forwarded requests (default `true`) — vite's allowedHosts check
+	 * then passes without touching your config. The plugin additionally
+	 * registers the real hostname in `allowedHosts`, so this option is a
+	 * no-op for stock vite dev/preview; turn it off when your target
+	 * genuinely needs the public Host header.
+	 */
+	hostRewrite?: boolean;
 }
 
 interface TunnelServerLike {
@@ -152,7 +161,7 @@ async function startTunnel(
 		typeof address === "object" && address !== null ? address.port : undefined;
 	const configuredPort = preview ? server.config.preview.port : server.config.server.port;
 	const port = options.port ?? listeningPort ?? configuredPort ?? 5173;
-	const host = options.host ?? "127.0.0.1";
+	const host = options.host ?? "localhost";
 
 	let tunnel: TunnelHandle;
 	try {
@@ -174,6 +183,7 @@ async function startTunnel(
 			port,
 			host,
 			keepAlive: options.keepAlive,
+			hostRewrite: options.hostRewrite,
 			onProgress: stage => serverLog(`tunnel: ${stage}…`, "dim"),
 			onEvent: event => {
 				if (event.type === "disconnected") {

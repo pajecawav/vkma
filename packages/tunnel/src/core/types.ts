@@ -62,7 +62,7 @@ export interface CreateTunnelOptions {
 	readonly provider?: string;
 	/** Local port to expose. Required (5173 via config resolution). */
 	readonly port: number;
-	/** Local host the tunnel forwards to. Default `"127.0.0.1"`. */
+	/** Local host the tunnel forwards to. Default `"localhost"`. */
 	readonly host?: string;
 	/** Route name: `"@"` (apex) or a lowercase DNS label. Default `"@"`. */
 	readonly route?: string;
@@ -82,6 +82,17 @@ export interface CreateTunnelOptions {
 	readonly onProgress?: (stage: string) => void;
 	/** Keep the bridge busy with a periodic self-probe (default `true`); see `TunnelProviderConnectOptions.keepAlive`. */
 	readonly keepAlive?: boolean;
+	/**
+	 * Rewrite the tunnel hostname to a same-length `*.localhost` alias in
+	 * requests forwarded to the local target (default `true`). Vite's
+	 * DNS-rebinding protection (dev AND preview) rejects foreign Host
+	 * headers; `*.localhost` is always allowed, and the alias matching the
+	 * tunnel hostname's byte length makes the rewrite a pure byte
+	 * substitution — WebSocket upgrades and pipelining pass through.
+	 * Turn off when the local target genuinely needs the public Host
+	 * (e.g. virtual-host routing) or serves its own TLS.
+	 */
+	readonly hostRewrite?: boolean;
 }
 
 /** What a provider needs to serve one tunnel. */
@@ -115,6 +126,13 @@ export interface TunnelProviderConnection {
 	readonly status: () => TunnelStatus;
 	readonly close: () => Promise<void>;
 	readonly closed: Promise<void>;
+	/**
+	 * Points the CURRENT bridge at a new target (same route names — an
+	 * instant target change, no re-attach). Optional: providers whose
+	 * relay cannot retarget live may omit it; the core then starts its
+	 * forwarding proxy before connecting instead of swapping mid-run.
+	 */
+	readonly setRoutes?: (routes: Readonly<Record<string, string>>) => Promise<void>;
 }
 
 /**

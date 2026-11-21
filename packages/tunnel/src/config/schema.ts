@@ -51,7 +51,8 @@ export const TunnelConfigSchema = Type.Object(
 			Type.String({
 				minLength: 1,
 				default: DEFAULT_HOST,
-				description: 'Local host the tunnel forwards to. Default: "127.0.0.1".',
+				description:
+					'Local host the tunnel forwards to. Default: "localhost" (resolves to ::1 or 127.0.0.1 — vite preview often binds IPv6 only).',
 			}),
 		),
 		/** Route name: `@` (the tunnel hostname itself) or a subdomain label.

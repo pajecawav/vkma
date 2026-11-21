@@ -11,7 +11,8 @@
 import { DEFAULT_HOST, DEFAULT_PROVIDER, DEFAULT_ROUTE, ROUTE_PATTERN } from "../constants.ts";
 import { TunnelError } from "../errors.ts";
 import { opentunnelProvider } from "../providers/opentunnel.ts";
-import { tunnelDataDir } from "./identity.ts";
+import { localhostAliasFor, startForwardProxy, type ForwardProxy } from "../proxy.ts";
+import { mergeRecordFile, readProfileRecord, tunnelDataDir } from "./identity.ts";
 import { assertValidProfile, defaultProfile } from "./profile.ts";
 import type { CreateTunnelOptions, TunnelHandle, TunnelProvider } from "./types.ts";
 
@@ -75,11 +76,46 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 
 	const dataDir = tunnelDataDir(options.env ?? process.env, options.dataDir);
 
+	// Shared metadata for `list`/`status` — the REAL target, stamped even
+	// when the run never reaches a healthy connection. The forwarding
+	// proxy (if any) is an implementation detail and must not leak here.
+	await mergeRecordFile(dataDir, profile, {
+		lastTarget: `${host}:${String(port)}`,
+		lastRoute: route,
+		updatedAt: new Date().toISOString(),
+	});
+
+	// -- host rewriting (vite allowedHosts) ---------------------------------
+	//
+	// Vite >= 5.4.12 rejects foreign Host headers (dev AND preview) unless
+	// they are `localhost` or `*.localhost`. A loopback forward proxy
+	// substitutes the tunnel hostname with a same-length `*.localhost`
+	// alias, so a CLI-driven tunnel works with stock vite configs. The
+	// tunnel hostname is only known after provisioning: on the first run
+	// we connect directly and retarget through `setRoutes` once it is.
+	let proxy: ForwardProxy | undefined;
+	let forwardHost = host;
+	let forwardPort = port;
+	if (options.hostRewrite !== false) {
+		const known = (await readProfileRecord(dataDir, profile))?.hostname;
+		const alias = known === undefined ? undefined : localhostAliasFor(known);
+		if (known !== undefined && alias !== undefined) {
+			proxy = await startForwardProxy({
+				targetHost: host,
+				targetPort: port,
+				tunnelHostname: known,
+				localhostAlias: alias,
+			});
+			forwardHost = "127.0.0.1";
+			forwardPort = proxy.port;
+		}
+	}
+
 	const connection = await provider.connect({
 		profile,
 		route,
-		host,
-		port,
+		host: forwardHost,
+		port: forwardPort,
 		api: options.api,
 		dataDir,
 		signal: options.signal,
@@ -88,11 +124,30 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		keepAlive: options.keepAlive,
 	});
 
+	// First run: the identity (and its hostname) appeared during this
+	// connect — start the proxy now and retarget the live bridge. Safe
+	// because the URL is only printed after this returns.
+	if (proxy === undefined && options.hostRewrite !== false) {
+		const alias = localhostAliasFor(connection.hostname);
+		if (alias !== undefined && connection.setRoutes !== undefined) {
+			proxy = await startForwardProxy({
+				targetHost: host,
+				targetPort: port,
+				tunnelHostname: connection.hostname,
+				localhostAlias: alias,
+			});
+			await connection
+				.setRoutes({ [route]: `127.0.0.1:${String(proxy.port)}` })
+				.catch(() => undefined);
+		}
+	}
+
 	const primaryUrl = connection.urls[route] ?? Object.values(connection.urls)[0] ?? "";
 	if (primaryUrl === "") {
 		// Should be unreachable with a well-behaved provider; the invariant
 		// "handle.primaryUrl is printable" is too useful to leave soft.
 		await connection.close().catch(() => undefined);
+		await proxy?.close();
 		throw new TunnelError("network", `${providerId}: connected without any public URL`, {
 			code: "E_NO_URL",
 		});
@@ -106,7 +161,12 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		primaryUrl,
 		events: connection.events,
 		status: connection.status,
-		close: connection.close,
-		closed: connection.closed,
+		close: async () => {
+			await connection.close();
+			await proxy?.close();
+		},
+		closed: connection.closed.finally(() => {
+			void proxy?.close().catch(() => undefined);
+		}),
 	};
 }

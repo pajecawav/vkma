@@ -11,8 +11,12 @@ export const DEFAULT_PROVIDER = "opentunnel";
 /** Vite's default dev port — the most common mini app dev target. */
 export const DEFAULT_PORT = 5173;
 
-/** Loopback forward target; the tunnel always dials the local machine. */
-export const DEFAULT_HOST = "127.0.0.1";
+/**
+ * Loopback forward target. `localhost` (not 127.0.0.1) on purpose: Node
+ * resolves it to ::1 first, and modern dev servers (vite preview on
+ * Node >= 17) bind IPv6 loopback only — 127.0.0.1 dials would refuse.
+ */
+export const DEFAULT_HOST = "localhost";
 
 /** Apex route: the tunnel hostname itself, `https://<id>.opentunnel.xyz`. */
 export const DEFAULT_ROUTE = "@";

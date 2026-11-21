@@ -74,6 +74,9 @@ Flags:
   --open                          Open the tunnel URL in the browser
   --no-keepalive                  Disable the periodic self-probe that
                                   keeps idle bridges from being dropped
+  --no-host-rewrite               Disable the loopback proxy that rewrites
+                                  the tunnel host to *.localhost (vite
+                                  allowedHosts workaround)
   --json                          Machine-readable output (list/status,
                                   and NDJSON lifecycle events for run)
   --quiet, -q                     Errors only (the URL is still printed)
@@ -245,6 +248,7 @@ async function runTunnel(
 		env: context.env,
 		signal: context.signal,
 		keepAlive: !parsed.booleans.noKeepAlive,
+		hostRewrite: !parsed.booleans.noHostRewrite,
 		onProgress: stage => {
 			// The SDK repeats the current stage on every poll; dedupe so a
 			// spinner swaps only on real transitions and non-TTY runs print

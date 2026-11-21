@@ -22,6 +22,7 @@ const BOOLEAN_FLAGS = new Set([
 	"--open",
 	"--all",
 	"--no-keepalive",
+	"--no-host-rewrite",
 	"--json",
 	"--quiet",
 	"--no-color",
@@ -54,6 +55,8 @@ export interface ParsedArgs {
 		readonly all: boolean;
 		/** Disable the periodic self-probe that keeps idle bridges from being dropped. */
 		readonly noKeepAlive: boolean;
+		/** Disable the loopback host-rewriting proxy (vite allowedHosts). */
+		readonly noHostRewrite: boolean;
 		readonly json: boolean;
 		readonly quiet: boolean;
 		readonly noColor: boolean;
@@ -78,6 +81,7 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let open = false;
 	let all = false;
 	let noKeepAlive = false;
+	let noHostRewrite = false;
 	let quiet = false;
 	let json = false;
 	let noColor = false;
@@ -188,6 +192,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			case "--no-keepalive":
 				noKeepAlive = true;
 				break;
+			case "--no-host-rewrite":
+				noHostRewrite = true;
+				break;
 			case "--json":
 				json = true;
 				break;
@@ -212,7 +219,18 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 		command: command ?? "run",
 		profileArg,
 		values: { provider, port, host, route, profile, config, api },
-		booleans: { qr, open, all, noKeepAlive, json, quiet, noColor, help, version },
+		booleans: {
+			qr,
+			open,
+			all,
+			noKeepAlive,
+			noHostRewrite,
+			json,
+			quiet,
+			noColor,
+			help,
+			version,
+		},
 		errors,
 	};
 }
