@@ -10,7 +10,8 @@ API and a Vite plugin over two providers:
 
 With opentunnel the public URL is **stable across runs**: the tunnel identity
 persists per profile (default: your project directory name), so an URL wired
-into the VK app settings keeps working. `vkma-tunnel reset` rotates it.
+into the VK app settings keeps working. `vkma-tunnel reset` drops it: the old URL
+stops working and the next run mints a new one.
 
 ## CLI
 
@@ -27,7 +28,7 @@ vkma-tunnel --port 3000 --host 127.0.0.1 --opentunnel-route mobile --qr
 | command                                      | what it does                                             |
 | -------------------------------------------- | -------------------------------------------------------- |
 | `vkma-tunnel [run] [flags]`                  | start the tunnel, print its URL (Ctrl+C stops)           |
-| `vkma-tunnel reset [--profile name] [--all]` | drop stored identities; next runs mint fresh URLs        |
+| `vkma-tunnel reset [--profile name] [--all]` | drop stored identities; their URLs stop working          |
 | `vkma-tunnel list [--json]`                  | stored profiles, URLs, targets                           |
 | `vkma-tunnel status [profile] [--json]`      | stored identity + live probes (local target, public URL) |
 
@@ -147,8 +148,10 @@ Two things to know about token mode:
   header** to `localhost:<port>` (what Vite's `allowedHosts` wants), or add
   the hostname to Vite's `server.allowedHosts`. The tool warns when it
   cannot help.
-- **A profile belongs to one provider.** `app` cannot be an opentunnel
-  identity and a cloudflared record at once — pick another `--profile`.
+- **A profile belongs to one provider.** A tunnel that stores a record
+  (opentunnel, cloudflared token mode) refuses a profile another provider
+  owns — pick another `--profile`. A Quick Tunnel stores nothing, so it
+  runs under any profile and leaves the stored identity alone.
 
 ## Node API
 
@@ -208,7 +211,8 @@ Editor autocomplete: add `"$schema": "https://unpkg.com/@vkma.dev/tunnel/schema/
 ## Where things live
 
 - Identities: `$XDG_DATA_HOME/vkma/tunnel/<profile>.json` (0600) — delete or
-  `reset` to rotate a URL.
+  `reset` to drop one: the next run mints a new URL, the old one stops
+  working.
 - Self-hosting: run your own opentunnel server and point `opentunnel.api` (or
   `OPENTUNNEL_API`) at it.
 

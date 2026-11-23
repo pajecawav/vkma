@@ -526,28 +526,61 @@ async function resolveProfile(parsed: ParsedArgs, context: RunContext): Promise<
 	return config.profile ?? defaultProfile(context.cwd);
 }
 
+/**
+ * What `reset` destroyed for one profile — said while the user can still
+ * read it. An opentunnel identity's URL does not come back, and that is
+ * easy to miss when a hint offered `reset` as a way out of an error.
+ */
+function resetMessage(
+	record: ProfileRecord | undefined,
+	profile: string,
+): { step: string; note: string } {
+	if (record === undefined) {
+		// The file existed but held no hostname (a first run that never minted).
+		return {
+			step: `Removed the stored record for profile "${profile}"`,
+			note: "It held no public URL yet.",
+		};
+	}
+	const url = recordUrl(record);
+	if (record.provider === "cloudflared") {
+		return {
+			step: `Removed the stored record for profile "${profile}" (${url})`,
+			note: "The tunnel itself lives in your Cloudflare account and keeps its hostname; only the local record was forgotten.",
+		};
+	}
+	return {
+		step: `Removed identity for profile "${profile}" (${url})`,
+		note: `${url} is gone for good — the next run mints a new URL. Anything still pointed at the old one must be updated.`,
+	};
+}
+
 async function runReset(parsed: ParsedArgs, context: RunContext): Promise<number> {
 	const { logger } = context;
 	if (parsed.booleans.all) {
-		const removed = await removeAllProfileRecords(context.dataDir);
-		if (removed.length === 0) {
+		const records = await listProfileRecords(context.dataDir);
+		if (records.length === 0) {
 			logger.info("No stored tunnel identities.");
 			return 0;
 		}
-		for (const profile of removed) {
-			logger.step(`Removed identity for profile "${profile}"`);
+		for (const record of records) {
+			const { step, note } = resetMessage(record, record.profile);
+			logger.step(step);
+			logger.info(note);
 		}
-		logger.info("Next runs mint fresh public URLs.");
+		await removeAllProfileRecords(context.dataDir);
 		return 0;
 	}
 	const profile = await resolveProfile(parsed, context);
+	const record = await readProfileRecord(context.dataDir, profile);
 	const removed = await removeProfileRecord(context.dataDir, profile);
 	if (!removed) {
 		logger.info(`No stored identity for profile "${profile}".`);
 		return 0;
 	}
-	logger.step(`Removed identity for profile "${profile}"`);
-	logger.info("The next run mints a fresh public URL.");
+	const { step, note } = resetMessage(record, profile);
+	logger.step(step);
+	logger.info(note);
 	return 0;
 }
 

@@ -89,7 +89,13 @@ commits, and docs in English.
    (`E_PROVIDER_MISMATCH`) — two providers on one file would overwrite
    each other's `hostname` and corrupt an opentunnel identity. Runs with
    nothing stable to store (`persistentIdentity` false — a cloudflared
-   Quick Tunnel) write no record at all.
+   Quick Tunnel) write no record, read no identity and own no profile:
+   they run under ANY. Do not extend the check to them. It refused
+   `--provider cloudflared` on every project that had ever run the
+   default tunnel, and its hint offered `reset` as the way out — a
+   stable URL was dropped to try a one-time tunnel. The hint offers
+   another profile first and names what `reset` destroys; `reset`
+   prints the URL it removes.
 2. **Layering is fixed**: CLI flags / plugin options > config file >
    defaults. The plugin always tunnels the Vite server it is attached
    to: its `port`/`host` options retarget it, the config-file keys do

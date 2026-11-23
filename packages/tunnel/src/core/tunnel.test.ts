@@ -6,7 +6,7 @@ import { isTunnelError } from "../errors.ts";
 import { cloudflaredProvider, cloudflaredTimings } from "../providers/cloudflared.ts";
 import { startForwardProxy } from "../proxy.ts";
 import { fakeCloudflaredLaunches, fakeSdk, installFakeCloudflared } from "../test-utils.ts";
-import { mergeRecordFile, readProfileRecord } from "./identity.ts";
+import { mergeRecordFile, profileFilePath, readProfileRecord } from "./identity.ts";
 import { createTunnel, getTunnelProvider, tunnelProviderIds } from "./tunnel.ts";
 import type { TunnelEvent } from "./types.ts";
 
@@ -285,9 +285,12 @@ describe("createTunnel with the cloudflared provider", () => {
 		});
 	}
 
-	it("refuses to run another provider on a profile that belongs to opentunnel", async () => {
+	it("a storing run refuses a profile that belongs to opentunnel, and names the way out in order", async () => {
 		await storeOpentunnelIdentity("owned");
-		const { env } = await installFakeCloudflared(cfDir, sandboxEnv);
+		const { env } = await installFakeCloudflared(cfDir, {
+			...sandboxEnv,
+			TUNNEL_TOKEN: "from-env",
+		});
 
 		const failure = await createTunnel({
 			provider: "cloudflared",
@@ -295,13 +298,43 @@ describe("createTunnel with the cloudflared provider", () => {
 			profile: "owned",
 			dataDir: cfDir,
 			env,
+			cloudflared: { mode: "token", hostname: "app.example.com" },
 		}).catch((error: unknown) => error);
 
 		expect(failure).toMatchObject({ code: "E_PROVIDER_MISMATCH", kind: "config" });
-		expect((failure as Error).message).toContain('belongs to provider "opentunnel"');
+		const message = (failure as Error).message;
+		expect(message).toContain('belongs to provider "opentunnel"');
+		// Another profile comes first; `reset` is offered with what it costs.
+		expect(message.indexOf("Pick another profile")).toBeLessThan(
+			message.indexOf("reset --profile owned"),
+		);
+		expect(message).toMatch(/reset --profile owned[\s\S]*does not come back/);
 		// Nothing was launched and the identity is intact.
 		expect(await fakeCloudflaredLaunches(path.join(cfDir, "fake-state"))).toBe(0);
 		expect((await readProfileRecord(cfDir, "owned"))?.hostname).toBe(fakeSdk.hostname);
+	});
+
+	it("a Quick Tunnel runs under a profile that belongs to opentunnel and leaves its record untouched", async () => {
+		await storeOpentunnelIdentity("shared");
+		const file = profileFilePath(cfDir, "shared");
+		const before = await fs.readFile(file, "utf8");
+		const { env } = await installFakeCloudflared(cfDir, sandboxEnv);
+
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "shared",
+			dataDir: cfDir,
+			env,
+			keepAlive: false,
+		});
+		try {
+			expect(handle.primaryUrl).toBe("https://fake-tunnel-1.trycloudflare.com");
+		} finally {
+			await handle.close();
+		}
+		// It stores nothing, so it had nothing to overwrite: byte for byte.
+		expect(await fs.readFile(file, "utf8")).toBe(before);
 	});
 
 	it("refuses opentunnel on a profile that belongs to cloudflared", async () => {

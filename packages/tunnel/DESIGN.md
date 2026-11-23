@@ -202,7 +202,13 @@ a core for its whole 30 s grace period.
   files). A profile that belongs to another provider is a config error:
   `E_PROVIDER_MISMATCH`, with the hint to `reset` or to pick another
   `--profile`. Without it a cloudflared run would merge its `hostname` into
-  an opentunnel identity and corrupt it.
+  an opentunnel identity and corrupt it. _Amended during implementation:_
+  only a run that WRITES a record is held to this — a Quick Tunnel writes
+  none and runs under any profile. As first written the check refused
+  `--provider cloudflared` on every project that had an opentunnel
+  identity, and the hint's way out was `reset`: exactly what it was
+  meant to protect got deleted. The hint now offers another profile
+  first and says what `reset` costs.
 - Quick tunnels write no record: there is nothing stable to store. Token
   mode stores `provider`, `mode`, `hostname` and the usual target fields;
   `reset` then forgets the record and says that the tunnel itself lives in

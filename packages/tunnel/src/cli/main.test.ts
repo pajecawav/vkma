@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { mergeRecordFile, readProfileRecord } from "../core/identity.ts";
+import { mergeRecordFile, readProfileRecord, removeProfileRecord } from "../core/identity.ts";
 import type { CreateTunnelOptions, TunnelHandle } from "../core/types.ts";
 import { fakeSdk } from "../test-utils.ts";
 import { main } from "./main.ts";
@@ -130,10 +130,28 @@ describe("status", () => {
 
 describe("reset", () => {
 	it("removes the resolved profile and reports it", async () => {
+		// The `list` tests leave a `demo` record with a route behind: start
+		// from a clean one, so the URL named below is this test's own.
+		await removeProfileRecord(dataDir, "demo");
 		await mergeRecordFile(dataDir, "demo", { hostname: "abc.opentunnel.xyz" });
 		const result = await run(["reset", "--profile", "demo"]);
 		expect(result.code).toBe(0);
 		expect(result.out).toContain('Removed identity for profile "demo"');
+		// It names the URL it just destroyed: that one does not come back.
+		expect(result.out).toContain("(https://abc.opentunnel.xyz)");
+		expect(result.out).toContain("https://abc.opentunnel.xyz is gone for good");
+	});
+
+	it("says a cloudflared record's tunnel keeps its hostname", async () => {
+		await mergeRecordFile(dataDir, "named", {
+			provider: "cloudflared",
+			hostname: "app.example.com",
+		});
+		const result = await run(["reset", "--profile", "named"]);
+		expect(result.code).toBe(0);
+		expect(result.out).toContain('Removed the stored record for profile "named"');
+		expect(result.out).toContain("keeps its hostname");
+		expect(result.out).not.toContain("gone for good");
 	});
 
 	it("is honest when there is nothing to remove", async () => {

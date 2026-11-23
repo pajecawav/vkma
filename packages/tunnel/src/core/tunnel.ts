@@ -125,13 +125,23 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		);
 	}
 
+	// A run with nothing stable to store (a one-time URL) writes no record.
+	const storesIdentity = provider.persistentIdentity?.(connectOptions) !== false;
+
 	// -- profile ownership ---------------------------------------------------
 	//
 	// A profile record belongs to ONE provider: two providers writing the
 	// same file would overwrite each other's `hostname` (and corrupt an
 	// opentunnel identity). Records without a `provider` predate the second
 	// provider and are opentunnel's.
-	const existing = await readProfileRecord(dataDir, profile);
+	//
+	// Only a run that WRITES a record can corrupt one, so only a storing
+	// run is held to this — and a storing run is the only one that reads
+	// the profile's identity. A Quick Tunnel stores nothing and therefore
+	// runs under any profile. Refusing it would block `--provider
+	// cloudflared` on every project that ever ran the default tunnel, with
+	// a hint whose way out is dropping a stable URL.
+	const existing = storesIdentity ? await readProfileRecord(dataDir, profile) : undefined;
 	const recordProvider =
 		existing === undefined ? undefined : (existing.provider ?? opentunnelProvider.id);
 	if (existing !== undefined && recordProvider !== providerId) {
@@ -139,14 +149,11 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 			"config",
 			[
 				`Profile ${JSON.stringify(profile)} belongs to provider "${String(recordProvider)}" — refusing to run "${providerId}" on it`,
-				`Use another --profile, or drop that identity first: vkma-tunnel reset --profile ${profile}`,
+				`Pick another profile (the CLI's --profile <name>, the plugin's \`profile\` option). Or free this one with vkma-tunnel reset --profile ${profile} — that deletes the ${String(recordProvider)} identity, and its public URL does not come back.`,
 			].join("\n"),
 			{ code: "E_PROVIDER_MISMATCH" },
 		);
 	}
-
-	// A run with nothing stable to store (a one-time URL) writes no record.
-	const storesIdentity = provider.persistentIdentity?.(connectOptions) !== false;
 
 	// -- shared metadata -----------------------------------------------------
 	//
