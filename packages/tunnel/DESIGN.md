@@ -1,7 +1,7 @@
 # The cloudflared provider: design and record
 
-Status: implemented on branch `tunnel`, from `c6bab73` (this design) to
-`c85dfab` (plugin and docs), and amended since. The decisions were taken on
+Status: implemented on branch `tunnel`, from `e18ff2f` (this design) to
+`114e2a5` (plugin and docs), and amended since. The decisions were taken on
 2026-11-23, and the measurements were made that day with `cloudflared`
 2026.11.0 on Linux amd64.
 
@@ -323,14 +323,14 @@ with the sandbox.
 
 The plan was one commit per step, on branch `tunnel`:
 
-1. The design, `c6bab73`.
-2. The config surface, `9024a2d`.
+1. The design, `e18ff2f`.
+2. The config surface, `ae9430f`.
 3. The binary lookup and version check, with the shared provider pieces
-   extracted from opentunnel, `69890cf`.
-4. The provider, quick and token modes together, `1356411`. The plan had
+   extracted from opentunnel, `f51a6b1`.
+4. The provider, quick and token modes together, `f187f85`. The plan had
    these as two steps.
-5. Core wiring and CLI, `1c5d23d`. `hostHeaderPolicy` replaced
+5. Core wiring and CLI, `84907f9`. `hostHeaderPolicy` replaced
    `handlesHostHeader`, and there is no `notice` field.
-6. Plugin options, docs and the changeset, `c85dfab`.
+6. Plugin options, docs and the changeset, `114e2a5`.
 
 The amendments above record what later commits changed.
