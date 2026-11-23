@@ -7,12 +7,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { mergeRecordFile } from "./core/identity.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle } from "./core/types.ts";
-import {
-	EXIT_CLOSE_CAP_MS,
-	installExitGuard,
-	vkmaTunnel,
-	type VkmaTunnelPluginOptions,
-} from "./vite.ts";
+import { EXIT_CLOSE_CAP_MS, installExitGuard } from "./vite-exit.ts";
+import { vkmaTunnel, type VkmaTunnelPluginOptions } from "./vite.ts";
 
 /**
  * Plugin lifecycle. The tunnel factory is mocked so a test can deliver SDK

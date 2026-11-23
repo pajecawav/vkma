@@ -46,7 +46,10 @@ Keep all comments, commits, and docs in English.
   (dispatch/rendering; returns exit codes, never calls `process.exit`),
   `qr.ts`, `opener.ts`. `src/cli.ts` is the shebang entry wiring
   SIGINT/SIGTERM.
-- `src/vite.ts` — the plugin (dev + preview), `allowedHosts` management.
+- `src/vite.ts` — the plugin (dev + preview): the `config` hook that
+  registers a stored hostname in `allowedHosts`, tunnel lifecycle,
+  awaited close hooks. `src/vite-exit.ts` (internal, not exported from
+  `/vite`) holds the exit guard and the bounded close.
 
 ## Invariants — do not break
 

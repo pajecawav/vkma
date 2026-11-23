@@ -44,7 +44,6 @@
  */
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import type { Plugin, UserConfig } from "vite";
 import { rivalHint } from "./cli/conflict-hint.ts";
@@ -53,6 +52,7 @@ import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
 import { defaultProfile } from "./core/profile.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle, TunnelEvent } from "./core/types.ts";
+import { cap, EXIT_CLOSE_CAP_MS, installExitGuard } from "./vite-exit.ts";
 export interface VkmaTunnelPluginOptions {
 	/** Set `false` to keep the plugin in the list inert (e.g. CI). Default `true`. */
 	enabled?: boolean;
@@ -85,58 +85,6 @@ export interface VkmaTunnelPluginOptions {
 	 * a brand-new profile gets 403 until the next restart.
 	 */
 	hostRewrite?: boolean;
-}
-
-/** Upper bound on the graceful tunnel close while Vite is shutting down. */
-export const EXIT_CLOSE_CAP_MS = 1500;
-
-/** Signals that end a Vite process without running a single plugin hook. */
-const EXIT_SIGNALS: readonly NodeJS.Signals[] = ["SIGINT", "SIGHUP"];
-
-export interface ExitGuardOptions {
-	readonly signals?: readonly NodeJS.Signals[];
-	/** Replaces `process.exit` (tests). */
-	readonly exit?: (code: number) => void;
-}
-
-/**
- * Owns the exit signals Vite never handles, for as long as a tunnel is
- * live: close the bridge first, then leave the way the signal would
- * have (128 + signal number). Listeners are additive in Node — nothing
- * is overridden — but the default "die on SIGINT" only applies while no
- * listener exists, which is why the handler must exit by itself. A
- * second signal finds no listener left and kills at once.
- *
- * A signal somebody else already listens on is left alone: that owner
- * (an embedded Vite, a supervisor) shuts the process down itself and
- * reaches the plugin's hooks through `server.close()`.
- *
- * Returns the disposer.
- */
-export function installExitGuard(
-	close: () => Promise<void>,
-	options: ExitGuardOptions = {},
-): () => void {
-	const exit = options.exit ?? ((code: number): void => void process.exit(code));
-	const installed: Array<{ signal: NodeJS.Signals; handler: () => void }> = [];
-	for (const signal of options.signals ?? EXIT_SIGNALS) {
-		if (process.listenerCount(signal) > 0) {
-			continue;
-		}
-		const handler = (): void => {
-			// No logging: on SIGHUP the terminal is already gone.
-			void close()
-				.catch(() => undefined)
-				.then(() => exit(128 + os.constants.signals[signal]));
-		};
-		process.once(signal, handler);
-		installed.push({ signal, handler });
-	}
-	return () => {
-		for (const { signal, handler } of installed) {
-			process.off(signal, handler);
-		}
-	};
 }
 
 interface TunnelServerLike {
@@ -421,20 +369,6 @@ async function startTunnel(
 			`tunnel: stopped — ${error instanceof Error ? error.message : String(error)}`,
 			"red",
 		);
-	});
-}
-
-/** Resolves with `promise`, or when `ms` passes — whichever comes first. */
-function cap(promise: Promise<unknown>, ms: number): Promise<void> {
-	return new Promise(resolve => {
-		const timer = setTimeout(resolve, ms);
-		timer.unref?.();
-		void promise
-			.catch(() => undefined)
-			.then(() => {
-				clearTimeout(timer);
-				resolve(undefined);
-			});
 	});
 }
 
