@@ -12,10 +12,10 @@ const VALUE_FLAGS = new Set([
 	"--provider",
 	"--port",
 	"--host",
-	"--route",
 	"--profile",
 	"--config",
-	"--api",
+	"--opentunnel-route",
+	"--opentunnel-api",
 	"--cloudflared-mode",
 	"--cloudflared-hostname",
 	"--cloudflared-protocol",
@@ -39,7 +39,18 @@ const SHORT_FLAGS = new Map([
 	["-V", "--version"],
 ]);
 
-/** The `--cloudflared-*` flags: the keys of the config's `cloudflared` section. Only what was passed. */
+/**
+ * A provider's flags carry its prefix (`--opentunnel-*`, `--cloudflared-*`)
+ * and fill the keys of its config section — the same scoping as the
+ * config file, so no flag looks like it applied to every provider. Only
+ * what was passed.
+ */
+export interface OpentunnelFlags {
+	readonly route?: string;
+	readonly api?: string;
+}
+
+/** The keys of the config's `cloudflared` section. Only what was passed. */
 export interface CloudflaredFlags {
 	readonly mode?: "quick" | "token";
 	readonly hostname?: string;
@@ -55,10 +66,10 @@ export interface ParsedArgs {
 		readonly provider?: string;
 		readonly port?: number;
 		readonly host?: string;
-		readonly route?: string;
 		readonly profile?: string;
 		readonly config?: string;
-		readonly api?: string;
+		/** Set when any `--opentunnel-*` flag was passed. */
+		readonly opentunnel?: OpentunnelFlags;
 		/** Set when any `--cloudflared-*` flag was passed. */
 		readonly cloudflared?: CloudflaredFlags;
 	};
@@ -87,10 +98,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let provider: string | undefined;
 	let port: number | undefined;
 	let host: string | undefined;
-	let route: string | undefined;
 	let profile: string | undefined;
 	let config: string | undefined;
-	let api: string | undefined;
+	const opentunnel: { route?: string; api?: string } = {};
 	const cloudflared: {
 		mode?: "quick" | "token";
 		hostname?: string;
@@ -159,17 +169,17 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 				case "--host":
 					host = value;
 					break;
-				case "--route":
-					route = value;
-					break;
 				case "--profile":
 					profile = value;
 					break;
 				case "--config":
 					config = value;
 					break;
-				case "--api":
-					api = value;
+				case "--opentunnel-route":
+					opentunnel.route = value;
+					break;
+				case "--opentunnel-api":
+					opentunnel.api = value;
 					break;
 				case "--cloudflared-mode":
 					if (value !== "quick" && value !== "token") {
@@ -266,10 +276,9 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 			provider,
 			port,
 			host,
-			route,
 			profile,
 			config,
-			api,
+			opentunnel: Object.keys(opentunnel).length === 0 ? undefined : opentunnel,
 			cloudflared: Object.keys(cloudflared).length === 0 ? undefined : cloudflared,
 		},
 		booleans: {

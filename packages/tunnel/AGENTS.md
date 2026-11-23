@@ -152,8 +152,8 @@ commits, and docs in English.
    `TunnelProvider` type is public; adding a provider is a package
    release, not a runtime plugin API. Providers declare what the core
    must know through optional capabilities — `hostHeaderPolicy`,
-   `persistentIdentity`, `knownHostname` — never by making the core
-   branch on `provider.id`. Ids come from ONE list, `TUNNEL_PROVIDER_IDS`
+   `persistentIdentity`, `knownHostname`, `primaryRoute` — never by making
+   the core branch on `provider.id` or read a provider's config section. Ids come from ONE list, `TUNNEL_PROVIDER_IDS`
    (`constants.ts`): the registry `satisfies Record<TunnelProviderId,
    TunnelProvider>`, the JSON Schema enumerates them and `provider` is
    typed as the union everywhere (config, flags, plugin, `createTunnel`,
@@ -186,6 +186,14 @@ commits, and docs in English.
     dead control stream it spins a core at 100 % for its whole 30 s grace
     period. `cloudflared`'s edge connection ignores proxies by design
     (`net.Dialer`); do not add proxy plumbing for it.
+13. **The config's top level is what every provider understands**
+    (`provider`, `port`, `host`, `profile`); a provider's own options live
+    in its section (`opentunnel: { route, api }`, `cloudflared: { … }`) and
+    its CLI flags carry its prefix (`--opentunnel-route`,
+    `--cloudflared-mode`). A section beside another provider's id is a
+    config error — never a silently ignored key: `api` beside cloudflared
+    used to be accepted and dropped. The core reads no section (see 7);
+    each provider reads its own and applies its own defaults.
 
 ## Testing notes
 

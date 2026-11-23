@@ -56,7 +56,9 @@ describe("createTunnel option validation", () => {
 	});
 
 	it("rejects an invalid route before touching the network", async () => {
-		await expect(createTunnel({ port: 5173, route: "Bad Route" })).rejects.toThrow(/route/i);
+		await expect(
+			createTunnel({ port: 5173, opentunnel: { route: "Bad Route" } }),
+		).rejects.toThrow(/route/i);
 	});
 
 	it("rejects an invalid profile", async () => {
@@ -165,6 +167,65 @@ describe("createTunnel resource ownership", () => {
 
 		expect(await listeners()).toBe(before);
 		expect(fakeSdk.stats.closes).toBe(1);
+	});
+});
+
+describe("the opentunnel section", () => {
+	let sectionDir: string;
+	/** Where a run WITHOUT an explicit `dataDir` would land: the sandbox, never the real store. */
+	const sandboxEnv = { XDG_DATA_HOME: path.join(import.meta.dirname, ".tunnel-section-xdg") };
+
+	beforeAll(async () => {
+		sectionDir = await fs.mkdtemp(path.join(import.meta.dirname, ".tunnel-section-data-"));
+		await fs.mkdir(sandboxEnv.XDG_DATA_HOME, { recursive: true });
+	});
+
+	afterAll(async () => {
+		await fs.rm(sectionDir, { recursive: true, force: true });
+		await fs.rm(sandboxEnv.XDG_DATA_HOME, { recursive: true, force: true });
+	});
+
+	beforeEach(() => {
+		fakeSdk.reset();
+	});
+
+	it("carries route and api to the provider, the record and the handle", async () => {
+		const handle = await createTunnel({
+			port: 5173,
+			profile: "routed",
+			dataDir: sectionDir,
+			env: sandboxEnv,
+			keepAlive: false,
+			opentunnel: { route: "mobile", api: "https://opentunnel.example" },
+		});
+		try {
+			// The provider read its own section: the core passed it through.
+			expect(fakeSdk.requests.api).toBe("https://opentunnel.example");
+			expect(Object.keys(fakeSdk.requests.routes)).toEqual(["mobile"]);
+			// …and named the route back for what the core owns.
+			expect(handle.urls).toEqual({ mobile: `https://mobile.${fakeSdk.hostname}` });
+			expect(handle.primaryUrl).toBe(`https://mobile.${fakeSdk.hostname}`);
+			expect((await readProfileRecord(sectionDir, "routed"))?.lastRoute).toBe("mobile");
+		} finally {
+			await handle.close();
+		}
+	});
+
+	it("serves the apex when no section is given", async () => {
+		const handle = await createTunnel({
+			port: 5173,
+			profile: "apex",
+			dataDir: sectionDir,
+			env: sandboxEnv,
+			keepAlive: false,
+		});
+		try {
+			expect(fakeSdk.requests.api).toBeUndefined();
+			expect(Object.keys(fakeSdk.requests.routes)).toEqual(["@"]);
+			expect(handle.primaryUrl).toBe(`https://${fakeSdk.hostname}`);
+		} finally {
+			await handle.close();
+		}
 	});
 });
 

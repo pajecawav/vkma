@@ -65,12 +65,14 @@ export interface VkmaTunnelPluginOptions {
 	port?: number;
 	/** Overrides the default forward target host (`localhost`). */
 	host?: string;
-	/** Route name: `"@"` (apex, default) or a subdomain label. */
-	route?: string;
 	/** Identity profile; default: project directory name. */
 	profile?: string;
-	/** Self-hosted provider endpoint. */
-	api?: string;
+	/**
+	 * Options of the `opentunnel` provider — the keys of the config's
+	 * `opentunnel` section. They mean something only with the default
+	 * `provider: "opentunnel"`.
+	 */
+	opentunnel?: { route?: string; api?: string };
 	/** Print a QR code of the tunnel URL (open it on a phone). Default `false`. */
 	qr?: boolean;
 	/** Open the tunnel URL in the desktop browser. Default `false`. */
@@ -189,9 +191,8 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 					provider: options.provider,
 					port: options.port,
 					host: options.host,
-					route: options.route,
 					profile: options.profile,
-					api: options.api,
+					opentunnel: options.opentunnel,
 					cloudflared: options.cloudflared,
 				},
 			});

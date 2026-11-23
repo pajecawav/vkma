@@ -60,6 +60,14 @@ export interface FakeSdkStats {
 	disposed: number;
 }
 
+/** What the provider last handed the SDK: proves its config section reached it. */
+interface FakeSdkRequests {
+	/** The API endpoint of the latest `create()`. */
+	api: string | undefined;
+	/** The routes of the latest `connect()`, before any retarget. */
+	routes: Readonly<Record<string, string>>;
+}
+
 interface FakeSdk {
 	hostname: string;
 	/** Another bridge holds the route: every attach reports `route-conflict` first. */
@@ -69,6 +77,7 @@ interface FakeSdk {
 	/** How long the SDK takes to close a bridge; 0 = at once. */
 	closeDelayMs: number;
 	stats: FakeSdkStats;
+	requests: FakeSdkRequests;
 	/**
 	 * The "server" ends the CURRENT connection: `closed` settles — cleanly
 	 * (a server-side drain) or with a fatal error.
@@ -85,6 +94,7 @@ export const fakeSdk: FakeSdk = {
 	failConnect: false,
 	closeDelayMs: 0,
 	stats: { attaches: 0, closes: 0, disposed: 0 },
+	requests: { api: undefined, routes: {} },
 
 	stop(error) {
 		if (error === undefined) {
@@ -104,6 +114,7 @@ export const fakeSdk: FakeSdk = {
 		this.failConnect = false;
 		this.closeDelayMs = 0;
 		this.stats = { attaches: 0, closes: 0, disposed: 0 };
+		this.requests = { api: undefined, routes: {} };
 	},
 };
 
@@ -139,6 +150,7 @@ export function create(options: { api?: string; store?: OpenTunnelStorage } = {}
 	if (store === undefined) {
 		throw new Error("fake @opentunnel/client: the provider must inject its record store");
 	}
+	fakeSdk.requests = { api: options.api, routes: {} };
 	let identity: OpenTunnelIdentity | undefined;
 
 	return {
@@ -161,6 +173,7 @@ export function create(options: { api?: string; store?: OpenTunnelStorage } = {}
 				return identity;
 			},
 			async connect(input) {
+				fakeSdk.requests.routes = { ...input.routes };
 				const signal = input.signal;
 				signal?.throwIfAborted();
 				let resolveClosed: () => void = () => undefined;

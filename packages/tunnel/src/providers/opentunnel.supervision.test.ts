@@ -29,7 +29,7 @@ const connect = (
 ): ReturnType<typeof opentunnelProvider.connect> =>
 	opentunnelProvider.connect({
 		profile: "supervised",
-		route: "@",
+		opentunnel: { route: "@" },
 		host: "127.0.0.1",
 		port: 5173,
 		dataDir,

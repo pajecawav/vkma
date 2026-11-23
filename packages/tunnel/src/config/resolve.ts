@@ -10,8 +10,10 @@
  * No environment layer by design: `OPENTUNNEL_API` is read natively by the
  * opentunnel client and `TUNNEL_TOKEN` by cloudflared itself.
  *
- * One section is merged key by key: a flag or plugin option that sets ONE
- * `cloudflared` key must not discard the rest of the file's section.
+ * A provider's section is merged key by key: a flag or plugin option that
+ * sets ONE `cloudflared` (or `opentunnel`) key must not discard the rest
+ * of the file's section. A section beside another provider's id is an
+ * error — the key would otherwise be silently ignored.
  */
 
 import fs from "node:fs";
@@ -25,7 +27,6 @@ import {
 	DEFAULT_CLOUDFLARED_MODE,
 	DEFAULT_CLOUDFLARED_PROTOCOL,
 	DEFAULT_PROVIDER,
-	DEFAULT_ROUTE,
 	type TunnelProviderId,
 } from "../constants.ts";
 import { ConfigValidationError, TunnelError, type ConfigIssue } from "../errors.ts";
@@ -35,10 +36,22 @@ import {
 	TunnelConfigSchema,
 	type CloudflaredOptions,
 	type ConfigSource,
+	type OpentunnelOptionsInput,
 	type ResolvedTunnelConfig,
 	type ResolvedTunnelConfigMeta,
 	type TunnelConfigInput,
 } from "./schema.ts";
+
+/**
+ * A provider's section: it merges key by key across layers and belongs to
+ * exactly one provider — `[config key, provider id]`.
+ */
+const SECTION_OWNERS = [
+	["opentunnel", DEFAULT_PROVIDER],
+	["cloudflared", CLOUDFLARED_PROVIDER],
+] as const;
+
+const SECTIONS: ReadonlySet<string> = new Set(SECTION_OWNERS.map(([key]) => key));
 
 export interface ResolveTunnelConfigOptions {
 	/** Directory to start discovery from. Default: `process.cwd()`. */
@@ -107,8 +120,8 @@ export async function resolveTunnelConfig(
 		}
 		// Sections merge, scalars replace: `--cloudflared-mode token` must
 		// not drop the hostname the config file set in the same section.
-		if (key === "cloudflared" && isRecord(value)) {
-			const fileSection = merged["cloudflared"];
+		if (SECTIONS.has(key) && isRecord(value)) {
+			const fileSection = merged[key];
 			merged[key] = {
 				...(isRecord(fileSection) ? fileSection : {}),
 				...value,
@@ -129,9 +142,9 @@ export async function resolveTunnelConfig(
 		provider: (merged["provider"] as TunnelProviderId | undefined) ?? CONFIG_DEFAULTS.provider,
 		port: (merged["port"] as number | undefined) ?? CONFIG_DEFAULTS.port,
 		host: (merged["host"] as string | undefined) ?? CONFIG_DEFAULTS.host,
-		route: (merged["route"] as string | undefined) ?? CONFIG_DEFAULTS.route,
 		profile: merged["profile"] as string | undefined,
-		api: merged["api"] as string | undefined,
+		// Passed through as accepted; the provider applies its defaults.
+		opentunnel: merged["opentunnel"] as OpentunnelOptionsInput | undefined,
 		cloudflared: isRecord(cloudflaredSection)
 			? resolveCloudflared(cloudflaredSection)
 			: undefined,
@@ -186,14 +199,18 @@ function resolveCloudflared(section: Record<string, unknown>): CloudflaredOption
 function collectSemanticIssues(data: Record<string, unknown>): ConfigIssue[] {
 	const issues: ConfigIssue[] = [];
 	const provider = (data["provider"] as string | undefined) ?? DEFAULT_PROVIDER;
-	const section = data["cloudflared"];
-	if (isRecord(section)) {
-		if (provider !== CLOUDFLARED_PROVIDER) {
+	// Each section belongs to one provider: beside another provider's id it
+	// would be a key the tunnel silently ignores.
+	for (const [key, owner] of SECTION_OWNERS) {
+		if (isRecord(data[key]) && provider !== owner) {
 			issues.push({
-				path: "cloudflared",
-				message: `the cloudflared section needs ${JSON.stringify('provider: "cloudflared"')} — provider is ${JSON.stringify(provider)}`,
+				path: key,
+				message: `the ${key} section needs ${JSON.stringify(owner)} as provider — provider is ${JSON.stringify(provider)}`,
 			});
 		}
+	}
+	const section = data["cloudflared"];
+	if (isRecord(section)) {
 		if (section["mode"] === "token" && section["hostname"] === undefined) {
 			issues.push({
 				path: "cloudflared.hostname",
@@ -201,15 +218,6 @@ function collectSemanticIssues(data: Record<string, unknown>): ConfigIssue[] {
 					'required when cloudflared.mode is "token": the public hostname configured in the dashboard',
 			});
 		}
-	}
-	if (
-		provider === CLOUDFLARED_PROVIDER &&
-		((data["route"] as string | undefined) ?? DEFAULT_ROUTE) !== DEFAULT_ROUTE
-	) {
-		issues.push({
-			path: "route",
-			message: "cloudflared serves one public hostname: route must be @",
-		});
 	}
 	return issues;
 }

@@ -102,7 +102,12 @@ Rules:
   error (a mistyped provider must not silently start another one).
 - `mode: "token"` without `hostname`, or without a token (here or in
   `TUNNEL_TOKEN`), is a config error.
-- `route` must be `"@"`: one tunnel, one public hostname.
+- `opentunnel` set while `provider` is not `"opentunnel"` is a config error
+  the same way: a provider's options live in its own section
+  (`opentunnel: { route, api }`), never at the top, so a config never
+  carries a key the chosen provider would ignore. _Amended during
+  implementation:_ `route` and `api` were top-level keys with a rule pinning
+  `route` to `"@"` for cloudflared; the section makes both unnecessary.
 - The token never reaches the profile record, the logs or the banner, and it
   is passed to the child through its environment, never `argv`.
 

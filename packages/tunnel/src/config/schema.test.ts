@@ -23,9 +23,13 @@ describe("shipped JSON schema", () => {
 		expect(typeof schema["$id"]).toBe("string");
 		expect(schema["type"]).toBe("object");
 		const properties = schema["properties"] as Record<string, unknown>;
-		for (const field of ["provider", "port", "host", "route", "profile", "api"]) {
+		// The top level is what every provider understands; `route` and `api`
+		// are opentunnel's and live in its section.
+		for (const field of ["provider", "port", "host", "profile", "opentunnel", "cloudflared"]) {
 			expect(properties[field]).toBeDefined();
 		}
+		expect(properties["route"]).toBeUndefined();
+		expect(properties["api"]).toBeUndefined();
 		expect(schema["additionalProperties"]).toBe(false);
 	});
 });
@@ -107,9 +111,8 @@ describe("TunnelConfigSchema", () => {
 			provider: "opentunnel",
 			port: 3000,
 			host: "127.0.0.1",
-			route: "app",
 			profile: "my-app",
-			api: "https://opentunnel.example",
+			opentunnel: { route: "app", api: "https://opentunnel.example" },
 		});
 		expect(config.port).toBe(3000);
 	});
@@ -128,6 +131,12 @@ describe("TunnelConfigSchema", () => {
 		expect(properties["provider"]?.default).toBe("opentunnel");
 		expect(properties["port"]?.default).toBe(5173);
 		expect(properties["host"]?.default).toBe("localhost");
-		expect(properties["route"]?.default).toBe("@");
+		const opentunnel = TunnelConfigSchema.properties["opentunnel"];
+		expect(opentunnel.type).toBe("object");
+		// The route default is documented where the key lives now.
+		expect(opentunnel.properties["route"]).toMatchObject({ default: "@" });
+		expect(
+			Object.keys(opentunnel.properties).toSorted((left, right) => left.localeCompare(right)),
+		).toEqual(["api", "route"]);
 	});
 });

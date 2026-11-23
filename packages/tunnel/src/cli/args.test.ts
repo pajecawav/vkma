@@ -7,11 +7,39 @@ describe("parseArgv", () => {
 	});
 
 	it("parses value flags with separate and inline values", () => {
-		const parsed = parseArgv(["--port", "3000", "--host=0.0.0.0", "--route", "mobile"]);
+		const parsed = parseArgv([
+			"--port",
+			"3000",
+			"--host=0.0.0.0",
+			"--opentunnel-route",
+			"mobile",
+			"--opentunnel-api=https://opentunnel.example",
+		]);
 		expect(parsed.values.port).toBe(3000);
 		expect(parsed.values.host).toBe("0.0.0.0");
-		expect(parsed.values.route).toBe("mobile");
+		expect(parsed.values.opentunnel).toEqual({
+			route: "mobile",
+			api: "https://opentunnel.example",
+		});
 		expect(parsed.errors).toEqual([]);
+	});
+
+	it("scopes a provider's flags to its own section", () => {
+		const parsed = parseArgv(["--cloudflared-mode=token", "--opentunnel-route", "mobile"]);
+		expect(parsed.values.opentunnel).toEqual({ route: "mobile" });
+		expect(parsed.values.cloudflared).toEqual({ mode: "token" });
+		// A section appears only when one of its flags was passed.
+		expect(parseArgv(["--port", "3000"]).values.opentunnel).toBeUndefined();
+		expect(parseArgv(["--port", "3000"]).values.cloudflared).toBeUndefined();
+	});
+
+	it("no longer knows the unprefixed --route and --api", () => {
+		// They looked as if they applied to every provider; opentunnel's
+		// options carry its prefix now, like cloudflared's.
+		expect(parseArgv(["--route", "mobile"]).errors[0]).toContain("Unknown flag");
+		expect(parseArgv(["--api", "https://opentunnel.example"]).errors[0]).toContain(
+			"Unknown flag",
+		);
 	});
 
 	it("round-trip validates --port", () => {

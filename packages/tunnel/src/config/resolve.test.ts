@@ -40,10 +40,12 @@ describe("resolveTunnelConfig", () => {
 				provider: "opentunnel",
 				port: 5173,
 				host: "localhost",
-				route: "@",
 				profile: undefined,
-				api: undefined,
 			});
+			// A provider's section appears only when the file or an override
+			// set it: the provider applies its own defaults.
+			expect(config.opentunnel).toBeUndefined();
+			expect(config.cloudflared).toBeUndefined();
 			expect(meta.configPath).toBeUndefined();
 			expect(meta.sources).toEqual({});
 		} finally {
@@ -64,7 +66,7 @@ describe("resolveTunnelConfig", () => {
 			expect(config.profile).toBe("custom");
 			expect(config.provider).toBe("opentunnel");
 			expect(config.host).toBe("localhost");
-			expect(config.route).toBe("@");
+			expect(config.opentunnel).toBeUndefined();
 			expect(meta.configPath).toBe(path.join(isolated, "vkma-tunnel.config.json"));
 		} finally {
 			await fs.rm(isolated, { recursive: true, force: true });
@@ -97,12 +99,12 @@ describe("resolveTunnelConfig", () => {
 		try {
 			await fs.writeFile(
 				path.join(isolated, "vkma-tunnel.config.ts"),
-				"export default { port: 4173, route: 'mobile' } as const;\n",
+				"export default { port: 4173, opentunnel: { route: 'mobile' } } as const;\n",
 				"utf8",
 			);
 			const { config } = await resolveTunnelConfig({ cwd: isolated });
 			expect(config.port).toBe(4173);
-			expect(config.route).toBe("mobile");
+			expect(config.opentunnel).toEqual({ route: "mobile" });
 		} finally {
 			await fs.rm(isolated, { recursive: true, force: true });
 		}
@@ -124,7 +126,7 @@ describe("resolveTunnelConfig", () => {
 	});
 
 	it("rejects an invalid route", async () => {
-		const call = resolveTunnelConfig({ overrides: { route: "Bad Route" } });
+		const call = resolveTunnelConfig({ overrides: { opentunnel: { route: "Bad Route" } } });
 		await expect(call).rejects.toThrow();
 		try {
 			await call;
@@ -173,6 +175,45 @@ describe("provider ids", () => {
 				overrides: { provider: "cloudflared" },
 			});
 			expect(config.provider).toBe("cloudflared");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("provider sections", () => {
+	const isolated = async (): Promise<string> =>
+		fs.mkdtemp(path.join(import.meta.dirname, ".resolve-sec-"));
+
+	it("rejects route and api at the top level: they are opentunnel's, not every provider's", async () => {
+		const dir = await isolated();
+		try {
+			// Deliberately ill-typed: the resolver must name both keys.
+			const failure = await resolveTunnelConfig({
+				cwd: dir,
+				overrides: { route: "app", api: "https://opentunnel.example" } as never,
+			}).catch((error: unknown) => error);
+			expect(failure).toBeInstanceOf(ConfigValidationError);
+			const issues = (failure as ConfigValidationError).issues.map(issue => issue.path);
+			expect(issues).toContain("route");
+			expect(issues).toContain("api");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("a section with its own provider resolves untouched", async () => {
+		const dir = await isolated();
+		try {
+			const { config } = await resolveTunnelConfig({
+				cwd: dir,
+				overrides: { opentunnel: { route: "mobile", api: "https://opentunnel.example" } },
+			});
+			expect(config.provider).toBe("opentunnel");
+			expect(config.opentunnel).toEqual({
+				route: "mobile",
+				api: "https://opentunnel.example",
+			});
 		} finally {
 			await fs.rm(dir, { recursive: true, force: true });
 		}
@@ -256,6 +297,28 @@ describe("cloudflared config", () => {
 		}
 	});
 
+	it("merges the opentunnel section key by key as well", async () => {
+		const isolated = await isolatedDir();
+		try {
+			await fs.writeFile(
+				path.join(isolated, "vkma-tunnel.config.json"),
+				JSON.stringify({ opentunnel: { api: "https://opentunnel.example" } }),
+				"utf8",
+			);
+			// `--opentunnel-route mobile` alone must not drop the endpoint.
+			const { config } = await resolveTunnelConfig({
+				cwd: isolated,
+				overrides: { opentunnel: { route: "mobile" } },
+			});
+			expect(config.opentunnel).toEqual({
+				api: "https://opentunnel.example",
+				route: "mobile",
+			});
+		} finally {
+			await fs.rm(isolated, { recursive: true, force: true });
+		}
+	});
+
 	it("rejects an unknown mode, transport or key instead of falling back", async () => {
 		const isolated = await isolatedDir();
 		try {
@@ -305,7 +368,7 @@ describe("cloudflared config", () => {
 				}),
 			);
 			expect(issues).toEqual([
-				'cloudflared: the cloudflared section needs "provider: \\"cloudflared\\"" — provider is "opentunnel"',
+				'cloudflared: the cloudflared section needs "cloudflared" as provider — provider is "opentunnel"',
 			]);
 		} finally {
 			await fs.rm(isolated, { recursive: true, force: true });
@@ -347,17 +410,21 @@ describe("cloudflared config", () => {
 		}
 	});
 
-	it("serves one public hostname: another route is a config error", async () => {
+	it("refuses the opentunnel section instead of ignoring it beside cloudflared", async () => {
 		const isolated = await isolatedDir();
 		try {
 			const issues = await issuesOf(() =>
 				resolveTunnelConfig({
 					cwd: isolated,
-					overrides: { provider: "cloudflared", cloudflared: {}, route: "app" },
+					overrides: {
+						provider: "cloudflared",
+						cloudflared: {},
+						opentunnel: { route: "app" },
+					},
 				}),
 			);
 			expect(issues).toEqual([
-				"route: cloudflared serves one public hostname: route must be @",
+				'opentunnel: the opentunnel section needs "opentunnel" as provider — provider is "cloudflared"',
 			]);
 		} finally {
 			await fs.rm(isolated, { recursive: true, force: true });
@@ -369,9 +436,9 @@ describe("cloudflared config", () => {
 		try {
 			const { config } = await resolveTunnelConfig({
 				cwd: isolated,
-				overrides: { provider: "opentunnel", route: "app" },
+				overrides: { provider: "opentunnel", opentunnel: { route: "app" } },
 			});
-			expect(config.route).toBe("app");
+			expect(config.opentunnel).toEqual({ route: "app" });
 			expect(config.cloudflared).toBeUndefined();
 			expect(isTunnelError(new ConfigValidationError([]))).toBe(true);
 		} finally {

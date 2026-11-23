@@ -73,7 +73,50 @@ export const CloudflaredOptionsSchema = Type.Object(
 			}),
 		),
 	},
-	{ additionalProperties: false },
+	{
+		additionalProperties: false,
+		description:
+			'Options of the cloudflared provider; only meaningful with provider: "cloudflared".',
+	},
+);
+
+/**
+ * Options of the `opentunnel` provider.
+ *
+ * The top level holds what EVERY provider understands (`provider`, `port`,
+ * `host`, `profile`); whatever belongs to one provider lives in its
+ * section. A config then never carries a key the chosen provider would
+ * silently ignore — and a section beside another provider's id is a
+ * validation error, not a dead key.
+ */
+export const OpentunnelOptionsSchema = Type.Object(
+	{
+		/** Route name: `@` (the tunnel hostname itself) or a subdomain label.
+		 * @default "@" */
+		route: Type.Optional(
+			Type.String({
+				pattern: ROUTE_PATTERN.source,
+				default: DEFAULT_ROUTE,
+				description:
+					'Route name: "@" (apex, https://<id>.opentunnel.xyz) or a lowercase DNS label for a subdomain. Default: "@".',
+			}),
+		),
+		/** Self-hosted opentunnel API endpoint.
+		 * @remarks The `OPENTUNNEL_API` env var works too (read natively by
+		 * the opentunnel client). */
+		api: Type.Optional(
+			Type.String({
+				pattern: "^https?://",
+				description:
+					'API endpoint of a self-hosted opentunnel server, e.g. "https://opentunnel.example". Optional; the opentunnel client also honors the OPENTUNNEL_API env var.',
+			}),
+		),
+	},
+	{
+		additionalProperties: false,
+		description:
+			'Options of the opentunnel provider; only meaningful with provider: "opentunnel".',
+	},
 );
 
 export const TunnelConfigSchema = Type.Object(
@@ -118,37 +161,19 @@ export const TunnelConfigSchema = Type.Object(
 					'Local host the tunnel forwards to. Default: "localhost" (resolves to ::1 or 127.0.0.1 — vite preview often binds IPv6 only).',
 			}),
 		),
-		/** Route name: `@` (the tunnel hostname itself) or a subdomain label.
-		 * @default "@" */
-		route: Type.Optional(
-			Type.String({
-				pattern: ROUTE_PATTERN.source,
-				default: DEFAULT_ROUTE,
-				description:
-					'Route name: "@" (apex, https://<id>.opentunnel.xyz) or a lowercase DNS label for a subdomain. Default: "@".',
-			}),
-		),
-		/** Identity-store profile; defaults to the project directory name.
-		 * A stable profile means a stable public URL across runs. */
+		/** Identity-store profile: the name of the stored tunnel record, whichever provider wrote it.
+		 * Defaults to the project directory name. A stable profile means a stable public URL across runs. */
 		profile: Type.Optional(
 			Type.String({
 				pattern: PROFILE_PATTERN.source,
 				minLength: 1,
 				maxLength: 64,
 				description:
-					"Identity-store profile. Defaults to the project directory name. A stable profile keeps the public URL stable across runs (reset with `vkma-tunnel reset`).",
+					"Identity-store profile: the name of the stored tunnel record, whichever provider wrote it. Defaults to the project directory name. A stable profile keeps the public URL stable across runs (reset with `vkma-tunnel reset`).",
 			}),
 		),
-		/** Self-hosted opentunnel API endpoint (provider-specific).
-		 * @remarks The `OPENTUNNEL_API` env var works too (read natively by
-		 * the opentunnel client). */
-		api: Type.Optional(
-			Type.String({
-				pattern: "^https?://",
-				description:
-					'Provider API endpoint for self-hosted servers, e.g. "https://opentunnel.example". Optional; the opentunnel client also honors the OPENTUNNEL_API env var.',
-			}),
-		),
+		/** Options of the `opentunnel` provider; only meaningful with `provider: "opentunnel"`. */
+		opentunnel: Type.Optional(OpentunnelOptionsSchema),
 		/** Options of the `cloudflared` provider; only meaningful with `provider: "cloudflared"`. */
 		cloudflared: Type.Optional(CloudflaredOptionsSchema),
 	},
@@ -170,6 +195,9 @@ export const TunnelConfigSchema = Type.Object(
  */
 export type TunnelConfigInput = Omit<Static<typeof TunnelConfigSchema>, "$schema">;
 
+/** The `opentunnel` section as accepted (every key optional; the provider applies the defaults). */
+export type OpentunnelOptionsInput = Static<typeof OpentunnelOptionsSchema>;
+
 /** The `cloudflared` section as accepted (every key optional). */
 export type CloudflaredOptionsInput = Static<typeof CloudflaredOptionsSchema>;
 
@@ -187,10 +215,12 @@ export interface ResolvedTunnelConfig {
 	readonly provider: TunnelProviderId;
 	readonly port: number;
 	readonly host: string;
-	readonly route: string;
 	readonly profile?: string;
-	readonly api?: string;
-	/** Present only when the config file or an override set the section. */
+	/**
+	 * A provider's section is present only when the config file or an
+	 * override set it; the provider applies its own defaults.
+	 */
+	readonly opentunnel?: OpentunnelOptionsInput;
 	readonly cloudflared?: CloudflaredOptions;
 }
 
@@ -208,7 +238,6 @@ export const CONFIG_DEFAULTS = {
 	provider: DEFAULT_PROVIDER,
 	port: DEFAULT_PORT,
 	host: DEFAULT_HOST,
-	route: DEFAULT_ROUTE,
 } as const;
 
 /**

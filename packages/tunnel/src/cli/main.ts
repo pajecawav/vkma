@@ -65,11 +65,12 @@ Flags:
   --provider <name>               Tunnel provider (default: opentunnel)
   --port <1-65535>                Local port to expose (default: 5173)
   --host <addr>                   Local host to forward to (default: localhost)
-  --route <name>                  "@" (apex, default) or a subdomain label
   --profile <name>                Identity profile; default: project
                                   directory name. A stable profile keeps
                                   the URL stable across runs
-  --api <url>                     Self-hosted provider endpoint
+  --opentunnel-route <name>       opentunnel: "@" (apex, default) or a
+                                  subdomain label
+  --opentunnel-api <url>          opentunnel: self-hosted server endpoint
   --cloudflared-mode <quick|token>  cloudflared: a one-time Quick Tunnel URL
                                   (default) or a named tunnel by token
   --cloudflared-hostname <host>   cloudflared token mode: the dashboard's
@@ -191,17 +192,15 @@ function flagOverrides(parsed: ParsedArgs) {
 	if (parsed.values.host !== undefined) {
 		overrides["host"] = parsed.values.host;
 	}
-	if (parsed.values.route !== undefined) {
-		overrides["route"] = parsed.values.route;
-	}
 	if (parsed.values.profile !== undefined) {
 		overrides["profile"] = parsed.values.profile;
 	}
-	if (parsed.values.api !== undefined) {
-		overrides["api"] = parsed.values.api;
+	if (parsed.values.opentunnel !== undefined) {
+		// A provider's section: the resolver merges it into the file's key
+		// by key — and rejects it beside another provider's id.
+		overrides["opentunnel"] = parsed.values.opentunnel;
 	}
 	if (parsed.values.cloudflared !== undefined) {
-		// A section: the resolver merges it into the file's key by key.
 		overrides["cloudflared"] = parsed.values.cloudflared;
 	}
 	return overrides;

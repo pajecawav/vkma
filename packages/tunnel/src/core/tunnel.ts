@@ -6,7 +6,10 @@
  * delegates to the selected provider and wraps its connection into a
  * {@link TunnelHandle}. Identity persistence (stable URL) is entirely the
  * provider's job through the shared record store; the core only owns the
- * record's shared metadata and the host-rewriting proxy.
+ * record's shared metadata and the host-rewriting proxy. It reads no
+ * provider's config section: what it must know (the route, the Host
+ * header policy, whether a run stores an identity) comes from the
+ * provider's capabilities.
  */
 
 import {
@@ -87,15 +90,6 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		});
 	}
 
-	const route = options.route ?? DEFAULT_ROUTE;
-	if (!ROUTE_PATTERN.test(route)) {
-		throw new TunnelError(
-			"config",
-			`Invalid route ${JSON.stringify(route)}: expected "@" (apex) or one lowercase DNS label (letters, digits, hyphens)`,
-			{ code: "E_BAD_ROUTE" },
-		);
-	}
-
 	const profile = options.profile ?? defaultProfile(options.cwd ?? process.cwd());
 	assertValidProfile(profile);
 
@@ -104,10 +98,9 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 
 	const connectOptions: TunnelProviderConnectOptions = {
 		profile,
-		route,
 		host,
 		port,
-		api: options.api,
+		opentunnel: options.opentunnel,
 		dataDir,
 		signal: options.signal,
 		onEvent: options.onEvent,
@@ -117,6 +110,20 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		env,
 		onWarning: options.onWarning,
 	};
+
+	// The route is the provider's to name (opentunnel: its config section)
+	// and the core's to vouch for in the shared record: it keys the
+	// handle's `urls` and lands in `lastRoute`, which `list`/`status`
+	// render for any provider. So its format is checked here — before
+	// anything is stored.
+	const route = provider.primaryRoute?.(connectOptions) ?? DEFAULT_ROUTE;
+	if (!ROUTE_PATTERN.test(route)) {
+		throw new TunnelError(
+			"config",
+			`Invalid route ${JSON.stringify(route)}: expected "@" (apex) or one lowercase DNS label (letters, digits, hyphens)`,
+			{ code: "E_BAD_ROUTE" },
+		);
+	}
 
 	// -- profile ownership ---------------------------------------------------
 	//

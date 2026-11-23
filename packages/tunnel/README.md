@@ -21,7 +21,7 @@ pnpm add -D @vkma.dev/tunnel
 vkma-tunnel
 
 # custom port/host, subdomain route, QR for the phone:
-vkma-tunnel --port 3000 --host 127.0.0.1 --route mobile --qr
+vkma-tunnel --port 3000 --host 127.0.0.1 --opentunnel-route mobile --qr
 ```
 
 | command                                      | what it does                                             |
@@ -31,10 +31,11 @@ vkma-tunnel --port 3000 --host 127.0.0.1 --route mobile --qr
 | `vkma-tunnel list [--json]`                  | stored profiles, URLs, targets                           |
 | `vkma-tunnel status [profile] [--json]`      | stored identity + live probes (local target, public URL) |
 
-Flags: `--provider`, `--port`, `--host`, `--route`, `--profile`, `--api`,
-`--config`, `--qr`, `--open`, `--no-keepalive`, `--no-host-rewrite`, `--json`
-(NDJSON lifecycle events for `run` too), `--quiet`, `--no-color`, and for the
-second provider `--cloudflared-mode`, `--cloudflared-hostname`,
+Flags: `--provider`, `--port`, `--host`, `--profile`, `--config`, `--qr`,
+`--open`, `--no-keepalive`, `--no-host-rewrite`, `--json` (NDJSON lifecycle
+events for `run` too), `--quiet`, `--no-color`. A provider's own flags carry
+its prefix and fill its config section: `--opentunnel-route`,
+`--opentunnel-api`, `--cloudflared-mode`, `--cloudflared-hostname`,
 `--cloudflared-protocol`, `--cloudflared-binary`.
 
 ## Vite plugin
@@ -60,9 +61,9 @@ makes `hostRewrite: false` work; a brand-new profile mints its hostname too
 late for it and needs one restart (the plugin says so). HMR works through the
 tunnel (the bridge forwards bytes, WebSocket included).
 
-Options (all optional): `enabled`, `config`, `provider`, `route`, `profile`,
-`api`, `qr`, `open`, `keepAlive`, `hostRewrite`, `cloudflared` (the keys of
-the config's `cloudflared` section) — each overrides
+Options (all optional): `enabled`, `config`, `provider`, `profile`, `qr`,
+`open`, `keepAlive`, `hostRewrite`, and a provider's section — `opentunnel`,
+`cloudflared` — with the keys it has in the config file. Each overrides
 `vkma-tunnel.config.*`. `port` and `host` retarget the tunnel away from the
 live Vite server; the same keys in the config file apply to the CLI and the
 Node API only, the plugin always tunnels the server it is attached to. The
@@ -166,10 +167,10 @@ await tunnel.closed; // resolves on close(), rejects on a fatal error
 
 `createTunnel(options)` resolves once the tunnel is live. `options`:
 `provider` (`"opentunnel"` or `"cloudflared"`), `port`, `host`
-(`"localhost"`), `route` (`"@"` apex or a subdomain label), `profile`, `api`
-(self-hosted server), `dataDir`, `cwd`, `signal`, `onEvent`, `onProgress`,
-`onWarning`, `keepAlive`, `hostRewrite`, `pid`, `cloudflared` (the provider's
-section). The handle's `hostname`, `urls` and `primaryUrl` follow the
+(`"localhost"`), `profile`, a provider's section — `opentunnel` (`route`:
+`"@"` apex or a subdomain label; `api`: a self-hosted server) or `cloudflared`
+— `dataDir`, `cwd`, `signal`, `onEvent`, `onProgress`, `onWarning`,
+`keepAlive`, `hostRewrite`, `pid`. The handle's `hostname`, `urls` and `primaryUrl` follow the
 provider: a `url-changed` event means the URL was replaced under the same
 handle.
 
@@ -188,11 +189,19 @@ export default defineTunnelConfig({
     provider: "opentunnel", // default; or "cloudflared" (see below)
     port: 5173, // default
     host: "localhost", // default
-    route: "@", // default: apex URL https://<id>.opentunnel.xyz
     // profile: "my-app", // default: project directory name
-    // api: "https://opentunnel.example", // self-hosted; OPENTUNNEL_API works too
+    // A provider's own options live in its section, never at the top:
+    // opentunnel: {
+    //     route: "@", // default: apex URL https://<id>.opentunnel.xyz
+    //     api: "https://opentunnel.example", // self-hosted; OPENTUNNEL_API works too
+    // },
 });
 ```
+
+The top level holds what every provider understands; everything else is the
+chosen provider's section, so a config never carries a key that provider
+would silently ignore. A section beside another provider's `id` is a config
+error, not a dead key.
 
 Editor autocomplete: add `"$schema": "https://unpkg.com/@vkma.dev/tunnel/schema/vkma-tunnel.config.schema.json"` (shipped as `@vkma.dev/tunnel/schema`).
 
@@ -200,7 +209,7 @@ Editor autocomplete: add `"$schema": "https://unpkg.com/@vkma.dev/tunnel/schema/
 
 - Identities: `$XDG_DATA_HOME/vkma/tunnel/<profile>.json` (0600) — delete or
   `reset` to rotate a URL.
-- Self-hosting: run your own opentunnel server and point `api` (or
+- Self-hosting: run your own opentunnel server and point `opentunnel.api` (or
   `OPENTUNNEL_API`) at it.
 
 ## Notes

@@ -103,7 +103,6 @@ function connect(
 ): ReturnType<typeof cloudflaredProvider.connect> {
 	return cloudflaredProvider.connect({
 		profile: "cf",
-		route: "@",
 		host: "localhost",
 		port: 4173,
 		dataDir,
@@ -237,7 +236,6 @@ describe("cloudflared binary", () => {
 describe("cloudflared provider — capabilities", () => {
 	const base: ConnectOptions = {
 		profile: "cf",
-		route: "@",
 		host: "localhost",
 		port: 4173,
 		dataDir: "",

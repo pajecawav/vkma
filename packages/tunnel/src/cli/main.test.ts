@@ -162,9 +162,47 @@ describe("config errors", () => {
 	});
 
 	it("fails fast for a bad route (exit 1)", async () => {
-		const result = await run(["--route", "BAD"]);
+		const result = await run(["--opentunnel-route", "BAD"]);
 		expect(result.code).toBe(1);
 		expect(result.err).toContain("route");
+	});
+
+	it("refuses an opentunnel flag beside --provider cloudflared instead of ignoring it", async () => {
+		const result = await run(["--provider", "cloudflared", "--opentunnel-route", "mobile"]);
+		expect(result.code).toBe(1);
+		expect(result.err).toContain('the opentunnel section needs "opentunnel" as provider');
+	});
+
+	it("hands the --opentunnel-* flags to createTunnel as the opentunnel section", async () => {
+		out = [];
+		errOut = [];
+		let received: CreateTunnelOptions | undefined;
+		const code = await main(
+			["--opentunnel-route", "mobile", "--opentunnel-api=https://opentunnel.example"],
+			{
+				cwd,
+				dataDir,
+				env: { HOME: "/home/test" },
+				stdout,
+				stderr: { write: (text: string): void => void errOut.push(text) },
+				createTunnel: async options => {
+					received = options;
+					return {
+						...replaceableTunnel(),
+						closed: new Promise<void>(resolve =>
+							setTimeout(() => resolve(undefined), 20),
+						),
+						close: async () => undefined,
+					};
+				},
+			},
+		);
+		expect(code).toBe(0);
+		expect(received?.provider).toBe("opentunnel");
+		expect(received?.opentunnel).toEqual({
+			route: "mobile",
+			api: "https://opentunnel.example",
+		});
 	});
 });
 
@@ -426,41 +464,41 @@ describe("run shutdown resilience", () => {
 	});
 });
 
-describe("run with the cloudflared provider", () => {
-	/** A handle whose URL the test can replace, like a respawned Quick Tunnel. */
-	function replaceableTunnel(): TunnelHandle & { replace: (url: string) => void } {
-		let current = "https://first-tunnel.trycloudflare.com";
-		let settle: () => void = () => undefined;
-		return {
-			provider: "cloudflared",
-			profile: "quick-app",
-			get hostname() {
-				return new URL(current).hostname;
-			},
-			get urls() {
-				return { "@": current };
-			},
-			get primaryUrl() {
-				return current;
-			},
-			events: (async function* () {})(),
-			status: () => ({
-				state: "connected" as const,
-				hostname: new URL(current).hostname,
-				connections: 0,
-			}),
-			close: async () => {
-				settle();
-			},
-			closed: new Promise<void>(resolve => {
-				settle = resolve;
-			}),
-			replace: url => {
-				current = url;
-			},
-		};
-	}
+/** A handle whose URL the test can replace, like a respawned Quick Tunnel. */
+function replaceableTunnel(): TunnelHandle & { replace: (url: string) => void } {
+	let current = "https://first-tunnel.trycloudflare.com";
+	let settle: () => void = () => undefined;
+	return {
+		provider: "cloudflared",
+		profile: "quick-app",
+		get hostname() {
+			return new URL(current).hostname;
+		},
+		get urls() {
+			return { "@": current };
+		},
+		get primaryUrl() {
+			return current;
+		},
+		events: (async function* () {})(),
+		status: () => ({
+			state: "connected" as const,
+			hostname: new URL(current).hostname,
+			connections: 0,
+		}),
+		close: async () => {
+			settle();
+		},
+		closed: new Promise<void>(resolve => {
+			settle = resolve;
+		}),
+		replace: url => {
+			current = url;
+		},
+	};
+}
 
+describe("run with the cloudflared provider", () => {
 	/** A tunnel that stops by itself shortly after the banner. */
 	function shortLivedTunnel(): TunnelHandle {
 		return {

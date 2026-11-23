@@ -9,7 +9,7 @@
  * required. Additions stay additive — renderers ignore unknown types.
  */
 
-import type { CloudflaredOptions } from "../config/schema.ts";
+import type { CloudflaredOptions, OpentunnelOptionsInput } from "../config/schema.ts";
 import type { TunnelProviderId } from "../constants.ts";
 
 export type TunnelEvent =
@@ -81,12 +81,10 @@ export interface CreateTunnelOptions {
 	readonly port: number;
 	/** Local host the tunnel forwards to. Default `"localhost"`. */
 	readonly host?: string;
-	/** Route name: `"@"` (apex) or a lowercase DNS label. Default `"@"`. */
-	readonly route?: string;
 	/** Identity-store profile. Default: project directory name (see `defaultProfile`). */
 	readonly profile?: string;
-	/** Provider API endpoint (self-hosted servers). */
-	readonly api?: string;
+	/** Options of the `opentunnel` provider (its config section, defaults applied by the provider). */
+	readonly opentunnel?: OpentunnelOptionsInput;
 	/** Identity store root. Default: `$XDG_DATA_HOME/vkma/tunnel`. */
 	readonly dataDir?: string;
 	/** Directory for the default-profile derivation. Default: `process.cwd()`. */
@@ -125,10 +123,10 @@ export interface CreateTunnelOptions {
 /** What a provider needs to serve one tunnel. */
 export interface TunnelProviderConnectOptions {
 	readonly profile: string;
-	readonly route: string;
 	readonly host: string;
 	readonly port: number;
-	readonly api?: string;
+	/** The `opentunnel` section as the caller gave it; the provider applies its defaults. */
+	readonly opentunnel?: OpentunnelOptionsInput;
 	readonly dataDir: string;
 	readonly signal?: AbortSignal;
 	readonly onEvent?: (event: TunnelEvent) => void;
@@ -215,5 +213,15 @@ export interface TunnelProvider<Id extends string = string> {
 	 * the hostname only appears later (opentunnel mints it).
 	 */
 	readonly knownHostname?: (options: TunnelProviderConnectOptions) => string | undefined;
+	/**
+	 * The public route a run serves — the key of `urls` that the handle's
+	 * `primaryUrl` reports and the value the core stamps into the record's
+	 * shared `lastRoute` (opentunnel: its configured route). The core never
+	 * reads a provider's section, so the provider names it here; the FORMAT
+	 * stays the core's to check, it is shared by `list`/`status` for every
+	 * provider. Undefined means `"@"`: the hostname itself, the only route
+	 * a provider without routes has.
+	 */
+	readonly primaryRoute?: (options: TunnelProviderConnectOptions) => string | undefined;
 	connect(options: TunnelProviderConnectOptions): Promise<TunnelProviderConnection>;
 }

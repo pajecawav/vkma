@@ -23,6 +23,7 @@ import {
 	type OpenTunnelStatus,
 	type OpenTunnelStorage,
 } from "@opentunnel/client";
+import { DEFAULT_ROUTE } from "../constants.ts";
 import {
 	listProfileRecords,
 	mergeRecordFile,
@@ -52,18 +53,27 @@ const IDENTITY_KEYS = [
 
 export const opentunnelProvider: TunnelProvider<"opentunnel"> = {
 	id: "opentunnel",
+	// The run's public route is this provider's setting: `"@"` serves the
+	// tunnel hostname itself, a label a subdomain of it.
+	primaryRoute: routeOf,
 	connect(options: TunnelProviderConnectOptions): Promise<TunnelProviderConnection> {
 		return connectOpenTunnel(options);
 	},
 };
 
+/** The route this run serves, from the `opentunnel` section (`"@"` by default). */
+function routeOf(options: TunnelProviderConnectOptions): string {
+	return options.opentunnel?.route ?? DEFAULT_ROUTE;
+}
+
 async function connectOpenTunnel(
 	options: TunnelProviderConnectOptions,
 ): Promise<TunnelProviderConnection> {
 	const target = `${options.host}:${options.port}`;
+	const route = routeOf(options);
 
 	const client = create({
-		api: options.api,
+		api: options.opentunnel?.api,
 		store: createRecordStorage(options.dataDir),
 	});
 
@@ -166,7 +176,7 @@ async function connectOpenTunnel(
 	const attach = async (): Promise<SdkConnection> => {
 		const connection = await client.tunnel.connect({
 			profile: options.profile,
-			routes: { [options.route]: forwardTarget },
+			routes: { [route]: forwardTarget },
 			signal: options.signal,
 			onEvent: event => {
 				const mapped = mapEvent(event);
@@ -193,7 +203,7 @@ async function connectOpenTunnel(
 	};
 
 	const setRoutes = async (routes: Readonly<Record<string, string>>): Promise<void> => {
-		const ownRoute = routes[options.route];
+		const ownRoute = routes[route];
 		if (typeof ownRoute === "string") {
 			forwardTarget = ownRoute;
 		}
@@ -214,7 +224,7 @@ async function connectOpenTunnel(
 		events.push({
 			type: "connected",
 			session: `watchdog-restart-${String(restarts)}`,
-			routes: [options.route],
+			routes: [route],
 		});
 	};
 
@@ -247,7 +257,7 @@ async function connectOpenTunnel(
 		// within a second when its relay dies, so "fast error" is NOT proof of
 		// health; the direct probe above is what proves the target is fine.
 		const tunneled = await probeHttp(
-			publicUrl(options.route, current.tunnel.hostname),
+			publicUrl(route, current.tunnel.hostname),
 			PROBE_TIMEOUT_MS,
 		);
 		if (!tunneled) {

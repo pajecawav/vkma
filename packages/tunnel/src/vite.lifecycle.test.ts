@@ -613,3 +613,19 @@ describe("vkmaTunnel with the cloudflared provider", () => {
 		expect(userConfig.server).toBeUndefined();
 	});
 });
+
+describe("vkmaTunnel with opentunnel options", () => {
+	it("hands the opentunnel options to createTunnel as a section", async () => {
+		tunnelComesUp();
+		await boot({
+			opentunnel: { route: "mobile", api: "https://opentunnel.example" },
+		});
+		await vi.waitFor(() => expect(createTunnel).toHaveBeenCalled());
+		const call = vi.mocked(createTunnel).mock.calls[0]?.[0];
+		expect(call?.provider).toBe("opentunnel");
+		expect(call?.opentunnel).toEqual({
+			route: "mobile",
+			api: "https://opentunnel.example",
+		});
+	});
+});
