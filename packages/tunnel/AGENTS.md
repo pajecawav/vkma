@@ -47,9 +47,13 @@ Keep all comments, commits, and docs in English.
    `reset` is the only rotation path. Provider records must keep the
    shared fields (`hostname`, `lastTarget`, `lastRoute`, `pid`,
    `startedAt`, `createdAt`, `updatedAt`) — the CLI list/status read
-   them provider-neutrally, and `pid` powers the route-conflict hint
-   ("was also attached by process N — is another vkma-tunnel / vite dev
-   still running?").
+   them provider-neutrally. `pid`/`startedAt` name the bridge HOLDER:
+   the core stamps them only after a successful attach, never at start
+   (a start-time stamp would overwrite the incumbent's pid before our
+   first attempt, and the route-conflict hint would always find
+   itself). The hint (`src/cli/conflict-hint.ts`, shared by CLI and
+   plugin) tells a live holder ("stop it") from a dead one ("the
+   service still holds its route").
 2. **Layering is fixed**: CLI flags / plugin options > config file >
    auto-detected server values (plugin) > defaults. No env layer by
    design; `OPENTUNNEL_API` is read natively by the SDK, don't shadow it.

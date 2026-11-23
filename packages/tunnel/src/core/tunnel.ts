@@ -79,14 +79,17 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 	// Shared metadata for `list`/`status` — the REAL target, stamped even
 	// when the run never reaches a healthy connection. The forwarding
 	// proxy (if any) is an implementation detail and must not leak here.
-	// `pid` identifies the live bridge holder: on a route_conflict the
-	// record tells the loser which process to look for.
+	//
+	// `pid`/`startedAt` are deliberately NOT part of this stamp: they name
+	// the bridge HOLDER and are written only once this process has
+	// attached (below). Stamping them here would overwrite the incumbent's
+	// pid with our own before our first attach attempt — and the
+	// route-conflict hint, printed exactly while we are still fighting for
+	// the route, would always find itself.
 	const pid = options.pid ?? process.pid;
 	await mergeRecordFile(dataDir, profile, {
 		lastTarget: `${host}:${String(port)}`,
 		lastRoute: route,
-		pid,
-		startedAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	});
 
@@ -128,6 +131,10 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		onProgress: options.onProgress,
 		keepAlive: options.keepAlive,
 	});
+
+	// First attach done: THIS process now holds the route.
+	const attachedAt = new Date().toISOString();
+	await mergeRecordFile(dataDir, profile, { pid, startedAt: attachedAt, updatedAt: attachedAt });
 
 	// First run: the identity (and its hostname) appeared during this
 	// connect — start the proxy now and retarget the live bridge. Safe

@@ -22,6 +22,7 @@
  */
 
 import type { Plugin } from "vite";
+import { rivalHint } from "./cli/conflict-hint.ts";
 import { resolveTunnelConfig } from "./config/resolve.ts";
 import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
 import { defaultProfile } from "./core/profile.ts";
@@ -210,11 +211,9 @@ async function startTunnel(
 					conflictHintShown = true;
 					void readProfileRecord(tunnelDataDir(), hintProfile)
 						.then(record => {
-							if (record?.pid !== undefined && record.pid !== process.pid) {
-								serverLog(
-									`tunnel: profile "${hintProfile}" was also attached by process ${String(record.pid)} — is another vkma-tunnel / vite dev still running?`,
-									"yellow",
-								);
+							const hint = rivalHint(record, process.pid);
+							if (hint !== undefined) {
+								serverLog(hint, "yellow");
 							}
 						})
 						.catch(() => undefined);

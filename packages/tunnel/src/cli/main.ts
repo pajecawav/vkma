@@ -22,6 +22,7 @@ import {
 	type ProfileRecord,
 } from "../index.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
+import { rivalHint } from "./conflict-hint.ts";
 import { TunnelLogger, paint, type LoggerMode } from "./logger.ts";
 import { openUrl } from "./opener.ts";
 import { renderQr } from "./qr.ts";
@@ -252,10 +253,9 @@ async function runTunnel(
 		conflictHintShown = true;
 		void readProfileRecord(context.dataDir, hintProfile)
 			.then(record => {
-				if (record?.pid !== undefined && record.pid !== ownPid) {
-					logger.warn(
-						`  tunnel: profile "${hintProfile}" was also attached by process ${String(record.pid)}${record.startedAt === undefined ? "" : ` (started ${record.startedAt})`} — is another vkma-tunnel / vite dev still running?`,
-					);
+				const hint = rivalHint(record, ownPid);
+				if (hint !== undefined) {
+					logger.warn(`  ${hint}`);
 				}
 			})
 			.catch(() => undefined);

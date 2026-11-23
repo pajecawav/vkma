@@ -50,7 +50,8 @@
 		"dist",
 		"schema",
 		"src",
-		"!src/**/*.test.ts"
+		"!src/**/*.test.ts",
+		"!src/test-utils.ts"
 	],
 	"scripts": {
 		"build": "tsdown",

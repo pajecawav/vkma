@@ -3,9 +3,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { Plugin } from "vite";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { mergeRecordFile } from "./core/identity.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle } from "./core/types.ts";
-import { vkmaTunnel } from "./vite.ts";
+import { vkmaTunnel, type VkmaTunnelPluginOptions } from "./vite.ts";
 
 /**
  * Plugin lifecycle: the tunnel factory is mocked so a test can deliver SDK
@@ -52,9 +53,12 @@ type HookFn = (...args: never[]) => unknown;
 const hookOf = (value: HookFn | { handler: HookFn } | undefined): HookFn | undefined =>
 	typeof value === "function" ? value : value?.handler;
 
+/** A pid no kernel hands out: far above every `pid_max` in practice. */
+const DEAD_PID = 2147483647;
+
 /** Wires one plugin instance to a fresh listening server. */
-function boot(): Plugin {
-	const plugin = vkmaTunnel()[0] as Plugin;
+function boot(options: VkmaTunnelPluginOptions = {}): Plugin {
+	const plugin = vkmaTunnel(options)[0] as Plugin;
 	const server = fakeServer();
 	hookOf(plugin.configureServer)?.(server as never);
 	return plugin;
@@ -127,5 +131,33 @@ describe("vkmaTunnel lifecycle", () => {
 		expect(output()).toContain("route held by another bridge (@), taking over");
 		expect(output()).not.toContain("failed to start");
 		expect(output()).not.toContain("Cannot read properties of undefined");
+	});
+
+	it("names the route holder from the profile record on a startup conflict", async () => {
+		// A dead incumbent: the service has not reaped its route yet.
+		await mergeRecordFile(dirs.dataDir, "app", { hostname: HOSTNAME, pid: DEAD_PID });
+		vi.mocked(createTunnel).mockImplementation(async options => {
+			emitTakeoverSequence(options);
+			return fakeHandle();
+		});
+
+		boot({ profile: "app" });
+
+		await vi.waitFor(() =>
+			expect(output()).toContain(`was last used by process ${String(DEAD_PID)}`),
+		);
+	});
+
+	it("stays silent when the record names this very process", async () => {
+		await mergeRecordFile(dirs.dataDir, "app", { hostname: HOSTNAME, pid: process.pid });
+		vi.mocked(createTunnel).mockImplementation(async options => {
+			emitTakeoverSequence(options);
+			return fakeHandle();
+		});
+
+		boot({ profile: "app" });
+
+		await vi.waitFor(() => expect(output()).toContain(URL));
+		expect(output()).not.toContain("tunnel: profile");
 	});
 });

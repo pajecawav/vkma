@@ -1,10 +1,15 @@
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mergeRecordFile } from "../core/identity.ts";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { mergeRecordFile, readProfileRecord } from "../core/identity.ts";
 import type { TunnelHandle } from "../core/types.ts";
+import { fakeSdk } from "../test-utils.ts";
 import { main } from "./main.ts";
+
+// Only the "real core" test reaches the SDK; every other run injects a
+// tunnel fake.
+vi.mock("@opentunnel/client", async () => await import("../test-utils.ts"));
 
 let dataDir: string;
 let cwd: string;
@@ -16,6 +21,10 @@ const stdout = {
 	},
 	isTTY: false,
 };
+
+beforeEach(() => {
+	fakeSdk.reset();
+});
 
 beforeAll(async () => {
 	dataDir = await fs.mkdtemp(path.join(import.meta.dirname, ".main-test-data-"));
@@ -160,15 +169,14 @@ describe("config errors", () => {
 });
 
 describe("run shutdown resilience", () => {
-	it("hints about a rival process on route conflicts", async () => {
+	/** A pid no kernel hands out: far above every `pid_max` in practice. */
+	const DEAD_PID = 2147483647;
+
+	/** Runs `argv` against a tunnel fake that reports a route conflict, then stops. */
+	async function conflictingRun(profile: string, argv: readonly string[]): Promise<void> {
 		out = [];
 		errOut = [];
-		await mergeRecordFile(dataDir, "hinted", {
-			hostname: "hint.opentunnel.xyz",
-			pid: 999999,
-			startedAt: "2026-11-21T10:00:00.000Z",
-		});
-		const code = await main(["--profile", "hinted"], {
+		const code = await main(argv, {
 			cwd,
 			dataDir,
 			env: { HOME: "/home/test" },
@@ -176,9 +184,9 @@ describe("run shutdown resilience", () => {
 			stderr: { write: (text: string): void => void errOut.push(text) },
 			createTunnel: async options => ({
 				...wedgedTunnel(),
-				profile: "hinted",
-				primaryUrl: "https://hint.opentunnel.xyz",
-				urls: { "@": "https://hint.opentunnel.xyz" },
+				profile,
+				primaryUrl: `https://${profile}.opentunnel.xyz`,
+				urls: { "@": `https://${profile}.opentunnel.xyz` },
 				closed: new Promise<void>(resolve => {
 					setTimeout(() => {
 						options.onEvent?.({ type: "route-conflict", routes: ["@"] });
@@ -194,41 +202,71 @@ describe("run shutdown resilience", () => {
 		await new Promise(resolve => {
 			setTimeout(resolve, 100);
 		});
+	}
+
+	it("explains a dead route holder on a route conflict", async () => {
+		await mergeRecordFile(dataDir, "hinted", {
+			hostname: "hint.opentunnel.xyz",
+			pid: DEAD_PID,
+			startedAt: "2026-11-21T10:00:00.000Z",
+		});
+		await conflictingRun("hinted", ["--profile", "hinted"]);
 		// The hint is a warn → stderr.
-		expect(errOut.join("")).toContain("also attached by process 999999");
+		expect(errOut.join("")).toContain(
+			`profile "hinted" was last used by process ${String(DEAD_PID)} (started 2026-11-21T10:00:00.000Z), which is no longer running`,
+		);
+	});
+
+	it("names a live rival on a route conflict", async () => {
+		await mergeRecordFile(dataDir, "live-rival", {
+			hostname: "live.opentunnel.xyz",
+			pid: process.ppid,
+		});
+		await conflictingRun("live-rival", ["--profile", "live-rival"]);
+		expect(errOut.join("")).toContain(`is also used by process ${String(process.ppid)}`);
 	});
 
 	it("does not self-hint when the record pid is our own", async () => {
-		out = [];
-		errOut = [];
 		await mergeRecordFile(dataDir, "selfpid", {
 			hostname: "self.opentunnel.xyz",
 			pid: process.pid,
 		});
-		const code = await main([], {
+		await conflictingRun("selfpid", []);
+		expect(errOut.join("")).not.toContain("tunnel: profile");
+	});
+
+	it("finds the incumbent through the REAL core — pid is stamped only after our attach", async () => {
+		// The incumbent attached first and left its pid in the record.
+		await mergeRecordFile(dataDir, "rival", {
+			hostname: fakeSdk.hostname,
+			lastTarget: "localhost:5173",
+			pid: DEAD_PID,
+			startedAt: "2026-11-21T10:00:00.000Z",
+		});
+		fakeSdk.conflictOnAttach = true;
+		const controller = new AbortController();
+		out = [];
+		errOut = [];
+		const pending = main(["--profile", "rival"], {
 			cwd,
 			dataDir,
 			env: { HOME: "/home/test" },
 			stdout,
 			stderr: { write: (text: string): void => void errOut.push(text) },
-			createTunnel: async options => ({
-				...wedgedTunnel(),
-				profile: "selfpid",
-				primaryUrl: "https://self.opentunnel.xyz",
-				urls: { "@": "https://self.opentunnel.xyz" },
-				closed: new Promise<void>(resolve => {
-					setTimeout(() => {
-						options.onEvent?.({ type: "route-conflict", routes: ["@"] });
-						options.onEvent?.({ type: "stopped" });
-						resolve(undefined);
-					}, 20);
-				}),
-				close: async () => undefined,
-			}),
+			signal: controller.signal,
 		});
-		expect(code).toBe(0);
-		expect(out.join("")).not.toContain("also attached by process");
-	});
+		await vi.waitFor(() => {
+			expect(out.join("")).toContain(`https://${fakeSdk.hostname}`);
+		});
+		// The conflict hit while we were still attaching: the incumbent must be named.
+		await vi.waitFor(() => {
+			expect(errOut.join("")).toContain(`was last used by process ${String(DEAD_PID)}`);
+		});
+		// From now on the record names us — we hold the route.
+		expect((await readProfileRecord(dataDir, "rival"))?.pid).toBe(process.pid);
+		controller.abort();
+		expect(await pending).toBe(130);
+	}, 10_000);
 
 	/** A tunnel that NEVER settles `closed` and hangs inside `close()`. */
 	function wedgedTunnel(): TunnelHandle {

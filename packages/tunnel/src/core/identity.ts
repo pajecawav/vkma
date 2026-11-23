@@ -26,7 +26,11 @@ export interface ProfileRecord {
 	readonly lastTarget?: string;
 	/** Route name of the last run (`"@"` when unknown) — builds list/status URLs. */
 	readonly lastRoute?: string;
-	/** Process id of the last attach — route-conflict hints point here. */
+	/**
+	 * Process id of the last SUCCESSFUL attach — route-conflict hints point
+	 * here. Written after the first attach, never at start, so a newcomer
+	 * fighting for the route still finds the incumbent's pid.
+	 */
 	readonly pid?: number;
 	/** ISO time of that attach. */
 	readonly startedAt?: string;
