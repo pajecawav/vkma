@@ -64,7 +64,7 @@ Usage:
 Flags:
   --provider <name>               Tunnel provider (default: opentunnel)
   --port <1-65535>                Local port to expose (default: 5173)
-  --host <addr>                   Local host to forward to (default: 127.0.0.1)
+  --host <addr>                   Local host to forward to (default: localhost)
   --route <name>                  "@" (apex, default) or a subdomain label
   --profile <name>                Identity profile; default: project
                                   directory name. A stable profile keeps

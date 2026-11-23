@@ -14,7 +14,7 @@ app settings keeps working. `vkma-tunnel reset` rotates it.
 ```sh
 pnpm add -D @vkma.dev/tunnel
 
-# expose http://127.0.0.1:5173 (Vite's default):
+# expose http://localhost:5173 (Vite's default):
 vkma-tunnel
 
 # custom port/host, subdomain route, QR for the phone:
@@ -29,8 +29,8 @@ vkma-tunnel --port 3000 --host 127.0.0.1 --route mobile --qr
 | `vkma-tunnel status [profile] [--json]`      | stored identity + live probes (local target, public URL) |
 
 Flags: `--provider`, `--port`, `--host`, `--route`, `--profile`, `--api`,
-`--config`, `--qr`, `--open`, `--no-keepalive`, `--json` (NDJSON lifecycle
-events for `run` too), `--quiet`, `--no-color`.
+`--config`, `--qr`, `--open`, `--no-keepalive`, `--no-host-rewrite`, `--json`
+(NDJSON lifecycle events for `run` too), `--quiet`, `--no-color`.
 
 ## Vite plugin
 
@@ -74,8 +74,9 @@ it for a ghost session (which is what makes the next start fight through
 ## CLI + stock vite dev/preview (no plugin)
 
 Vite's DNS-rebinding protection rejects requests whose `Host` header is not
-`localhost` — a CLI-driven tunnel hits "Blocked request" out of the box. The
-CLI therefore runs a small loopback proxy that rewrites the tunnel hostname
+`localhost` — a tunnel would hit "Blocked request" out of the box. The core
+therefore puts a small loopback proxy in front of your server (CLI and plugin
+alike) that rewrites the tunnel hostname
 into a **same-length `*.localhost` alias** (`m3f2vu5sb237.opentunnel.xyz` →
 `m3f2vu5sb237.open.localhost`): `*.localhost` is always allowed, the byte
 length is preserved, so Host/Origin/Referer are rewritten by pure byte
@@ -97,7 +98,7 @@ console.log(tunnel.primaryUrl); // https://<id>.opentunnel.xyz
 
 for await (const event of tunnel.events) {
     if (event.type === "reconnecting") console.warn("tunnel reconnecting…");
-}
+} // ends when the tunnel stops
 
 await tunnel.closed; // resolves on close(), rejects on a fatal error
 ```
@@ -105,7 +106,7 @@ await tunnel.closed; // resolves on close(), rejects on a fatal error
 `createTunnel(options)` resolves once the tunnel is live. `options`:
 `provider` (`"opentunnel"`), `port`, `host` (`"localhost"`), `route` (`"@"`
 apex or a subdomain label), `profile`, `api` (self-hosted server), `dataDir`,
-`cwd`, `signal`, `onEvent`.
+`cwd`, `signal`, `onEvent`, `onProgress`, `keepAlive`, `hostRewrite`, `pid`.
 
 ## Config file
 
@@ -145,7 +146,8 @@ Editor autocomplete: add `"$schema": "https://unpkg.com/@vkma.dev/tunnel/schema/
   the service itself) drops the bridge WebSocket without a close frame; the
   client then sees `bridge idle timeout` and must take its own route back
   from the server-side ghost (`route held by another bridge (@), taking
-  over…`) — that loop self-heals, wait it out. To keep idle bridges from
+  over…`) — that loop self-heals, wait it out; the line right below it names
+  the process that holds the route, or says it is already gone. To keep idle bridges from
   being dropped at all, the CLI/plugin send a small self-probe through the
   tunnel every ~20 s (disable with `--no-keepalive` / `keepAlive: false`).
 - Ctrl+C (and SIGTERM) always stop the process within seconds, even when the

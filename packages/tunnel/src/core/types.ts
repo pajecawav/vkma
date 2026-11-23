@@ -119,9 +119,11 @@ export interface TunnelProviderConnectOptions {
 	 * Health watchdog (default `true`): a probe through the public URL
 	 * every ~20 s. It keeps idle bridges from being dropped silently AND
 	 * detects a wedged server-side relay (bridge "connected" but visitor
-	 * connections hang forever): two consecutive soft timeouts with a
-	 * reachable local target trigger a graceful bridge restart — same
-	 * identity, same public URL, fresh relay.
+	 * connections hang forever): two consecutive failed probes through
+	 * the public URL while the local target answers a DIRECT probe trigger
+	 * a graceful bridge restart — same identity, same public URL, fresh
+	 * relay. Any tunneled failure counts, a fast TLS reset included: the
+	 * service resets handshakes within a second when its relay dies.
 	 */
 	readonly keepAlive?: boolean;
 }

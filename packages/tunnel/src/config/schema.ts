@@ -46,7 +46,7 @@ export const TunnelConfigSchema = Type.Object(
 			}),
 		),
 		/** Local host the tunnel forwards to.
-		 * @default "127.0.0.1" */
+		 * @default "localhost" */
 		host: Type.Optional(
 			Type.String({
 				minLength: 1,
