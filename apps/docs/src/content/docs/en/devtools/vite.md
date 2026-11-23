@@ -70,6 +70,8 @@ The alias exists for exactly one job: routing someone else's `@vkontakte/vk-brid
 
 Run `vite --host` and open the app from a phone on your LAN. It becomes another panel client. The first browser connection goes through an OTP gate: a one-time code is printed in the dev server terminal (with a one-click link next to it); trusted browsers are remembered. The WebSocket `Origin` check is open by default, so the OTP stays the trust boundary. Pass `allowedOrigins: ["http://192.168.1.5:5173"]` to close the Origin check as well.
 
+For a public address instead of the LAN, start a tunnel with [`@vkma.dev/tunnel`](/en/tunnel/).
+
 ## Vite DevTools dock
 
 With [`@vitejs/devtools`](https://devtools.vite.dev/) installed, mount the panel as one of its docks instead of a standalone page:
