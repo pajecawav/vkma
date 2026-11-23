@@ -268,6 +268,30 @@ describe("run shutdown resilience", () => {
 		expect(await pending).toBe(130);
 	}, 10_000);
 
+	it("Ctrl+C exits as soon as the SDK has closed the bridge — not after the 3 s grace", async () => {
+		fakeSdk.closeDelayMs = 20;
+		const controller = new AbortController();
+		out = [];
+		errOut = [];
+		const pending = main([], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			signal: controller.signal,
+		});
+		await vi.waitFor(() => {
+			expect(out.join("")).toContain(`https://${fakeSdk.hostname}`);
+		});
+
+		const abortedAt = Date.now();
+		controller.abort();
+		expect(await pending).toBe(130);
+		// The SDK's close is the whole story; the grace is an upper bound.
+		expect(Date.now() - abortedAt).toBeLessThan(1000);
+	}, 10_000);
+
 	/** A tunnel that NEVER settles `closed` and hangs inside `close()`. */
 	function wedgedTunnel(): TunnelHandle {
 		const forever = new Promise<void>(() => undefined);

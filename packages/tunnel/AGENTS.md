@@ -78,7 +78,10 @@ Keep all comments, commits, and docs in English.
    can leave `closed`/`close()` unresolved when a bridge half-dies (idle
    timeout into a route-conflict retry loop). The CLI therefore bounds
    every exit-path await: abort grace 3 s, close cap 3 s, plus an unref'd
-   force-exit timer in `src/cli.ts`. SIGHUP and SIGTERM get the same
+   force-exit timer in `src/cli.ts` — upper bounds, never the normal
+   path: the provider settles `closed` as soon as the SDK has closed
+   the bridge (the wrapper closes it itself on abort), so a Ctrl+C
+   leaves right after the SDK close. SIGHUP and SIGTERM get the same
    graceful path as SIGINT — a hard kill skips the bridge close and the
    server keeps the route bound to a ghost session, which is exactly the
    `route_conflict` takeover storm the next run must fight through.

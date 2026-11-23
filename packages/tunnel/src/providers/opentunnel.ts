@@ -135,7 +135,27 @@ async function connectOpenTunnel(
 		stopWatchdog();
 		void bounded(current.close());
 		void bounded(client.dispose());
-		settleReject(error);
+		// The package's error model: a TunnelError with a `kind` (and the
+		// SDK's code), never the raw third-party error.
+		settleReject(mapClientError(error));
+	};
+
+	/**
+	 * The SDK closed the bridge on its own — the wrapper does that when
+	 * `signal` aborts ("aborting later closes the connection"), and for
+	 * nothing else. Surface it exactly like `close()`: without this a
+	 * Ctrl+C sat out the CLI's whole abort grace, waiting for a `closed`
+	 * that nobody resolved although the bridge was already down.
+	 */
+	const settled = (): void => {
+		if (restarting || tornDown) {
+			return;
+		}
+		tornDown = true;
+		stopWatchdog();
+		void bounded(client.dispose());
+		sink({ type: "stopped" });
+		settleResolve();
 	};
 
 	// Forward target — mutable: the core may retarget the live bridge to
@@ -160,9 +180,11 @@ async function connectOpenTunnel(
 				sink(mapped);
 			},
 		});
-		// Resolution is our own (graceful teardown or watchdog restart);
-		// rejection is a fatal the supervisor surfaces as `closed`.
-		void connection.closed.catch((error: unknown) => {
+		// Rejection is a fatal the supervisor surfaces as `closed`. A clean
+		// resolution is OUR stop, just initiated one layer down: the wrapper
+		// closes the bridge itself when `signal` aborts. During a watchdog
+		// restart the resolution belongs to the bridge being replaced.
+		void connection.closed.then(settled, (error: unknown) => {
 			if (!restarting && !tornDown) {
 				fatal(error);
 			}

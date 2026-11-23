@@ -15,7 +15,7 @@
  *   resolves, the way the SDK reports `route-conflict` while attaching;
  * - aborting `signal` makes the WRAPPER close the bridge itself, so the
  *   connection's `closed` RESOLVES on abort — it never rejects for that.
- *   `closed` rejects only on a fatal error;
+ *   `closed` rejects only on a fatal error (`fakeSdk.stop(error)`);
  * - `close` is idempotent and resolves `closed`.
  *
  * `fakeSdk` is the per-test-file control surface (one module registry per
@@ -40,6 +40,9 @@ export function publicUrl(route: string, hostname: string): string {
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
+/** Settlers of the most recent live connection's `closed` (for `fakeSdk.stop`). */
+let live: { resolveClosed: () => void; rejectClosed: (error: unknown) => void } | undefined;
+
 export interface FakeSdkStats {
 	/** `connect` calls that reached an attach. */
 	attaches: number;
@@ -58,6 +61,11 @@ interface FakeSdk {
 	/** How long the SDK takes to close a bridge; 0 = at once. */
 	closeDelayMs: number;
 	stats: FakeSdkStats;
+	/**
+	 * The "server" ends the CURRENT connection: `closed` settles — cleanly
+	 * (a server-side drain) or with a fatal error.
+	 */
+	stop(error?: unknown): void;
 	reset(): void;
 }
 
@@ -67,6 +75,14 @@ export const fakeSdk: FakeSdk = {
 	failConnect: false,
 	closeDelayMs: 0,
 	stats: { attaches: 0, closes: 0, disposed: 0 },
+
+	stop(error) {
+		if (error === undefined) {
+			live?.resolveClosed();
+		} else {
+			live?.rejectClosed(error);
+		}
+	},
 
 	reset(): void {
 		this.hostname = "4bznf5jcbkct.opentunnel.xyz";
@@ -134,9 +150,12 @@ export function create(options: { api?: string; store?: OpenTunnelStorage } = {}
 				const signal = input.signal;
 				signal?.throwIfAborted();
 				let resolveClosed: () => void = () => undefined;
-				const closed = new Promise<void>(resolve => {
+				let rejectClosed: (error: unknown) => void = () => undefined;
+				const closed = new Promise<void>((resolve, reject) => {
 					resolveClosed = resolve;
+					rejectClosed = reject;
 				});
+				live = { resolveClosed, rejectClosed };
 				const state = { closed: false };
 				const close = async (): Promise<void> => {
 					fakeSdk.stats.closes += 1;
