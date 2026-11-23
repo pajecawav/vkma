@@ -6,6 +6,7 @@ import {
 	mergeRecordFile,
 	profileFilePath,
 	readProfileRecord,
+	listRecordProfiles,
 	removeAllProfileRecords,
 	removeProfileRecord,
 	tunnelDataDir,
@@ -85,6 +86,20 @@ describe("record files", () => {
 		const removed = await removeAllProfileRecords(dataDir);
 		expect(removed.length).toBeGreaterThan(0);
 		expect(await listProfileRecords(dataDir)).toEqual([]);
+	});
+
+	it("--all removal also drops the records `list` cannot show", async () => {
+		// A first run that never minted a hostname leaves exactly this.
+		await mergeRecordFile(dataDir, "half", {
+			provider: "opentunnel",
+			lastTarget: "127.0.0.1:1",
+		});
+		expect(await listProfileRecords(dataDir)).toEqual([]);
+		expect(await listRecordProfiles(dataDir)).toEqual(["half"]);
+
+		expect(await removeAllProfileRecords(dataDir)).toEqual(["half"]);
+		expect(await listRecordProfiles(dataDir)).toEqual([]);
+		expect(await fs.readdir(dataDir)).toEqual([]);
 	});
 
 	it("returns [] for a missing directory", async () => {

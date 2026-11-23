@@ -564,17 +564,22 @@ function resetMessage(
 async function runReset(parsed: ParsedArgs, context: RunContext): Promise<number> {
 	const { logger } = context;
 	if (parsed.booleans.all) {
+		// A record with a hostname says what it was. One without (a first run
+		// that never minted) is invisible to `list` — and goes just the same.
 		const records = await listProfileRecords(context.dataDir);
-		if (records.length === 0) {
+		const removed = await removeAllProfileRecords(context.dataDir);
+		if (removed.length === 0) {
 			logger.info("No stored tunnel identities.");
 			return 0;
 		}
-		for (const record of records) {
-			const { step, note } = resetMessage(record, record.profile);
+		for (const profile of removed) {
+			const { step, note } = resetMessage(
+				records.find(record => record.profile === profile),
+				profile,
+			);
 			logger.step(step);
 			logger.info(note);
 		}
-		await removeAllProfileRecords(context.dataDir);
 		return 0;
 	}
 	const profile = await resolveProfile(parsed, context);

@@ -79,26 +79,39 @@ export async function readProfileRecord(
 	return raw === undefined ? undefined : { ...raw, profile };
 }
 
-/** Lists every stored profile record (unparseable files are skipped). */
-export async function listProfileRecords(dataDir: string): Promise<ProfileRecord[]> {
+/**
+ * Every profile that has a record file — with a hostname or without one
+ * (a first run that never minted it). `listProfileRecords` shows only the
+ * former; removal has to see both or `reset --all` leaves files behind
+ * while reporting an empty store.
+ */
+export async function listRecordProfiles(dataDir: string): Promise<string[]> {
 	let entries: readonly string[];
 	try {
 		entries = await fs.readdir(dataDir);
 	} catch {
 		return [];
 	}
+	return entries
+		.filter(entry => entry.endsWith(".json"))
+		.map(entry => entry.slice(0, -".json".length))
+		.toSorted((left, right) => left.localeCompare(right));
+}
+
+/**
+ * Lists the stored profile records that have a hostname, sorted by profile
+ * (files that are unparseable or hold no hostname yet are skipped — see
+ * `listRecordProfiles` for those).
+ */
+export async function listProfileRecords(dataDir: string): Promise<ProfileRecord[]> {
 	const records: ProfileRecord[] = [];
-	for (const entry of entries) {
-		if (!entry.endsWith(".json")) {
-			continue;
-		}
-		const profile = entry.slice(0, -".json".length);
-		const raw = await readRecordFile(path.join(dataDir, entry));
+	for (const profile of await listRecordProfiles(dataDir)) {
+		const raw = await readRecordFile(profileFilePath(dataDir, profile));
 		if (raw !== undefined) {
 			records.push({ ...raw, profile });
 		}
 	}
-	return records.toSorted((a, b) => a.profile.localeCompare(b.profile));
+	return records;
 }
 
 /** Deletes one profile record. Returns true when something was deleted. */
@@ -111,13 +124,18 @@ export async function removeProfileRecord(dataDir: string, profile: string): Pro
 	}
 }
 
-/** Deletes every profile record. Returns the removed profile names. */
+/**
+ * Deletes every profile record file, with a hostname or without. Returns the
+ * removed profile names.
+ */
 export async function removeAllProfileRecords(dataDir: string): Promise<string[]> {
-	const records = await listProfileRecords(dataDir);
-	for (const record of records) {
-		await removeProfileRecord(dataDir, record.profile);
+	const removed: string[] = [];
+	for (const profile of await listRecordProfiles(dataDir)) {
+		if (await removeProfileRecord(dataDir, profile)) {
+			removed.push(profile);
+		}
 	}
-	return records.map(record => record.profile);
+	return removed;
 }
 
 /**

@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { mergeRecordFile, readProfileRecord, removeProfileRecord } from "../core/identity.ts";
+import {
+	mergeRecordFile,
+	profileFilePath,
+	readProfileRecord,
+	removeProfileRecord,
+} from "../core/identity.ts";
 import type { CreateTunnelOptions, TunnelHandle } from "../core/types.ts";
 import { fakeSdk } from "../test-utils.ts";
 import { main } from "./main.ts";
@@ -169,6 +174,20 @@ describe("reset", () => {
 		expect(result.out).toContain('"two"');
 		const empty = await run(["list"]);
 		expect(empty.out).toContain("No stored tunnel identities");
+	});
+
+	it("--all also removes a record that never got a public URL", async () => {
+		// A first run that was aborted before it minted one leaves exactly
+		// this: invisible to `list`, and `--all` used to leave it behind
+		// while saying the store was empty.
+		const file = profileFilePath(dataDir, "half");
+		await fs.writeFile(file, JSON.stringify({ provider: "opentunnel" }), "utf8");
+
+		const result = await run(["reset", "--all"]);
+		expect(result.code).toBe(0);
+		expect(result.out).toContain('Removed the stored record for profile "half"');
+		expect(result.out).toContain("It held no public URL yet");
+		await expect(fs.access(file)).rejects.toThrow();
 	});
 });
 
