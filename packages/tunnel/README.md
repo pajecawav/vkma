@@ -71,6 +71,12 @@ SIGTERM alike — so the service releases the route at once instead of keeping
 it for a ghost session (which is what makes the next start fight through
 `route_conflict` takeovers).
 
+While a tunnel is live the plugin raises the server's keep-alive timeout to
+two minutes (Node's default is five; Vite leaves it alone) and restores it
+when the tunnel closes: through a tunnel every new connection pays a TLS
+handshake across the whole relay path, and a short pause in browsing should
+not cost one.
+
 ## CLI + stock vite dev/preview (no plugin)
 
 Vite's DNS-rebinding protection rejects requests whose `Host` header is not
@@ -152,4 +158,13 @@ Editor autocomplete: add `"$schema": "https://unpkg.com/@vkma.dev/tunnel/schema/
   tunnel every ~20 s (disable with `--no-keepalive` / `keepAlive: false`).
 - Ctrl+C (and SIGTERM) always stop the process within seconds, even when the
   SDK teardown hangs on a dead bridge; a hard `kill -9` is never needed.
+- **Latency**: opentunnel is a blind TLS tunnel — TLS ends on your machine,
+  not at the service's edge. In DevTools `Initial connection` is one round
+  trip to the edge, while `SSL` and every request pay a full
+  edge → relay → your machine round trip, twice over when the visitor sits
+  on the same network as the machine. Hundreds of milliseconds per phase
+  when that path is long is the design, not a bug: a far uplink or VPN on
+  either side adds to every round trip, and the tunnel speaks plain
+  HTTP/1.1, so a page load opens several connections, each with its own
+  handshake.
 - Node >= 22.18.

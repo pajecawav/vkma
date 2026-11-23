@@ -48,7 +48,9 @@ Keep all comments, commits, and docs in English.
   SIGINT/SIGTERM.
 - `src/vite.ts` — the plugin (dev + preview): the `config` hook that
   registers a stored hostname in `allowedHosts`, tunnel lifecycle,
-  awaited close hooks. `src/vite-exit.ts` (internal, not exported from
+  awaited close hooks, the keep-alive hold (the server's
+  `keepAliveTimeout` goes to 2 min while a tunnel is live — ref-counted
+  per httpServer because Vite restarts reuse it). `src/vite-exit.ts` (internal, not exported from
   `/vite`) holds the exit guard and the bounded close.
 
 ## Invariants — do not break
@@ -160,3 +162,11 @@ Keep all comments, commits, and docs in English.
   dead path.
 - **First certificate issuance** takes minutes on the hosted service;
   progress lines (`waiting-certificate…`) exist precisely for that.
+- **Handshake latency is structural**: TLS terminates in the bridge, so
+  DevTools' `SSL` and every request cost one edge → relay → bridge round
+  trip (TLS 1.2: two), and only `Initial connection` stops at the edge.
+  Measured 2026-11-23 from a far uplink: TCP 135 ms, TLS 295 ms, TTFB
+  290 ms, ~455 ms for parallel handshakes; `localhost` answered in 1–8 ms.
+  The package adds nothing to it. An HTTP-level provider with
+  edge-terminated TLS is the structural fix; the keep-alive hold only
+  removes repeated handshakes after pauses.

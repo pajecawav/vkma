@@ -87,6 +87,54 @@ export interface VkmaTunnelPluginOptions {
 	hostRewrite?: boolean;
 }
 
+/**
+ * Idle keep-alive timeout the Vite server gets while a tunnel is live.
+ * Node drops an idle keep-alive connection after 5 s (+1 s buffer) by
+ * default and Vite leaves that alone — harmless on localhost, expensive
+ * through a tunnel, where a new connection costs TCP plus a TLS handshake
+ * that each cross the whole relay path.
+ */
+const TUNNEL_KEEP_ALIVE_TIMEOUT_MS = 120_000;
+
+interface KeepAliveHold {
+	/** The server's own timeout, restored once no tunnel needs the hold. */
+	readonly previous: number;
+	/** Tunnels currently holding it. */
+	holds: number;
+}
+
+/** Per HTTP server: the hold state (Vite reuses one httpServer across restarts). */
+const keepAliveHolds = new WeakMap<object, KeepAliveHold>();
+
+/**
+ * Keeps idle keep-alive connections of `httpServer` open while a tunnel is
+ * live and returns the release for THAT tunnel. The server's own timeout
+ * comes back only when the last tunnel lets go: Vite restarts reuse the
+ * httpServer, and the previous tunnel finishes closing after the next one
+ * is already up.
+ */
+function holdKeepAlive(httpServer: { keepAliveTimeout: number }): () => void {
+	let hold = keepAliveHolds.get(httpServer);
+	if (hold === undefined) {
+		hold = { previous: httpServer.keepAliveTimeout, holds: 0 };
+		keepAliveHolds.set(httpServer, hold);
+		httpServer.keepAliveTimeout = Math.max(hold.previous, TUNNEL_KEEP_ALIVE_TIMEOUT_MS);
+	}
+	hold.holds += 1;
+	let released = false;
+	return () => {
+		if (released) {
+			return;
+		}
+		released = true;
+		hold.holds -= 1;
+		if (hold.holds === 0) {
+			keepAliveHolds.delete(httpServer);
+			httpServer.keepAliveTimeout = hold.previous;
+		}
+	};
+}
+
 interface TunnelServerLike {
 	httpServer: import("node:http").Server | null;
 	config: {
@@ -343,6 +391,21 @@ async function startTunnel(
 		return;
 	}
 
+	// Through the tunnel every new connection pays TCP plus a TLS handshake
+	// across the whole relay path; hold idle keep-alive connections for as
+	// long as this tunnel lives, so a short pause does not cost one.
+	const releaseKeepAlive = holdKeepAlive(httpServer);
+	const closeTunnel = tunnel.close;
+	tunnel = {
+		...tunnel,
+		close: async () => {
+			try {
+				await closeTunnel();
+			} finally {
+				releaseKeepAlive();
+			}
+		},
+	};
 	context.setHandle(tunnel);
 	if (options.hostRewrite === false && context.registeredHostname() !== tunnel.hostname) {
 		// Nothing rewrote the Host header and Vite's frozen allowedHosts

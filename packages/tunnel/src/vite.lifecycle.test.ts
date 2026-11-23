@@ -35,6 +35,8 @@ const DEAD_PID = 2147483647;
 type FakeHttpServer = EventEmitter & {
 	listening: boolean;
 	address: () => { address: string; family: string; port: number };
+	/** Node's default; Vite leaves it alone. */
+	keepAliveTimeout: number;
 };
 
 const logs: string[] = [];
@@ -47,10 +49,14 @@ type HookFn = (...args: never[]) => unknown;
 const hookOf = (value: HookFn | { handler: HookFn } | undefined): HookFn | undefined =>
 	typeof value === "function" ? value : value?.handler;
 
-function fakeServer(root: string): { httpServer: FakeHttpServer; config: Record<string, unknown> } {
+function fakeServer(
+	root: string,
+	keepAliveTimeout = 5000,
+): { httpServer: FakeHttpServer; config: Record<string, unknown> } {
 	const httpServer = new EventEmitter() as FakeHttpServer;
 	httpServer.listening = true;
 	httpServer.address = () => ({ address: "127.0.0.1", family: "IPv4", port: 5173 });
+	httpServer.keepAliveTimeout = keepAliveTimeout;
 	httpServers.push(httpServer);
 	return {
 		httpServer,
@@ -181,6 +187,64 @@ describe("vkmaTunnel lifecycle", () => {
 
 		await vi.waitFor(() => expect(output()).toContain(URL));
 		expect(output()).not.toContain("tunnel: profile");
+	});
+});
+
+describe("vkmaTunnel keep-alive", () => {
+	/** Times the tunnel URL has been announced (= tunnels that went live). */
+	const announcements = (): number =>
+		(output().match(/https:\/\/4bznf5jcbkct\.opentunnel\.xyz/g) ?? []).length;
+
+	it("holds idle keep-alive connections while a tunnel is live, restores them on close", async () => {
+		tunnelComesUp();
+		const { plugin } = await boot({ profile: "app" });
+		await vi.waitFor(() => expect(output()).toContain(URL));
+		expect(httpServers[0]?.keepAliveTimeout).toBe(120_000);
+
+		await hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never);
+
+		expect(httpServers[0]?.keepAliveTimeout).toBe(5000);
+	});
+
+	it("keeps the hold across a restart until the LAST tunnel closes", async () => {
+		// Vite reuses the httpServer across restarts, and the previous
+		// tunnel finishes closing only after the next one is already up: a
+		// plain "restore on close" would drop the hold under the new tunnel.
+		const handles: TunnelHandle[] = [];
+		vi.mocked(createTunnel).mockImplementation(async () => {
+			const handle = fakeHandle();
+			handles.push(handle);
+			return handle;
+		});
+		const plugin = vkmaTunnel({ profile: "app" })[0] as Plugin;
+		await hookOf(plugin.config)?.({ root: dirs.root } as never, {} as never);
+		const server = fakeServer(dirs.root);
+		hookOf(plugin.configureServer)?.(server as never);
+		await vi.waitFor(() => expect(announcements()).toBe(1));
+
+		hookOf(plugin.configureServer)?.(server as never);
+		await vi.waitFor(() => expect(announcements()).toBe(2));
+		// The superseded tunnel has been closed …
+		await (handles[0] as TunnelHandle).closed;
+		// … and its release (which runs after the close) has had its turn.
+		await new Promise(resolve => setTimeout(resolve, 0));
+		expect(server.httpServer.keepAliveTimeout).toBe(120_000);
+
+		await hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never);
+		expect(server.httpServer.keepAliveTimeout).toBe(5000);
+	});
+
+	it("never lowers a timeout the user already raised", async () => {
+		const plugin = vkmaTunnel({ profile: "app" })[0] as Plugin;
+		await hookOf(plugin.config)?.({ root: dirs.root } as never, {} as never);
+		const server = fakeServer(dirs.root, 600_000);
+		tunnelComesUp();
+		hookOf(plugin.configureServer)?.(server as never);
+		await vi.waitFor(() => expect(announcements()).toBe(1));
+		expect(server.httpServer.keepAliveTimeout).toBe(600_000);
+
+		await hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never);
+		expect(server.httpServer.keepAliveTimeout).toBe(600_000);
 	});
 });
 
