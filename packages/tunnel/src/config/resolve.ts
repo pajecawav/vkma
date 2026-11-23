@@ -26,6 +26,7 @@ import {
 	DEFAULT_CLOUDFLARED_PROTOCOL,
 	DEFAULT_PROVIDER,
 	DEFAULT_ROUTE,
+	type TunnelProviderId,
 } from "../constants.ts";
 import { ConfigValidationError, TunnelError, type ConfigIssue } from "../errors.ts";
 import { loadConfigFile, type LoadedConfigFile } from "./load.ts";
@@ -125,7 +126,7 @@ export async function resolveTunnelConfig(
 
 	const cloudflaredSection = merged["cloudflared"];
 	const config: ResolvedTunnelConfig = {
-		provider: (merged["provider"] as string | undefined) ?? CONFIG_DEFAULTS.provider,
+		provider: (merged["provider"] as TunnelProviderId | undefined) ?? CONFIG_DEFAULTS.provider,
 		port: (merged["port"] as number | undefined) ?? CONFIG_DEFAULTS.port,
 		host: (merged["host"] as string | undefined) ?? CONFIG_DEFAULTS.host,
 		route: (merged["route"] as string | undefined) ?? CONFIG_DEFAULTS.route,

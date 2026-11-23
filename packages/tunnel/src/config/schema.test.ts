@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { defineTunnelConfig } from "./define.ts";
-import { tunnelConfigJsonSchema, TunnelConfigSchema } from "./schema.ts";
+import { tunnelConfigJsonSchema, TunnelConfigSchema, type TunnelConfigInput } from "./schema.ts";
 
 describe("shipped JSON schema", () => {
 	it("matches the TypeBox source (no drift)", () => {
@@ -27,6 +27,35 @@ describe("shipped JSON schema", () => {
 			expect(properties[field]).toBeDefined();
 		}
 		expect(schema["additionalProperties"]).toBe(false);
+	});
+});
+
+describe("provider in the shipped JSON Schema", () => {
+	it("is an enumeration of every provider id, not a free string", () => {
+		const properties = tunnelConfigJsonSchema()["properties"] as Record<
+			string,
+			Record<string, unknown> | undefined
+		>;
+		const provider = properties["provider"];
+		if (provider === undefined) {
+			throw new Error("the shipped schema has no provider property");
+		}
+		// Editors offer exactly the ids the registry knows; a typo is a
+		// validation error, not a string that fails at connect time.
+		const variants = (provider["anyOf"] as Array<{ const?: string }>)
+			.map(variant => variant.const)
+			.filter((value): value is string => value !== undefined);
+		expect(variants.toSorted((left, right) => left.localeCompare(right))).toEqual([
+			"cloudflared",
+			"opentunnel",
+		]);
+		expect(provider["default"]).toBe("opentunnel");
+	});
+
+	it("types `provider` as the id union", () => {
+		expectTypeOf<TunnelConfigInput["provider"]>().toEqualTypeOf<
+			"opentunnel" | "cloudflared" | undefined
+		>();
 	});
 });
 

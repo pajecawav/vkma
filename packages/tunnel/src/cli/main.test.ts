@@ -296,7 +296,7 @@ describe("run shutdown resilience", () => {
 	function wedgedTunnel(): TunnelHandle {
 		const forever = new Promise<void>(() => undefined);
 		return {
-			provider: "fake",
+			provider: "opentunnel",
 			profile: "wedged",
 			hostname: "wedged.opentunnel.xyz",
 			urls: { "@": "https://wedged.opentunnel.xyz" },

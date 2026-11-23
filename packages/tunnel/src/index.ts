@@ -18,6 +18,7 @@ export {
 	type ProfileRecord,
 } from "./core/identity.ts";
 export { defineTunnelConfig } from "./config/define.ts";
+export { TUNNEL_PROVIDER_IDS, type TunnelProviderId } from "./constants.ts";
 export {
 	resolveTunnelConfig,
 	findConfigFile,

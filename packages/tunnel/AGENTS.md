@@ -153,7 +153,14 @@ commits, and docs in English.
    release, not a runtime plugin API. Providers declare what the core
    must know through optional capabilities — `hostHeaderPolicy`,
    `persistentIdentity`, `knownHostname` — never by making the core
-   branch on `provider.id`.
+   branch on `provider.id`. Ids come from ONE list, `TUNNEL_PROVIDER_IDS`
+   (`constants.ts`): the registry `satisfies Record<TunnelProviderId,
+   TunnelProvider>`, the JSON Schema enumerates them and `provider` is
+   typed as the union everywhere (config, flags, plugin, `createTunnel`,
+   the handle). Never widen it back to `string` — a typo must be a
+   config error with the valid ids named, not an `E_UNKNOWN_PROVIDER`
+   after the dev server started. (Records on disk keep `provider?:
+   string`: they are input.)
 8. Node >= 22.18 (native TS stripping for config files); `engines` is
    meaningful, don't lower it silently.
 9. **Who makes the Host header acceptable is the provider's call**

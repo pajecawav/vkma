@@ -147,6 +147,38 @@ describe("resolveTunnelConfig", () => {
 	});
 });
 
+describe("provider ids", () => {
+	const isolated = async (): Promise<string> =>
+		fs.mkdtemp(path.join(import.meta.dirname, ".resolve-p-"));
+
+	it("rejects an unknown provider where the config is validated, naming the valid ones", async () => {
+		const dir = await isolated();
+		try {
+			await expect(
+				resolveTunnelConfig({
+					cwd: dir,
+					overrides: { provider: "cloudflared-typo" } as never,
+				}),
+			).rejects.toMatchObject({ kind: "config" });
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("resolves the provider it was given", async () => {
+		const dir = await isolated();
+		try {
+			const { config } = await resolveTunnelConfig({
+				cwd: dir,
+				overrides: { provider: "cloudflared" },
+			});
+			expect(config.provider).toBe("cloudflared");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+});
+
 describe("cloudflared config", () => {
 	/** A directory with no config file anywhere above it (besides the user's). */
 	async function isolatedDir(): Promise<string> {

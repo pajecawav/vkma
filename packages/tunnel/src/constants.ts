@@ -15,6 +15,17 @@ export const DEFAULT_PROVIDER = "opentunnel";
 export const CLOUDFLARED_PROVIDER = "cloudflared";
 
 /**
+ * Every provider id, in registry order. THE list: the public
+ * `TunnelProviderId` type, the JSON Schema's enumeration and the core's
+ * registry all derive from it — a test fails if the registry and the list
+ * drift. Adding a provider is a package release: extend it here.
+ */
+export const TUNNEL_PROVIDER_IDS = [DEFAULT_PROVIDER, CLOUDFLARED_PROVIDER] as const;
+
+/** The ids `provider` accepts — in config, CLI flags, plugin options and `createTunnel`. */
+export type TunnelProviderId = (typeof TUNNEL_PROVIDER_IDS)[number];
+
+/**
  * `"quick"`: a one-time `trycloudflare.com` URL, no account — the hostname
  * changes on every start and needs a minute to warm up. `"token"`: a named
  * tunnel from the Cloudflare dashboard with a stable hostname.

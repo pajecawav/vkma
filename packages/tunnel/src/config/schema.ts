@@ -20,6 +20,8 @@ import {
 	DEFAULT_PROVIDER,
 	DEFAULT_ROUTE,
 	HOSTNAME_PATTERN,
+	TUNNEL_PROVIDER_IDS,
+	type TunnelProviderId,
 	PROFILE_PATTERN,
 	ROUTE_PATTERN,
 } from "../constants.ts";
@@ -80,15 +82,21 @@ export const TunnelConfigSchema = Type.Object(
 		$schema: Type.Optional(
 			Type.String({ description: "JSON Schema reference for this file." }),
 		),
-		/** Tunnel provider: `opentunnel` (default) or `cloudflared`.
-		 * @default "opentunnel" */
+		/**
+		 * Tunnel provider, enumerated from `TUNNEL_PROVIDER_IDS`: a typo is a
+		 * config error with the valid values named, not a string that fails
+		 * later at connect time.
+		 * @default "opentunnel"
+		 */
 		provider: Type.Optional(
-			Type.String({
-				minLength: 1,
-				default: DEFAULT_PROVIDER,
-				description:
-					'Tunnel provider: "opentunnel" (default) or "cloudflared" (needs the cloudflared binary on PATH; see the `cloudflared` section).',
-			}),
+			Type.Union(
+				TUNNEL_PROVIDER_IDS.map(id => Type.Literal(id)),
+				{
+					default: DEFAULT_PROVIDER,
+					description:
+						'Tunnel provider: "opentunnel" (default) or "cloudflared" (needs the cloudflared binary on PATH; see the `cloudflared` section).',
+				},
+			),
 		),
 		/** Local port to expose through the tunnel.
 		 * @default 5173 */
@@ -176,7 +184,7 @@ export interface CloudflaredOptions {
 
 /** Fully resolved configuration after defaults and overrides. */
 export interface ResolvedTunnelConfig {
-	readonly provider: string;
+	readonly provider: TunnelProviderId;
 	readonly port: number;
 	readonly host: string;
 	readonly route: string;

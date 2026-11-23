@@ -10,6 +10,7 @@
  */
 
 import type { CloudflaredOptions } from "../config/schema.ts";
+import type { TunnelProviderId } from "../constants.ts";
 
 export type TunnelEvent =
 	| { readonly type: "connecting"; readonly attempt: number }
@@ -49,7 +50,7 @@ export interface TunnelStatus {
 /** A live tunnel: resolved once the first bridge attach succeeds. */
 export interface TunnelHandle {
 	/** Provider id that served this tunnel. */
-	readonly provider: string;
+	readonly provider: TunnelProviderId;
 	/** Identity-store profile this tunnel persists as (stable URL). */
 	readonly profile: string;
 	/** Public hostname, e.g. `<id>.opentunnel.xyz`. */
@@ -74,8 +75,8 @@ export interface TunnelHandle {
 
 /** Options for {@link createTunnel}. */
 export interface CreateTunnelOptions {
-	/** Provider id. Default `"opentunnel"`; unknown ids are a config error. */
-	readonly provider?: string;
+	/** Provider. Default `"opentunnel"`; anything else is a config error. */
+	readonly provider?: TunnelProviderId;
 	/** Local port to expose. Required (5173 via config resolution). */
 	readonly port: number;
 	/** Local host the tunnel forwards to. Default `"localhost"`. */
@@ -183,8 +184,8 @@ export interface TunnelProviderConnection {
  * `createdAt` and `updatedAt` so the CLI `list`/`status`/`reset` commands
  * stay provider-neutral.
  */
-export interface TunnelProvider {
-	readonly id: string;
+export interface TunnelProvider<Id extends string = string> {
+	readonly id: Id;
 	/**
 	 * Who makes the Host header acceptable to the local target (Vite's
 	 * `allowedHosts` rejects foreign hosts)?

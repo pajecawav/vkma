@@ -11,10 +11,18 @@
 			"type": "string"
 		},
 		"provider": {
-			"minLength": 1,
 			"default": "opentunnel",
 			"description": "Tunnel provider: \"opentunnel\" (default) or \"cloudflared\" (needs the cloudflared binary on PATH; see the `cloudflared` section).",
-			"type": "string"
+			"anyOf": [
+				{
+					"const": "opentunnel",
+					"type": "string"
+				},
+				{
+					"const": "cloudflared",
+					"type": "string"
+				}
+			]
 		},
 		"port": {
 			"minimum": 1,

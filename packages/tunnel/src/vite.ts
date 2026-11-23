@@ -48,6 +48,7 @@ import path from "node:path";
 import type { Plugin, UserConfig } from "vite";
 import { rivalHint } from "./cli/conflict-hint.ts";
 import { resolveTunnelConfig, type ResolveTunnelConfigResult } from "./config/resolve.ts";
+import type { TunnelProviderId } from "./constants.ts";
 import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
 import { defaultProfile } from "./core/profile.ts";
 import { createTunnel } from "./core/tunnel.ts";
@@ -58,7 +59,8 @@ export interface VkmaTunnelPluginOptions {
 	enabled?: boolean;
 	/** Explicit config file path (skips discovery). */
 	config?: string;
-	provider?: string;
+	/** Tunnel provider. Default `"opentunnel"`; `"cloudflared"` needs its binary on PATH. */
+	provider?: TunnelProviderId;
 	/** Overrides the auto-detected server port. */
 	port?: number;
 	/** Overrides the default forward target host (`localhost`). */

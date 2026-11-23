@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { TUNNEL_PROVIDER_IDS, type TunnelProviderId } from "../constants.ts";
 import { isTunnelError } from "../errors.ts";
-import { cloudflaredTimings } from "../providers/cloudflared.ts";
+import { cloudflaredProvider, cloudflaredTimings } from "../providers/cloudflared.ts";
 import { startForwardProxy } from "../proxy.ts";
 import { fakeCloudflaredLaunches, fakeSdk, installFakeCloudflared } from "../test-utils.ts";
 import { mergeRecordFile, readProfileRecord } from "./identity.ts";
@@ -36,6 +37,16 @@ describe("getTunnelProvider", () => {
 	it("ships the two providers, opentunnel first (the default)", () => {
 		expect(tunnelProviderIds()).toEqual(["opentunnel", "cloudflared"]);
 	});
+
+	it("keeps the registry and the provider id list in lockstep, both ways", () => {
+		// The list feeds the config enumeration and the public type; the
+		// registry decides what runs. Neither may know an id the other lacks.
+		const alphabetical = (left: string, right: string): number => left.localeCompare(right);
+		expect([...tunnelProviderIds()].toSorted(alphabetical)).toEqual(
+			[...TUNNEL_PROVIDER_IDS].toSorted(alphabetical),
+		);
+		expect(getTunnelProvider("cloudflared")).toBe(cloudflaredProvider);
+	});
 });
 
 describe("createTunnel option validation", () => {
@@ -53,7 +64,11 @@ describe("createTunnel option validation", () => {
 	});
 
 	it("rejects an unknown provider", async () => {
-		await expect(createTunnel({ port: 5173, provider: "nope" })).rejects.toThrow(/provider/i);
+		// The type rejects this at compile time; a JavaScript caller (or a
+		// stale string) still gets the runtime guard.
+		await expect(
+			createTunnel({ port: 5173, provider: "nope" as TunnelProviderId }),
+		).rejects.toThrow(/provider/i);
 	});
 });
 

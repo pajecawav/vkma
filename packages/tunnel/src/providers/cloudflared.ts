@@ -159,7 +159,7 @@ interface Run {
 	readonly url: Promise<string>;
 }
 
-export const cloudflaredProvider: TunnelProvider = {
+export const cloudflaredProvider: TunnelProvider<"cloudflared"> = {
 	id: CLOUDFLARED_PROVIDER,
 	// Quick mode passes `--http-host-header`: cloudflared rewrites the Host
 	// the target sees. Token mode cannot be helped from here: the

@@ -50,7 +50,7 @@ const IDENTITY_KEYS = [
 	"certificateExpiry",
 ] as const;
 
-export const opentunnelProvider: TunnelProvider = {
+export const opentunnelProvider: TunnelProvider<"opentunnel"> = {
 	id: "opentunnel",
 	connect(options: TunnelProviderConnectOptions): Promise<TunnelProviderConnection> {
 		return connectOpenTunnel(options);

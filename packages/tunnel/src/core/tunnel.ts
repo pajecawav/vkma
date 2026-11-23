@@ -9,7 +9,13 @@
  * record's shared metadata and the host-rewriting proxy.
  */
 
-import { DEFAULT_HOST, DEFAULT_PROVIDER, DEFAULT_ROUTE, ROUTE_PATTERN } from "../constants.ts";
+import {
+	DEFAULT_HOST,
+	DEFAULT_PROVIDER,
+	DEFAULT_ROUTE,
+	ROUTE_PATTERN,
+	type TunnelProviderId,
+} from "../constants.ts";
 import { TunnelError } from "../errors.ts";
 import { cloudflaredProvider } from "../providers/cloudflared.ts";
 import { opentunnelProvider } from "../providers/opentunnel.ts";
@@ -24,14 +30,18 @@ import type {
 	TunnelProviderConnection,
 } from "./types.ts";
 
-/** Closed registry: adding a provider is a package release. */
-const PROVIDERS: Readonly<Record<string, TunnelProvider>> = {
+/**
+ * Closed registry: adding a provider is a package release. `satisfies`
+ * keeps it exactly as wide as `TUNNEL_PROVIDER_IDS` — a provider without
+ * an id in the list (or the reverse) does not compile.
+ */
+const PROVIDERS = {
 	[opentunnelProvider.id]: opentunnelProvider,
 	[cloudflaredProvider.id]: cloudflaredProvider,
-};
+} satisfies Readonly<Record<TunnelProviderId, TunnelProvider>>;
 
 export function getTunnelProvider(id: string): TunnelProvider {
-	const provider = PROVIDERS[id];
+	const provider: TunnelProvider | undefined = PROVIDERS[id as TunnelProviderId];
 	if (provider === undefined) {
 		throw new TunnelError(
 			"config",
