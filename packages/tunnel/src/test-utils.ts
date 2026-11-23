@@ -41,7 +41,13 @@ export function publicUrl(route: string, hostname: string): string {
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
 /** Settlers of the most recent live connection's `closed` (for `fakeSdk.stop`). */
-let live: { resolveClosed: () => void; rejectClosed: (error: unknown) => void } | undefined;
+let live:
+	| {
+			resolveClosed: () => void;
+			rejectClosed: (error: unknown) => void;
+			emit: (event: FakeEvent) => void;
+	  }
+	| undefined;
 
 export interface FakeSdkStats {
 	/** `connect` calls that reached an attach. */
@@ -66,6 +72,8 @@ interface FakeSdk {
 	 * (a server-side drain) or with a fatal error.
 	 */
 	stop(error?: unknown): void;
+	/** The SDK reports an event on the current connection (visitor traffic, renewal…). */
+	emit(event: FakeEvent): void;
 	reset(): void;
 }
 
@@ -82,6 +90,10 @@ export const fakeSdk: FakeSdk = {
 		} else {
 			live?.rejectClosed(error);
 		}
+	},
+
+	emit(event) {
+		live?.emit(event);
 	},
 
 	reset(): void {
@@ -155,7 +167,11 @@ export function create(options: { api?: string; store?: OpenTunnelStorage } = {}
 					resolveClosed = resolve;
 					rejectClosed = reject;
 				});
-				live = { resolveClosed, rejectClosed };
+				live = {
+					resolveClosed,
+					rejectClosed,
+					emit: event => input.onEvent?.(event),
+				};
 				const state = { closed: false };
 				const close = async (): Promise<void> => {
 					fakeSdk.stats.closes += 1;

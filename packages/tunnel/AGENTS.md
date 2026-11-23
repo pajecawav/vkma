@@ -30,7 +30,11 @@ Keep all comments, commits, and docs in English.
   data dir; shared read/remove surface for the CLI).
 - `src/providers/opentunnel.ts` — the only provider + the
   `OpenTunnelStorage` adapter over our record files (NOT the SDK's XDG
-  store: our format, shared metadata beside the identity).
+  store: our format, shared metadata beside the identity). It also
+  supervises the bridge (watchdog restarts; the SDK's own close on abort
+  settles `closed`) and owns the merged event stream: a bounded tail
+  until iterated, live afterwards, ended when the tunnel stops — never
+  an unbounded queue, the CLI and the plugin never iterate it.
 - `src/proxy.ts` — the loopback host-rewriting forward proxy (same-length
   `*.localhost` alias: pure byte substitution, WS upgrades pass through).
   A suffix that may still complete into the hostname is held back; the

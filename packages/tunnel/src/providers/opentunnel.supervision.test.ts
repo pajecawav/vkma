@@ -3,7 +3,7 @@ import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TunnelEvent } from "../core/types.ts";
 import { OpenTunnelClientError, fakeSdk } from "../test-utils.ts";
-import { opentunnelProvider } from "./opentunnel.ts";
+import { PRE_STREAM_EVENT_TAIL, opentunnelProvider } from "./opentunnel.ts";
 
 // The provider talks to the SDK; the fake mirrors the promise wrapper's contract.
 vi.mock("@opentunnel/client", async () => await import("../test-utils.ts"));
@@ -107,5 +107,116 @@ describe("opentunnel provider — `closed`", () => {
 		await connection.close();
 
 		expect(connection.status().state).toBe("stopped");
+	});
+});
+
+describe("opentunnel provider — `events`", () => {
+	/** Drains the stream to its end; fails instead of hanging if it never ends. */
+	const drain = (events: AsyncIterable<TunnelEvent>): Promise<TunnelEvent[]> =>
+		within(
+			(async () => {
+				const seen: TunnelEvent[] = [];
+				for await (const event of events) {
+					seen.push(event);
+				}
+				return seen;
+			})(),
+			500,
+			"events stream",
+		);
+
+	it("ends after the stopped event of a close()", async () => {
+		const connection = await connect();
+		const draining = drain(connection.events);
+
+		await connection.close();
+
+		expect((await draining).map(event => event.type)).toEqual([
+			"connecting",
+			"connected",
+			"stopped",
+		]);
+	});
+
+	it("ends on abort", async () => {
+		const controller = new AbortController();
+		const connection = await connect(controller.signal);
+		const draining = drain(connection.events);
+
+		controller.abort();
+		await within(connection.closed, 500, "closed");
+
+		const seen = await draining;
+		expect(seen.at(-1)?.type).toBe("stopped");
+	});
+
+	it("ends on a fatal too — no terminal event, `closed` carries the error", async () => {
+		const connection = await connect();
+		const draining = drain(connection.events);
+
+		fakeSdk.stop(
+			new OpenTunnelClientError({ message: "Tunnel stopped: bad_token", code: "bad_token" }),
+		);
+
+		await expect(connection.closed).rejects.toMatchObject({ kind: "network" });
+		expect((await draining).map(event => event.type)).toEqual(["connecting", "connected"]);
+	});
+
+	it("streams live events to an iterating consumer", async () => {
+		const connection = await connect();
+		const seen: TunnelEvent[] = [];
+		const draining = (async () => {
+			for await (const event of connection.events) {
+				seen.push(event);
+			}
+		})();
+		// Let the consumer pick up the buffered events and park.
+		await new Promise(resolve => setTimeout(resolve, 10));
+
+		fakeSdk.emit({ type: "certificate-renewed", expiry: "2027-01-01T00:00:00.000Z" });
+		await connection.close();
+		await within(draining, 500, "events stream");
+
+		expect(seen.map(event => event.type)).toEqual([
+			"connecting",
+			"connected",
+			"certificate-renewed",
+			"stopped",
+		]);
+	});
+
+	it("keeps only a bounded tail while nobody iterates", async () => {
+		// The CLI and the plugin never touch `events`: visitor traffic must
+		// not grow the queue for the lifetime of the process.
+		const connection = await connect();
+		for (let conn = 0; conn < 1000; conn++) {
+			fakeSdk.emit({ type: "connection-opened", conn, route: "@", peer: "203.0.113.7" });
+		}
+
+		// The tunnel is still live, so read what is buffered and stop:
+		// "nothing more within 50 ms" means the buffer is drained.
+		const iterator = connection.events[Symbol.asyncIterator]();
+		const seen: TunnelEvent[] = [];
+		try {
+			for (let guard = 0; guard < 1200; guard++) {
+				const next = await Promise.race([
+					iterator.next().then(result => (result.done ? undefined : result.value)),
+					new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 50)),
+				]);
+				if (next === undefined) {
+					break;
+				}
+				seen.push(next);
+			}
+		} finally {
+			// Closing ends the stream, which also settles the `next()` left
+			// pending by the race above (an async generator parked in an
+			// `await` only takes `return()` once it reaches a yield).
+			await connection.close();
+			await iterator.return?.();
+		}
+
+		expect(seen).toHaveLength(PRE_STREAM_EVENT_TAIL);
+		expect(seen.every(event => event.type === "connection-opened")).toBe(true);
 	});
 });

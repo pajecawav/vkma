@@ -111,13 +111,31 @@ async function connectOpenTunnel(
 	let restarts = 0;
 
 	// Merged event stream: every SDK connection (initial + restarts) feeds
-	// one AsyncIterable + the caller's onEvent.
+	// one AsyncIterable + the caller's onEvent. Until something iterates
+	// the stream only a bounded tail is kept — the CLI and the plugin
+	// drive `onEvent` alone, and every visitor connection adds two events,
+	// so an unbounded queue would grow for as long as the process lives.
 	const eventQueue: TunnelEvent[] = [];
 	let eventNotify: (() => void) | undefined;
+	let streaming = false;
+	let finished = false;
+	const notify = (): void => {
+		const wake = eventNotify;
+		eventNotify = undefined;
+		wake?.();
+	};
 	const sink = (event: TunnelEvent): void => {
 		eventQueue.push(event);
+		if (!streaming && eventQueue.length > PRE_STREAM_EVENT_TAIL) {
+			eventQueue.shift();
+		}
 		options.onEvent?.(event);
-		eventNotify?.();
+		notify();
+	};
+	/** The tunnel is over: the stream ends once the queued events are drained. */
+	const finish = (): void => {
+		finished = true;
+		notify();
 	};
 
 	let settleResolve: () => void = () => undefined;
@@ -138,6 +156,8 @@ async function connectOpenTunnel(
 		// The package's error model: a TunnelError with a `kind` (and the
 		// SDK's code), never the raw third-party error.
 		settleReject(mapClientError(error));
+		// No terminal event on a fatal: `closed` carries the error.
+		finish();
 	};
 
 	/**
@@ -155,6 +175,7 @@ async function connectOpenTunnel(
 		stopWatchdog();
 		void bounded(client.dispose());
 		sink({ type: "stopped" });
+		finish();
 		settleResolve();
 	};
 
@@ -305,17 +326,27 @@ async function connectOpenTunnel(
 		// The supervisor owns the `stopped` semantics (SDK copies are
 		// filtered in attach): one clean stop when the user asks for it.
 		sink({ type: "stopped" });
+		finish();
 		settleResolve();
 	};
 
 	async function* mergedEvents(): AsyncGenerator<TunnelEvent> {
-		for (;;) {
-			while (eventQueue.length > 0) {
-				yield eventQueue.shift() as TunnelEvent;
+		streaming = true;
+		try {
+			for (;;) {
+				while (eventQueue.length > 0) {
+					yield eventQueue.shift() as TunnelEvent;
+				}
+				if (finished) {
+					return;
+				}
+				await new Promise<void>(resolve => {
+					eventNotify = resolve;
+				});
 			}
-			await new Promise<void>(resolve => {
-				eventNotify = resolve;
-			});
+		} finally {
+			// Left early (`break`) or drained to the end: back to the bounded tail.
+			streaming = false;
 		}
 	}
 
@@ -331,6 +362,13 @@ async function connectOpenTunnel(
 		closed: settleClosed,
 	};
 }
+
+/**
+ * Events kept for a consumer that has not started iterating `events`
+ * yet. The oldest are dropped first; once a consumer iterates, nothing
+ * is dropped any more.
+ */
+export const PRE_STREAM_EVENT_TAIL = 256;
 
 /** Soft timeout before a probe counts as "no answer at all". */
 const PROBE_TIMEOUT_MS = 10_000;

@@ -48,6 +48,12 @@ export interface TunnelHandle {
 	readonly urls: Readonly<Record<string, string>>;
 	/** The URL for the requested route (what the CLI prints). */
 	readonly primaryUrl: string;
+	/**
+	 * Lifecycle and traffic events. A bounded tail is buffered until the
+	 * first iteration starts, then events stream live. The iterable ENDS
+	 * once the tunnel has stopped: after `stopped` on a clean stop; on a
+	 * fatal error it just ends and `closed` carries the error.
+	 */
 	readonly events: AsyncIterable<TunnelEvent>;
 	readonly status: () => TunnelStatus;
 	/** Stops the tunnel and frees provider resources. Idempotent. */
