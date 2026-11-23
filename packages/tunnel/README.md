@@ -66,6 +66,11 @@ there.
 A fatal tunnel failure never kills the dev server — you get a red line, the
 app keeps running.
 
+Stopping Vite closes the tunnel first — Ctrl+C, `q`, a closed terminal and
+SIGTERM alike — so the service releases the route at once instead of keeping
+it for a ghost session (which is what makes the next start fight through
+`route_conflict` takeovers).
+
 ## CLI + stock vite dev/preview (no plugin)
 
 Vite's DNS-rebinding protection rejects requests whose `Host` header is not

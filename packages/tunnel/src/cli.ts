@@ -30,11 +30,12 @@ function onSignal(): void {
 }
 
 process.on("SIGINT", onSignal);
-// SIGTERM (timeout, docker stop, systemd) gets the same graceful path as
-// Ctrl+C: a hard kill skips the bridge close and the server keeps the
-// route bound to a ghost session — exactly the route_conflict storm the
-// next run then has to take over.
+// SIGTERM (timeout, docker stop, systemd) and SIGHUP (the terminal
+// closes) get the same graceful path as Ctrl+C: a hard kill skips the
+// bridge close and the server keeps the route bound to a ghost session —
+// exactly the route_conflict storm the next run then has to take over.
 process.on("SIGTERM", onSignal);
+process.on("SIGHUP", onSignal);
 
 // Swallow EPIPE on stdout/stderr (`vkma-tunnel list | head`).
 for (const stream of [process.stdout, process.stderr]) {

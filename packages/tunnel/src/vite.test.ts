@@ -17,6 +17,8 @@ describe("vkmaTunnel plugin factory", () => {
 		expect(typeof plugin?.configureServer).toBe("function");
 		expect(typeof plugin?.configurePreviewServer).toBe("function");
 		expect(typeof plugin?.closeServer).toBe("function");
+		// Preview closes through its own hook — `closeServer` never runs there.
+		expect(typeof plugin?.closePreviewServer).toBe("function");
 	});
 });
 

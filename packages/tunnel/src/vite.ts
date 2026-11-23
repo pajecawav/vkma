@@ -32,10 +32,19 @@
  *   profile start there, not at whatever directory Vite was launched
  *   from;
  * - a server restart reuses the stored identity (stable URL) and closes
- *   the previous connection first.
+ *   the previous connection first;
+ * - the bridge closes BEFORE the process leaves, on every exit path. A
+ *   hard kill skips the bridge close and leaves the service holding the
+ *   route for a ghost session — the `route_conflict` takeover storm the
+ *   next start has to fight through. Vite awaits the `closeServer` /
+ *   `closePreviewServer` hooks (`q`, SIGTERM, stdin closing) but
+ *   registers no SIGINT/SIGHUP handler: Ctrl+C or a closed terminal
+ *   kills the process outright, so the plugin owns those two signals
+ *   while a tunnel is live.
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { Plugin, UserConfig } from "vite";
 import { rivalHint } from "./cli/conflict-hint.ts";
@@ -78,6 +87,58 @@ export interface VkmaTunnelPluginOptions {
 	hostRewrite?: boolean;
 }
 
+/** Upper bound on the graceful tunnel close while Vite is shutting down. */
+export const EXIT_CLOSE_CAP_MS = 1500;
+
+/** Signals that end a Vite process without running a single plugin hook. */
+const EXIT_SIGNALS: readonly NodeJS.Signals[] = ["SIGINT", "SIGHUP"];
+
+export interface ExitGuardOptions {
+	readonly signals?: readonly NodeJS.Signals[];
+	/** Replaces `process.exit` (tests). */
+	readonly exit?: (code: number) => void;
+}
+
+/**
+ * Owns the exit signals Vite never handles, for as long as a tunnel is
+ * live: close the bridge first, then leave the way the signal would
+ * have (128 + signal number). Listeners are additive in Node — nothing
+ * is overridden — but the default "die on SIGINT" only applies while no
+ * listener exists, which is why the handler must exit by itself. A
+ * second signal finds no listener left and kills at once.
+ *
+ * A signal somebody else already listens on is left alone: that owner
+ * (an embedded Vite, a supervisor) shuts the process down itself and
+ * reaches the plugin's hooks through `server.close()`.
+ *
+ * Returns the disposer.
+ */
+export function installExitGuard(
+	close: () => Promise<void>,
+	options: ExitGuardOptions = {},
+): () => void {
+	const exit = options.exit ?? ((code: number): void => void process.exit(code));
+	const installed: Array<{ signal: NodeJS.Signals; handler: () => void }> = [];
+	for (const signal of options.signals ?? EXIT_SIGNALS) {
+		if (process.listenerCount(signal) > 0) {
+			continue;
+		}
+		const handler = (): void => {
+			// No logging: on SIGHUP the terminal is already gone.
+			void close()
+				.catch(() => undefined)
+				.then(() => exit(128 + os.constants.signals[signal]));
+		};
+		process.once(signal, handler);
+		installed.push({ signal, handler });
+	}
+	return () => {
+		for (const { signal, handler } of installed) {
+			process.off(signal, handler);
+		}
+	};
+}
+
 interface TunnelServerLike {
 	httpServer: import("node:http").Server | null;
 	config: {
@@ -97,6 +158,10 @@ export function vkmaTunnel(options: VkmaTunnelPluginOptions = {}): Plugin[] {
 
 function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 	let handle: TunnelHandle | undefined;
+	/** Removes the plugin's exit-signal listeners; set while a tunnel is live. */
+	let releaseExitGuard: (() => void) | undefined;
+	/** The tunnel close still in flight, if any — see `stop()`. */
+	let closing: Promise<void> | undefined;
 	/** Resolved tunnel configs by project root — one per root per plugin instance (Vite re-creates plugins on restart). */
 	const resolved = new Map<string, Promise<ResolveTunnelConfigResult>>();
 	/** The profile's hostname as the `config` hook found it — undefined for a brand-new profile. */
@@ -127,10 +192,30 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 	const profileOf = async (root: string): Promise<string> =>
 		(await resolve(root)).config.profile ?? defaultProfile(root);
 
-	const stop = (): void => {
+	/**
+	 * Closes the active tunnel — never taking longer than EXIT_CLOSE_CAP_MS
+	 * — and returns a promise for that close. While a close is in flight,
+	 * every later call returns the SAME promise.
+	 *
+	 * That matters because Vite closes its HTTP server BEFORE it awaits
+	 * the plugin hooks: the httpServer "close" event starts our close, and
+	 * the hook that follows must wait for it instead of finding no handle,
+	 * resolving at once and letting Vite's `process.exit()` cut the bridge
+	 * close short. The exit guard awaits the same promise on a signal.
+	 */
+	const stop = (): Promise<void> => {
 		const current = handle;
 		handle = undefined;
-		void current?.close().catch(() => undefined);
+		// No tunnel, no say in Ctrl+C: back to Vite's own (default) behaviour.
+		releaseExitGuard?.();
+		releaseExitGuard = undefined;
+		if (current !== undefined) {
+			closing = cap(
+				current.close().catch(() => undefined),
+				EXIT_CLOSE_CAP_MS,
+			);
+		}
+		return closing ?? Promise.resolve();
 	};
 
 	return {
@@ -155,10 +240,13 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 		configureServer(server) {
 			wireServer(server as unknown as TunnelServerLike, options, {
 				setHandle: next => {
-					stop();
+					// Restarts: the previous tunnel closes in the background
+					// while the new one takes over.
+					void stop();
 					handle = next;
+					releaseExitGuard = installExitGuard(stop);
 				},
-				close: stop,
+				close: () => void stop(),
 				resolve,
 				registeredHostname: () => storedHostname,
 			});
@@ -166,17 +254,25 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 		configurePreviewServer(server) {
 			wireServer(server as unknown as TunnelServerLike, options, {
 				setHandle: next => {
-					stop();
+					// Restarts: the previous tunnel closes in the background
+					// while the new one takes over.
+					void stop();
 					handle = next;
+					releaseExitGuard = installExitGuard(stop);
 				},
-				close: stop,
+				close: () => void stop(),
 				resolve,
 				registeredHostname: () => storedHostname,
 				preview: true,
 			});
 		},
+		// Vite awaits both hooks before it exits (`q`, SIGTERM, stdin
+		// closing) — returning the promise is what makes the close graceful.
 		closeServer() {
-			stop();
+			return stop();
+		},
+		closePreviewServer() {
+			return stop();
 		},
 	};
 }
@@ -325,6 +421,20 @@ async function startTunnel(
 			`tunnel: stopped — ${error instanceof Error ? error.message : String(error)}`,
 			"red",
 		);
+	});
+}
+
+/** Resolves with `promise`, or when `ms` passes — whichever comes first. */
+function cap(promise: Promise<unknown>, ms: number): Promise<void> {
+	return new Promise(resolve => {
+		const timer = setTimeout(resolve, ms);
+		timer.unref?.();
+		void promise
+			.catch(() => undefined)
+			.then(() => {
+				clearTimeout(timer);
+				resolve(undefined);
+			});
 	});
 }
 

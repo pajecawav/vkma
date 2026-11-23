@@ -78,10 +78,24 @@ Keep all comments, commits, and docs in English.
    can leave `closed`/`close()` unresolved when a bridge half-dies (idle
    timeout into a route-conflict retry loop). The CLI therefore bounds
    every exit-path await: abort grace 3 s, close cap 3 s, plus an unref'd
-   force-exit timer in `src/cli.ts`. SIGTERM gets the same graceful path
-   as SIGINT — a hard kill skips the bridge close and the server keeps
-   the route bound to a ghost session, which is exactly the
+   force-exit timer in `src/cli.ts`. SIGHUP and SIGTERM get the same
+   graceful path as SIGINT — a hard kill skips the bridge close and the
+   server keeps the route bound to a ghost session, which is exactly the
    `route_conflict` takeover storm the next run must fight through.
+   The plugin closes the bridge on every Vite exit path (verified on
+   8.3.8 for dev and preview, SIGINT and SIGTERM):
+    - `closeServer` / `closePreviewServer` return the close promise, capped
+      at `EXIT_CLOSE_CAP_MS` — Vite awaits hook results before it exits
+      (`q`, SIGTERM, stdin closing), but runs NO hook at all on SIGINT;
+    - `stop()` returns the promise of a close already in flight: Vite
+      closes its HTTP server BEFORE awaiting the hooks, the httpServer
+      `close` event starts our close, and a hook that found no handle
+      would resolve at once and let `process.exit()` cut the close short;
+    - `installExitGuard` owns SIGINT and SIGHUP while a tunnel is live
+      (close, then exit with 128 + signal). Node's signal listeners are
+      additive — the default "die on SIGINT" only applies while none
+      exists, so the handler must exit by itself. A signal somebody else
+      already listens on is left to that owner.
 6. **Vite snapshots `allowedHosts` at startup.** Vite >= 5.4.12
    answers foreign Host headers with 403, and dev, preview and the HMR
    WebSocket server each freeze a copy of `allowedHosts` BEFORE
@@ -116,6 +130,8 @@ Keep all comments, commits, and docs in English.
 - Shutdown resilience tests inject a `createTunnel` fake whose
   `closed`/`close()` never settle — the CLI must still exit (abort grace
   path), proving the exit never depends on third-party teardown.
+- Exit-path tests live in `src/vite.lifecycle.test.ts`: the httpServer
+  `close` event fires BEFORE the close hooks, exactly as in Vite.
 - SDK events reach `onEvent` BEFORE `createTunnel` resolves — the SDK's
   contract is that `route-conflict` arrives while it is still attaching.
   Nothing inside an `onEvent` handler may depend on the tunnel handle.

@@ -7,7 +7,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { mergeRecordFile } from "./core/identity.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle } from "./core/types.ts";
-import { vkmaTunnel, type VkmaTunnelPluginOptions } from "./vite.ts";
+import {
+	EXIT_CLOSE_CAP_MS,
+	installExitGuard,
+	vkmaTunnel,
+	type VkmaTunnelPluginOptions,
+} from "./vite.ts";
 
 /**
  * Plugin lifecycle. The tunnel factory is mocked so a test can deliver SDK
@@ -60,13 +65,14 @@ function fakeServer(root: string): { httpServer: FakeHttpServer; config: Record<
 
 /**
  * Wires one plugin instance the way Vite does: the `config` hook first,
- * then a listening server. Returns the (possibly mutated) user config.
+ * then a listening server. Returns the plugin and its (possibly mutated)
+ * user config.
  */
 async function boot(
 	options: VkmaTunnelPluginOptions = {},
 	userConfig: UserConfig = {},
 	root: string = dirs.root,
-): Promise<UserConfig> {
+): Promise<{ plugin: Plugin; userConfig: UserConfig }> {
 	const plugin = vkmaTunnel(options)[0] as Plugin;
 	await hookOf(plugin.config)?.(
 		userConfig as never,
@@ -74,7 +80,7 @@ async function boot(
 	);
 	const server = fakeServer(root);
 	hookOf(plugin.configureServer)?.(server as never);
-	return userConfig;
+	return { plugin, userConfig };
 }
 
 /** A handle that stays up until closed; `closed` settles through `close`. */
@@ -182,12 +188,178 @@ describe("vkmaTunnel lifecycle", () => {
 	});
 });
 
+describe("vkmaTunnel shutdown", () => {
+	it("owns Vite's unhandled exit signals only while a tunnel is live", async () => {
+		// Vite registers nothing; neither does this test worker.
+		expect(process.listenerCount("SIGINT")).toBe(0);
+		expect(process.listenerCount("SIGHUP")).toBe(0);
+		tunnelComesUp();
+
+		const { plugin } = await boot({ profile: "app" });
+
+		// The guard is installed once the tunnel is up.
+		await vi.waitFor(() => {
+			expect(process.listenerCount("SIGINT")).toBe(1);
+			expect(process.listenerCount("SIGHUP")).toBe(1);
+		});
+		await hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never);
+		// No tunnel, no say in Ctrl+C.
+		expect(process.listenerCount("SIGINT")).toBe(0);
+		expect(process.listenerCount("SIGHUP")).toBe(0);
+	});
+
+	it("closeServer waits for the tunnel close — but never longer than the cap", async () => {
+		// A wedged SDK teardown: `close()` never settles.
+		let closeCalls = 0;
+		vi.mocked(createTunnel).mockImplementation(async () => ({
+			...fakeHandle(),
+			close: () => {
+				closeCalls += 1;
+				return new Promise<void>(() => undefined);
+			},
+		}));
+		const { plugin } = await boot({ profile: "app" });
+		await vi.waitFor(() => expect(output()).toContain(URL));
+
+		vi.useFakeTimers();
+		try {
+			let settled = false;
+			const closing = Promise.resolve(
+				hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never),
+			).then(() => {
+				settled = true;
+			});
+			await vi.advanceTimersByTimeAsync(EXIT_CLOSE_CAP_MS - 1);
+			// One millisecond short of the cap: still waiting for the SDK.
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			await closing;
+			expect(closeCalls).toBe(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("a close hook waits for the close the httpServer 'close' event already started", async () => {
+		// Vite closes its HTTP server BEFORE it awaits the plugin hooks.
+		let settled = false;
+		const slowHandle: TunnelHandle = {
+			...fakeHandle(),
+			close: () =>
+				new Promise<void>(resolve => {
+					setTimeout(() => {
+						settled = true;
+						resolve();
+					}, 60);
+				}),
+		};
+		vi.mocked(createTunnel).mockImplementation(async () => slowHandle);
+		const { plugin } = await boot({ profile: "app" });
+		await vi.waitFor(() => expect(output()).toContain(URL));
+
+		httpServers[0]?.emit("close");
+		expect(settled).toBe(false);
+
+		await hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never);
+		// Resolving here before the SDK finished would let Vite's
+		// `process.exit()` cut the bridge close short.
+		expect(settled).toBe(true);
+	});
+
+	it("closes the previous tunnel first when a new one goes live (Vite restart)", async () => {
+		const first = fakeHandle();
+		const firstClose = vi.spyOn(first, "close");
+		vi.mocked(createTunnel)
+			.mockImplementationOnce(async () => first)
+			.mockImplementationOnce(async () => fakeHandle());
+		const plugin = vkmaTunnel({ profile: "app" })[0] as Plugin;
+		await hookOf(plugin.config)?.({ root: dirs.root } as never, {} as never);
+		hookOf(plugin.configureServer)?.(fakeServer(dirs.root) as never);
+		await vi.waitFor(() => expect(output()).toContain(URL));
+		expect(firstClose).not.toHaveBeenCalled();
+
+		// Vite restarts: the same plugin instance is wired to a new server.
+		hookOf(plugin.configureServer)?.(fakeServer(dirs.root) as never);
+
+		await vi.waitFor(() => expect(vi.mocked(createTunnel)).toHaveBeenCalledTimes(2));
+		await vi.waitFor(() => expect(firstClose).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe("installExitGuard", () => {
+	const lastHandler = (signal: NodeJS.Signals): (() => void) =>
+		process.listeners(signal).at(-1) as () => void;
+
+	it("closes the tunnel first, then leaves with 128 + signal", async () => {
+		const exit = vi.fn();
+		const order: string[] = [];
+		const release = installExitGuard(
+			async () => {
+				order.push("closed");
+			},
+			{ exit, signals: ["SIGINT", "SIGHUP"] },
+		);
+		try {
+			lastHandler("SIGINT")();
+			// The close is asynchronous: nothing has exited yet.
+			expect(exit).not.toHaveBeenCalled();
+			await vi.waitFor(() => expect(exit).toHaveBeenCalledTimes(1));
+			expect(exit).toHaveBeenLastCalledWith(130);
+			lastHandler("SIGHUP")();
+			await vi.waitFor(() => expect(exit).toHaveBeenCalledTimes(2));
+			expect(exit).toHaveBeenLastCalledWith(129);
+			expect(order).toEqual(["closed", "closed"]);
+		} finally {
+			release();
+		}
+		expect(process.listenerCount("SIGINT")).toBe(0);
+		expect(process.listenerCount("SIGHUP")).toBe(0);
+	});
+
+	it("still leaves when the close fails", async () => {
+		const exit = vi.fn();
+		const release = installExitGuard(
+			async () => {
+				throw new Error("wedged");
+			},
+			{ exit, signals: ["SIGINT"] },
+		);
+		try {
+			lastHandler("SIGINT")();
+			await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(130));
+		} finally {
+			release();
+		}
+	});
+
+	it("leaves a signal alone that somebody else already owns", () => {
+		const exit = vi.fn();
+		const owner = (): void => undefined;
+		process.once("SIGINT", owner);
+		try {
+			const release = installExitGuard(async () => undefined, {
+				exit,
+				signals: ["SIGINT", "SIGHUP"],
+			});
+			try {
+				expect(process.listeners("SIGINT")).toEqual([owner]);
+				expect(process.listenerCount("SIGHUP")).toBe(1);
+			} finally {
+				release();
+			}
+			expect(exit).not.toHaveBeenCalled();
+		} finally {
+			process.off("SIGINT", owner);
+		}
+	});
+});
+
 describe("vkmaTunnel config hook (Vite snapshots allowedHosts at startup)", () => {
 	it("allows the stored identity's hostname while the config is still mutable", async () => {
 		await mergeRecordFile(dirs.dataDir, "app", { hostname: HOSTNAME });
 		tunnelComesUp();
 
-		const userConfig = await boot({ profile: "app" });
+		const { userConfig } = await boot({ profile: "app" });
 
 		expect(userConfig.server?.allowedHosts).toContain(HOSTNAME);
 		// preview.allowedHosts inherits server.allowedHosts — no own list is created.
@@ -199,7 +371,7 @@ describe("vkmaTunnel config hook (Vite snapshots allowedHosts at startup)", () =
 		await mergeRecordFile(dirs.dataDir, "app", { hostname: HOSTNAME });
 		tunnelComesUp();
 
-		const userConfig = await boot(
+		const { userConfig } = await boot(
 			{ profile: "app" },
 			{ server: { allowedHosts: true }, preview: { allowedHosts: ["x.dev"] } },
 		);
@@ -211,7 +383,7 @@ describe("vkmaTunnel config hook (Vite snapshots allowedHosts at startup)", () =
 	it("adds nothing for a brand-new profile", async () => {
 		tunnelComesUp();
 
-		const userConfig = await boot({ profile: "fresh" });
+		const { userConfig } = await boot({ profile: "fresh" });
 
 		expect(userConfig.server).toBeUndefined();
 		await vi.waitFor(() => expect(output()).toContain(URL));
@@ -256,7 +428,7 @@ describe("vkmaTunnel config hook (Vite snapshots allowedHosts at startup)", () =
 			await mergeRecordFile(dirs.dataDir, path.basename(root), { hostname: HOSTNAME });
 			tunnelComesUp();
 
-			const userConfig = await boot({}, { root }, root);
+			const { userConfig } = await boot({}, { root }, root);
 
 			expect(userConfig.server?.allowedHosts).toContain(HOSTNAME);
 			await vi.waitFor(() => expect(createTunnel).toHaveBeenCalled());
