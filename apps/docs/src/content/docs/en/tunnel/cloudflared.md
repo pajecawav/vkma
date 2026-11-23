@@ -6,7 +6,7 @@ sidebar:
     label: "Cloudflare Tunnel"
 ---
 
-`cloudflared` works at the HTTP level. TLS ends at Cloudflare's edge, the browser speaks HTTP/2, and the first request needs no handshake across a relay.. From one and the same machine, the first request took 0.79 s through `opentunnel` and from 0.28 to 0.35 s through `cloudflared`.
+`cloudflared` works at the HTTP level. TLS ends at Cloudflare's edge, the browser speaks HTTP/2, and the first request needs no handshake across a relay. From one and the same machine, the first request took 0.79 s through `opentunnel` and from 0.28 to 0.35 s through `cloudflared`.
 
 It needs the [`cloudflared` binary](https://developers.cloudflare.com/tunnel/downloads/) on your `PATH`. The package never downloads it.
 

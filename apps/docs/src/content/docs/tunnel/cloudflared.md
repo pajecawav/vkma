@@ -6,7 +6,7 @@ sidebar:
     label: "Cloudflare Tunnel"
 ---
 
-`cloudflared` работает на уровне HTTP. TLS завершается на краю Cloudflare, браузер говорит по HTTP/2, и первому запросу не нужно рукопожатие через релей.. С одной и той же машины первый запрос через `opentunnel` занял 0,79 с, а через `cloudflared` от 0,28 до 0,35 с.
+`cloudflared` работает на уровне HTTP. TLS завершается на краю Cloudflare, браузер говорит по HTTP/2, и первому запросу не нужно рукопожатие через релей. С одной и той же машины первый запрос через `opentunnel` занял 0,79 с, а через `cloudflared` от 0,28 до 0,35 с.
 
 Нужен [бинарник `cloudflared`](https://developers.cloudflare.com/tunnel/downloads/) в `PATH`. Пакет его не скачивает.
 
