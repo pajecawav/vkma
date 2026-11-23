@@ -241,6 +241,16 @@ describe("cloudflared provider — capabilities", () => {
 		dataDir: "",
 	};
 
+	it("take the section as written: a `createTunnel` caller owes no resolved defaults", () => {
+		// Only the config resolver fills `protocol` and `binary`; a direct
+		// `createTunnel({ cloudflared: { mode: "token" } })` must type-check,
+		// and the provider reads each key with its own default.
+		const asWritten: ConnectOptions = { ...base, cloudflared: { mode: "token" } };
+		expect(cloudflaredProvider.hostHeaderPolicy?.(asWritten)).toBe("unhandled");
+		expect(cloudflaredProvider.knownHostname?.(asWritten)).toBeUndefined();
+		expect(cloudflaredProvider.persistentIdentity?.(asWritten)).toBe(true);
+	});
+
 	it("rewrites the Host header itself in quick mode and cannot in token mode", () => {
 		const quick = {
 			...base,

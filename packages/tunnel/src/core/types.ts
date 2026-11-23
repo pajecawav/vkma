@@ -9,7 +9,7 @@
  * required. Additions stay additive — renderers ignore unknown types.
  */
 
-import type { CloudflaredOptions, OpentunnelOptionsInput } from "../config/schema.ts";
+import type { CloudflaredOptionsInput, OpentunnelOptionsInput } from "../config/schema.ts";
 import type { TunnelProviderId } from "../constants.ts";
 
 export type TunnelEvent =
@@ -110,8 +110,8 @@ export interface CreateTunnelOptions {
 	 * (e.g. virtual-host routing) or serves its own TLS.
 	 */
 	readonly hostRewrite?: boolean;
-	/** Options of the `cloudflared` provider (its config section, defaults applied). */
-	readonly cloudflared?: CloudflaredOptions;
+	/** Options of the `cloudflared` provider (its config section as written; the provider applies the defaults). */
+	readonly cloudflared?: CloudflaredOptionsInput;
 	/**
 	 * Human-readable warnings (an outdated binary, a URL that is still
 	 * warming up). Transient like `onProgress`: not part of the event
@@ -143,8 +143,8 @@ export interface TunnelProviderConnectOptions {
 	 * service resets handshakes within a second when its relay dies.
 	 */
 	readonly keepAlive?: boolean;
-	/** Options of the `cloudflared` provider; undefined for other providers. */
-	readonly cloudflared?: CloudflaredOptions;
+	/** The `cloudflared` section as the caller gave it; the provider applies its defaults. */
+	readonly cloudflared?: CloudflaredOptionsInput;
 	/**
 	 * Environment the provider may read and hand to a child process
 	 * (`TUNNEL_TOKEN`, `PATH`). Whatever the caller injected into
