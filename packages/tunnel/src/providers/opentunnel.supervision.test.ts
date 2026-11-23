@@ -3,7 +3,8 @@ import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TunnelEvent } from "../core/types.ts";
 import { OpenTunnelClientError, fakeSdk } from "../test-utils.ts";
-import { PRE_STREAM_EVENT_TAIL, opentunnelProvider } from "./opentunnel.ts";
+import { PRE_STREAM_EVENT_TAIL } from "./event-stream.ts";
+import { opentunnelProvider } from "./opentunnel.ts";
 
 // The provider talks to the SDK; the fake mirrors the promise wrapper's contract.
 vi.mock("@opentunnel/client", async () => await import("../test-utils.ts"));

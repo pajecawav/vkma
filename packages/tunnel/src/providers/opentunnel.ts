@@ -36,6 +36,8 @@ import type {
 	TunnelProviderConnection,
 } from "../core/types.ts";
 import { TunnelError } from "../errors.ts";
+import { createEventStream } from "./event-stream.ts";
+import { probeHttp } from "./probe.ts";
 
 /** The identity fields stored verbatim in the record file. */
 const IDENTITY_KEYS = [
@@ -111,32 +113,9 @@ async function connectOpenTunnel(
 	let restarts = 0;
 
 	// Merged event stream: every SDK connection (initial + restarts) feeds
-	// one AsyncIterable + the caller's onEvent. Until something iterates
-	// the stream only a bounded tail is kept — the CLI and the plugin
-	// drive `onEvent` alone, and every visitor connection adds two events,
-	// so an unbounded queue would grow for as long as the process lives.
-	const eventQueue: TunnelEvent[] = [];
-	let eventNotify: (() => void) | undefined;
-	let streaming = false;
-	let finished = false;
-	const notify = (): void => {
-		const wake = eventNotify;
-		eventNotify = undefined;
-		wake?.();
-	};
-	const sink = (event: TunnelEvent): void => {
-		eventQueue.push(event);
-		if (!streaming && eventQueue.length > PRE_STREAM_EVENT_TAIL) {
-			eventQueue.shift();
-		}
-		options.onEvent?.(event);
-		notify();
-	};
-	/** The tunnel is over: the stream ends once the queued events are drained. */
-	const finish = (): void => {
-		finished = true;
-		notify();
-	};
+	// one AsyncIterable + the caller's onEvent — bounded until something
+	// iterates it (see event-stream.ts).
+	const events = createEventStream(options.onEvent);
 
 	let settleResolve: () => void = () => undefined;
 	let settleReject: (error: unknown) => void = () => undefined;
@@ -157,7 +136,7 @@ async function connectOpenTunnel(
 		// SDK's code), never the raw third-party error.
 		settleReject(mapClientError(error));
 		// No terminal event on a fatal: `closed` carries the error.
-		finish();
+		events.end();
 	};
 
 	/**
@@ -174,8 +153,8 @@ async function connectOpenTunnel(
 		tornDown = true;
 		stopWatchdog();
 		void bounded(client.dispose());
-		sink({ type: "stopped" });
-		finish();
+		events.push({ type: "stopped" });
+		events.end();
 		settleResolve();
 	};
 
@@ -198,7 +177,7 @@ async function connectOpenTunnel(
 				if (mapped.type === "stopped") {
 					return;
 				}
-				sink(mapped);
+				events.push(mapped);
 			},
 		});
 		// Rejection is a fatal the supervisor surfaces as `closed`. A clean
@@ -225,14 +204,14 @@ async function connectOpenTunnel(
 		restarts += 1;
 		restarting = true;
 		timeoutStreak = 0;
-		sink({
+		events.push({
 			type: "disconnected",
 			reason: "health watchdog: bridge unresponsive, restarting bridge",
 		});
 		await bounded(current.close());
 		current = await attach();
 		restarting = false;
-		sink({
+		events.push({
 			type: "connected",
 			session: `watchdog-restart-${String(restarts)}`,
 			routes: [options.route],
@@ -325,37 +304,17 @@ async function connectOpenTunnel(
 		await bounded(client.dispose());
 		// The supervisor owns the `stopped` semantics (SDK copies are
 		// filtered in attach): one clean stop when the user asks for it.
-		sink({ type: "stopped" });
-		finish();
+		events.push({ type: "stopped" });
+		events.end();
 		settleResolve();
 	};
-
-	async function* mergedEvents(): AsyncGenerator<TunnelEvent> {
-		streaming = true;
-		try {
-			for (;;) {
-				while (eventQueue.length > 0) {
-					yield eventQueue.shift() as TunnelEvent;
-				}
-				if (finished) {
-					return;
-				}
-				await new Promise<void>(resolve => {
-					eventNotify = resolve;
-				});
-			}
-		} finally {
-			// Left early (`break`) or drained to the end: back to the bounded tail.
-			streaming = false;
-		}
-	}
 
 	return {
 		hostname: current.tunnel.hostname,
 		get urls() {
 			return current.urls;
 		},
-		events: mergedEvents(),
+		events: events.iterable,
 		status: () => mapStatus(current.status()),
 		setRoutes,
 		close: teardown,
@@ -363,39 +322,12 @@ async function connectOpenTunnel(
 	};
 }
 
-/**
- * Events kept for a consumer that has not started iterating `events`
- * yet. The oldest are dropped first; once a consumer iterates, nothing
- * is dropped any more.
- */
-export const PRE_STREAM_EVENT_TAIL = 256;
-
 /** Soft timeout before a probe counts as "no answer at all". */
 const PROBE_TIMEOUT_MS = 10_000;
-/** Direct-target probe deadline (the watchdog baseline). */
-const DIRECT_PROBE_TIMEOUT_MS = 5_000;
 /** Consecutive wedged probes before the watchdog restarts the bridge. */
 const PROBE_FAILURE_LIMIT = 2;
 /** Health-probe / keepalive cadence. */
 const PROBE_INTERVAL_MS = 20_000;
-
-/**
- * HEAD probe with a deadline: any HTTP response counts as alive
- * (4xx/5xx included — presence of a reply is the signal, not the code).
- */
-async function probeHttp(url: string, timeoutMs = DIRECT_PROBE_TIMEOUT_MS): Promise<boolean> {
-	try {
-		const response = await fetch(url, {
-			method: "HEAD",
-			signal: AbortSignal.timeout(timeoutMs),
-			redirect: "manual",
-		});
-		response.body?.cancel().catch(() => undefined);
-		return true;
-	} catch {
-		return false;
-	}
-}
 
 /** Swallows rejections AND never waits longer than `ms` (SDK teardown can hang on a dead bridge). */
 function bounded(promise: Promise<unknown>, ms = 2500): Promise<void> {
