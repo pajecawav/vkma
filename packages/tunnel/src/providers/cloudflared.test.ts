@@ -208,6 +208,54 @@ describe("cloudflared binary", () => {
 		expect((failure as { code?: string }).code).toBe("E_CLOUDFLARED_MISSING");
 	});
 
+	it("finds cloudflared.exe on Windows, where a bare name means an executable", async () => {
+		const dir = await fs.mkdtemp(path.join(import.meta.dirname, ".cf-win-"));
+		try {
+			await fs.writeFile(path.join(dir, "cloudflared.exe"), "");
+			// Windows spells the variable `Path`, and a copied environment
+			// keeps that spelling.
+			const env = { Path: dir };
+			expect(resolveCloudflaredBinary(undefined, env, "win32")).toBe(
+				path.join(dir, "cloudflared.exe"),
+			);
+			expect(resolveCloudflaredBinary("cloudflared.exe", env, "win32")).toBe(
+				path.join(dir, "cloudflared.exe"),
+			);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("on Windows a bare name is never a file without an extension", async () => {
+		const dir = await fs.mkdtemp(path.join(import.meta.dirname, ".cf-win-"));
+		try {
+			// Not spawnable on Windows, so not a match: resolving it would
+			// turn a clear "install it" into a puzzling failure at --version.
+			await fs.writeFile(path.join(dir, "cloudflared"), "");
+			let failure: unknown;
+			try {
+				resolveCloudflaredBinary(undefined, { Path: dir }, "win32");
+			} catch (error) {
+				failure = error;
+			}
+			expect((failure as { code?: string }).code).toBe("E_CLOUDFLARED_MISSING");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("reads `Path` as PATH on Windows only", () => {
+		// Elsewhere `Path` is another variable: here PATH is simply missing.
+		let failure: unknown;
+		try {
+			resolveCloudflaredBinary(undefined, { Path: import.meta.dirname }, "linux");
+		} catch (error) {
+			failure = error;
+		}
+		expect((failure as { code?: string }).code).toBe("E_CLOUDFLARED_MISSING");
+		expect((failure as Error).message).toContain("PATH is empty");
+	});
+
 	it("reads the version and its age", async () => {
 		const env = await fake();
 		const current = readCloudflaredVersion(path.join(binDir, "cloudflared"), env);

@@ -104,11 +104,14 @@ commits, and docs in English.
    start there, not at the launch directory. No env layer by design;
    `OPENTUNNEL_API` is read natively by the SDK, don't shadow it.
 3. **The library never touches `process`** outside injected `env`
-   (identity store default param, `resolveTunnelConfig` cwd default), the
-   documented `stripTypeScriptTypes` warning shim, and `process.pid`
-   (stamped into the profile record so route conflicts can point at the
-   rival process — no side effects). Only `src/cli*` and `src/vite.ts`
-   (console logging, browser opener) may.
+   (identity store default param, `resolveTunnelConfig` cwd default, the
+   cloudflared binary lookup's platform default — on Windows a bare name
+   is `name.exe` and the variable is `Path`), the documented
+   `stripTypeScriptTypes` warning shim, and `process.pid` (stamped into
+   the profile record so route conflicts can point at the rival process
+   — no side effects). Only `src/cli*` and `src/vite.ts` (console
+   logging, browser opener) may. The lookup's Windows branch is tested
+   by naming the platform; no Windows machine has run it.
 4. **A fatal tunnel never kills the dev server** (plugin prints a red
    line, devtools policy). The CLI maps failures to exit codes:
    0 ok · 1 config/user · 2 network · 130 aborted — via `TunnelError.kind`.

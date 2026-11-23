@@ -5,7 +5,9 @@
  * missing binary is a config error that says how to install it. A name is
  * looked up in the injected `PATH`; anything with a separator is taken as
  * a path. The lookup is explicit (rather than left to `spawn`) so that a
- * missing binary fails before any child is started, with a useful message.
+ * missing binary fails before any child is started, with a useful message —
+ * and so that Windows is handled the way it resolves commands: a bare name
+ * is `name.exe`, and the variable is spelled `Path`.
  */
 
 import { spawnSync } from "node:child_process";
@@ -30,32 +32,70 @@ export interface CloudflaredVersion {
 }
 
 /**
- * Resolves the executable to run: an absolute path, or the first match in
- * `PATH` that is a file we may execute.
+ * What a bare name is called on disk. Windows resolves `cloudflared` to
+ * `cloudflared.exe` and nothing else: `.cmd`/`.bat` shims are left out on
+ * purpose — they cannot be spawned without a shell, and cloudflared ships
+ * as an `.exe`. A name that already carries an extension is taken as is.
  */
-export function resolveCloudflaredBinary(requested: string | undefined, env: ProviderEnv): string {
+function executableName(name: string, platform: NodeJS.Platform): string {
+	if (platform === "win32" && path.extname(name) === "") {
+		return `${name}.exe`;
+	}
+	return name;
+}
+
+/**
+ * `PATH` as the platform spells it. Windows keeps it as `Path`, and a
+ * plain-object copy of the environment keeps that spelling — only there is
+ * the lookup case-insensitive, everywhere else `Path` is another variable.
+ */
+function pathOf(env: ProviderEnv, platform: NodeJS.Platform): string | undefined {
+	if (env["PATH"] !== undefined || platform !== "win32") {
+		return env["PATH"];
+	}
+	const key = Object.keys(env).find(candidate => candidate.toUpperCase() === "PATH");
+	return key === undefined ? undefined : env[key];
+}
+
+/**
+ * Resolves the executable to run: an absolute path, or the first match in
+ * `PATH` that is a file we may execute. The platform only defaults to the
+ * real one; tests name it.
+ */
+export function resolveCloudflaredBinary(
+	requested: string | undefined,
+	env: ProviderEnv,
+	platform: NodeJS.Platform = process.platform,
+): string {
 	const name = (requested ?? "").trim() || DEFAULT_CLOUDFLARED_BINARY;
 	if (name.includes("/") || name.includes("\\")) {
 		const absolute = path.resolve(name);
-		if (!isExecutableFile(absolute)) {
-			throw missing(name, `${absolute} is not an executable file`, env);
+		if (!isExecutableFile(absolute, platform)) {
+			throw missing(name, `${absolute} is not an executable file`, env, platform);
 		}
 		return absolute;
 	}
-	for (const directory of (env["PATH"] ?? "").split(path.delimiter)) {
+	const searchPath = pathOf(env, platform) ?? "";
+	const candidate = executableName(name, platform);
+	for (const directory of searchPath.split(path.delimiter)) {
 		if (directory === "") {
 			continue;
 		}
-		const candidate = path.join(directory, name);
-		if (isExecutableFile(candidate)) {
-			return candidate;
+		const file = path.join(directory, candidate);
+		if (isExecutableFile(file, platform)) {
+			return file;
 		}
 	}
-	throw missing(name, `not found on PATH (${path.delimiter}-separated lookup)`, env);
+	throw missing(name, `not found on PATH (${path.delimiter}-separated lookup)`, env, platform);
 }
 
-function missing(name: string, detail: string, env: ProviderEnv): TunnelError {
-	const searched = (env["PATH"] ?? "") === "" ? " PATH is empty." : "";
+function missing(
+	name: string,
+	detail: string,
+	env: ProviderEnv,
+	platform: NodeJS.Platform,
+): TunnelError {
+	const searched = (pathOf(env, platform) ?? "") === "" ? " PATH is empty." : "";
 	return new TunnelError(
 		"config",
 		[
@@ -70,9 +110,16 @@ function missing(name: string, detail: string, env: ProviderEnv): TunnelError {
 	);
 }
 
-function isExecutableFile(file: string): boolean {
+/**
+ * A file we may start. Windows has no executable bit — the `.exe` in the
+ * name (see `executableName`) and the file's existence are the whole test —
+ * so `X_OK` is asked for everywhere else only.
+ */
+function isExecutableFile(file: string, platform: NodeJS.Platform): boolean {
 	try {
-		fs.accessSync(file, fs.constants.X_OK);
+		if (platform !== "win32") {
+			fs.accessSync(file, fs.constants.X_OK);
+		}
 		return fs.statSync(file).isFile();
 	} catch {
 		return false;
