@@ -484,9 +484,10 @@ async function connectCloudflared(
 		if (!live()) {
 			return false;
 		}
-		warn(
-			`${target} does not answer yet — a new Quick Tunnel takes up to a minute to route; retry if the page shows "Cloudflare Tunnel error"`,
-		);
+		// The cap ran out: the URL is announced unverified, and silently on
+		// purpose. The line that used to go here ("does not answer yet")
+		// printed on EVERY start wherever this machine cannot reach the edge,
+		// and the one thing it had to say is in the README.
 		return true;
 	}
 

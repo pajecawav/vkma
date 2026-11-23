@@ -560,7 +560,7 @@ describe("run with the cloudflared provider", () => {
 		expect(result.err).toContain("cloudflared.hostname");
 	});
 
-	it("says that a Quick Tunnel URL is one-time", async () => {
+	it("prints a Quick Tunnel's banner and nothing on stderr", async () => {
 		out = [];
 		errOut = [];
 		const handle = replaceableTunnel();
@@ -583,8 +583,9 @@ describe("run with the cloudflared provider", () => {
 		});
 		expect(code).toBe(130);
 		expect(out.join("")).toContain("https://first-tunnel.trycloudflare.com");
-		expect(errOut.join("")).toContain("Quick Tunnel — this URL is one-time");
-		// Host rewriting is on here: nothing to allow.
+		// The banner, and nothing on stderr: not a reminder that the URL is
+		// one-time, and host rewriting is on, so nothing to allow either.
+		expect(errOut.join("")).not.toContain("one-time");
 		expect(errOut.join("")).not.toContain(".trycloudflare.com");
 	});
 

@@ -195,7 +195,13 @@ commits, and docs in English.
     `530` until they know the route. The provider waits before the first
     probe and gates the announcement on a status below Cloudflare's error
     range. If the process dies behind that gate the START fails — never
-    announce a URL that is already dead.
+    announce a URL that is already dead. Past the cap the URL is announced
+    unverified and SILENTLY: neither surface nor the Node API gets a line
+    about it. The one that existed ("does not answer yet") printed on
+    every start wherever the machine cannot reach the edge; the same goes
+    for reminding that a Quick Tunnel URL is one-time — the option chose
+    it and the README says it. A line on every start must be something
+    the user can act on.
 12. **cloudflared teardown is hard-capped** (SIGTERM, 3 s, SIGKILL). On a
     dead control stream it spins a core at 100 % for its whole 30 s grace
     period. `cloudflared`'s edge connection ignores proxies by design

@@ -378,19 +378,18 @@ async function runTunnel(
 	// spinner would keep spinning under the printed URL forever.
 	logger.spinnerStop();
 	announce(false);
-	// A Quick Tunnel is a one-time URL: say so while the user is looking
-	// at it, not after they wired it into the VK app settings.
-	if (handle.provider === "cloudflared" && config.cloudflared?.mode !== "token") {
+	if (
+		handle.provider === "cloudflared" &&
+		config.cloudflared?.mode !== "token" &&
+		parsed.booleans.noHostRewrite
+	) {
+		// cloudflared left the public Host in place, as asked; its name is
+		// new on every start, so only the suffix can be allowed up front.
+		// (That a Quick Tunnel is one-time and slow to warm up is worth no
+		// line on every start: the flag chose it, and the README says it.)
 		logger.warn(
-			"  tunnel: Quick Tunnel — this URL is one-time: it changes on every start and takes up to a minute to warm up. For a stable URL use a named tunnel (--cloudflared-mode token).",
+			"  tunnel: host rewriting is off and a Quick Tunnel gets a new hostname on every start — allow the suffix in vite: server.allowedHosts: ['.trycloudflare.com']",
 		);
-		if (parsed.booleans.noHostRewrite) {
-			// cloudflared left the public Host in place, as asked; its name is
-			// new on every start, so only the suffix can be allowed up front.
-			logger.warn(
-				"  tunnel: host rewriting is off and a Quick Tunnel gets a new hostname on every start — allow the suffix in vite: server.allowedHosts: ['.trycloudflare.com']",
-			);
-		}
 	}
 	if (parsed.booleans.qr && !logger.json) {
 		logger.rawOut(renderQr(handle.primaryUrl));

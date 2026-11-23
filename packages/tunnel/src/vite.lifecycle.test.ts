@@ -552,10 +552,16 @@ describe("vkmaTunnel with the cloudflared provider", () => {
 		});
 	});
 
-	it("says that a Quick Tunnel URL is one-time", async () => {
+	it("prints the banner for a Quick Tunnel and nothing beside it", async () => {
 		vi.mocked(createTunnel).mockImplementation(async () => liveQuickHandle());
 		await boot({ provider: "cloudflared" });
-		await vi.waitFor(() => expect(output()).toContain("Quick Tunnel — this URL is one-time"));
+		await vi.waitFor(() =>
+			expect(output()).toContain("https://first-tunnel.trycloudflare.com"),
+		);
+		// Not a reminder that the URL is one-time, not a warm-up notice: the
+		// option chose a Quick Tunnel, and both printed on every start.
+		expect(output()).not.toContain("one-time");
+		expect(output()).not.toContain("does not answer");
 	});
 
 	it("prints a fresh banner with the NEW URL on url-changed", async () => {

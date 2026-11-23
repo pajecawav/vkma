@@ -170,8 +170,11 @@ token:  cloudflared tunnel --no-autoupdate --loglevel info --protocol <p> run
   `Registered tunnel connection` line was seen, and a plain `GET` of the
   public URL returned `200`. The probe starts no earlier than 2 s after the
   URL line and retries with backoff for at most 60 s; past that the tunnel is
-  announced anyway and the handle carries a `notice` ("Cloudflare may still
-  be routing this hostname; retry in a minute"). The probe never runs before
+  announced anyway. _Amended during implementation:_ silently — the draft's
+  `notice` ("Cloudflare may still be routing this hostname") and the
+  warning that replaced it printed on every start wherever the machine
+  cannot reach the edge, and so did the reminder that a Quick Tunnel URL
+  is one-time; both were dropped as noise. The probe never runs before
   the bridge is registered — a request that arrives first would be answered
   `530` and proves nothing.
 - **Events.** Log lines map onto the existing union: `Registered` →

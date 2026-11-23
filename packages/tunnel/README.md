@@ -117,10 +117,11 @@ vkma-tunnel --provider cloudflared
 ```
 
 The URL is a one-time `*.trycloudflare.com` address: it **changes on every
-start** and takes up to a minute to warm up (the tool announces it only once
-it answers). Nothing is stored for it. Fine for a look from another device;
-not for the VK app settings. Cloudflare also limits Quick Tunnels to 200
-in-flight requests and no Server-Sent Events, with no uptime guarantee.
+start** and takes up to a minute to warm up — the tool holds it back until
+it answers, for at most a minute; past that it is printed unverified.
+Nothing is stored for it. Fine for a look from another device; not for the
+VK app settings. Cloudflare also limits Quick Tunnels to 200 in-flight
+requests and no Server-Sent Events, with no uptime guarantee.
 
 The Host header is rewritten to `localhost:<port>` for you, so Vite's
 `allowedHosts` check passes. With `hostRewrite: false` (CLI:

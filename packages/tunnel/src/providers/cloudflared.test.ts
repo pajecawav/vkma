@@ -342,7 +342,7 @@ describe("cloudflared provider — quick mode", () => {
 		}
 	});
 
-	it("announces anyway, with a warning, when the URL never answers", async () => {
+	it("announces anyway, and silently, when the URL never answers before the cap", async () => {
 		fast();
 		const env = await fake();
 		const collected = collect();
@@ -354,7 +354,9 @@ describe("cloudflared provider — quick mode", () => {
 			onWarning: collected.onWarning,
 		});
 		try {
-			expect(collected.warnings[0]).toContain("does not answer yet");
+			// Announced unverified, without a line about it: that line printed
+			// on every start wherever the edge is unreachable from the machine.
+			expect(collected.warnings).toEqual([]);
 			expect(connection.hostname).toBe("fake-tunnel-1.trycloudflare.com");
 			// No probe before the minimum delay after the URL line: an early
 			// lookup is cached as NXDOMAIN for a minute.
