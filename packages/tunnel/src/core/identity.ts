@@ -23,6 +23,11 @@ import path from "node:path";
 export interface ProfileRecord {
 	readonly profile: string;
 	readonly hostname: string;
+	/**
+	 * The provider this profile belongs to. Absent in records written
+	 * before the second provider existed: those are opentunnel's.
+	 */
+	readonly provider?: string;
 	readonly lastTarget?: string;
 	/** Route name of the last run (`"@"` when unknown) — builds list/status URLs. */
 	readonly lastRoute?: string;
@@ -145,6 +150,7 @@ async function readRecordFile(
 	}
 	return {
 		hostname,
+		provider: typeof record["provider"] === "string" ? record["provider"] : undefined,
 		lastTarget: typeof record["lastTarget"] === "string" ? record["lastTarget"] : undefined,
 		lastRoute: typeof record["lastRoute"] === "string" ? record["lastRoute"] : undefined,
 		pid: typeof record["pid"] === "number" ? record["pid"] : undefined,

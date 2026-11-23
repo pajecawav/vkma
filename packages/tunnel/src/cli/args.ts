@@ -16,6 +16,10 @@ const VALUE_FLAGS = new Set([
 	"--profile",
 	"--config",
 	"--api",
+	"--cloudflared-mode",
+	"--cloudflared-hostname",
+	"--cloudflared-protocol",
+	"--cloudflared-binary",
 ]);
 const BOOLEAN_FLAGS = new Set([
 	"--qr",
@@ -35,6 +39,14 @@ const SHORT_FLAGS = new Map([
 	["-V", "--version"],
 ]);
 
+/** The `--cloudflared-*` flags: the keys of the config's `cloudflared` section. Only what was passed. */
+export interface CloudflaredFlags {
+	readonly mode?: "quick" | "token";
+	readonly hostname?: string;
+	readonly protocol?: "http2" | "quic";
+	readonly binary?: string;
+}
+
 export interface ParsedArgs {
 	readonly command: Command;
 	/** Positional profile for `status <profile>`. */
@@ -47,6 +59,8 @@ export interface ParsedArgs {
 		readonly profile?: string;
 		readonly config?: string;
 		readonly api?: string;
+		/** Set when any `--cloudflared-*` flag was passed. */
+		readonly cloudflared?: CloudflaredFlags;
 	};
 	readonly booleans: {
 		readonly qr: boolean;
@@ -77,6 +91,12 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	let profile: string | undefined;
 	let config: string | undefined;
 	let api: string | undefined;
+	const cloudflared: {
+		mode?: "quick" | "token";
+		hostname?: string;
+		protocol?: "http2" | "quic";
+		binary?: string;
+	} = {};
 	let qr = false;
 	let open = false;
 	let all = false;
@@ -151,6 +171,30 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 				case "--api":
 					api = value;
 					break;
+				case "--cloudflared-mode":
+					if (value !== "quick" && value !== "token") {
+						errors.push(
+							`--cloudflared-mode expects quick or token, got ${JSON.stringify(value)}`,
+						);
+					} else {
+						cloudflared.mode = value;
+					}
+					break;
+				case "--cloudflared-protocol":
+					if (value !== "http2" && value !== "quic") {
+						errors.push(
+							`--cloudflared-protocol expects http2 or quic, got ${JSON.stringify(value)}`,
+						);
+					} else {
+						cloudflared.protocol = value;
+					}
+					break;
+				case "--cloudflared-hostname":
+					cloudflared.hostname = value;
+					break;
+				case "--cloudflared-binary":
+					cloudflared.binary = value;
+					break;
 				case "--port": {
 					const parsed = Number.parseInt(value, 10);
 					// Round-trip: "--port 5e3" must fail instead of quietly
@@ -218,7 +262,16 @@ export function parseArgv(argv: readonly string[]): ParsedArgs {
 	return {
 		command: command ?? "run",
 		profileArg,
-		values: { provider, port, host, route, profile, config, api },
+		values: {
+			provider,
+			port,
+			host,
+			route,
+			profile,
+			config,
+			api,
+			cloudflared: Object.keys(cloudflared).length === 0 ? undefined : cloudflared,
+		},
 		booleans: {
 			qr,
 			open,

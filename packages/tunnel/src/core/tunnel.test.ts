@@ -1,10 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { isTunnelError } from "../errors.ts";
+import { cloudflaredTimings } from "../providers/cloudflared.ts";
 import { startForwardProxy } from "../proxy.ts";
-import { fakeSdk } from "../test-utils.ts";
-import { mergeRecordFile } from "./identity.ts";
+import { fakeCloudflaredLaunches, fakeSdk, installFakeCloudflared } from "../test-utils.ts";
+import { mergeRecordFile, readProfileRecord } from "./identity.ts";
 import { createTunnel, getTunnelProvider, tunnelProviderIds } from "./tunnel.ts";
 import type { TunnelEvent } from "./types.ts";
 
@@ -32,8 +33,8 @@ describe("getTunnelProvider", () => {
 		}
 	});
 
-	it("ships exactly one provider in v0.1", () => {
-		expect(tunnelProviderIds()).toEqual(["opentunnel"]);
+	it("ships the two providers, opentunnel first (the default)", () => {
+		expect(tunnelProviderIds()).toEqual(["opentunnel", "cloudflared"]);
 	});
 });
 
@@ -149,5 +150,183 @@ describe("createTunnel resource ownership", () => {
 
 		expect(await listeners()).toBe(before);
 		expect(fakeSdk.stats.closes).toBe(1);
+	});
+});
+
+describe("createTunnel with the cloudflared provider", () => {
+	let cfDir: string;
+	/** Where a run WITHOUT an explicit `dataDir` would land: the sandbox, never the real store. */
+	const sandboxEnv = { XDG_DATA_HOME: path.join(import.meta.dirname, ".tunnel-cf-test-xdg") };
+
+	beforeAll(async () => {
+		cfDir = await fs.mkdtemp(path.join(import.meta.dirname, ".tunnel-cf-test-data-"));
+		await fs.mkdir(sandboxEnv.XDG_DATA_HOME, { recursive: true });
+	});
+
+	afterAll(async () => {
+		await fs.rm(cfDir, { recursive: true, force: true });
+		await fs.rm(sandboxEnv.XDG_DATA_HOME, { recursive: true, force: true });
+	});
+
+	const ORIGINAL_TIMINGS = {
+		...cloudflaredTimings,
+		respawnDelaysMs: [...cloudflaredTimings.respawnDelaysMs],
+	};
+
+	beforeEach(() => {
+		Object.assign(cloudflaredTimings, {
+			warmupMinDelayMs: 20,
+			warmupCapMs: 400,
+			warmupStepMs: 10,
+			termGraceMs: 150,
+			respawnDelaysMs: [10, 10, 10, 10, 10],
+		});
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => new Response(null, { status: 200 })),
+		);
+		vi.mocked(startForwardProxy).mockClear();
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		Object.assign(cloudflaredTimings, ORIGINAL_TIMINGS, {
+			respawnDelaysMs: [...ORIGINAL_TIMINGS.respawnDelaysMs],
+		});
+	});
+
+	/** A complete opentunnel identity seeded under `profile`. */
+	async function storeOpentunnelIdentity(profile: string): Promise<void> {
+		await mergeRecordFile(cfDir, profile, {
+			provider: "opentunnel",
+			id: "4bznf5jcbkct",
+			hostname: fakeSdk.hostname,
+			token: "token",
+			privateKey: "key",
+			certificate: "cert",
+			chain: "chain",
+			certificateExpiry: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+		});
+	}
+
+	it("refuses to run another provider on a profile that belongs to opentunnel", async () => {
+		await storeOpentunnelIdentity("owned");
+		const { env } = await installFakeCloudflared(cfDir, sandboxEnv);
+
+		const failure = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "owned",
+			dataDir: cfDir,
+			env,
+		}).catch((error: unknown) => error);
+
+		expect(failure).toMatchObject({ code: "E_PROVIDER_MISMATCH", kind: "config" });
+		expect((failure as Error).message).toContain('belongs to provider "opentunnel"');
+		// Nothing was launched and the identity is intact.
+		expect(await fakeCloudflaredLaunches(path.join(cfDir, "fake-state"))).toBe(0);
+		expect((await readProfileRecord(cfDir, "owned"))?.hostname).toBe(fakeSdk.hostname);
+	});
+
+	it("refuses opentunnel on a profile that belongs to cloudflared", async () => {
+		await mergeRecordFile(cfDir, "named", {
+			provider: "cloudflared",
+			hostname: "app.example.com",
+		});
+
+		await expect(
+			createTunnel({ port: 5173, profile: "named", dataDir: cfDir, env: sandboxEnv }),
+		).rejects.toMatchObject({
+			code: "E_PROVIDER_MISMATCH",
+		});
+	});
+
+	it("quick mode writes no profile record and starts no proxy", async () => {
+		const { env } = await installFakeCloudflared(cfDir, sandboxEnv);
+		const warnings: string[] = [];
+
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "one-time",
+			dataDir: cfDir,
+			env,
+			keepAlive: false,
+			onWarning: message => {
+				warnings.push(message);
+			},
+		});
+		try {
+			expect(handle.hostname).toBe("fake-tunnel-1.trycloudflare.com");
+			expect(handle.primaryUrl).toBe("https://fake-tunnel-1.trycloudflare.com");
+			// No loopback proxy beside the child.
+			expect(startForwardProxy).not.toHaveBeenCalled();
+			expect(await readProfileRecord(cfDir, "one-time")).toBeUndefined();
+			expect(warnings).toEqual([]);
+		} finally {
+			await handle.close();
+		}
+	});
+
+	it("a respawned Quick Tunnel changes the URL under the same handle", async () => {
+		const { env } = await installFakeCloudflared(cfDir, {
+			...sandboxEnv,
+			FAKE_CF_EXIT_AFTER: "250",
+			FAKE_CF_EXIT_AFTER_LAUNCH: "1",
+		});
+		const events: string[] = [];
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "one-time",
+			dataDir: cfDir,
+			env,
+			keepAlive: false,
+			onEvent: event => {
+				events.push(event.type);
+			},
+		});
+		try {
+			await vi.waitFor(() => expect(events).toContain("url-changed"));
+			expect(handle.hostname).toBe("fake-tunnel-2.trycloudflare.com");
+			expect(handle.primaryUrl).toBe("https://fake-tunnel-2.trycloudflare.com");
+		} finally {
+			await handle.close();
+		}
+	});
+
+	it("token mode stores its record, starts no proxy and warns about the Host header", async () => {
+		const { env } = await installFakeCloudflared(cfDir, {
+			...sandboxEnv,
+			TUNNEL_TOKEN: "from-env",
+		});
+		const warnings: string[] = [];
+
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "named-app",
+			dataDir: cfDir,
+			env,
+			keepAlive: false,
+			cloudflared: {
+				mode: "token",
+				hostname: "app.example.com",
+				protocol: "http2",
+				binary: "cloudflared",
+			},
+			onWarning: message => {
+				warnings.push(message);
+			},
+		});
+		try {
+			expect(startForwardProxy).not.toHaveBeenCalled();
+			expect(handle.primaryUrl).toBe("https://app.example.com");
+			expect(warnings.join("\n")).toContain("HTTP Host header override");
+			const record = await readProfileRecord(cfDir, "named-app");
+			expect(record).toMatchObject({ provider: "cloudflared", hostname: "app.example.com" });
+		} finally {
+			await handle.close();
+		}
 	});
 });

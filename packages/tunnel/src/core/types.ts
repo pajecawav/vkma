@@ -186,17 +186,33 @@ export interface TunnelProviderConnection {
 export interface TunnelProvider {
 	readonly id: string;
 	/**
-	 * True when the provider itself rewrites the Host header the local
-	 * target sees, so the core's host-rewriting proxy is skipped for that
-	 * run (cloudflared quick mode: `--http-host-header`). Undefined or
-	 * false: the core decides through `hostRewrite`.
+	 * Who makes the Host header acceptable to the local target (Vite's
+	 * `allowedHosts` rejects foreign hosts)?
+	 *
+	 * - `"proxy"` (the default): the core's host-rewriting proxy, unless
+	 *   the caller turned `hostRewrite` off — opentunnel;
+	 * - `"provider"`: the provider rewrites it itself and the core starts
+	 *   no proxy — cloudflared quick mode (`--http-host-header`);
+	 * - `"unhandled"`: neither can — the core starts no proxy and warns:
+	 *   cloudflared token mode, where the dashboard's origin settings
+	 *   decide what the target sees and traffic never passes the proxy.
 	 */
-	readonly handlesHostHeader?: (options: TunnelProviderConnectOptions) => boolean;
+	readonly hostHeaderPolicy?: (
+		options: TunnelProviderConnectOptions,
+	) => "proxy" | "provider" | "unhandled";
 	/**
 	 * False for runs that have nothing stable to store (cloudflared quick
 	 * mode mints a one-time URL): the core then writes no profile record.
 	 * Undefined means true.
 	 */
 	readonly persistentIdentity?: (options: TunnelProviderConnectOptions) => boolean;
+	/**
+	 * The public hostname of a persistent run, known BEFORE anything is
+	 * stored (cloudflared token mode: the configured hostname). The core
+	 * stamps it into the profile record so `list`/`status` see the run
+	 * even when the provider keeps no identity of its own. Undefined when
+	 * the hostname only appears later (opentunnel mints it).
+	 */
+	readonly knownHostname?: (options: TunnelProviderConnectOptions) => string | undefined;
 	connect(options: TunnelProviderConnectOptions): Promise<TunnelProviderConnection>;
 }

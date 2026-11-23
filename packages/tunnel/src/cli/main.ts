@@ -70,6 +70,13 @@ Flags:
                                   directory name. A stable profile keeps
                                   the URL stable across runs
   --api <url>                     Self-hosted provider endpoint
+  --cloudflared-mode <quick|token>  cloudflared: a one-time Quick Tunnel URL
+                                  (default) or a named tunnel by token
+  --cloudflared-hostname <host>   cloudflared token mode: the dashboard's
+                                  public hostname (the token: TUNNEL_TOKEN)
+  --cloudflared-protocol <t>      cloudflared transport: http2 (default) or
+                                  quic
+  --cloudflared-binary <path>     cloudflared executable on PATH, or a path
   --config <path>                 Explicit config file (skips discovery)
   --qr                            Print a QR code of the tunnel URL
   --open                          Open the tunnel URL in the browser
@@ -193,6 +200,10 @@ function flagOverrides(parsed: ParsedArgs) {
 	if (parsed.values.api !== undefined) {
 		overrides["api"] = parsed.values.api;
 	}
+	if (parsed.values.cloudflared !== undefined) {
+		// A section: the resolver merges it into the file's key by key.
+		overrides["cloudflared"] = parsed.values.cloudflared;
+	}
 	return overrides;
 }
 
@@ -244,6 +255,12 @@ async function runTunnel(
 	let lastDisconnectReason: string | undefined;
 	let lastStage: string | undefined;
 	let conflictHintShown = false;
+	/**
+	 * The URL banner: for the initial URL, and again when the provider
+	 * replaces it under the same handle (`url-changed` — a respawned
+	 * cloudflared Quick Tunnel has a new hostname).
+	 */
+	let announce: (replaced: boolean) => void = () => undefined;
 	const ownPid = process.pid;
 	const hintProfile = config.profile ?? defaultProfile(context.cwd);
 	const showConflictHint = (): void => {
@@ -292,9 +309,17 @@ async function runTunnel(
 			}
 			logger.spinnerStart(`${label}…`);
 		},
+		onWarning: message => {
+			logger.warn(`  tunnel: ${message}`);
+		},
 		onEvent: event => {
 			if (event.type === "disconnected") {
 				lastDisconnectReason = event.reason;
+				return;
+			}
+			if (event.type === "url-changed") {
+				// The handle already carries the new hostname and URLs.
+				announce(true);
 				return;
 			}
 			if (event.type === "route-conflict") {
@@ -309,27 +334,34 @@ async function runTunnel(
 		},
 	});
 	bannerShown = true;
-	// The banner is the final word of the startup phase: stop the spinner
-	// BEFORE printing it — rawOut only pauses/resumes, and a resumed
-	// spinner would keep spinning under the printed URL forever.
-	logger.spinnerStop();
-
-	if (logger.json) {
-		logger.emit({
-			level: "info",
-			event: "url",
-			message: handle.primaryUrl,
-			data: {
-				url: handle.primaryUrl,
-				profile: handle.profile,
-				hostname: handle.hostname,
-				target: `${config.host}:${String(config.port)}`,
-				provider: handle.provider,
-			},
-		});
-	} else {
+	announce = (replaced: boolean): void => {
+		if (logger.json) {
+			logger.emit({
+				level: "info",
+				event: "url",
+				message: handle.primaryUrl,
+				data: {
+					url: handle.primaryUrl,
+					profile: handle.profile,
+					hostname: handle.hostname,
+					target: `${config.host}:${String(config.port)}`,
+					provider: handle.provider,
+					replaced,
+				},
+			});
+			return;
+		}
 		// rawOut (not step): the URL is the one thing quiet mode must print.
 		logger.rawOut("");
+		if (replaced) {
+			logger.rawOut(
+				paint(
+					"  tunnel: the URL was replaced — the previous one no longer works",
+					"yellow",
+					color,
+				),
+			);
+		}
 		logger.rawOut(
 			`  ${paint("➜", "green", color)}  ${paint("tunnel", "bold", color)}  ${paint("→", "dim", color)}  ${paint(handle.primaryUrl, "cyan", color)}`,
 		);
@@ -341,6 +373,18 @@ async function runTunnel(
 			),
 		);
 		logger.rawOut("");
+	};
+	// The banner is the final word of the startup phase: stop the spinner
+	// BEFORE printing it — rawOut only pauses/resumes, and a resumed
+	// spinner would keep spinning under the printed URL forever.
+	logger.spinnerStop();
+	announce(false);
+	// A Quick Tunnel is a one-time URL: say so while the user is looking
+	// at it, not after they wired it into the VK app settings.
+	if (handle.provider === "cloudflared" && config.cloudflared?.mode !== "token") {
+		logger.warn(
+			"  tunnel: Quick Tunnel — this URL is one-time: it changes on every start and takes up to a minute to warm up. For a stable URL use a named tunnel (--cloudflared-mode token).",
+		);
 	}
 	if (parsed.booleans.qr && !logger.json) {
 		logger.rawOut(renderQr(handle.primaryUrl));
@@ -537,29 +581,39 @@ async function runList(
 		return 0;
 	}
 	const { color } = context;
+	// The provider column appears only when it says something: every
+	// opentunnel-only store looks exactly as before.
+	const showProvider = records.some(
+		record => record.provider !== undefined && record.provider !== "opentunnel",
+	);
 	const rows = records.map(record => ({
 		profile: record.profile,
 		url: recordUrl(record),
 		target: record.lastTarget ?? "—",
 		updated: record.updatedAt?.slice(0, 10) ?? "—",
+		provider: record.provider === undefined ? "opentunnel" : record.provider,
 	}));
 	const widths = {
 		profile: Math.max(...rows.map(row => row.profile.length), "profile".length),
 		url: Math.max(...rows.map(row => row.url.length), "url".length),
 		target: Math.max(...rows.map(row => row.target.length), "target".length),
+		provider: Math.max(...rows.map(row => row.provider.length), "provider".length),
 	};
+	const providerHeader = showProvider ? `  ${"provider".padEnd(widths.provider)}` : "";
+	const providerCell = (row: (typeof rows)[number]): string =>
+		showProvider ? `  ${row.provider.padEnd(widths.provider)}` : "";
 	// Pad on plain text, paint after: ANSI escapes are zero-width and must
 	// not inflate the padding math.
 	context.logger.rawOut(
 		paint(
-			`  ${"profile".padEnd(widths.profile)}  ${"url".padEnd(widths.url)}  ${"target".padEnd(widths.target)}  updated`,
+			`  ${"profile".padEnd(widths.profile)}  ${"url".padEnd(widths.url)}  ${"target".padEnd(widths.target)}${providerHeader}  updated`,
 			"dim",
 			color,
 		),
 	);
 	for (const row of rows) {
 		context.logger.rawOut(
-			`  ${paint(row.profile.padEnd(widths.profile), "bold", color)}  ${paint(row.url.padEnd(widths.url), "cyan", color)}  ${row.target.padEnd(widths.target)}  ${row.updated}`,
+			`  ${paint(row.profile.padEnd(widths.profile), "bold", color)}  ${paint(row.url.padEnd(widths.url), "cyan", color)}  ${row.target.padEnd(widths.target)}${providerCell(row)}  ${row.updated}`,
 		);
 	}
 	return 0;

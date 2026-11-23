@@ -3,7 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { mergeRecordFile, readProfileRecord } from "../core/identity.ts";
-import type { TunnelHandle } from "../core/types.ts";
+import type { CreateTunnelOptions, TunnelHandle } from "../core/types.ts";
 import { fakeSdk } from "../test-utils.ts";
 import { main } from "./main.ts";
 
@@ -423,5 +423,218 @@ describe("run shutdown resilience", () => {
 		expect(events).toContain("stopped");
 		const urlRecord = records.find(record => record["event"] === "url");
 		expect(urlRecord?.["message"]).toBe("https://wedged.opentunnel.xyz");
+	});
+});
+
+describe("run with the cloudflared provider", () => {
+	/** A handle whose URL the test can replace, like a respawned Quick Tunnel. */
+	function replaceableTunnel(): TunnelHandle & { replace: (url: string) => void } {
+		let current = "https://first-tunnel.trycloudflare.com";
+		let settle: () => void = () => undefined;
+		return {
+			provider: "cloudflared",
+			profile: "quick-app",
+			get hostname() {
+				return new URL(current).hostname;
+			},
+			get urls() {
+				return { "@": current };
+			},
+			get primaryUrl() {
+				return current;
+			},
+			events: (async function* () {})(),
+			status: () => ({
+				state: "connected" as const,
+				hostname: new URL(current).hostname,
+				connections: 0,
+			}),
+			close: async () => {
+				settle();
+			},
+			closed: new Promise<void>(resolve => {
+				settle = resolve;
+			}),
+			replace: url => {
+				current = url;
+			},
+		};
+	}
+
+	/** A tunnel that stops by itself shortly after the banner. */
+	function shortLivedTunnel(): TunnelHandle {
+		return {
+			...replaceableTunnel(),
+			closed: new Promise<void>(resolve => setTimeout(() => resolve(undefined), 20)),
+			close: async () => undefined,
+		};
+	}
+
+	it("passes the flags to the config section, defaults applied", async () => {
+		out = [];
+		errOut = [];
+		let received: CreateTunnelOptions | undefined;
+		const code = await main(["--provider", "cloudflared", "--cloudflared-mode", "quick"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			createTunnel: async options => {
+				received = options;
+				return {
+					...shortLivedTunnel(),
+				};
+			},
+		});
+		expect(code).toBe(0);
+		expect(received?.provider).toBe("cloudflared");
+		expect(received?.cloudflared).toEqual({
+			mode: "quick",
+			hostname: undefined,
+			token: undefined,
+			protocol: "http2",
+			binary: "cloudflared",
+		});
+	});
+
+	it("fails with exit 1 when token mode has no hostname", async () => {
+		const result = await run(["--provider", "cloudflared", "--cloudflared-mode", "token"]);
+		expect(result.code).toBe(1);
+		expect(result.err).toContain("cloudflared.hostname");
+	});
+
+	it("says that a Quick Tunnel URL is one-time", async () => {
+		out = [];
+		errOut = [];
+		const handle = replaceableTunnel();
+		const controller = new AbortController();
+		const code = await main(["--provider", "cloudflared"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			signal: controller.signal,
+			createTunnel: async () => {
+				// Like the real provider: the abort closes the tunnel.
+				controller.signal.addEventListener("abort", () => void handle.close(), {
+					once: true,
+				});
+				setTimeout(() => controller.abort(), 40);
+				return handle;
+			},
+		});
+		expect(code).toBe(130);
+		expect(out.join("")).toContain("https://first-tunnel.trycloudflare.com");
+		expect(errOut.join("")).toContain("Quick Tunnel — this URL is one-time");
+	});
+
+	it("prints a new banner when the URL is replaced under the same handle", async () => {
+		out = [];
+		errOut = [];
+		const controller = new AbortController();
+		const pending = main(["--provider", "cloudflared"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			signal: controller.signal,
+			createTunnel: async options => {
+				setTimeout(
+					() =>
+						options.onEvent?.({
+							type: "url-changed",
+							url: "https://second-tunnel.trycloudflare.com",
+						}),
+					20,
+				);
+				setTimeout(() => controller.abort(), 60);
+				return handleOf();
+			},
+		});
+		function handleOf(): TunnelHandle {
+			const handle = replaceableTunnel();
+			handle.replace("https://second-tunnel.trycloudflare.com");
+			return handle;
+		}
+		const code = await pending;
+		expect(code).toBe(130);
+		const text = out.join("");
+		expect(text.match(/tunnel  →/g)).toHaveLength(2);
+		expect(text).toContain("https://second-tunnel.trycloudflare.com");
+		expect(text).toContain("the URL was replaced");
+	});
+
+	it("surfaces provider warnings in yellow on stderr", async () => {
+		out = [];
+		errOut = [];
+		const code = await main(["--provider", "cloudflared"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			createTunnel: async options => {
+				options.onWarning?.("cloudflared 2020.1.1 is about 84 months old");
+				return {
+					...shortLivedTunnel(),
+				};
+			},
+		});
+		expect(code).toBe(0);
+		expect(errOut.join("")).toContain("tunnel: cloudflared 2020.1.1 is about 84 months old");
+	});
+
+	it("emits a second url record with replaced: true in --json mode", async () => {
+		out = [];
+		errOut = [];
+		const controller = new AbortController();
+		const pending = main(["--provider", "cloudflared", "--json"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			signal: controller.signal,
+			createTunnel: async options => {
+				const handle = replaceableTunnel();
+				setTimeout(() => {
+					handle.replace("https://second-tunnel.trycloudflare.com");
+					options.onEvent?.({
+						type: "url-changed",
+						url: "https://second-tunnel.trycloudflare.com",
+					});
+				}, 20);
+				setTimeout(() => controller.abort(), 60);
+				return handle;
+			},
+		});
+		await pending;
+		const records = out
+			.join("")
+			.split("\n")
+			.filter(line => line !== "")
+			.map(line => JSON.parse(line) as { event: string; data?: { replaced?: boolean } });
+		const urls = records.filter(record => record.event === "url");
+		expect(urls.map(record => record.data?.replaced)).toEqual([false, true]);
+	});
+});
+
+describe("list with a second provider", () => {
+	it("shows the provider column only when a profile is not opentunnel's", async () => {
+		await mergeRecordFile(dataDir, "plain-ot", { hostname: "ot.opentunnel.xyz" });
+		let result = await run(["list"]);
+		expect(result.out).not.toContain("provider");
+
+		await mergeRecordFile(dataDir, "named-cf", {
+			provider: "cloudflared",
+			hostname: "app.example.com",
+		});
+		result = await run(["list"]);
+		expect(result.out).toContain("provider");
+		expect(result.out).toMatch(/named-cf\s+https:\/\/app\.example\.com.*cloudflared/);
+		expect(result.out).toMatch(/plain-ot.*opentunnel/);
 	});
 });

@@ -35,6 +35,40 @@ describe("parseArgv", () => {
 		expect(parseArgv(["run", "extra"]).errors[0]).toContain("Unexpected positional");
 	});
 
+	it("parses the --cloudflared-* flags into the config section's keys", () => {
+		const parsed = parseArgv([
+			"--provider",
+			"cloudflared",
+			"--cloudflared-mode=token",
+			"--cloudflared-hostname",
+			"app.example.com",
+			"--cloudflared-protocol",
+			"http2",
+			"--cloudflared-binary",
+			"/opt/cloudflared",
+		]);
+		expect(parsed.errors).toEqual([]);
+		expect(parsed.values.provider).toBe("cloudflared");
+		expect(parsed.values.cloudflared).toEqual({
+			mode: "token",
+			hostname: "app.example.com",
+			protocol: "http2",
+			binary: "/opt/cloudflared",
+		});
+	});
+
+	it("leaves the cloudflared section absent when no such flag was passed", () => {
+		expect(parseArgv(["--provider", "cloudflared"]).values.cloudflared).toBeUndefined();
+	});
+
+	it("rejects an unknown cloudflared mode or transport instead of falling back", () => {
+		expect(parseArgv(["--cloudflared-mode", "fast"]).errors[0]).toContain("--cloudflared-mode");
+		expect(parseArgv(["--cloudflared-protocol", "http3"]).errors[0]).toContain(
+			"--cloudflared-protocol",
+		);
+		expect(parseArgv(["--cloudflared-hostname"]).errors[0]).toContain("requires a value");
+	});
+
 	it("maps short flags", () => {
 		expect(parseArgv(["-h"]).booleans.help).toBe(true);
 		expect(parseArgv(["-V"]).booleans.version).toBe(true);

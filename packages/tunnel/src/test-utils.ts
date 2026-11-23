@@ -22,6 +22,8 @@
  * test file): reset it in `beforeEach`.
  */
 
+import fs from "node:fs/promises";
+import path from "node:path";
 import type { OpenTunnelIdentity, OpenTunnelStorage } from "@opentunnel/client";
 
 export class OpenTunnelClientError extends Error {
@@ -244,4 +246,37 @@ export function create(options: { api?: string; store?: OpenTunnelStorage } = {}
 			fakeSdk.stats.disposed += 1;
 		},
 	};
+}
+
+/**
+ * Installs the fake `cloudflared` (cloudflared.fake.mjs) under `root` and
+ * returns what a test needs to run the real provider against it: the
+ * environment for the provider and the directory the fake writes to.
+ */
+export async function installFakeCloudflared(
+	root: string,
+	env: Record<string, string> = {},
+): Promise<{ env: Record<string, string | undefined>; stateDir: string }> {
+	const binDir = path.join(root, "fake-bin");
+	const stateDir = path.join(root, "fake-state");
+	await fs.mkdir(binDir, { recursive: true });
+	await fs.rm(stateDir, { recursive: true, force: true });
+	await fs.mkdir(stateDir, { recursive: true });
+	const binary = path.join(binDir, "cloudflared");
+	await fs.copyFile(path.join(import.meta.dirname, "providers", "cloudflared.fake.mjs"), binary);
+	await fs.chmod(binary, 0o755);
+	return {
+		env: {
+			...process.env,
+			PATH: `${binDir}${path.delimiter}${process.env["PATH"] ?? ""}`,
+			FAKE_CF_STATE: stateDir,
+			...env,
+		},
+		stateDir,
+	};
+}
+
+/** How many times the fake cloudflared was launched. */
+export async function fakeCloudflaredLaunches(stateDir: string): Promise<number> {
+	return Number(await fs.readFile(path.join(stateDir, "launches"), "utf8").catch(() => "0"));
 }

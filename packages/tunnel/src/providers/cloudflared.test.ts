@@ -243,7 +243,7 @@ describe("cloudflared provider — capabilities", () => {
 		dataDir: "",
 	};
 
-	it("rewrites the Host header itself in quick mode only", () => {
+	it("rewrites the Host header itself in quick mode and cannot in token mode", () => {
 		const quick = {
 			...base,
 			cloudflared: {
@@ -253,8 +253,12 @@ describe("cloudflared provider — capabilities", () => {
 			},
 		};
 		const token = { ...base, cloudflared: { ...quick.cloudflared, mode: "token" as const } };
-		expect(cloudflaredProvider.handlesHostHeader?.(quick)).toBe(true);
-		expect(cloudflaredProvider.handlesHostHeader?.(token)).toBe(false);
+		// Quick rewrites the Host itself; token mode cannot be helped from here
+		// (the dashboard decides where the traffic goes).
+		expect(cloudflaredProvider.hostHeaderPolicy?.(quick)).toBe("provider");
+		expect(cloudflaredProvider.hostHeaderPolicy?.(token)).toBe("unhandled");
+		// No cloudflared section at all: the quick defaults.
+		expect(cloudflaredProvider.hostHeaderPolicy?.(base)).toBe("provider");
 		expect(cloudflaredProvider.persistentIdentity?.(quick)).toBe(false);
 		expect(cloudflaredProvider.persistentIdentity?.(token)).toBe(true);
 	});

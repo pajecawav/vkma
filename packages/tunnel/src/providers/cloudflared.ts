@@ -162,11 +162,15 @@ interface Run {
 export const cloudflaredProvider: TunnelProvider = {
 	id: CLOUDFLARED_PROVIDER,
 	// Quick mode passes `--http-host-header`: cloudflared rewrites the Host
-	// the target sees. Token mode depends on the dashboard's setting, so
-	// there the core's host-rewriting proxy stays in charge.
-	handlesHostHeader: options => cloudflaredMode(options) === "quick",
+	// the target sees. Token mode cannot be helped from here: the
+	// dashboard's origin settings decide where the traffic goes, and it
+	// never passes a proxy the core could start.
+	hostHeaderPolicy: options => (cloudflaredMode(options) === "quick" ? "provider" : "unhandled"),
 	// A Quick Tunnel mints a one-time URL: nothing stable to store.
 	persistentIdentity: options => cloudflaredMode(options) !== "quick",
+	// Token mode's hostname is configured, not minted: known up front.
+	knownHostname: options =>
+		cloudflaredMode(options) === "token" ? options.cloudflared?.hostname : undefined,
 	connect(options) {
 		return connectCloudflared(options);
 	},
