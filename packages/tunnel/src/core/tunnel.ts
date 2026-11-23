@@ -14,7 +14,12 @@ import { opentunnelProvider } from "../providers/opentunnel.ts";
 import { localhostAliasFor, startForwardProxy, type ForwardProxy } from "../proxy.ts";
 import { mergeRecordFile, readProfileRecord, tunnelDataDir } from "./identity.ts";
 import { assertValidProfile, defaultProfile } from "./profile.ts";
-import type { CreateTunnelOptions, TunnelHandle, TunnelProvider } from "./types.ts";
+import type {
+	CreateTunnelOptions,
+	TunnelHandle,
+	TunnelProvider,
+	TunnelProviderConnection,
+} from "./types.ts";
 
 /** Closed registry (v0.1): adding a provider is a package release. */
 const PROVIDERS: Readonly<Record<string, TunnelProvider>> = {
@@ -119,66 +124,85 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		}
 	}
 
-	const connection = await provider.connect({
-		profile,
-		route,
-		host: forwardHost,
-		port: forwardPort,
-		api: options.api,
-		dataDir,
-		signal: options.signal,
-		onEvent: options.onEvent,
-		onProgress: options.onProgress,
-		keepAlive: options.keepAlive,
-	});
-
-	// First attach done: THIS process now holds the route.
-	const attachedAt = new Date().toISOString();
-	await mergeRecordFile(dataDir, profile, { pid, startedAt: attachedAt, updatedAt: attachedAt });
-
-	// First run: the identity (and its hostname) appeared during this
-	// connect — start the proxy now and retarget the live bridge. Safe
-	// because the URL is only printed after this returns.
-	if (proxy === undefined && options.hostRewrite !== false) {
-		const alias = localhostAliasFor(connection.hostname);
-		if (alias !== undefined && connection.setRoutes !== undefined) {
-			proxy = await startForwardProxy({
-				targetHost: host,
-				targetPort: port,
-				tunnelHostname: connection.hostname,
-				localhostAlias: alias,
-			});
-			await connection
-				.setRoutes({ [route]: `127.0.0.1:${String(proxy.port)}` })
-				.catch(() => undefined);
-		}
+	let connection: TunnelProviderConnection;
+	try {
+		connection = await provider.connect({
+			profile,
+			route,
+			host: forwardHost,
+			port: forwardPort,
+			api: options.api,
+			dataDir,
+			signal: options.signal,
+			onEvent: options.onEvent,
+			onProgress: options.onProgress,
+			keepAlive: options.keepAlive,
+		});
+	} catch (error) {
+		// With a stored identity the rewriting proxy is already listening:
+		// a failed connect must not leave it behind — a listening server
+		// keeps the process alive long after the caller gave up.
+		await proxy?.close().catch(() => undefined);
+		throw error;
 	}
 
-	const primaryUrl = connection.urls[route] ?? Object.values(connection.urls)[0] ?? "";
-	if (primaryUrl === "") {
+	// From here on everything is ours to unwind: a bridge nobody holds
+	// keeps the route, a proxy nobody closes keeps the process.
+	try {
+		// First attach done: THIS process now holds the route.
+		const attachedAt = new Date().toISOString();
+		await mergeRecordFile(dataDir, profile, {
+			pid,
+			startedAt: attachedAt,
+			updatedAt: attachedAt,
+		});
+
+		// First run: the identity (and its hostname) appeared during this
+		// connect — start the proxy now and retarget the live bridge. Safe
+		// because the URL is only printed after this returns.
+		if (proxy === undefined && options.hostRewrite !== false) {
+			const alias = localhostAliasFor(connection.hostname);
+			if (alias !== undefined && connection.setRoutes !== undefined) {
+				proxy = await startForwardProxy({
+					targetHost: host,
+					targetPort: port,
+					tunnelHostname: connection.hostname,
+					localhostAlias: alias,
+				});
+				await connection
+					.setRoutes({ [route]: `127.0.0.1:${String(proxy.port)}` })
+					.catch(() => undefined);
+			}
+		}
+
+		const primaryUrl = connection.urls[route] ?? Object.values(connection.urls)[0] ?? "";
 		// Should be unreachable with a well-behaved provider; the invariant
 		// "handle.primaryUrl is printable" is too useful to leave soft.
-		await connection.close().catch(() => undefined);
-		await proxy?.close();
-		throw new TunnelError("network", `${providerId}: connected without any public URL`, {
-			code: "E_NO_URL",
-		});
-	}
+		if (primaryUrl === "") {
+			throw new TunnelError("network", `${providerId}: connected without any public URL`, {
+				code: "E_NO_URL",
+			});
+		}
 
-	return {
-		provider: providerId,
-		profile,
-		hostname: connection.hostname,
-		urls: connection.urls,
-		primaryUrl,
-		events: connection.events,
-		status: connection.status,
-		close: async () => {
-			await connection.close();
-			await proxy?.close();
-		},
-		closed: connection.closed.finally(() => {
-			void proxy?.close().catch(() => undefined);
-		}),
-	};
+		return {
+			provider: providerId,
+			profile,
+			hostname: connection.hostname,
+			urls: connection.urls,
+			primaryUrl,
+			events: connection.events,
+			status: connection.status,
+			close: async () => {
+				await connection.close();
+				await proxy?.close();
+			},
+			closed: connection.closed.finally(() => {
+				void proxy?.close().catch(() => undefined);
+			}),
+		};
+	} catch (error) {
+		await connection.close().catch(() => undefined);
+		await proxy?.close().catch(() => undefined);
+		throw error;
+	}
 }
