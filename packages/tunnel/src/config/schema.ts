@@ -12,13 +12,67 @@
 
 import { Type, type Static } from "@sinclair/typebox";
 import {
+	DEFAULT_CLOUDFLARED_BINARY,
+	DEFAULT_CLOUDFLARED_MODE,
+	DEFAULT_CLOUDFLARED_PROTOCOL,
 	DEFAULT_HOST,
 	DEFAULT_PORT,
 	DEFAULT_PROVIDER,
 	DEFAULT_ROUTE,
+	HOSTNAME_PATTERN,
 	PROFILE_PATTERN,
 	ROUTE_PATTERN,
 } from "../constants.ts";
+
+/**
+ * Options of the `cloudflared` provider (DESIGN.md). Every key is optional
+ * and has a default; `mode` and `protocol` are enumerated so a typo is a
+ * validation error, not a silent fallback.
+ */
+export const CloudflaredOptionsSchema = Type.Object(
+	{
+		mode: Type.Optional(
+			Type.Union([Type.Literal("quick"), Type.Literal("token")], {
+				default: DEFAULT_CLOUDFLARED_MODE,
+				description:
+					'"quick": a one-time trycloudflare.com URL without an account — the hostname changes on every start. "token": a named tunnel created in the Cloudflare dashboard, stable hostname.',
+			}),
+		),
+		/** Token mode: the dashboard's public hostname for this tunnel. */
+		hostname: Type.Optional(
+			Type.String({
+				pattern: HOSTNAME_PATTERN.source,
+				maxLength: 253,
+				description:
+					'Token mode: the public hostname configured in the dashboard for this tunnel, e.g. "app.example.com".',
+			}),
+		),
+		/** Token mode: the dashboard's tunnel token. */
+		token: Type.Optional(
+			Type.String({
+				minLength: 1,
+				description:
+					"Token mode: the dashboard's tunnel token. Prefer the TUNNEL_TOKEN environment variable — never commit a token.",
+			}),
+		),
+		protocol: Type.Optional(
+			Type.Union([Type.Literal("http2"), Type.Literal("quic")], {
+				default: DEFAULT_CLOUDFLARED_PROTOCOL,
+				description:
+					'Transport to the Cloudflare edge. "http2" (default) also works where UDP 7844 is blocked; "quic" is faster but keeps dying on such networks.',
+			}),
+		),
+		binary: Type.Optional(
+			Type.String({
+				minLength: 1,
+				default: DEFAULT_CLOUDFLARED_BINARY,
+				description:
+					'The cloudflared executable: a name looked up on PATH (default "cloudflared") or an absolute path.',
+			}),
+		),
+	},
+	{ additionalProperties: false },
+);
 
 export const TunnelConfigSchema = Type.Object(
 	{
@@ -26,13 +80,14 @@ export const TunnelConfigSchema = Type.Object(
 		$schema: Type.Optional(
 			Type.String({ description: "JSON Schema reference for this file." }),
 		),
-		/** Tunnel provider. v0.1 ships `opentunnel` only.
+		/** Tunnel provider: `opentunnel` (default) or `cloudflared`.
 		 * @default "opentunnel" */
 		provider: Type.Optional(
 			Type.String({
 				minLength: 1,
 				default: DEFAULT_PROVIDER,
-				description: 'Tunnel provider. v0.1 supports "opentunnel" only.',
+				description:
+					'Tunnel provider: "opentunnel" (default) or "cloudflared" (needs the cloudflared binary on PATH; see the `cloudflared` section).',
 			}),
 		),
 		/** Local port to expose through the tunnel.
@@ -86,6 +141,8 @@ export const TunnelConfigSchema = Type.Object(
 					'Provider API endpoint for self-hosted servers, e.g. "https://opentunnel.example". Optional; the opentunnel client also honors the OPENTUNNEL_API env var.',
 			}),
 		),
+		/** Options of the `cloudflared` provider; only meaningful with `provider: "cloudflared"`. */
+		cloudflared: Type.Optional(CloudflaredOptionsSchema),
 	},
 	{
 		// Strict: a misspelled field must fail validation naming the key,
@@ -105,6 +162,18 @@ export const TunnelConfigSchema = Type.Object(
  */
 export type TunnelConfigInput = Omit<Static<typeof TunnelConfigSchema>, "$schema">;
 
+/** The `cloudflared` section as accepted (every key optional). */
+export type CloudflaredOptionsInput = Static<typeof CloudflaredOptionsSchema>;
+
+/** The `cloudflared` section after defaults. */
+export interface CloudflaredOptions {
+	readonly mode: "quick" | "token";
+	readonly hostname?: string;
+	readonly token?: string;
+	readonly protocol: "http2" | "quic";
+	readonly binary: string;
+}
+
 /** Fully resolved configuration after defaults and overrides. */
 export interface ResolvedTunnelConfig {
 	readonly provider: string;
@@ -113,6 +182,8 @@ export interface ResolvedTunnelConfig {
 	readonly route: string;
 	readonly profile?: string;
 	readonly api?: string;
+	/** Present only when the config file or an override set the section. */
+	readonly cloudflared?: CloudflaredOptions;
 }
 
 /** Where each non-default value came from, for status output. */

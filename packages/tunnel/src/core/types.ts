@@ -2,11 +2,14 @@
  * Provider-neutral tunnel surface.
  *
  * The Node API (`createTunnel`), the CLI and the Vite plugin all speak
- * these types; the only shipped provider (opentunnel) adapts to them.
- * The event union mirrors the opentunnel client 1:1 (lossless pass-through)
- * with field names generic enough for future providers: a minimal provider
- * emits `connected` and `stopped`, nothing else is required.
+ * these types; the shipped providers (opentunnel, cloudflared) adapt to
+ * them. The event union mirrors the opentunnel client 1:1 (lossless
+ * pass-through) with field names generic enough for other providers: a
+ * minimal provider emits `connected` and `stopped`, nothing else is
+ * required. Additions stay additive — renderers ignore unknown types.
  */
+
+import type { CloudflaredOptions } from "../config/schema.ts";
 
 export type TunnelEvent =
 	| { readonly type: "connecting"; readonly attempt: number }
@@ -27,6 +30,13 @@ export type TunnelEvent =
 			readonly error?: string;
 	  }
 	| { readonly type: "certificate-renewed"; readonly expiry: string }
+	/**
+	 * The public URL was replaced under the same handle — cloudflared's
+	 * quick tunnels mint a new hostname whenever the process restarts. The
+	 * handle's `hostname`/`urls`/`primaryUrl` already return the new value
+	 * when this arrives; consumers print a fresh banner.
+	 */
+	| { readonly type: "url-changed"; readonly url: string }
 	| { readonly type: "stopped"; readonly error?: string };
 
 export interface TunnelStatus {
@@ -101,6 +111,14 @@ export interface CreateTunnelOptions {
 	 * (e.g. virtual-host routing) or serves its own TLS.
 	 */
 	readonly hostRewrite?: boolean;
+	/** Options of the `cloudflared` provider (its config section, defaults applied). */
+	readonly cloudflared?: CloudflaredOptions;
+	/**
+	 * Human-readable warnings (an outdated binary, a URL that is still
+	 * warming up). Transient like `onProgress`: not part of the event
+	 * stream, surfaced by the CLI and the plugin in yellow.
+	 */
+	readonly onWarning?: (message: string) => void;
 }
 
 /** What a provider needs to serve one tunnel. */
@@ -126,6 +144,16 @@ export interface TunnelProviderConnectOptions {
 	 * service resets handshakes within a second when its relay dies.
 	 */
 	readonly keepAlive?: boolean;
+	/** Options of the `cloudflared` provider; undefined for other providers. */
+	readonly cloudflared?: CloudflaredOptions;
+	/**
+	 * Environment the provider may read and hand to a child process
+	 * (`TUNNEL_TOKEN`, `PATH`). Whatever the caller injected into
+	 * `createTunnel`; a provider never goes to `process.env` itself.
+	 */
+	readonly env?: Record<string, string | undefined>;
+	/** See `CreateTunnelOptions.onWarning`. */
+	readonly onWarning?: (message: string) => void;
 }
 
 /** The live connection a provider returns; wrapped into a `TunnelHandle`. */
@@ -146,16 +174,29 @@ export interface TunnelProviderConnection {
 }
 
 /**
- * A tunnel provider. Public type so signatures read clearly and future
- * providers (cloudflared, …) can be dropped in; the registry itself stays
- * closed in v0.1 — `provider: "opentunnel"` is the only valid value.
+ * A tunnel provider. Public type so signatures read clearly; the registry
+ * itself stays closed — adding a provider is a package release.
  *
- * Provider contract for the shared identity-store surface: every provider
- * persists one JSON record per profile under its `dataDir` holding at
- * least `hostname`, `lastTarget`, `createdAt` and `updatedAt` so the CLI
- * `list`/`status`/`reset` commands stay provider-neutral.
+ * Provider contract for the shared identity-store surface: a provider with
+ * a persistent identity stores one JSON record per profile under its
+ * `dataDir` holding at least `provider`, `hostname`, `lastTarget`,
+ * `createdAt` and `updatedAt` so the CLI `list`/`status`/`reset` commands
+ * stay provider-neutral.
  */
 export interface TunnelProvider {
 	readonly id: string;
+	/**
+	 * True when the provider itself rewrites the Host header the local
+	 * target sees, so the core's host-rewriting proxy is skipped for that
+	 * run (cloudflared quick mode: `--http-host-header`). Undefined or
+	 * false: the core decides through `hostRewrite`.
+	 */
+	readonly handlesHostHeader?: (options: TunnelProviderConnectOptions) => boolean;
+	/**
+	 * False for runs that have nothing stable to store (cloudflared quick
+	 * mode mints a one-time URL): the core then writes no profile record.
+	 * Undefined means true.
+	 */
+	readonly persistentIdentity?: (options: TunnelProviderConnectOptions) => boolean;
 	connect(options: TunnelProviderConnectOptions): Promise<TunnelProviderConnection>;
 }

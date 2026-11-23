@@ -30,6 +30,48 @@ describe("shipped JSON schema", () => {
 	});
 });
 
+describe("cloudflared section in the shipped JSON Schema", () => {
+	it("enumerates both modes and transports, defaults included", () => {
+		const json = tunnelConfigJsonSchema();
+		const properties = json["properties"] as Record<
+			string,
+			Record<string, unknown> | undefined
+		>;
+		const section = properties["cloudflared"];
+		if (section === undefined) {
+			throw new Error("the shipped schema has no cloudflared section");
+		}
+		const text = JSON.stringify(section);
+		for (const fragment of [
+			'"const":"quick"',
+			'"const":"token"',
+			'"const":"http2"',
+			'"const":"quic"',
+			'"default":"quick"',
+			'"default":"http2"',
+		]) {
+			expect(text).toContain(fragment);
+		}
+		// Strict like the root: a misspelled key is an error, not a default.
+		expect(section["additionalProperties"]).toBe(false);
+		const keys = section["properties"];
+		if (typeof keys !== "object" || keys === null) {
+			throw new Error("the cloudflared section has no properties");
+		}
+		expect(Object.keys(keys).toSorted()).toEqual([
+			"binary",
+			"hostname",
+			"mode",
+			"protocol",
+			"token",
+		]);
+	});
+
+	it("is optional at the root", () => {
+		expect(TunnelConfigSchema.required ?? []).not.toContain("cloudflared");
+	});
+});
+
 describe("TunnelConfigSchema", () => {
 	it("accepts a full config", () => {
 		const config = defineTunnelConfig({

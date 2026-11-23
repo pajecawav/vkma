@@ -13,7 +13,7 @@
 		"provider": {
 			"minLength": 1,
 			"default": "opentunnel",
-			"description": "Tunnel provider. v0.1 supports \"opentunnel\" only.",
+			"description": "Tunnel provider: \"opentunnel\" (default) or \"cloudflared\" (needs the cloudflared binary on PATH; see the `cloudflared` section).",
 			"type": "string"
 		},
 		"port": {
@@ -46,6 +46,57 @@
 			"pattern": "^https?://",
 			"description": "Provider API endpoint for self-hosted servers, e.g. \"https://opentunnel.example\". Optional; the opentunnel client also honors the OPENTUNNEL_API env var.",
 			"type": "string"
+		},
+		"cloudflared": {
+			"additionalProperties": false,
+			"type": "object",
+			"properties": {
+				"mode": {
+					"default": "quick",
+					"description": "\"quick\": a one-time trycloudflare.com URL without an account — the hostname changes on every start. \"token\": a named tunnel created in the Cloudflare dashboard, stable hostname.",
+					"anyOf": [
+						{
+							"const": "quick",
+							"type": "string"
+						},
+						{
+							"const": "token",
+							"type": "string"
+						}
+					]
+				},
+				"hostname": {
+					"pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$",
+					"maxLength": 253,
+					"description": "Token mode: the public hostname configured in the dashboard for this tunnel, e.g. \"app.example.com\".",
+					"type": "string"
+				},
+				"token": {
+					"minLength": 1,
+					"description": "Token mode: the dashboard's tunnel token. Prefer the TUNNEL_TOKEN environment variable — never commit a token.",
+					"type": "string"
+				},
+				"protocol": {
+					"default": "http2",
+					"description": "Transport to the Cloudflare edge. \"http2\" (default) also works where UDP 7844 is blocked; \"quic\" is faster but keeps dying on such networks.",
+					"anyOf": [
+						{
+							"const": "http2",
+							"type": "string"
+						},
+						{
+							"const": "quic",
+							"type": "string"
+						}
+					]
+				},
+				"binary": {
+					"minLength": 1,
+					"default": "cloudflared",
+					"description": "The cloudflared executable: a name looked up on PATH (default \"cloudflared\") or an absolute path.",
+					"type": "string"
+				}
+			}
 		}
 	}
 }

@@ -7,19 +7,32 @@
  * merging between config files: one file is the whole truth.
  *
  * Layering: overrides (CLI flags / plugin options) > config file > defaults.
- * No environment layer by design (v0.1): the one env var users genuinely
- * need, `OPENTUNNEL_API`, is read natively by the opentunnel client.
+ * No environment layer by design: `OPENTUNNEL_API` is read natively by the
+ * opentunnel client and `TUNNEL_TOKEN` by cloudflared itself.
+ *
+ * One section is merged key by key: a flag or plugin option that sets ONE
+ * `cloudflared` key must not discard the rest of the file's section.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { Value } from "@sinclair/typebox/value";
-import { CONFIG_BASENAME, CONFIG_EXTENSIONS } from "../constants.ts";
+import {
+	CLOUDFLARED_PROVIDER,
+	CONFIG_BASENAME,
+	CONFIG_EXTENSIONS,
+	DEFAULT_CLOUDFLARED_BINARY,
+	DEFAULT_CLOUDFLARED_MODE,
+	DEFAULT_CLOUDFLARED_PROTOCOL,
+	DEFAULT_PROVIDER,
+	DEFAULT_ROUTE,
+} from "../constants.ts";
 import { ConfigValidationError, TunnelError, type ConfigIssue } from "../errors.ts";
 import { loadConfigFile, type LoadedConfigFile } from "./load.ts";
 import {
 	CONFIG_DEFAULTS,
 	TunnelConfigSchema,
+	type CloudflaredOptions,
 	type ConfigSource,
 	type ResolvedTunnelConfig,
 	type ResolvedTunnelConfigMeta,
@@ -88,17 +101,29 @@ export async function resolveTunnelConfig(
 		}
 	}
 	for (const [key, value] of Object.entries(options.overrides ?? {})) {
-		if (value !== undefined) {
-			merged[key] = value;
-			sources[key as keyof ResolvedTunnelConfig] = "override";
+		if (value === undefined) {
+			continue;
 		}
+		// Sections merge, scalars replace: `--cloudflared-mode token` must
+		// not drop the hostname the config file set in the same section.
+		if (key === "cloudflared" && isRecord(value)) {
+			const fileSection = merged["cloudflared"];
+			merged[key] = {
+				...(isRecord(fileSection) ? fileSection : {}),
+				...value,
+			};
+		} else {
+			merged[key] = value;
+		}
+		sources[key as keyof ResolvedTunnelConfig] = "override";
 	}
 
-	const issues = collectSchemaIssues(merged);
+	const issues = [...collectSchemaIssues(merged), ...collectSemanticIssues(merged)];
 	if (issues.length > 0) {
 		throw new ConfigValidationError(issues);
 	}
 
+	const cloudflaredSection = merged["cloudflared"];
 	const config: ResolvedTunnelConfig = {
 		provider: (merged["provider"] as string | undefined) ?? CONFIG_DEFAULTS.provider,
 		port: (merged["port"] as number | undefined) ?? CONFIG_DEFAULTS.port,
@@ -106,6 +131,9 @@ export async function resolveTunnelConfig(
 		route: (merged["route"] as string | undefined) ?? CONFIG_DEFAULTS.route,
 		profile: merged["profile"] as string | undefined,
 		api: merged["api"] as string | undefined,
+		cloudflared: isRecord(cloudflaredSection)
+			? resolveCloudflared(cloudflaredSection)
+			: undefined,
 	};
 
 	return {
@@ -129,6 +157,60 @@ async function discoverAndLoad(
 	}
 	const found = findConfigFile(cwd);
 	return found ? loadConfigFile(found) : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Defaults for the `cloudflared` section (after schema validation). */
+function resolveCloudflared(section: Record<string, unknown>): CloudflaredOptions {
+	return {
+		mode:
+			(section["mode"] as CloudflaredOptions["mode"] | undefined) ?? DEFAULT_CLOUDFLARED_MODE,
+		hostname: section["hostname"] as string | undefined,
+		token: section["token"] as string | undefined,
+		protocol:
+			(section["protocol"] as CloudflaredOptions["protocol"] | undefined) ??
+			DEFAULT_CLOUDFLARED_PROTOCOL,
+		binary: (section["binary"] as string | undefined) ?? DEFAULT_CLOUDFLARED_BINARY,
+	};
+}
+
+/**
+ * Rules the schema cannot express: they relate two fields to each other.
+ * Whether a token is PRESENT is checked where the environment is known
+ * (the provider); here only the file and the overrides are.
+ */
+function collectSemanticIssues(data: Record<string, unknown>): ConfigIssue[] {
+	const issues: ConfigIssue[] = [];
+	const provider = (data["provider"] as string | undefined) ?? DEFAULT_PROVIDER;
+	const section = data["cloudflared"];
+	if (isRecord(section)) {
+		if (provider !== CLOUDFLARED_PROVIDER) {
+			issues.push({
+				path: "cloudflared",
+				message: `the cloudflared section needs ${JSON.stringify('provider: "cloudflared"')} — provider is ${JSON.stringify(provider)}`,
+			});
+		}
+		if (section["mode"] === "token" && section["hostname"] === undefined) {
+			issues.push({
+				path: "cloudflared.hostname",
+				message:
+					'required when cloudflared.mode is "token": the public hostname configured in the dashboard',
+			});
+		}
+	}
+	if (
+		provider === CLOUDFLARED_PROVIDER &&
+		((data["route"] as string | undefined) ?? DEFAULT_ROUTE) !== DEFAULT_ROUTE
+	) {
+		issues.push({
+			path: "route",
+			message: "cloudflared serves one public hostname: route must be @",
+		});
+	}
+	return issues;
 }
 
 function collectSchemaIssues(data: Record<string, unknown>): ConfigIssue[] {
