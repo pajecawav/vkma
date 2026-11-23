@@ -44,7 +44,7 @@ The package also reads the `cloudflared.token` config key. But `vite.config.ts` 
 
 What to keep in mind in token mode:
 
-- The dashboard sets the `Host` header. The dashboard decides where the traffic goes, so the package cannot rewrite `Host`. Open the tunnel's settings, the _Additional application settings → HTTP_ section, and set `Host header` to `localhost:<port>`. Vite's `allowedHosts` accepts that `Host`. Or add the hostname to `server.allowedHosts`. When the package cannot rewrite `Host`, it prints a warning.
+- The dashboard sets the `Host` header. The dashboard decides where the traffic goes, so the package cannot rewrite `Host`. Open the tunnel's settings. Under _Additional application settings_, open _HTTP_ and set `Host header` to `localhost:<port>`. Vite's `allowedHosts` accepts that `Host`. Or add the hostname to `server.allowedHosts`. When the package cannot rewrite `Host`, it prints a warning.
 - A profile belongs to one provider. The modes that store a record, opentunnel and token, refuse to run under another provider's profile. Pick another `--profile`. Quick mode stores nothing and runs under any profile.
 - The default transport is `http2`. Where UDP 7844 is blocked, `quic` registers and then dies every few seconds. You can enable it only explicitly, with `cloudflared: { protocol: "quic" }`.
 
