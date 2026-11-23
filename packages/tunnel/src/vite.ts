@@ -7,23 +7,39 @@
  * own banner. The target port comes from the live server — no options
  * needed for the default setup.
  *
- * The plugin also adds the tunnel hostname to `server.allowedHosts` /
- * `preview.allowedHosts` (Vite >= 5.4.12 rejects unknown Host headers
- * with 403 — without this the tunneled request would never reach the
- * app).
+ * Vite >= 5.4.12 rejects unknown Host headers with 403, and it
+ * SNAPSHOTS `allowedHosts` when it builds its servers (dev, preview and
+ * the HMR WebSocket server each freeze a copy before `configureServer`
+ * runs) — a hostname added later is invisible. Two things keep tunneled
+ * requests flowing:
+ *
+ * - the core routes them through the host-rewriting proxy (`hostRewrite`,
+ *   default on): the `*.localhost` alias is always allowed;
+ * - the plugin registers the hostname of a STORED identity in the
+ *   `config` hook, the last moment the list is mutable. A brand-new
+ *   profile mints its hostname too late for that; with `hostRewrite:
+ *   false` it then needs one restart (the plugin says so).
  *
  * Invariants:
  * - a fatal tunnel failure NEVER kills the dev server (tools must not
- *   take the app down, same policy as @vkma.dev/devtools);
- * - explicit options beat the config file, the config file beats
- *   auto-detection from the server (flags > config > server > defaults);
+ *   take the app down, same policy as @vkma.dev/devtools) — including an
+ *   invalid tunnel config, which is reported once the server is up;
+ * - the plugin always tunnels the Vite server it is attached to: its
+ *   `port`/`host` OPTIONS retarget it, the same keys in
+ *   `vkma-tunnel.config.*` do not (they belong to the CLI and the Node
+ *   API; a Vite plugin pointed elsewhere is never what was meant);
+ * - the Vite root is the project: config discovery and the default
+ *   profile start there, not at whatever directory Vite was launched
+ *   from;
  * - a server restart reuses the stored identity (stable URL) and closes
  *   the previous connection first.
  */
 
-import type { Plugin } from "vite";
+import fs from "node:fs";
+import path from "node:path";
+import type { Plugin, UserConfig } from "vite";
 import { rivalHint } from "./cli/conflict-hint.ts";
-import { resolveTunnelConfig } from "./config/resolve.ts";
+import { resolveTunnelConfig, type ResolveTunnelConfigResult } from "./config/resolve.ts";
 import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
 import { defaultProfile } from "./core/profile.ts";
 import { createTunnel } from "./core/tunnel.ts";
@@ -53,10 +69,11 @@ export interface VkmaTunnelPluginOptions {
 	/**
 	 * Rewrite the tunnel hostname to a same-length `*.localhost` alias in
 	 * the forwarded requests (default `true`) — vite's allowedHosts check
-	 * then passes without touching your config. The plugin additionally
-	 * registers the real hostname in `allowedHosts`, so this option is a
-	 * no-op for stock vite dev/preview; turn it off when your target
-	 * genuinely needs the public Host header.
+	 * then passes without touching your config. Turn it off when your
+	 * target genuinely needs the public Host header; Vite then accepts
+	 * the tunnel host only because the plugin registered it in the
+	 * `config` hook, which needs the profile's identity to already exist:
+	 * a brand-new profile gets 403 until the next restart.
 	 */
 	hostRewrite?: boolean;
 }
@@ -64,6 +81,8 @@ export interface VkmaTunnelPluginOptions {
 interface TunnelServerLike {
 	httpServer: import("node:http").Server | null;
 	config: {
+		/** Resolved project root (absolute) — where config discovery starts. */
+		root: string;
 		server: { port?: number; allowedHosts?: string[] | true };
 		preview: { port?: number; allowedHosts?: string[] | true };
 	};
@@ -78,6 +97,35 @@ export function vkmaTunnel(options: VkmaTunnelPluginOptions = {}): Plugin[] {
 
 function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 	let handle: TunnelHandle | undefined;
+	/** Resolved tunnel configs by project root — one per root per plugin instance (Vite re-creates plugins on restart). */
+	const resolved = new Map<string, Promise<ResolveTunnelConfigResult>>();
+	/** The profile's hostname as the `config` hook found it — undefined for a brand-new profile. */
+	let storedHostname: string | undefined;
+
+	/** Resolves the tunnel config once per root; a rejection (invalid config) is reported by `startTunnel`. */
+	const resolve = (root: string): Promise<ResolveTunnelConfigResult> => {
+		let pending = resolved.get(root);
+		if (pending === undefined) {
+			pending = resolveTunnelConfig({
+				cwd: root,
+				configPath: options.config,
+				overrides: {
+					provider: options.provider,
+					port: options.port,
+					host: options.host,
+					route: options.route,
+					profile: options.profile,
+					api: options.api,
+				},
+			});
+			resolved.set(root, pending);
+		}
+		return pending;
+	};
+
+	/** The profile this run tunnels as — known long before any connection. */
+	const profileOf = async (root: string): Promise<string> =>
+		(await resolve(root)).config.profile ?? defaultProfile(root);
 
 	const stop = (): void => {
 		const current = handle;
@@ -87,6 +135,23 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 
 	return {
 		name: "vkma-tunnel",
+		async config(userConfig) {
+			// Vite snapshots `allowedHosts` when it builds its servers, so
+			// this hook is the last moment the list can grow. A stored
+			// identity knows its hostname already: allow it here.
+			const root = viteRoot(userConfig);
+			try {
+				const hostname = (await readProfileRecord(tunnelDataDir(), await profileOf(root)))
+					?.hostname;
+				if (hostname !== undefined) {
+					allowInConfig(userConfig, hostname);
+				}
+				storedHostname = hostname;
+			} catch {
+				// An invalid tunnel config must not take Vite down; the same
+				// (rejected) resolution surfaces as "failed to start" later.
+			}
+		},
 		configureServer(server) {
 			wireServer(server as unknown as TunnelServerLike, options, {
 				setHandle: next => {
@@ -94,6 +159,8 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 					handle = next;
 				},
 				close: stop,
+				resolve,
+				registeredHostname: () => storedHostname,
 			});
 		},
 		configurePreviewServer(server) {
@@ -103,6 +170,8 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 					handle = next;
 				},
 				close: stop,
+				resolve,
+				registeredHostname: () => storedHostname,
 				preview: true,
 			});
 		},
@@ -116,6 +185,10 @@ interface WireContext {
 	/** Close the active tunnel, if any (restarts and server shutdown). */
 	close(): void;
 	setHandle(handle: TunnelHandle): void;
+	/** The plugin instance's config resolution, memoized per project root. */
+	resolve(root: string): Promise<ResolveTunnelConfigResult>;
+	/** Hostname the `config` hook registered — undefined for a brand-new profile. */
+	registeredHostname(): string | undefined;
 	preview?: boolean;
 }
 
@@ -166,18 +239,9 @@ async function startTunnel(
 	const host = options.host ?? "localhost";
 
 	let tunnel: TunnelHandle;
+	const root = server.config.root;
 	try {
-		const { config } = await resolveTunnelConfig({
-			configPath: options.config,
-			overrides: {
-				provider: options.provider,
-				port: options.port,
-				host: options.host,
-				route: options.route,
-				profile: options.profile,
-				api: options.api,
-			},
-		});
+		const { config } = await context.resolve(root);
 		let announced = false;
 		let lastReason: string | undefined;
 		let lastStage: string | undefined;
@@ -186,9 +250,10 @@ async function startTunnel(
 		// the SDK delivers `route-conflict` while it is still attaching, which
 		// is exactly when the hint matters. The handle does not exist yet, so
 		// nothing inside `onEvent` may depend on it.
-		const hintProfile = config.profile ?? defaultProfile(process.cwd());
+		const hintProfile = config.profile ?? defaultProfile(root);
 		tunnel = await createTunnel({
 			...config,
+			cwd: root,
 			port,
 			host,
 			keepAlive: options.keepAlive,
@@ -235,7 +300,14 @@ async function startTunnel(
 	}
 
 	context.setHandle(tunnel);
-	allowHost(server, tunnel.hostname, preview);
+	if (options.hostRewrite === false && context.registeredHostname() !== tunnel.hostname) {
+		// Nothing rewrote the Host header and Vite's frozen allowedHosts
+		// cannot learn this hostname any more — say why requests will 403.
+		serverLog(
+			`tunnel: host rewriting is off and "${tunnel.hostname}" only exists since this run — Vite snapshots allowedHosts at startup, so requests get 403 until the next restart`,
+			"yellow",
+		);
+	}
 
 	// eslint-disable-next-line no-console
 	console.log(
@@ -302,13 +374,35 @@ function serverLog(message: string, color?: "red" | "yellow" | "dim"): void {
 }
 
 /**
- * Adds the tunnel hostname to `server.allowedHosts` / `preview.allowedHosts`
- * (Vite >= 5.4.12 rejects foreign Host headers with 403). Safe to call
- * after connect: the check reads the config at request time.
+ * The project root as Vite is about to resolve it: `config.root` against
+ * the working directory (the working directory itself when unset), with
+ * symlinks resolved unless `resolve.preserveSymlinks` says otherwise —
+ * the same value `server.config.root` carries later.
  */
-function allowHost(server: TunnelServerLike, hostname: string, preview: boolean): void {
-	const target = preview ? server.config.preview : server.config.server;
-	addAllowedHost(target, hostname);
+function viteRoot(userConfig: UserConfig): string {
+	const root = userConfig.root === undefined ? process.cwd() : path.resolve(userConfig.root);
+	if (userConfig.resolve?.preserveSymlinks) {
+		return root;
+	}
+	try {
+		return fs.realpathSync.native(root);
+	} catch {
+		return root;
+	}
+}
+
+/**
+ * Allows `hostname` in a user config that Vite has not resolved yet (the
+ * `config` hook). `preview.allowedHosts` inherits `server.allowedHosts`
+ * unless the user wrote their own list, so only that explicit list is
+ * extended — creating one would silently drop what preview inherited.
+ */
+function allowInConfig(userConfig: UserConfig, hostname: string): void {
+	addAllowedHost((userConfig.server ??= {}), hostname);
+	const preview = userConfig.preview;
+	if (preview !== undefined && Array.isArray(preview.allowedHosts)) {
+		addAllowedHost(preview, hostname);
+	}
 }
 
 /** Pure mutation helper (unit-tested): keeps `allowedHosts` semantics intact. */

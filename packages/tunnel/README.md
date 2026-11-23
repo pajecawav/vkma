@@ -45,14 +45,23 @@ export default {
 
 Zero options needed: the plugin reads the **actual listening port** of the dev
 server (and of `vite preview` — prod builds on a phone without deploying),
-starts the tunnel and prints its URL next to Vite's own. It also registers the
-tunnel hostname in `server.allowedHosts` / `preview.allowedHosts` — without
-that Vite answers tunneled requests with 403. HMR works through the tunnel
-(the bridge forwards bytes, WebSocket included).
+starts the tunnel and prints its URL next to Vite's own. Requests reach Vite
+because the core routes them through the host-rewriting proxy (see below), so
+nothing in your Vite config has to change: Vite snapshots `allowedHosts` when
+the server starts and ignores later edits. When the profile's identity already
+exists, the plugin also adds its hostname to `server.allowedHosts` /
+`preview.allowedHosts` while the config is still resolving — that is what
+makes `hostRewrite: false` work; a brand-new profile mints its hostname too
+late for it and needs one restart (the plugin says so). HMR works through the
+tunnel (the bridge forwards bytes, WebSocket included).
 
-Options (all optional, each overrides `vkma-tunnel.config.ts`): `enabled`,
-`config`, `provider`, `port`, `host`, `route`, `profile`, `api`, `qr`, `open`,
-`keepAlive`, `hostRewrite`.
+Options (all optional): `enabled`, `config`, `provider`, `route`, `profile`,
+`api`, `qr`, `open`, `keepAlive`, `hostRewrite` — each overrides
+`vkma-tunnel.config.*`. `port` and `host` retarget the tunnel away from the
+live Vite server; the same keys in the config file apply to the CLI and the
+Node API only, the plugin always tunnels the server it is attached to. The
+Vite root is the project: config discovery and the default profile start
+there.
 
 A fatal tunnel failure never kills the dev server — you get a red line, the
 app keeps running.
@@ -89,7 +98,7 @@ await tunnel.closed; // resolves on close(), rejects on a fatal error
 ```
 
 `createTunnel(options)` resolves once the tunnel is live. `options`:
-`provider` (`"opentunnel"`), `port`, `host` (`"127.0.0.1"`), `route` (`"@"`
+`provider` (`"opentunnel"`), `port`, `host` (`"localhost"`), `route` (`"@"`
 apex or a subdomain label), `profile`, `api` (self-hosted server), `dataDir`,
 `cwd`, `signal`, `onEvent`.
 
@@ -97,7 +106,9 @@ apex or a subdomain label), `profile`, `api` (self-hosted server), `dataDir`,
 
 `vkma-tunnel.config.{ts,mts,js,mjs,json}` (discovered walking up from cwd,
 first file wins). Layering: CLI flags / plugin options > config file >
-defaults.
+defaults. `port` and `host` in the file apply to the CLI and the Node API;
+the plugin always tunnels the live Vite server unless its own `port`/`host`
+options say otherwise.
 
 ```ts
 import { defineTunnelConfig } from "@vkma.dev/tunnel";
@@ -105,7 +116,7 @@ import { defineTunnelConfig } from "@vkma.dev/tunnel";
 export default defineTunnelConfig({
     provider: "opentunnel", // default, the only provider in v0.1
     port: 5173, // default
-    host: "127.0.0.1", // default
+    host: "localhost", // default
     route: "@", // default: apex URL https://<id>.opentunnel.xyz
     // profile: "my-app", // default: project directory name
     // api: "https://opentunnel.example", // self-hosted; OPENTUNNEL_API works too

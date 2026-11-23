@@ -59,8 +59,12 @@ Keep all comments, commits, and docs in English.
    plugin) tells a live holder ("stop it") from a dead one ("the
    service still holds its route").
 2. **Layering is fixed**: CLI flags / plugin options > config file >
-   auto-detected server values (plugin) > defaults. No env layer by
-   design; `OPENTUNNEL_API` is read natively by the SDK, don't shadow it.
+   defaults. The plugin always tunnels the Vite server it is attached
+   to: its `port`/`host` options retarget it, the config-file keys do
+   not (they belong to the CLI and the Node API). For the plugin the
+   Vite root is the project — config discovery and the default profile
+   start there, not at the launch directory. No env layer by design;
+   `OPENTUNNEL_API` is read natively by the SDK, don't shadow it.
 3. **The library never touches `process`** outside injected `env`
    (identity store default param, `resolveTunnelConfig` cwd default), the
    documented `stripTypeScriptTypes` warning shim, and `process.pid`
@@ -78,16 +82,23 @@ Keep all comments, commits, and docs in English.
    as SIGINT — a hard kill skips the bridge close and the server keeps
    the route bound to a ghost session, which is exactly the
    `route_conflict` takeover storm the next run must fight through.
-6. **The Vite plugin must add the tunnel hostname to
-   `server.allowedHosts`/`preview.allowedHosts`** before the URL is
-   usable — Vite >= 5.4.12 answers foreign Host headers with 403.
-   The core additionally routes through the host-rewriting proxy
-   (`hostRewrite`, default on): a same-length `*.localhost` alias keeps
-   the byte substitution trivial and covers the CLI, which cannot touch
-   the user's vite config. Auto-detect the real listening port (port
-   0/strict ports), don't trust the configured one blindly. Default the
-   forward target to `localhost` — vite preview on modern Node binds
-   IPv6 loopback only.
+6. **Vite snapshots `allowedHosts` at startup.** Vite >= 5.4.12
+   answers foreign Host headers with 403, and dev, preview and the HMR
+   WebSocket server each freeze a copy of `allowedHosts` BEFORE
+   `configureServer` runs — a mutation after that is invisible
+   (verified on 8.3.8: the host sits in `config.server.allowedHosts`
+   and still gets 403). Two mechanisms, both required:
+    - the core routes through the host-rewriting proxy (`hostRewrite`,
+      default on): a same-length `*.localhost` alias is always allowed,
+      keeps the byte substitution trivial, and covers the CLI, which
+      cannot touch the user's vite config;
+    - the plugin registers the hostname of a STORED identity in the
+      `config` hook, the last moment the list is mutable. A brand-new
+      profile mints its hostname later: with `hostRewrite: false` it gets
+      403 until the next restart (the plugin prints why).
+      Auto-detect the real listening port (port 0/strict ports), don't
+      trust the configured one blindly. Default the forward target to
+      `localhost` — vite preview on modern Node binds IPv6 loopback only.
 7. **Provider registry is closed** (v0.1: `opentunnel` only). The
    `TunnelProvider` type is public; adding a provider is a package
    release, not a runtime plugin API.
