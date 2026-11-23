@@ -256,12 +256,49 @@ open the URL, confirm HTTP/2 in DevTools, stop with Ctrl+C.
    `onWarning`, transient like `onProgress`.
 6. Plugin options, docs, changeset.
 
+## Verified live — 2026-11-23, evening
+
+From this machine, whose network reached Cloudflare directly at the time
+(no route was changed for it — and an hour earlier the same machine could
+not make a URL answer for a whole warm-up cap). `cloudflared` 2026.11.0
+(built 20261113), Vite 8.3.8 dev server with a one-page app, Linux amd64.
+
+| Check                                                               | Result                                                                                                                                                                                                   |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quick Tunnel announced                                              | 9 s after start in three of four timed runs, 24 s in the fourth                                                                                                                                          |
+| `GET /` through the tunnel                                          | `200`, the page; `/@vite/client` `200`                                                                                                                                                                   |
+| Host the origin sees, default                                       | `localhost:<port>` — `--http-host-header` does what the documentation says                                                                                                                               |
+| `--no-host-rewrite`                                                 | Vite: `403` `Blocked request. This host ("….trycloudflare.com") is not allowed.` — the public Host passes through when the flag is omitted; no request reached the app                                   |
+| `--no-host-rewrite` + `server.allowedHosts: ['.trycloudflare.com']` | `200`, and the origin sees `….trycloudflare.com`: the hint's advice is sufficient                                                                                                                        |
+| HMR WebSocket (`new WebSocket(url, "vite-hmr")`)                    | opens and Vite sends `{"type":"connected"}`; likewise with the suffix allowed; with nothing allowed it never opens (`1006`)                                                                              |
+| First request on a fresh connection                                 | opentunnel (route `mobile`, identity minted in 19 s): TCP 207 ms, TLS 505 ms, total 787 ms. cloudflared, five samples: total 280–347 ms, of which TCP 70 ms and TLS 150 ms in the two that measured them |
+| Ctrl+C                                                              | the CLI exits ~0.4 s after SIGINT with cloudflared, ~0.2 s with opentunnel                                                                                                                               |
+
+opentunnel went through the same CLI after its section took over `route`:
+`--opentunnel-route mobile` served `https://mobile.<id>.opentunnel.xyz` and
+stamped `lastRoute: "mobile"`.
+
+Every run left nothing behind — no child process, no record in a quick
+mode sandbox. The two opentunnel runs minted throwaway identities on the
+hosted service (`4edtlx3xtdm5`, `bdjc23j557sl`); their local records went
+with the sandbox.
+
 ## Open at the time of writing
 
-- `--http-host-header` is taken from Cloudflare's documentation and several
-  guides; the live runs never got a request through to the test origin, so
-  the header the origin sees is still to be confirmed in step 4. The same
-  goes for omitting it (the public Host then passing through unchanged).
+- **A machine that cannot reach the edge while its visitors can.** The
+  warm-up gate and the health watchdog both probe from the machine, and by
+  code a probe with no answer at all counts exactly like an error status.
+  So in that case a start waits out the whole cap (silently), and the
+  watchdog restarts a tunnel that may be serving fine — a new Quick Tunnel
+  URL every cycle. Not reproduced: the earlier evening runs could not tell
+  the two cases apart, nobody could reach the URL. The fix would be to let
+  only an edge ANSWER in the error range mean "the tunnel is down", and
+  read "no answer" as "this machine's reachability is in doubt".
+- Token mode with a real token (it needs a hostname on a Cloudflare zone).
+- `protocol: "quic"` on a network where it can work.
+- The URL opened inside a VK client (the iframe on a phone).
+- Windows (the `cloudflared.exe` lookup is tested by naming the platform)
+  and macOS: no machine has run either.
 - Whether the readiness probe should pin the zone apex's address instead of
   resolving the new name (it avoids the NXDOMAIN cache, but one such probe
   answered `530` while a plain one answered `200` in the same second — most
