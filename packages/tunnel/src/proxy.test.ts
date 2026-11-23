@@ -91,6 +91,39 @@ describe("createHostRewriter", () => {
 	it("rejects mismatched lengths", () => {
 		expect(() => createHostRewriter("abc", "ab")).toThrow();
 	});
+
+	it("holds a suffix that may still complete into the needle, and says so", () => {
+		const rewriter = createHostRewriter(
+			"abc123def456.opentunnel.xyz",
+			"abc123def456.open.localhost",
+		);
+		// The needle starts with "a": a trailing "a" may be its first byte.
+		const text = rewriter
+			.write(Buffer.from("count=a"))
+			.map(piece => piece.toString())
+			.join("");
+		expect(text).toBe("count=");
+		expect(rewriter.held).toBe(true);
+	});
+
+	it("flush() releases the held tail unchanged and re-arms cleanly", () => {
+		const rewriter = createHostRewriter(
+			"abc123def456.opentunnel.xyz",
+			"abc123def456.open.localhost",
+		);
+		rewriter.write(Buffer.from("count=a"));
+		expect(rewriter.flush().toString()).toBe("a");
+		expect(rewriter.held).toBe(false);
+		// Nothing is left to release when the stream ends.
+		expect(rewriter.end().toString()).toBe("");
+		// The stream keeps flowing untouched after a flush.
+		const after = rewriter
+			.write(Buffer.from("bc"))
+			.map(piece => piece.toString())
+			.join("");
+		expect(after).toBe("bc");
+		expect(rewriter.held).toBe(false);
+	});
 });
 
 describe("startForwardProxy", () => {
@@ -150,6 +183,68 @@ describe("startForwardProxy", () => {
 			const result = await rawRequest(proxy.port, request);
 			expect(sawUpgrade).toBe(true);
 			expect(result.text).toContain("101 Switching Protocols");
+		} finally {
+			await proxy.close();
+			server.closeAllConnections();
+			await new Promise<void>(resolve => server.close(() => resolve()));
+		}
+	});
+
+	it("forwards a body whose last byte is a prefix of the tunnel hostname", async () => {
+		// The rewriter holds a suffix that may still complete into the
+		// hostname. A request body that merely ends in its first byte must
+		// not wait forever for bytes that are never coming.
+		const server = http.createServer((request, response) => {
+			let body = "";
+			request.on("data", (chunk: Buffer) => {
+				body += chunk.toString();
+			});
+			request.on("end", () => {
+				response.end(`body=<${body}>`);
+			});
+		});
+		await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+		const { port: targetPort } = server.address() as AddressInfo;
+		const proxy = await startForwardProxy({
+			targetHost: "127.0.0.1",
+			targetPort,
+			tunnelHostname: TUNNEL_HOST,
+			localhostAlias: ALIAS,
+		});
+		/** One POST with a fixed body and no half-close — exactly what a browser sends. */
+		const post = (body: string): Promise<string> =>
+			new Promise((resolve, reject) => {
+				const request = http.request(
+					{
+						host: "127.0.0.1",
+						port: proxy.port,
+						method: "POST",
+						headers: {
+							host: TUNNEL_HOST,
+							"content-length": String(Buffer.byteLength(body)),
+						},
+					},
+					response => {
+						let text = "";
+						response.on("data", (chunk: Buffer) => {
+							text += chunk.toString();
+						});
+						response.on("end", () => resolve(text));
+					},
+				);
+				// Before the idle flush this hung until the client gave up.
+				request.setTimeout(1500, () =>
+					request.destroy(new Error("held byte never released")),
+				);
+				request.on("error", reject);
+				request.end(body);
+			});
+		try {
+			// Control: "3" is not a prefix of "abc123def456.opentunnel.xyz".
+			expect(await post("count=3")).toBe("body=<count=3>");
+			// "a" IS its first byte: the trailing "a" is held, then released.
+			expect(await post("count=4&a")).toBe("body=<count=4&a>");
+			expect(await post("a")).toBe("body=<a>");
 		} finally {
 			await proxy.close();
 			server.closeAllConnections();

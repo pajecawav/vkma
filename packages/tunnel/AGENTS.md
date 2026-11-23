@@ -33,6 +33,10 @@ Keep all comments, commits, and docs in English.
   store: our format, shared metadata beside the identity).
 - `src/proxy.ts` — the loopback host-rewriting forward proxy (same-length
   `*.localhost` alias: pure byte substitution, WS upgrades pass through).
+  A suffix that may still complete into the hostname is held back; the
+  proxy releases it after a 50 ms idle window (`HOLD_FLUSH_MS`) — never
+  remove that release, a request body or WS frame whose last byte is a
+  hostname prefix would otherwise hang forever.
 - `src/cli/` — argv parser, `logger.ts` (pretty/json/quiet renderers,
   elapsed-time spinner — adapted from deploy's CliLogger), `main.ts`
   (dispatch/rendering; returns exit codes, never calls `process.exit`),

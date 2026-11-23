@@ -15,14 +15,32 @@
  * stream: Host, Origin, Referer — every occurrence, no request
  * boundaries, WebSocket upgrades and pipelining pass through untouched.
  *
- * The proxy is per-tunnel, loopback-only, and fails fast when the real
- * target refuses (the watchdog's probeTcp still watches the real
- * target, so a dead dev server is never mistaken for a wedged relay).
+ * One consequence needs care: a stream suffix that is a PREFIX of the
+ * hostname is held back (the needle may be split across chunks), and a
+ * held byte must not wait forever. A request body ending in the
+ * hostname's first byte, or a masked WebSocket frame whose last byte
+ * happens to match it, would otherwise never reach the target in full
+ * while the client waits for a response. The proxy therefore releases a
+ * held tail after a short idle window (`HOLD_FLUSH_MS`): a split needle
+ * arrives within one burst, a request's last byte does not.
+ *
+ * The proxy is per-tunnel and loopback-only. It fails fast when the real
+ * target refuses (the target socket's error destroys the pair); the
+ * provider's health watchdog probes the REAL target on its own, so a
+ * dead dev server is never mistaken for a wedged relay.
  */
 
 import net from "node:net";
 
 const LOCALHOST_SUFFIX = ".localhost";
+
+/**
+ * How long a tail that may still complete into the hostname waits for
+ * more bytes before it is forwarded as-is. Requests never sit on it: a
+ * GET ends with CRLFCRLF (nothing held), and a held last byte leaves
+ * within this window.
+ */
+export const HOLD_FLUSH_MS = 50;
 
 /**
  * Builds a `*.localhost` hostname with EXACTLY the same byte length as
@@ -47,6 +65,14 @@ export function localhostAliasFor(hostname: string): string | undefined {
 export interface HostRewriter {
 	/** Rewrites one chunk; returns the (possibly deferred) output. */
 	write(chunk: Buffer): Buffer[];
+	/** True while a tail is held back because it may still complete into the hostname. */
+	readonly held: boolean;
+	/**
+	 * Releases the held tail UNCHANGED and forgets it — the proxy calls
+	 * this once the idle window passes and the needle is no longer
+	 * expected to complete.
+	 */
+	flush(): Buffer;
 	/** Flushes the deferred tail (partial match) at stream end. */
 	end(): Buffer;
 }
@@ -61,6 +87,11 @@ export function createHostRewriter(needle: string, replacement: string): HostRew
 		throw new Error(`host rewriter requires same-length needle/replacement`);
 	}
 	let pending = Buffer.alloc(0);
+	const release = (): Buffer => {
+		const rest = pending;
+		pending = Buffer.alloc(0);
+		return rest;
+	};
 	const pattern = Buffer.from(needle, "utf8");
 	const swap = Buffer.from(replacement, "utf8");
 
@@ -100,11 +131,11 @@ export function createHostRewriter(needle: string, replacement: string): HostRew
 			}
 			return out;
 		},
-		end(): Buffer {
-			const rest = pending;
-			pending = Buffer.alloc(0);
-			return rest;
+		get held(): boolean {
+			return pending.length > 0;
 		},
+		flush: release,
+		end: release,
 	};
 }
 
@@ -143,6 +174,23 @@ export function startForwardProxy(options: ForwardProxyOptions): Promise<Forward
 			sockets.delete(targetSocket);
 		};
 
+		// Idle flush: a tail held as a possible needle prefix is released
+		// once no more bytes arrive within HOLD_FLUSH_MS — a request's
+		// last byte must not wait for data that is never coming.
+		let holdTimer: ReturnType<typeof setTimeout> | undefined;
+		const cancelHold = (): void => {
+			if (holdTimer !== undefined) {
+				clearTimeout(holdTimer);
+				holdTimer = undefined;
+			}
+		};
+		const releaseHold = (): void => {
+			cancelHold();
+			if (rewriter.held) {
+				targetSocket.write(rewriter.flush());
+			}
+		};
+
 		const destroy = (): void => {
 			clientSocket.destroy();
 			targetSocket.destroy();
@@ -150,10 +198,12 @@ export function startForwardProxy(options: ForwardProxyOptions): Promise<Forward
 		clientSocket.once("error", destroy);
 		targetSocket.once("error", destroy);
 		clientSocket.once("close", () => {
+			cancelHold();
 			forget();
 			targetSocket.destroy();
 		});
 		targetSocket.once("close", () => {
+			cancelHold();
 			forget();
 			clientSocket.destroy();
 		});
@@ -161,11 +211,18 @@ export function startForwardProxy(options: ForwardProxyOptions): Promise<Forward
 		// Tunnel → target: rewrite every occurrence of the tunnel hostname
 		// (Host, Origin, Referer, …) into its localhost alias.
 		clientSocket.on("data", (chunk: Buffer) => {
+			// More bytes: a held tail joins them instead of being released.
+			cancelHold();
 			for (const piece of rewriter.write(chunk)) {
 				targetSocket.write(piece);
 			}
+			if (rewriter.held) {
+				holdTimer = setTimeout(releaseHold, HOLD_FLUSH_MS);
+				holdTimer.unref?.();
+			}
 		});
 		clientSocket.once("end", () => {
+			cancelHold();
 			targetSocket.write(rewriter.end());
 			targetSocket.end();
 		});
