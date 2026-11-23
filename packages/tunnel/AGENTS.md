@@ -97,6 +97,10 @@ Keep all comments, commits, and docs in English.
 - Shutdown resilience tests inject a `createTunnel` fake whose
   `closed`/`close()` never settle — the CLI must still exit (abort grace
   path), proving the exit never depends on third-party teardown.
+- SDK events reach `onEvent` BEFORE `createTunnel` resolves — the SDK's
+  contract is that `route-conflict` arrives while it is still attaching.
+  Nothing inside an `onEvent` handler may depend on the tunnel handle.
+  `src/vite.lifecycle.test.ts` delivers events in that order on purpose.
 
 ## Known service behavior (not our bugs)
 

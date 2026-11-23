@@ -24,6 +24,7 @@
 import type { Plugin } from "vite";
 import { resolveTunnelConfig } from "./config/resolve.ts";
 import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
+import { defaultProfile } from "./core/profile.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle, TunnelEvent } from "./core/types.ts";
 export interface VkmaTunnelPluginOptions {
@@ -180,6 +181,11 @@ async function startTunnel(
 		let lastReason: string | undefined;
 		let lastStage: string | undefined;
 		let conflictHintShown = false;
+		// Lifecycle events reach `onEvent` BEFORE `createTunnel` resolves —
+		// the SDK delivers `route-conflict` while it is still attaching, which
+		// is exactly when the hint matters. The handle does not exist yet, so
+		// nothing inside `onEvent` may depend on it.
+		const hintProfile = config.profile ?? defaultProfile(process.cwd());
 		tunnel = await createTunnel({
 			...config,
 			port,
@@ -202,11 +208,11 @@ async function startTunnel(
 				}
 				if (event.type === "route-conflict" && !conflictHintShown) {
 					conflictHintShown = true;
-					void readProfileRecord(tunnelDataDir(), tunnel.profile)
+					void readProfileRecord(tunnelDataDir(), hintProfile)
 						.then(record => {
 							if (record?.pid !== undefined && record.pid !== process.pid) {
 								serverLog(
-									`tunnel: profile "${tunnel.profile}" was also attached by process ${String(record.pid)} — is another vkma-tunnel / vite dev still running?`,
+									`tunnel: profile "${hintProfile}" was also attached by process ${String(record.pid)} — is another vkma-tunnel / vite dev still running?`,
 									"yellow",
 								);
 							}
