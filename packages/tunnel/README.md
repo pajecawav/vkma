@@ -122,6 +122,13 @@ it answers). Nothing is stored for it. Fine for a look from another device;
 not for the VK app settings. Cloudflare also limits Quick Tunnels to 200
 in-flight requests and no Server-Sent Events, with no uptime guarantee.
 
+The Host header is rewritten to `localhost:<port>` for you, so Vite's
+`allowedHosts` check passes. With `hostRewrite: false` (CLI:
+`--no-host-rewrite`) the public `*.trycloudflare.com` Host reaches your
+server instead — then allow the suffix,
+`server.allowedHosts: ['.trycloudflare.com']`, because the name is new on
+every start.
+
 **Token mode** — a stable hostname. Create a named tunnel in the [Cloudflare
 dashboard](https://one.dash.cloudflare.com/), add its public hostname there,
 and point the tunnel at `http://localhost:<port>`:

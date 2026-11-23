@@ -457,7 +457,12 @@ async function startTunnel(
 		},
 	);
 	context.setHandle(tunnel);
-	if (options.hostRewrite === false && context.registeredHostname() !== tunnel.hostname) {
+	const quickTunnel = tunnel.provider === "cloudflared" && cloudflaredMode !== "token";
+	if (
+		options.hostRewrite === false &&
+		!quickTunnel &&
+		context.registeredHostname() !== tunnel.hostname
+	) {
 		// Nothing rewrote the Host header and Vite's frozen allowedHosts
 		// cannot learn this hostname any more — say why requests will 403.
 		serverLog(
@@ -474,12 +479,21 @@ async function startTunnel(
 		);
 	};
 	printBanner();
-	if (tunnel.provider === "cloudflared" && cloudflaredMode !== "token") {
+	if (quickTunnel) {
 		// One-time URL: say so while the user is looking at the banner.
 		serverLog(
 			'Quick Tunnel — this URL is one-time: it changes on every start and takes up to a minute to warm up. For a stable URL use a named tunnel (cloudflared: { mode: "token" }).',
 			"yellow",
 		);
+		if (options.hostRewrite === false) {
+			// cloudflared left the public Host in place, as asked — and its
+			// name is new on every start, so no hostname can be registered
+			// ahead of it. The suffix can.
+			serverLog(
+				'tunnel: host rewriting is off and a Quick Tunnel gets a new hostname on every start — allow the suffix: server.allowedHosts: [".trycloudflare.com"]',
+				"yellow",
+			);
+		}
 	}
 	if (options.qr === true) {
 		printPluginQr(tunnel.primaryUrl);

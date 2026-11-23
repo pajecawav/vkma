@@ -143,6 +143,14 @@ export interface TunnelProviderConnectOptions {
 	 * service resets handshakes within a second when its relay dies.
 	 */
 	readonly keepAlive?: boolean;
+	/**
+	 * The caller's `hostRewrite` switch (default on: the local target
+	 * should not see the public Host header). The core owns it for the
+	 * `"proxy"` policy and needs nothing for `"unhandled"`; a provider
+	 * with the `"provider"` policy MUST honour `false` — leave the public
+	 * Host alone — since no proxy stands behind it.
+	 */
+	readonly hostRewrite?: boolean;
 	/** The `cloudflared` section as the caller gave it; the provider applies its defaults. */
 	readonly cloudflared?: CloudflaredOptionsInput;
 	/**
@@ -191,7 +199,9 @@ export interface TunnelProvider<Id extends string = string> {
 	 * - `"proxy"` (the default): the core's host-rewriting proxy, unless
 	 *   the caller turned `hostRewrite` off — opentunnel;
 	 * - `"provider"`: the provider rewrites it itself and the core starts
-	 *   no proxy — cloudflared quick mode (`--http-host-header`);
+	 *   no proxy — cloudflared quick mode (`--http-host-header`). Such a
+	 *   provider honours the caller's `hostRewrite: false` exactly like
+	 *   the proxy would: it leaves the public Host alone;
 	 * - `"unhandled"`: neither can — the core starts no proxy and warns:
 	 *   cloudflared token mode, where the dashboard's origin settings
 	 *   decide what the target sees and traffic never passes the proxy.

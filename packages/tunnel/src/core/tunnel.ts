@@ -106,6 +106,7 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		onEvent: options.onEvent,
 		onProgress: options.onProgress,
 		keepAlive: options.keepAlive,
+		hostRewrite: options.hostRewrite,
 		cloudflared: options.cloudflared,
 		env,
 		onWarning: options.onWarning,

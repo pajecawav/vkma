@@ -579,6 +579,18 @@ describe("vkmaTunnel with the cloudflared provider", () => {
 		expect(output()).toContain("the URL was replaced");
 	});
 
+	it("with hostRewrite off, a Quick Tunnel is told to allow the suffix, not to wait for a restart", async () => {
+		vi.mocked(createTunnel).mockImplementation(async () => liveQuickHandle());
+		await boot({ provider: "cloudflared", hostRewrite: false });
+		await vi.waitFor(() => expect(createTunnel).toHaveBeenCalled());
+		expect(vi.mocked(createTunnel).mock.calls[0]?.[0]?.hostRewrite).toBe(false);
+		await vi.waitFor(() =>
+			expect(output()).toContain('server.allowedHosts: [".trycloudflare.com"]'),
+		);
+		// The generic advice is wrong for a hostname that is new on every start.
+		expect(output()).not.toContain("until the next restart");
+	});
+
 	it("renders provider warnings in yellow", async () => {
 		vi.mocked(createTunnel).mockImplementation(async options => {
 			options.onWarning?.("cloudflared 2020.1.1 is about 84 months old");

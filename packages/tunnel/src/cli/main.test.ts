@@ -584,6 +584,33 @@ describe("run with the cloudflared provider", () => {
 		expect(code).toBe(130);
 		expect(out.join("")).toContain("https://first-tunnel.trycloudflare.com");
 		expect(errOut.join("")).toContain("Quick Tunnel — this URL is one-time");
+		// Host rewriting is on here: nothing to allow.
+		expect(errOut.join("")).not.toContain(".trycloudflare.com");
+	});
+
+	it("--no-host-rewrite with a Quick Tunnel says to allow the suffix", async () => {
+		out = [];
+		errOut = [];
+		const controller = new AbortController();
+		const handle = replaceableTunnel();
+		const code = await main(["--provider", "cloudflared", "--no-host-rewrite"], {
+			cwd,
+			dataDir,
+			env: { HOME: "/home/test" },
+			stdout,
+			stderr: { write: (text: string): void => void errOut.push(text) },
+			signal: controller.signal,
+			createTunnel: async options => {
+				expect(options.hostRewrite).toBe(false);
+				controller.signal.addEventListener("abort", () => void handle.close(), {
+					once: true,
+				});
+				setTimeout(() => controller.abort(), 40);
+				return handle;
+			},
+		});
+		expect(code).toBe(130);
+		expect(errOut.join("")).toContain("['.trycloudflare.com']");
 	});
 
 	it("prints a new banner when the URL is replaced under the same handle", async () => {

@@ -377,6 +377,57 @@ describe("createTunnel with the cloudflared provider", () => {
 		}
 	});
 
+	it("hostRewrite: false reaches the child: no --http-host-header, no proxy", async () => {
+		const { env, stateDir } = await installFakeCloudflared(cfDir, sandboxEnv);
+
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 4173,
+			profile: "own-host",
+			dataDir: cfDir,
+			env,
+			keepAlive: false,
+			hostRewrite: false,
+		});
+		try {
+			const { argv } = JSON.parse(
+				await fs.readFile(path.join(stateDir, "argv-1.json"), "utf8"),
+			) as { argv: string[] };
+			expect(argv).toContain("--url");
+			expect(argv).not.toContain("--http-host-header");
+			expect(startForwardProxy).not.toHaveBeenCalled();
+		} finally {
+			await handle.close();
+		}
+	});
+
+	it("token mode with hostRewrite off needs no Host-header warning: the public Host is what was asked for", async () => {
+		const { env } = await installFakeCloudflared(cfDir, {
+			...sandboxEnv,
+			TUNNEL_TOKEN: "from-env",
+		});
+		const warnings: string[] = [];
+
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "named-own-host",
+			dataDir: cfDir,
+			env,
+			keepAlive: false,
+			hostRewrite: false,
+			cloudflared: { mode: "token", hostname: "app.example.com" },
+			onWarning: message => {
+				warnings.push(message);
+			},
+		});
+		try {
+			expect(warnings).toEqual([]);
+		} finally {
+			await handle.close();
+		}
+	});
+
 	it("a respawned Quick Tunnel changes the URL under the same handle", async () => {
 		const { env } = await installFakeCloudflared(cfDir, {
 			...sandboxEnv,

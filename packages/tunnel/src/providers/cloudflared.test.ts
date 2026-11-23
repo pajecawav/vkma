@@ -319,6 +319,29 @@ describe("cloudflared provider — quick mode", () => {
 		}
 	});
 
+	it("leaves the public Host alone when the caller turned hostRewrite off", async () => {
+		fast();
+		const env = await fake();
+		const connection = await connect({ env, hostRewrite: false });
+		try {
+			const { argv } = await argvOf(1);
+			expect(argv).not.toContain("--http-host-header");
+			// Everything else is the documented command.
+			expect(argv).toEqual([
+				"tunnel",
+				"--no-autoupdate",
+				"--loglevel",
+				"info",
+				"--protocol",
+				"http2",
+				"--url",
+				"http://localhost:4173",
+			]);
+		} finally {
+			await connection.close();
+		}
+	});
+
 	it("announces anyway, with a warning, when the URL never answers", async () => {
 		fast();
 		const env = await fake();

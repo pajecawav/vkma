@@ -177,6 +177,14 @@ commits, and docs in English.
    dashboard's origin settings decide where traffic goes and it never
    passes a proxy the core could start; the core warns instead. Do not
    "fix" token mode with the proxy: it cannot see that traffic.
+   `hostRewrite` is one switch for both mechanisms, not an opentunnel
+   option: the connect options carry it, and a `"provider"` policy MUST
+   honour `false` — cloudflared quick mode then omits
+   `--http-host-header` and the public Host reaches the target, since no
+   proxy stands behind it to do so. With the switch off token mode warns
+   no more: the public Host is what was asked for. A Quick Tunnel's name
+   is new on every start, so the hints then say to allow the SUFFIX
+   (`.trycloudflare.com`), never "restart to pick up the hostname".
 10. **A cloudflared token reaches the child through `TUNNEL_TOKEN` in its
     environment only** — never `argv` (visible to every process), never
     a profile record, never a log line. There is deliberately no

@@ -162,6 +162,9 @@ token:  cloudflared tunnel --no-autoupdate --loglevel info --protocol <p> run
   proxy the core could start. The provider declares the case through
   `TunnelProvider.hostHeaderPolicy` (`"provider"` / `"proxy"` /
   `"unhandled"`); for token mode the core starts no proxy and warns.
+  _Amended:_ `hostRewrite: false` used to act as an opentunnel-only
+  switch; a `"provider"` policy honours it too — quick mode then omits
+  `--http-host-header` and the public Host passes through.
 - **Announce only what works.** `connect()` resolves once, in order: the URL
   is known (parsed from stderr in quick mode, configured in token mode), a
   `Registered tunnel connection` line was seen, and a plain `GET` of the
@@ -254,7 +257,8 @@ open the URL, confirm HTTP/2 in DevTools, stop with Ctrl+C.
 
 - `--http-host-header` is taken from Cloudflare's documentation and several
   guides; the live runs never got a request through to the test origin, so
-  the header the origin sees is still to be confirmed in step 4.
+  the header the origin sees is still to be confirmed in step 4. The same
+  goes for omitting it (the public Host then passing through unchanged).
 - Whether the readiness probe should pin the zone apex's address instead of
   resolving the new name (it avoids the NXDOMAIN cache, but one such probe
   answered `530` while a plain one answered `200` in the same second — most

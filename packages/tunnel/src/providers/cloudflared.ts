@@ -291,15 +291,15 @@ async function connectCloudflared(
 		args = [...baseArgs, "run"];
 		childEnv = { ...toChildEnv(env), TUNNEL_TOKEN: token };
 	} else {
+		args = [...baseArgs, "--url", `http://${options.host}:${String(options.port)}`];
 		// `--http-host-header` is honoured with `--url` only, i.e. exactly in
-		// quick mode: Vite's allowedHosts check wants `localhost`.
-		args = [
-			...baseArgs,
-			"--url",
-			`http://${options.host}:${String(options.port)}`,
-			"--http-host-header",
-			`localhost:${String(options.port)}`,
-		];
+		// quick mode: Vite's allowedHosts check wants `localhost`. This is
+		// the provider's own rewrite, so it obeys the caller's switch like
+		// the core's proxy does: with `hostRewrite: false` the public
+		// `*.trycloudflare.com` Host reaches the target as is.
+		if (options.hostRewrite !== false) {
+			args.push("--http-host-header", `localhost:${String(options.port)}`);
+		}
 		childEnv = toChildEnv(env);
 	}
 
