@@ -85,6 +85,19 @@ export interface VkmaTunnelPluginOptions {
 	 * a brand-new profile gets 403 until the next restart.
 	 */
 	hostRewrite?: boolean;
+	/**
+	 * Options of the `cloudflared` provider — the keys of the config's
+	 * `cloudflared` section. They mean something only with
+	 * `provider: "cloudflared"`. Prefer `TUNNEL_TOKEN` over `token`:
+	 * plugin options live in `vite.config.ts`, which is usually committed.
+	 */
+	cloudflared?: {
+		mode?: "quick" | "token";
+		hostname?: string;
+		token?: string;
+		protocol?: "http2" | "quic";
+		binary?: string;
+	};
 }
 
 /**
@@ -177,6 +190,7 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 					route: options.route,
 					profile: options.profile,
 					api: options.api,
+					cloudflared: options.cloudflared,
 				},
 			});
 			resolved.set(root, pending);
@@ -222,8 +236,15 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 			// identity knows its hostname already: allow it here.
 			const root = viteRoot(userConfig);
 			try {
-				const hostname = (await readProfileRecord(tunnelDataDir(), await profileOf(root)))
-					?.hostname;
+				// A token-mode hostname is configured, not minted: known even
+				// before the first run stored anything.
+				const tokenHostname =
+					options.cloudflared?.mode === "token"
+						? options.cloudflared.hostname
+						: undefined;
+				const hostname =
+					(await readProfileRecord(tunnelDataDir(), await profileOf(root)))?.hostname ??
+					tokenHostname;
 				if (hostname !== undefined) {
 					allowInConfig(userConfig, hostname);
 				}
@@ -331,9 +352,12 @@ async function startTunnel(
 	const host = options.host ?? "localhost";
 
 	let tunnel: TunnelHandle;
+	/** The `cloudflared` section's mode once the config resolved (banner wording). */
+	let cloudflaredMode: "quick" | "token" | undefined;
 	const root = server.config.root;
 	try {
 		const { config } = await context.resolve(root);
+		cloudflaredMode = config.cloudflared?.mode;
 		let announced = false;
 		let lastReason: string | undefined;
 		let lastStage: string | undefined;
@@ -359,6 +383,9 @@ async function startTunnel(
 				lastStage = stage;
 				serverLog(`tunnel: ${stage}…`, "dim");
 			},
+			onWarning: message => {
+				serverLog(`tunnel: ${message}`, "yellow");
+			},
 			onEvent: event => {
 				if (event.type === "disconnected") {
 					lastReason = event.reason;
@@ -379,6 +406,16 @@ async function startTunnel(
 				if (event.type === "connected" && !announced) {
 					return;
 				}
+				if (event.type === "url-changed") {
+					// A respawned Quick Tunnel: the handle already carries the
+					// new hostname, so a fresh banner is all it takes.
+					serverLog(
+						"tunnel: the URL was replaced — the previous one no longer works",
+						"yellow",
+					);
+					printBanner();
+					return;
+				}
 				renderPluginEvent(event, lastReason);
 			},
 		});
@@ -395,17 +432,27 @@ async function startTunnel(
 	// across the whole relay path; hold idle keep-alive connections for as
 	// long as this tunnel lives, so a short pause does not cost one.
 	const releaseKeepAlive = holdKeepAlive(httpServer);
-	const closeTunnel = tunnel.close;
-	tunnel = {
-		...tunnel,
-		close: async () => {
-			try {
-				await closeTunnel();
-			} finally {
-				releaseKeepAlive();
-			}
+	const live = tunnel;
+	// Wrap without spreading: a spread would freeze the handle's getters
+	// (`hostname`, `urls`, `primaryUrl`) at their current values, and a
+	// respawned Quick Tunnel changes them under the same handle.
+	tunnel = Object.defineProperties(
+		Object.create(Object.getPrototypeOf(live), Object.getOwnPropertyDescriptors(live)),
+		{
+			close: {
+				value: async () => {
+					try {
+						await live.close();
+					} finally {
+						releaseKeepAlive();
+					}
+				},
+				enumerable: true,
+				writable: true,
+				configurable: true,
+			},
 		},
-	};
+	);
 	context.setHandle(tunnel);
 	if (options.hostRewrite === false && context.registeredHostname() !== tunnel.hostname) {
 		// Nothing rewrote the Host header and Vite's frozen allowedHosts
@@ -416,10 +463,21 @@ async function startTunnel(
 		);
 	}
 
-	// eslint-disable-next-line no-console
-	console.log(
-		`  \x1b[32m➜\x1b[0m  \x1b[1mtunnel\x1b[0m  \x1b[2m→\x1b[0m  \x1b[36m${tunnel.primaryUrl}\x1b[0m  \x1b[2m(profile ${tunnel.profile} · ${host}:${String(port)}${preview ? " · preview" : ""})\x1b[0m`,
-	);
+	/** The URL banner — first for the initial URL, again after `url-changed`. */
+	const printBanner = (): void => {
+		// eslint-disable-next-line no-console
+		console.log(
+			`  \x1b[32m➜\x1b[0m  \x1b[1mtunnel\x1b[0m  \x1b[2m→\x1b[0m  \x1b[36m${tunnel.primaryUrl}\x1b[0m  \x1b[2m(profile ${tunnel.profile} · ${host}:${String(port)}${preview ? " · preview" : ""})\x1b[0m`,
+		);
+	};
+	printBanner();
+	if (tunnel.provider === "cloudflared" && cloudflaredMode !== "token") {
+		// One-time URL: say so while the user is looking at the banner.
+		serverLog(
+			'Quick Tunnel — this URL is one-time: it changes on every start and takes up to a minute to warm up. For a stable URL use a named tunnel (cloudflared: { mode: "token" }).',
+			"yellow",
+		);
+	}
 	if (options.qr === true) {
 		printPluginQr(tunnel.primaryUrl);
 	}

@@ -1,8 +1,8 @@
 # cloudflared provider — design
 
-Status: **decided, not implemented**. Decisions were taken on 2026-11-23; the
-measurements below were made on that day with `cloudflared` 2026.11.0 on
-Linux amd64. `AGENTS.md` stays the source of invariants; this file is the plan
+Status: **implemented** (commits `9024a2d` → the docs commit that follows
+this note). Decisions were taken on 2026-11-23; the measurements below were
+made on that day with `cloudflared` 2026.11.0 on Linux amd64. `AGENTS.md` stays the source of invariants; this file is the plan
 the implementation follows and the record of why it looks the way it does.
 
 ## Why
@@ -151,10 +151,12 @@ token:  cloudflared tunnel --no-autoupdate --loglevel info --protocol <p> run
 - **The Host header.** Quick mode lets cloudflared rewrite it
   (`localhost:<port>`), which is what Vite's `allowedHosts` check wants — no
   plugin option and no proxy needed. Token mode depends on the dashboard's
-  setting, so there the host-rewriting proxy stays on as the safety net. The
-  provider tells the core which case applies through a new optional
-  `TunnelProvider.handlesHostHeader`, and the core skips its proxy when it is
-  set.
+  setting. _Amended during implementation:_ an earlier draft had the
+  core's proxy cover token mode as a safety net — it cannot, because the
+  dashboard's origin URL decides where traffic goes and it never passes a
+  proxy the core could start. The provider declares the case through
+  `TunnelProvider.hostHeaderPolicy` (`"provider"` / `"proxy"` /
+  `"unhandled"`); for token mode the core starts no proxy and warns.
 - **Announce only what works.** `connect()` resolves once, in order: the URL
   is known (parsed from stderr in quick mode, configured in token mode), a
   `Registered tunnel connection` line was seen, and a plain `GET` of the
@@ -228,15 +230,14 @@ open the URL, confirm HTTP/2 in DevTools, stop with Ctrl+C.
 ## Rollout — one commit per step
 
 1. This design.
-2. Config surface: `cloudflared` section in the schema, types, cross-field
-   rules; regenerate the JSON schema.
-3. Binary lookup and version check.
-4. The provider for quick mode: process, log parser, readiness gate, events,
-   bounded teardown.
-5. Token mode.
-6. Core wiring: registry, `handlesHostHeader`, `url-changed`, `notice`,
-   record `provider`; CLI flags and rendering.
-7. Plugin options; README and `AGENTS.md`; a changeset.
+2. Config surface (`9024a2d`).
+3. Binary lookup and version check, with the shared provider pieces
+   extracted from opentunnel (`69890cf`).
+4.  -   5. The provider, quick and token modes together (`1356411`).
+5. Core wiring and CLI (`1c5d23d`) — `hostHeaderPolicy` instead of
+   `handlesHostHeader`, and no `notice` field: warnings travel through
+   `onWarning`, transient like `onProgress`.
+6. Plugin options, docs, changeset.
 
 ## Open at the time of writing
 

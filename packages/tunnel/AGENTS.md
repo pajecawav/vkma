@@ -1,9 +1,11 @@
 # AGENTS.md — packages/tunnel
 
 Public HTTPS tunnels for local VK Mini App servers: CLI (`vkma-tunnel`),
-Node API (`createTunnel`), Vite plugin (`@vkma.dev/tunnel/vite`). Provider:
-opentunnel (blind TLS tunnels, no accounts, server-assigned hostnames).
-Keep all comments, commits, and docs in English.
+Node API (`createTunnel`), Vite plugin (`@vkma.dev/tunnel/vite`). Providers:
+`opentunnel` (default; blind TLS tunnels, no accounts, stable URLs) and
+`cloudflared` (opt-in; Cloudflare Tunnel through the `cloudflared` binary —
+`DESIGN.md` holds its design and measurements). Keep all comments,
+commits, and docs in English.
 
 ## Commands
 
@@ -28,13 +30,27 @@ Keep all comments, commits, and docs in English.
   validation + provider dispatch), `profile.ts` (default profile =
   project dir basename, sanitized), `identity.ts` (record files under the
   data dir; shared read/remove surface for the CLI).
-- `src/providers/opentunnel.ts` — the only provider + the
+- `src/providers/opentunnel.ts` — the default provider + the
   `OpenTunnelStorage` adapter over our record files (NOT the SDK's XDG
   store: our format, shared metadata beside the identity). It also
   supervises the bridge (watchdog restarts; the SDK's own close on abort
-  settles `closed`) and owns the merged event stream: a bounded tail
-  until iterated, live afterwards, ended when the tunnel stops — never
-  an unbounded queue, the CLI and the plugin never iterate it.
+  settles `closed`).
+- `src/providers/event-stream.ts` — the merged event stream every
+  provider hands to the core: a bounded tail until iterated, live
+  afterwards, ended when the tunnel stops — never an unbounded queue, the
+  CLI and the plugin never iterate it.
+- `src/providers/probe.ts` — two HTTP probes: `probeHttp` (did ANYTHING
+  answer — opentunnel's watchdog) and `httpStatus` (WHAT answered —
+  cloudflared's: the Cloudflare edge answers `530` while the tunnel
+  behind it is dead).
+- `src/providers/cloudflared-binary.ts` — PATH lookup of `cloudflared`
+  (never downloaded) and the `--version` check.
+- `src/providers/cloudflared.ts` — the cloudflared provider: a child
+  process whose logfmt output is parsed, a warm-up gate before a Quick
+  Tunnel is announced, respawns with backoff (`url-changed` when a Quick
+  Tunnel comes back under a new hostname), a hard-capped teardown and the
+  health watchdog. `cloudflared.fake.mjs` is its test double (not
+  published).
 - `src/proxy.ts` — the loopback host-rewriting forward proxy (same-length
   `*.localhost` alias: pure byte substitution, WS upgrades pass through).
   A suffix that may still complete into the hostname is held back; the
@@ -67,6 +83,13 @@ Keep all comments, commits, and docs in English.
    itself). The hint (`src/cli/conflict-hint.ts`, shared by CLI and
    plugin) tells a live holder ("stop it") from a dead one ("the
    service still holds its route").
+   **A profile belongs to ONE provider.** The record carries `provider`
+   (absent = opentunnel, written before the second provider existed);
+   the core refuses another provider on a taken profile
+   (`E_PROVIDER_MISMATCH`) — two providers on one file would overwrite
+   each other's `hostname` and corrupt an opentunnel identity. Runs with
+   nothing stable to store (`persistentIdentity` false — a cloudflared
+   Quick Tunnel) write no record at all.
 2. **Layering is fixed**: CLI flags / plugin options > config file >
    defaults. The plugin always tunnels the Vite server it is attached
    to: its `port`/`host` options retarget it, the config-file keys do
@@ -125,16 +148,50 @@ Keep all comments, commits, and docs in English.
       Auto-detect the real listening port (port 0/strict ports), don't
       trust the configured one blindly. Default the forward target to
       `localhost` — vite preview on modern Node binds IPv6 loopback only.
-7. **Provider registry is closed** (v0.1: `opentunnel` only). The
+7. **Provider registry is closed** (`opentunnel`, `cloudflared`). The
    `TunnelProvider` type is public; adding a provider is a package
-   release, not a runtime plugin API.
+   release, not a runtime plugin API. Providers declare what the core
+   must know through optional capabilities — `hostHeaderPolicy`,
+   `persistentIdentity`, `knownHostname` — never by making the core
+   branch on `provider.id`.
 8. Node >= 22.18 (native TS stripping for config files); `engines` is
    meaningful, don't lower it silently.
+9. **Who makes the Host header acceptable is the provider's call**
+   (`hostHeaderPolicy`). `"proxy"`: the core's rewriting proxy
+   (opentunnel). `"provider"`: the provider does it itself (cloudflared
+   quick mode, `--http-host-header`) and the core starts no proxy.
+   `"unhandled"`: nobody can — cloudflared token mode, where the
+   dashboard's origin settings decide where traffic goes and it never
+   passes a proxy the core could start; the core warns instead. Do not
+   "fix" token mode with the proxy: it cannot see that traffic.
+10. **A cloudflared token reaches the child through `TUNNEL_TOKEN` in its
+    environment only** — never `argv` (visible to every process), never
+    a profile record, never a log line. There is deliberately no
+    `--cloudflared-token` flag.
+11. **Announce only what answers.** A Quick Tunnel's DNS record appears
+    seconds after cloudflared prints its URL and a lookup that comes
+    earlier is cached as NXDOMAIN for a minute; edge frontends answer
+    `530` until they know the route. The provider waits before the first
+    probe and gates the announcement on a status below Cloudflare's error
+    range. If the process dies behind that gate the START fails — never
+    announce a URL that is already dead.
+12. **cloudflared teardown is hard-capped** (SIGTERM, 3 s, SIGKILL). On a
+    dead control stream it spins a core at 100 % for its whole 30 s grace
+    period. `cloudflared`'s edge connection ignores proxies by design
+    (`net.Dialer`); do not add proxy plumbing for it.
 
 ## Testing notes
 
 - Tests use throwaway dirs (`fs.mkdtemp` next to the test file); never
-  touch the real XDG store.
+  touch the real XDG store. Pass BOTH `dataDir` and an `env` whose
+  `XDG_DATA_HOME` points into the sandbox: a lost `dataDir` option falls
+  back to the real one (it happened once — a shorthand property ate the
+  option — and two test profiles landed in the user's store).
+- The cloudflared provider is tested against `cloudflared.fake.mjs`
+  (installed on the injected PATH by `installFakeCloudflared`): real log
+  lines, argv recording, crashes on request, SIGTERM ignored on request.
+  `fetch` is stubbed; `cloudflaredTimings` is shrunk per test and
+  restored in `afterEach`. No network, no real binary.
 - The `status` probe test spins a real loopback `http.Server` — no
   network beyond 127.0.0.1.
 - Never hit the real opentunnel API in tests; a live CLI check is a

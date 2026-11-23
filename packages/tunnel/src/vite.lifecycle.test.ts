@@ -501,3 +501,115 @@ describe("vkmaTunnel config hook (Vite snapshots allowedHosts at startup)", () =
 		}
 	});
 });
+
+describe("vkmaTunnel with the cloudflared provider", () => {
+	/** A Quick Tunnel handle: its URL changes under the same handle. */
+	function liveQuickHandle(): TunnelHandle & { replace: (url: string) => void } {
+		let current = "https://first-tunnel.trycloudflare.com";
+		let settle: () => void = () => undefined;
+		return {
+			provider: "cloudflared",
+			profile: "app",
+			get hostname() {
+				return new globalThis.URL(current).hostname;
+			},
+			get urls() {
+				return { "@": current };
+			},
+			get primaryUrl() {
+				return current;
+			},
+			events: (async function* () {})(),
+			status: () => ({
+				state: "connected" as const,
+				hostname: new globalThis.URL(current).hostname,
+				connections: 0,
+			}),
+			close: async () => {
+				settle();
+			},
+			closed: new Promise<void>(resolve => {
+				settle = resolve;
+			}),
+			replace: url => {
+				current = url;
+			},
+		};
+	}
+
+	it("hands the cloudflared options to createTunnel as a resolved section", async () => {
+		tunnelComesUp();
+		await boot({ provider: "cloudflared", cloudflared: { mode: "quick", protocol: "quic" } });
+		await vi.waitFor(() => expect(createTunnel).toHaveBeenCalled());
+		const call = vi.mocked(createTunnel).mock.calls[0]?.[0];
+		expect(call?.provider).toBe("cloudflared");
+		expect(call?.cloudflared).toEqual({
+			mode: "quick",
+			hostname: undefined,
+			token: undefined,
+			protocol: "quic",
+			binary: "cloudflared",
+		});
+	});
+
+	it("says that a Quick Tunnel URL is one-time", async () => {
+		vi.mocked(createTunnel).mockImplementation(async () => liveQuickHandle());
+		await boot({ provider: "cloudflared" });
+		await vi.waitFor(() => expect(output()).toContain("Quick Tunnel — this URL is one-time"));
+	});
+
+	it("prints a fresh banner with the NEW URL on url-changed", async () => {
+		const handle = liveQuickHandle();
+		vi.mocked(createTunnel).mockImplementation(async options => {
+			setTimeout(() => {
+				handle.replace("https://second-tunnel.trycloudflare.com");
+				options.onEvent?.({
+					type: "url-changed",
+					url: "https://second-tunnel.trycloudflare.com",
+				});
+			}, 20);
+			return handle;
+		});
+		await boot({ provider: "cloudflared" });
+		await vi.waitFor(() =>
+			expect(output()).toContain("https://second-tunnel.trycloudflare.com"),
+		);
+		// Two banners, and the second one carries the replacement.
+		expect(output().match(/➜/g)).toHaveLength(2);
+		expect(output()).toContain("the URL was replaced");
+	});
+
+	it("renders provider warnings in yellow", async () => {
+		vi.mocked(createTunnel).mockImplementation(async options => {
+			options.onWarning?.("cloudflared 2020.1.1 is about 84 months old");
+			return fakeHandle();
+		});
+		await boot({ provider: "cloudflared" });
+		await vi.waitFor(() =>
+			expect(output()).toContain("tunnel: cloudflared 2020.1.1 is about 84 months old"),
+		);
+	});
+
+	it("registers a token-mode hostname in the config hook before anything was stored", async () => {
+		tunnelComesUp();
+		const { userConfig } = await boot(
+			{
+				provider: "cloudflared",
+				cloudflared: { mode: "token", hostname: "app.example.com" },
+			},
+			{ server: {} },
+		);
+		expect((userConfig.server as { allowedHosts?: string[] }).allowedHosts).toContain(
+			"app.example.com",
+		);
+	});
+
+	it("registers nothing for quick mode: the hostname is minted later", async () => {
+		tunnelComesUp();
+		const { userConfig } = await boot({
+			provider: "cloudflared",
+			cloudflared: { mode: "quick" },
+		});
+		expect(userConfig.server).toBeUndefined();
+	});
+});

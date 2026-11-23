@@ -2,12 +2,15 @@
 
 Public HTTPS tunnels for local VK Mini App servers — open your dev build on a
 phone (or any device) without deploying. Ships a CLI (`vkma-tunnel`), a Node
-API and a Vite plugin, all backed by [opentunnel](https://opentunnel.xyz)
-(blind TLS tunnels: the key never leaves your machine, HTTPS is automatic).
+API and a Vite plugin over two providers:
 
-The public URL is **stable across runs**: the tunnel identity persists per
-profile (default: your project directory name), so an URL wired into the VK
-app settings keeps working. `vkma-tunnel reset` rotates it.
+- **[opentunnel](https://opentunnel.xyz)** (default) — blind TLS tunnels: the
+  key never leaves your machine, HTTPS is automatic.
+- **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** (`cloudflared`) — needs the `cloudflared` binary; TLS ends at Cloudflare's edge, so the browser speaks HTTP/2 and handshakes are fast.
+
+With opentunnel the public URL is **stable across runs**: the tunnel identity
+persists per profile (default: your project directory name), so an URL wired
+into the VK app settings keeps working. `vkma-tunnel reset` rotates it.
 
 ## CLI
 
@@ -30,7 +33,9 @@ vkma-tunnel --port 3000 --host 127.0.0.1 --route mobile --qr
 
 Flags: `--provider`, `--port`, `--host`, `--route`, `--profile`, `--api`,
 `--config`, `--qr`, `--open`, `--no-keepalive`, `--no-host-rewrite`, `--json`
-(NDJSON lifecycle events for `run` too), `--quiet`, `--no-color`.
+(NDJSON lifecycle events for `run` too), `--quiet`, `--no-color`, and for the
+second provider `--cloudflared-mode`, `--cloudflared-hostname`,
+`--cloudflared-protocol`, `--cloudflared-binary`.
 
 ## Vite plugin
 
@@ -56,7 +61,8 @@ late for it and needs one restart (the plugin says so). HMR works through the
 tunnel (the bridge forwards bytes, WebSocket included).
 
 Options (all optional): `enabled`, `config`, `provider`, `route`, `profile`,
-`api`, `qr`, `open`, `keepAlive`, `hostRewrite` — each overrides
+`api`, `qr`, `open`, `keepAlive`, `hostRewrite`, `cloudflared` (the keys of
+the config's `cloudflared` section) — each overrides
 `vkma-tunnel.config.*`. `port` and `host` retarget the tunnel away from the
 live Vite server; the same keys in the config file apply to the CLI and the
 Node API only, the plugin always tunnels the server it is attached to. The
@@ -94,6 +100,55 @@ The default forward target is `localhost` (resolves to `::1` or `127.0.0.1` —
 `vite preview` on modern Node often binds IPv6 loopback only, where
 `127.0.0.1` would refuse).
 
+## Cloudflare Tunnel (`cloudflared`)
+
+An HTTP-level tunnel: TLS ends at Cloudflare's edge, the browser speaks
+HTTP/2, and a request costs one edge → your machine trip instead of a TLS
+handshake across a relay. It needs the [`cloudflared` binary on your
+PATH](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+— this package never downloads it.
+
+**Quick mode** — no account, one command:
+
+```sh
+vkma-tunnel --provider cloudflared
+```
+
+The URL is a one-time `*.trycloudflare.com` address: it **changes on every
+start** and takes up to a minute to warm up (the tool announces it only once
+it answers). Nothing is stored for it. Fine for a look from another device;
+not for the VK app settings. Cloudflare also limits Quick Tunnels to 200
+in-flight requests and no Server-Sent Events, with no uptime guarantee.
+
+**Token mode** — a stable hostname. Create a named tunnel in the [Cloudflare
+dashboard](https://one.dash.cloudflare.com/), add its public hostname there,
+and point the tunnel at `http://localhost:<port>`:
+
+```sh
+export TUNNEL_TOKEN=… # the dashboard's token: never put it in argv or a file
+vkma-tunnel --provider cloudflared --cloudflared-mode token --cloudflared-hostname app.example.com
+```
+
+or in the config:
+
+```ts
+export default defineTunnelConfig({
+    provider: "cloudflared",
+    cloudflared: { mode: "token", hostname: "app.example.com" },
+});
+```
+
+Two things to know about token mode:
+
+- **The Host header is the dashboard's to set.** Traffic goes where the
+  dashboard sends it, so this package cannot rewrite the Host for you. In
+  the tunnel's _Additional application settings → HTTP_ set the **Host
+  header** to `localhost:<port>` (what Vite's `allowedHosts` wants), or add
+  the hostname to Vite's `server.allowedHosts`. The tool warns when it
+  cannot help.
+- **A profile belongs to one provider.** `app` cannot be an opentunnel
+  identity and a cloudflared record at once — pick another `--profile`.
+
 ## Node API
 
 ```ts
@@ -110,9 +165,13 @@ await tunnel.closed; // resolves on close(), rejects on a fatal error
 ```
 
 `createTunnel(options)` resolves once the tunnel is live. `options`:
-`provider` (`"opentunnel"`), `port`, `host` (`"localhost"`), `route` (`"@"`
-apex or a subdomain label), `profile`, `api` (self-hosted server), `dataDir`,
-`cwd`, `signal`, `onEvent`, `onProgress`, `keepAlive`, `hostRewrite`, `pid`.
+`provider` (`"opentunnel"` or `"cloudflared"`), `port`, `host`
+(`"localhost"`), `route` (`"@"` apex or a subdomain label), `profile`, `api`
+(self-hosted server), `dataDir`, `cwd`, `signal`, `onEvent`, `onProgress`,
+`onWarning`, `keepAlive`, `hostRewrite`, `pid`, `cloudflared` (the provider's
+section). The handle's `hostname`, `urls` and `primaryUrl` follow the
+provider: a `url-changed` event means the URL was replaced under the same
+handle.
 
 ## Config file
 
@@ -126,7 +185,7 @@ options say otherwise.
 import { defineTunnelConfig } from "@vkma.dev/tunnel";
 
 export default defineTunnelConfig({
-    provider: "opentunnel", // default, the only provider in v0.1
+    provider: "opentunnel", // default; or "cloudflared" (see below)
     port: 5173, // default
     host: "localhost", // default
     route: "@", // default: apex URL https://<id>.opentunnel.xyz
@@ -167,4 +226,7 @@ Editor autocomplete: add `"$schema": "https://unpkg.com/@vkma.dev/tunnel/schema/
   either side adds to every round trip, and the tunnel speaks plain
   HTTP/1.1, so a page load opens several connections, each with its own
   handshake.
+- **cloudflared transport**: `http2` by default. Where UDP 7844 is blocked,
+  cloudflared's own default (`quic`) registers and then dies every few
+  seconds without falling back; `cloudflared: { protocol: "quic" }` opts in.
 - Node >= 22.18.

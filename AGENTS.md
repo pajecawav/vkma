@@ -5,7 +5,7 @@ Monorepo toolchain for VK Mini Apps. pnpm workspaces, TypeScript strict, ESM-onl
 ## Structure
 
 - `packages/bridge`, `packages/deploy`, `packages/devtools`, `packages/api-schema` — publishable libraries (tsdown: ESM + dts)
-- `packages/tunnel` — publishable: public HTTPS tunnels for local servers (`vkma-tunnel` CLI, `createTunnel()` Node API, `/vite` plugin; opentunnel provider, stable per-project URLs; read its `AGENTS.md` before touching)
+- `packages/tunnel` — publishable: public HTTPS tunnels for local servers (`vkma-tunnel` CLI, `createTunnel()` Node API, `/vite` plugin; providers: opentunnel (default, stable per-project URLs) and cloudflared (opt-in, `DESIGN.md`); read its `AGENTS.md` before touching)
 - `packages/vkui-bridge` — publishable React glue (bridge↔VKUI host config; see its section below)
 - `packages/router` — TanStack-based VK Mini Apps router (v0.1 implemented, pre-release; `DESIGN.md` is the source of truth for decisions, read its `AGENTS.md` before touching)
 - `packages/bridge-schema` — JSON Schema catalogue of VK Bridge events + generated types
