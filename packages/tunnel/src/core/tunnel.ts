@@ -23,7 +23,12 @@ import { TunnelError } from "../errors.ts";
 import { cloudflaredProvider } from "../providers/cloudflared.ts";
 import { opentunnelProvider } from "../providers/opentunnel.ts";
 import { localhostAliasFor, startForwardProxy, type ForwardProxy } from "../proxy.ts";
-import { mergeRecordFile, readProfileRecord, tunnelDataDir } from "./identity.ts";
+import {
+	mergeRecordFile,
+	readProfileRecordFile,
+	removeRecordIfUntouched,
+	tunnelDataDir,
+} from "./identity.ts";
 import { assertValidProfile, defaultProfile } from "./profile.ts";
 import type {
 	CreateTunnelOptions,
@@ -144,15 +149,31 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 	// runs under any profile. Refusing it would block `--provider
 	// cloudflared` on every project that ever ran the default tunnel, with
 	// a hint whose way out is dropping a stable URL.
-	const existing = storesIdentity ? await readProfileRecord(dataDir, profile) : undefined;
-	const recordProvider =
-		existing === undefined ? undefined : (existing.provider ?? opentunnelProvider.id);
-	if (existing !== undefined && recordProvider !== providerId) {
+	//
+	// The owner is read from the FILE, not through the hostname. An
+	// opentunnel identity in the making has none yet (the SDK stores a
+	// `pending` record before the certificate is issued), and read through
+	// the hostname it was invisible: a cloudflared token run took such a
+	// profile over, and the default tunnel was refused on it afterwards.
+	const stored = storesIdentity
+		? await readProfileRecordFile(dataDir, profile, opentunnelProvider.id)
+		: undefined;
+	const existing = stored?.record;
+	// Undefined when the profile has no record file at all.
+	const owner = stored?.owner;
+	if (owner !== undefined && owner !== providerId) {
 		throw new TunnelError(
 			"config",
 			[
-				`Profile ${JSON.stringify(profile)} belongs to provider "${String(recordProvider)}" — refusing to run "${providerId}" on it`,
-				`Pick another profile (the CLI's --profile <name>, the plugin's \`profile\` option). Or free this one with vkma-tunnel reset --profile ${profile} — that deletes the ${String(recordProvider)} identity, and its public URL does not come back.`,
+				`Profile ${JSON.stringify(profile)} belongs to provider "${owner}" — refusing to run "${providerId}" on it`,
+				// True for both: opentunnel's record IS the identity, and its URL
+				// goes with it; cloudflared's only names a tunnel that lives in
+				// the account and keeps its hostname.
+				[
+					`Pick another profile (the CLI's --profile <name>, the plugin's \`profile\` option).`,
+					`Or free this one with vkma-tunnel reset --profile ${profile} — that deletes what "${owner}" stored under it;`,
+					"when that is a minted identity, its public URL does not come back.",
+				].join(" "),
 			].join("\n"),
 			{ code: "E_PROVIDER_MISMATCH" },
 		);
@@ -175,14 +196,16 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 	// now: the record is what `list`/`status` read, and unlike opentunnel
 	// this provider stores no identity of its own that would carry it.
 	const knownHostname = provider.knownHostname?.(connectOptions);
+	// The stamp itself is kept: a connect that fails takes it back (below).
+	const stamp: Record<string, unknown> = {
+		provider: providerId,
+		...(knownHostname === undefined ? {} : { hostname: knownHostname }),
+		lastTarget: `${host}:${String(port)}`,
+		lastRoute: route,
+		updatedAt: new Date().toISOString(),
+	};
 	if (storesIdentity) {
-		await mergeRecordFile(dataDir, profile, {
-			provider: providerId,
-			...(knownHostname === undefined ? {} : { hostname: knownHostname }),
-			lastTarget: `${host}:${String(port)}`,
-			lastRoute: route,
-			updatedAt: new Date().toISOString(),
-		});
+		await mergeRecordFile(dataDir, profile, stamp);
 	}
 
 	// -- the Host header the target sees -------------------------------------
@@ -232,6 +255,15 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		// a failed connect must not leave it behind — a listening server
 		// keeps the process alive long after the caller gave up.
 		await proxy?.close().catch(() => undefined);
+		// A run that could not even connect owns no profile: the record this
+		// run created goes again, unless the provider put something of its
+		// own into it (an opentunnel identity in the making). As first
+		// written, a cloudflared token run that failed on a missing token or
+		// binary left `provider: "cloudflared"` behind, and from then on the
+		// default tunnel was refused on that project until `reset`.
+		if (storesIdentity && owner === undefined) {
+			await removeRecordIfUntouched(dataDir, profile, stamp).catch(() => undefined);
+		}
 		throw error;
 	}
 

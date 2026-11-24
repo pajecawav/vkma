@@ -345,11 +345,139 @@ describe("createTunnel with the cloudflared provider", () => {
 			hostname: "app.example.com",
 		});
 
-		await expect(
-			createTunnel({ port: 5173, profile: "named", dataDir: cfDir, env: sandboxEnv }),
-		).rejects.toMatchObject({
-			code: "E_PROVIDER_MISMATCH",
+		const failure = await createTunnel({
+			port: 5173,
+			profile: "named",
+			dataDir: cfDir,
+			env: sandboxEnv,
+			keepAlive: false,
+		}).catch((error: unknown) => error);
+
+		expect(failure).toMatchObject({ code: "E_PROVIDER_MISMATCH" });
+		// A cloudflared record is no identity: `reset` forgets it and the
+		// tunnel keeps its hostname. The hint must not promise a lost URL.
+		const message = (failure as Error).message;
+		expect(message).toContain('deletes what "cloudflared" stored under it');
+		expect(message).toContain("when that is a minted identity");
+	});
+
+	it("a record from before the second provider is opentunnel's", async () => {
+		// No `provider` field: written when there was only one provider.
+		await mergeRecordFile(cfDir, "legacy", { hostname: fakeSdk.hostname, token: "token" });
+		const { env } = await installFakeCloudflared(cfDir, {
+			...sandboxEnv,
+			TUNNEL_TOKEN: "from-env",
 		});
+
+		await expect(
+			createTunnel({
+				provider: "cloudflared",
+				port: 5173,
+				profile: "legacy",
+				dataDir: cfDir,
+				env,
+				cloudflared: { mode: "token", hostname: "app.example.com" },
+			}),
+		).rejects.toMatchObject({ code: "E_PROVIDER_MISMATCH" });
+	});
+
+	it("an identity in the making owns its profile — no hostname yet, still opentunnel's", async () => {
+		// What the SDK's `savePending` leaves when a first run is interrupted
+		// while it waits for the certificate. Read through the hostname, this
+		// record was invisible, and a token run took the profile over.
+		const file = profileFilePath(cfDir, "in-the-making");
+		const pending = {
+			pending: {
+				id: "1",
+				hostname: "x.opentunnel.xyz",
+				token: "t",
+				privateKey: "k",
+				csr: "c",
+			},
+			provider: "opentunnel",
+			lastTarget: "localhost:5173",
+			lastRoute: "@",
+			createdAt: "2026-11-23T10:00:00.000Z",
+			updatedAt: "2026-11-23T10:00:00.000Z",
+		};
+		await fs.writeFile(file, JSON.stringify(pending));
+		const { env } = await installFakeCloudflared(cfDir, {
+			...sandboxEnv,
+			TUNNEL_TOKEN: "from-env",
+		});
+
+		const failure = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "in-the-making",
+			dataDir: cfDir,
+			env,
+			cloudflared: { mode: "token", hostname: "app.example.com" },
+		}).catch((error: unknown) => error);
+
+		expect(failure).toMatchObject({ code: "E_PROVIDER_MISMATCH" });
+		expect((failure as Error).message).toContain('belongs to provider "opentunnel"');
+		// Nothing was launched and the file is byte for byte what it was.
+		expect(await fakeCloudflaredLaunches(path.join(cfDir, "fake-state"))).toBe(0);
+		expect(await fs.readFile(file, "utf8")).toBe(JSON.stringify(pending));
+	});
+
+	it("a run that cannot even connect leaves no record and owns no profile", async () => {
+		// Token mode without a token: the provider refuses before anything
+		// starts. The core had already stamped `provider: "cloudflared"`, and
+		// from then on the default tunnel was refused on this project.
+		const { env } = await installFakeCloudflared(cfDir, sandboxEnv);
+		const tokenRun = (binaryEnv: Record<string, string | undefined>) =>
+			createTunnel({
+				provider: "cloudflared",
+				port: 5173,
+				profile: "first-try",
+				dataDir: cfDir,
+				env: binaryEnv,
+				cloudflared: { mode: "token", hostname: "app.example.com" },
+			});
+
+		await expect(tokenRun(env)).rejects.toMatchObject({ code: "E_CLOUDFLARED_TOKEN" });
+		await expect(fs.access(profileFilePath(cfDir, "first-try"))).rejects.toThrow();
+
+		// The same for a binary that is not there.
+		await expect(tokenRun({ PATH: "/nonexistent" })).rejects.toMatchObject({
+			code: "E_CLOUDFLARED_MISSING",
+		});
+		await expect(fs.access(profileFilePath(cfDir, "first-try"))).rejects.toThrow();
+
+		// The project is still the default tunnel's.
+		const handle = await createTunnel({
+			port: 5173,
+			profile: "first-try",
+			dataDir: cfDir,
+			env: sandboxEnv,
+			keepAlive: false,
+		});
+		try {
+			expect(handle.provider).toBe("opentunnel");
+		} finally {
+			await handle.close();
+		}
+	});
+
+	it("what the provider stored before a failure stays", async () => {
+		// The SDK provisions and saves the identity, and then the attach fails.
+		fakeSdk.failConnect = true;
+
+		await expect(
+			createTunnel({
+				port: 5173,
+				profile: "halfway",
+				dataDir: cfDir,
+				env: sandboxEnv,
+				keepAlive: false,
+			}),
+		).rejects.toMatchObject({ code: "bad_token" });
+
+		// The identity survives: the next run resumes it instead of minting
+		// another.
+		expect((await readProfileRecord(cfDir, "halfway"))?.hostname).toBe(fakeSdk.hostname);
 	});
 
 	it("quick mode writes no profile record and starts no proxy", async () => {

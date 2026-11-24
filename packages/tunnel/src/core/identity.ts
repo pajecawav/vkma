@@ -75,8 +75,71 @@ export async function readProfileRecord(
 	dataDir: string,
 	profile: string,
 ): Promise<ProfileRecord | undefined> {
-	const raw = await readRecordFile(profileFilePath(dataDir, profile));
-	return raw === undefined ? undefined : { ...raw, profile };
+	const raw = await readRawRecord(profileFilePath(dataDir, profile));
+	return raw === undefined ? undefined : projectRecord(raw, profile);
+}
+
+/** What a profile's record file holds — and who wrote it. */
+export interface ProfileRecordFile {
+	/**
+	 * The shared fields, when the record has a public hostname: what
+	 * `list` and `status` show. Undefined for a record without one — an
+	 * identity in the making — and when there is no record file.
+	 */
+	readonly record?: ProfileRecord;
+	/**
+	 * The provider that owns the file, hostname or not. Undefined when
+	 * there is no record file at all.
+	 */
+	readonly owner?: string;
+}
+
+/**
+ * Reads a profile's record file whole: the shared fields that need a
+ * hostname (see `readProfileRecord`) and, besides them, the provider the
+ * file belongs to.
+ *
+ * The owner is read from the file, not from the hostname. An identity in
+ * the making has none yet: the opentunnel SDK stores a `pending` record
+ * before the certificate is issued, and a first run interrupted during
+ * that wait leaves exactly that. Read through the hostname, such a record
+ * was invisible, and a cloudflared token run took the profile over.
+ *
+ * A file without a `provider` field predates the second provider; who
+ * wrote those is the caller's to say (`legacyProvider`).
+ */
+export async function readProfileRecordFile(
+	dataDir: string,
+	profile: string,
+	legacyProvider: string,
+): Promise<ProfileRecordFile> {
+	const raw = await readRawRecord(profileFilePath(dataDir, profile));
+	if (raw === undefined) {
+		return {};
+	}
+	const record = projectRecord(raw, profile);
+	const owner = typeof raw["provider"] === "string" ? raw["provider"] : legacyProvider;
+	return { ...(record === undefined ? {} : { record }), owner };
+}
+
+/**
+ * Removes a record file that holds nothing but `stamp` — what the core
+ * wrote before a connect that then failed. The run could not even
+ * connect, so it owns no profile. A provider may have put something of
+ * its own into the file meanwhile (an opentunnel identity in the making);
+ * then the file stays, stamp and all. Returns true when the file is gone.
+ */
+export async function removeRecordIfUntouched(
+	dataDir: string,
+	profile: string,
+	stamp: Record<string, unknown>,
+): Promise<boolean> {
+	const raw = await readRawRecord(profileFilePath(dataDir, profile));
+	if (raw === undefined) {
+		return false;
+	}
+	const untouched = Object.keys(raw).every(key => key in stamp && raw[key] === stamp[key]);
+	return untouched ? removeProfileRecord(dataDir, profile) : false;
 }
 
 /**
@@ -106,9 +169,12 @@ export async function listRecordProfiles(dataDir: string): Promise<string[]> {
 export async function listProfileRecords(dataDir: string): Promise<ProfileRecord[]> {
 	const records: ProfileRecord[] = [];
 	for (const profile of await listRecordProfiles(dataDir)) {
-		const raw = await readRecordFile(profileFilePath(dataDir, profile));
+		const raw = await readRawRecord(profileFilePath(dataDir, profile));
 		if (raw !== undefined) {
-			records.push({ ...raw, profile });
+			const record = projectRecord(raw, profile);
+			if (record !== undefined) {
+				records.push(record);
+			}
 		}
 	}
 	return records;
@@ -139,13 +205,11 @@ export async function removeAllProfileRecords(dataDir: string): Promise<string[]
 }
 
 /**
- * Reads a record file and projects the shared fields. Provider-specific
- * fields (token, keys, pending provisioning) are intentionally ignored
- * here — only the opentunnel storage adapter touches them.
+ * A record file as written, every field included — the provider identity
+ * (`token`, `privateKey`, `pending` provisioning state) beside the shared
+ * ones. Undefined when the file is missing, torn or not an object.
  */
-async function readRecordFile(
-	filePath: string,
-): Promise<Omit<ProfileRecord, "profile"> | undefined> {
+async function readRawRecord(filePath: string): Promise<Record<string, unknown> | undefined> {
 	let text: string;
 	try {
 		text = await fs.readFile(filePath, "utf8");
@@ -161,7 +225,18 @@ async function readRecordFile(
 	if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
 		return undefined;
 	}
-	const record = parsed as Record<string, unknown>;
+	return parsed as Record<string, unknown>;
+}
+
+/**
+ * Projects the shared fields out of a record file. Provider-specific
+ * fields are intentionally ignored here — only the opentunnel storage
+ * adapter touches them. Undefined when the record has no hostname yet.
+ */
+function projectRecord(
+	record: Record<string, unknown>,
+	profile: string,
+): ProfileRecord | undefined {
 	const hostname = record["hostname"];
 	if (typeof hostname !== "string" || hostname === "") {
 		return undefined;
@@ -175,6 +250,7 @@ async function readRecordFile(
 		startedAt: typeof record["startedAt"] === "string" ? record["startedAt"] : undefined,
 		createdAt: typeof record["createdAt"] === "string" ? record["createdAt"] : undefined,
 		updatedAt: typeof record["updatedAt"] === "string" ? record["updatedAt"] : undefined,
+		profile,
 	};
 }
 

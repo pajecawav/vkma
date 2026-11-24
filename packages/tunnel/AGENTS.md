@@ -33,7 +33,9 @@ Write comments, commits and docs in English.
   `TunnelProvider`, the event union), `tunnel.ts` (`createTunnel`: defaults,
   validation, provider dispatch), `profile.ts` (the default profile is the
   sanitized project directory basename) and `identity.ts` (record files under
-  the data dir, plus the read and remove functions the CLI uses).
+  the data dir, the read and remove functions the CLI uses, and
+  `readProfileRecordFile` / `removeRecordIfUntouched` for who owns a
+  profile — invariant 1).
 - `src/providers/opentunnel.ts` is the default provider and the
   `OpenTunnelStorage` adapter over our record files. It does not use the
   SDK's XDG store: the format is ours, with shared metadata beside the
@@ -108,6 +110,26 @@ tells a well-meant change from a breaking one.
     A stable URL was deleted to try a one-time tunnel. The hint now offers
     another profile first and says what `reset` deletes, and `reset` prints
     the URL it removes.
+
+    Two more rules came out of the same check:
+
+    - The owner is read from the FILE (`readProfileRecordFile`), not through
+      the hostname. An opentunnel identity in the making has none yet: the
+      SDK stores a `pending` record before the certificate is issued, and a
+      first run interrupted during that wait leaves exactly that. Read
+      through the hostname it was invisible, and a cloudflared token run
+      took the profile over and left opentunnel refused on it.
+    - A run that cannot even connect owns no profile. The stamp the core
+      writes before a connect is taken back when that connect fails —
+      unless the provider put something of its own into the file
+      (`removeRecordIfUntouched`). As first written, a token run that failed
+      on a missing token or binary left `provider: "cloudflared"` behind,
+      and from then on the default tunnel was refused on that project.
+
+    The hint is true for both providers: it says `reset` deletes what the
+    owner stored and that a minted identity loses its URL. It used to
+    promise a lost URL for a cloudflared record too, whose tunnel lives in
+    the account and keeps its hostname.
 
 2. **Layering is fixed**: CLI flags and plugin options > config file >
    defaults. The plugin always tunnels the Vite server it is attached to.
