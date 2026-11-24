@@ -208,6 +208,21 @@ describe("cloudflared binary", () => {
 		expect((failure as { code?: string }).code).toBe("E_CLOUDFLARED_MISSING");
 	});
 
+	it("resolves a relative path against the project's directory", async () => {
+		const project = await fs.mkdtemp(path.join(import.meta.dirname, ".cf-project-"));
+		try {
+			await fs.mkdir(path.join(project, "bin"));
+			await fs.copyFile(FAKE_SOURCE, path.join(project, "bin", "cloudflared"));
+			await fs.chmod(path.join(project, "bin", "cloudflared"), 0o755);
+			// "In this project", not "where the process was launched".
+			expect(
+				resolveCloudflaredBinary("./bin/cloudflared", { PATH: "" }, "linux", project),
+			).toBe(path.join(project, "bin", "cloudflared"));
+		} finally {
+			await fs.rm(project, { recursive: true, force: true });
+		}
+	});
+
 	it("finds cloudflared.exe on Windows, where a bare name means an executable", async () => {
 		const dir = await fs.mkdtemp(path.join(import.meta.dirname, ".cf-win-"));
 		try {

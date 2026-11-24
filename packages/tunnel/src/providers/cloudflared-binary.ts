@@ -58,18 +58,21 @@ function pathOf(env: ProviderEnv, platform: NodeJS.Platform): string | undefined
 }
 
 /**
- * Resolves the executable to run: an absolute path, or the first match in
- * `PATH` that is a file we may execute. The platform only defaults to the
- * real one; tests name it.
+ * Resolves the executable to run: an absolute path, a path relative to
+ * `baseDir`, or the first match in `PATH` that is a file we may execute.
+ * A relative path means "in this project", and `baseDir` says where that
+ * is — the caller's working directory by default. The platform only
+ * defaults to the real one; tests name it.
  */
 export function resolveCloudflaredBinary(
 	requested: string | undefined,
 	env: ProviderEnv,
 	platform: NodeJS.Platform = process.platform,
+	baseDir: string = process.cwd(),
 ): string {
 	const name = (requested ?? "").trim() || DEFAULT_CLOUDFLARED_BINARY;
 	if (name.includes("/") || name.includes("\\")) {
-		const absolute = path.resolve(name);
+		const absolute = path.resolve(baseDir, name);
 		if (!isExecutableFile(absolute, platform)) {
 			throw missing(name, `${absolute} is not an executable file`, env, platform);
 		}

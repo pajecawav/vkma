@@ -65,7 +65,7 @@ The proxy forwards to `localhost` by default. On modern Node, `localhost` resolv
 
 ## Cloudflare Tunnel (`cloudflared`)
 
-`cloudflared` is an HTTP-level tunnel. TLS ends at Cloudflare's edge, the browser speaks HTTP/2, and a request costs one trip from the edge to your machine. With opentunnel every request also pays for a TLS handshake across a relay. The provider needs the [`cloudflared` binary on your PATH](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/). The package never downloads it.
+`cloudflared` is an HTTP-level tunnel. TLS ends at Cloudflare's edge, the browser speaks HTTP/2, and a request costs one trip from the edge to your machine. With opentunnel every request also pays for a TLS handshake across a relay. The provider needs the [`cloudflared` binary on your PATH](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/). The package never downloads it. `cloudflared.binary` names the executable some other way: an absolute path, or a path relative to the project. That is the config file's directory when the file names it, and the working directory (the Vite root for the plugin) when an option does.
 
 ### Quick mode
 

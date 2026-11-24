@@ -28,7 +28,10 @@ Write comments, commits and docs in English.
   walk-up discovery, and TS config loading through native
   `module.stripTypeScriptTypes` (the write-to-temp-sibling trick). Its
   `emitWarning` shim is the one exception to the `process` rule in invariant
-  3, as in deploy.
+  3, as in deploy. A relative `cloudflared.binary` is made absolute here
+  (`settleBinaryPath`): against the config file's directory when the file
+  named it, against `cwd` when a flag or a plugin option did. Left to the
+  lookup, it resolved where the process was launched — not the project.
 - `src/core/` is the provider-neutral surface: `types.ts` (`TunnelHandle`,
   `TunnelProvider`, the event union), `tunnel.ts` (`createTunnel`: defaults,
   validation, provider dispatch), `profile.ts` (the default profile is the
@@ -145,17 +148,20 @@ tells a well-meant change from a breaking one.
    Its `port` and `host` options retarget it; the config-file keys belong to
    the CLI and the Node API and do not. For the plugin the Vite root is the
    project, so config discovery and the default profile start there and not
-   at the launch directory. There is no environment layer for config by
+   at the launch directory, and a relative `cloudflared.binary` named by a
+   plugin option resolves there. There is no environment layer for config by
    design. The SDK reads `OPENTUNNEL_API` itself; leave it to the SDK.
 3. **The library reads `process` in five places only.** `process.env` is the
    default value of the injected `env` (data dir, PATH). `process.cwd()` is
-   the default `cwd` of `resolveTunnelConfig`. `process.platform` is the
-   default platform of the cloudflared binary lookup (on Windows a bare name
-   is `name.exe` and the variable is `Path`). Config loading installs the
-   documented `stripTypeScriptTypes` warning shim. `process.pid` is stamped
-   into the profile record so that a route conflict can point at the rival
-   process. Console logging and the browser opener belong to `src/cli*` and
-   `src/vite.ts` only.
+   the default `cwd` of `resolveTunnelConfig` and of `createTunnel` — the
+   default profile's name, and the base of a relative `cloudflared.binary`
+   (the lookup takes a `baseDir` and reads none itself).
+   `process.platform` is the default platform of the cloudflared binary
+   lookup (on Windows a bare name is `name.exe` and the variable is `Path`).
+   Config loading installs the documented `stripTypeScriptTypes` warning
+   shim. `process.pid` is stamped into the profile record so that a route
+   conflict can point at the rival process. Console logging and the browser
+   opener belong to `src/cli*` and `src/vite.ts` only.
 4. **A fatal tunnel leaves the dev server running.** The plugin prints a red
    line (devtools policy). The browser opener belongs under the same rule:
    a missing `xdg-open` (Linux without xdg-utils) reports through an

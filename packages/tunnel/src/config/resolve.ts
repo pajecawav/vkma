@@ -14,6 +14,9 @@
  * sets ONE `cloudflared` (or `opentunnel`) key must not discard the rest
  * of the file's section. A section beside another provider's id is an
  * error — the key would otherwise be silently ignored.
+ *
+ * A relative `cloudflared.binary` is made absolute here, against the
+ * project (`settleBinaryPath`), so every surface hands the provider a path.
  */
 
 import fs from "node:fs";
@@ -114,6 +117,9 @@ export async function resolveTunnelConfig(
 			sources[key as keyof ResolvedTunnelConfig] = "config";
 		}
 	}
+	// Which section keys a flag or a plugin option set: `section:key`. The
+	// file's own keys are known from the file itself.
+	const overrideSectionKeys = new Set<string>();
 	for (const [key, value] of Object.entries(options.overrides ?? {})) {
 		if (value === undefined) {
 			continue;
@@ -121,11 +127,20 @@ export async function resolveTunnelConfig(
 		// Sections merge, scalars replace: `--cloudflared-mode token` must
 		// not drop the hostname the config file set in the same section.
 		if (SECTIONS.has(key) && isRecord(value)) {
+			// An explicit `undefined` inside a section means "not set", as one
+			// at the top level does. Spread as it was, it erased the file's
+			// value for that key.
+			const defined = Object.fromEntries(
+				Object.entries(value).filter(([, entry]) => entry !== undefined),
+			);
 			const fileSection = merged[key];
 			merged[key] = {
 				...(isRecord(fileSection) ? fileSection : {}),
-				...value,
+				...defined,
 			};
+			for (const subKey of Object.keys(defined)) {
+				overrideSectionKeys.add(`${key}:${subKey}`);
+			}
 		} else {
 			merged[key] = value;
 		}
@@ -146,7 +161,14 @@ export async function resolveTunnelConfig(
 		// Passed through as accepted; the provider applies its defaults.
 		opentunnel: merged["opentunnel"] as OpentunnelOptionsInput | undefined,
 		cloudflared: isRecord(cloudflaredSection)
-			? resolveCloudflared(cloudflaredSection)
+			? resolveCloudflared(
+					settleBinaryPath(
+						cloudflaredSection,
+						overrideSectionKeys.has("cloudflared:binary"),
+						file,
+						cwd,
+					),
+				)
 			: undefined,
 	};
 
@@ -175,6 +197,34 @@ async function discoverAndLoad(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Makes a relative `cloudflared.binary` absolute, in a copy of its
+ * section (the loaded config is not ours to mutate).
+ *
+ * "Relative" means "in this project": the config file's directory when
+ * the file named it, the working directory — the Vite root for the
+ * plugin — when a flag or an option did. Left alone, it was resolved
+ * where the process happened to be launched, which for the plugin is not
+ * the project. A bare name stays a name: it is looked up on PATH.
+ */
+function settleBinaryPath(
+	section: Record<string, unknown>,
+	fromOverride: boolean,
+	file: LoadedConfigFile | undefined,
+	cwd: string,
+): Record<string, unknown> {
+	const binary = section["binary"];
+	if (
+		typeof binary !== "string" ||
+		path.isAbsolute(binary) ||
+		(!binary.includes("/") && !binary.includes("\\"))
+	) {
+		return section;
+	}
+	const base = fromOverride || file === undefined ? cwd : path.dirname(file.path);
+	return { ...section, binary: path.resolve(base, binary) };
 }
 
 /** Defaults for the `cloudflared` section (after schema validation). */

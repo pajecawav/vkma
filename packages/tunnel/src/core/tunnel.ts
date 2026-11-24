@@ -97,7 +97,10 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		});
 	}
 
-	const profile = options.profile ?? defaultProfile(options.cwd ?? process.cwd());
+	// The project's directory: the default profile's name and the base of a
+	// relative `cloudflared.binary` both come from it.
+	const cwd = options.cwd ?? process.cwd();
+	const profile = options.profile ?? defaultProfile(cwd);
 	assertValidProfile(profile);
 
 	const env = options.env ?? process.env;
@@ -107,6 +110,7 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		profile,
 		host,
 		port,
+		cwd,
 		opentunnel: options.opentunnel,
 		dataDir,
 		signal: options.signal,

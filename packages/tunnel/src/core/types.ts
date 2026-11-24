@@ -95,7 +95,10 @@ export interface CreateTunnelOptions {
 	readonly opentunnel?: OpentunnelOptionsInput;
 	/** Identity store root. Default: `$XDG_DATA_HOME/vkma/tunnel`. */
 	readonly dataDir?: string;
-	/** Directory for the default-profile derivation. Default: `process.cwd()`. */
+	/**
+	 * Directory for the default-profile derivation, and the base of a
+	 * relative `cloudflared.binary`. Default: `process.cwd()`.
+	 */
 	readonly cwd?: string;
 	/** Environment snapshot for XDG resolution (tests); default `process.env`. */
 	readonly env?: Record<string, string | undefined>;
@@ -136,6 +139,12 @@ export interface TunnelProviderConnectOptions {
 	/** The `opentunnel` section as the caller gave it; the provider applies its defaults. */
 	readonly opentunnel?: OpentunnelOptionsInput;
 	readonly dataDir: string;
+	/**
+	 * The project's directory: where a relative `cloudflared.binary` is
+	 * resolved from. Whatever the caller gave `createTunnel`; a provider
+	 * never reads the working directory for it.
+	 */
+	readonly cwd?: string;
 	readonly signal?: AbortSignal;
 	readonly onEvent?: (event: TunnelEvent) => void;
 	/** Provider provisioning stages; human-readable, provider-specific. */

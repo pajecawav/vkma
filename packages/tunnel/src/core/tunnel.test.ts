@@ -534,6 +534,27 @@ describe("createTunnel with the cloudflared provider", () => {
 		}
 	});
 
+	it("a relative cloudflared.binary is looked up in the project (cwd)", async () => {
+		// The Node API's project is `cwd`. Resolved against the launch
+		// directory instead, the lookup below would find nothing.
+		const { env } = await installFakeCloudflared(cfDir, sandboxEnv);
+		const handle = await createTunnel({
+			provider: "cloudflared",
+			port: 5173,
+			profile: "relative-binary",
+			dataDir: cfDir,
+			env,
+			cwd: cfDir,
+			keepAlive: false,
+			cloudflared: { mode: "quick", binary: "./fake-bin/cloudflared" },
+		});
+		try {
+			expect(handle.primaryUrl).toBe("https://fake-tunnel-1.trycloudflare.com");
+		} finally {
+			await handle.close();
+		}
+	});
+
 	it("hostRewrite: false reaches the child: no --http-host-header, no proxy", async () => {
 		const { env, stateDir } = await installFakeCloudflared(cfDir, sandboxEnv);
 

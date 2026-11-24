@@ -263,7 +263,7 @@ async function connectCloudflared(
 	const warn = (message: string): void => options.onWarning?.(message);
 
 	// -- the binary ----------------------------------------------------------
-	const binary = resolveCloudflaredBinary(settings?.binary, env);
+	const binary = resolveCloudflaredBinary(settings?.binary, env, process.platform, options.cwd);
 	const version = readCloudflaredVersion(binary, env);
 	if (version.ageDays > CLOUDFLARED_SUPPORT_DAYS) {
 		warn(

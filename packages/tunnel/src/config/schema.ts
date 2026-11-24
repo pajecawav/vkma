@@ -69,7 +69,7 @@ export const CloudflaredOptionsSchema = Type.Object(
 				minLength: 1,
 				default: DEFAULT_CLOUDFLARED_BINARY,
 				description:
-					'The cloudflared executable: a name looked up on PATH (default "cloudflared") or an absolute path.',
+					'The cloudflared executable: a name looked up on PATH (default "cloudflared"), an absolute path, or a path relative to the project: the config file\'s directory, or the working directory (the Vite root for the plugin) when a flag or an option names it.',
 			}),
 		),
 	},

@@ -3,6 +3,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ConfigValidationError, isTunnelError } from "../errors.ts";
 import { findConfigFile, resolveTunnelConfig } from "./resolve.ts";
+import type { TunnelConfigInput } from "./schema.ts";
 
 let dir: string;
 
@@ -89,6 +90,100 @@ describe("resolveTunnelConfig", () => {
 			expect(config.host).toBe("localhost");
 			expect(meta.sources["port"]).toBe("override");
 			expect(meta.sources["host"]).toBe("config");
+		} finally {
+			await fs.rm(isolated, { recursive: true, force: true });
+		}
+	});
+
+	it("a relative cloudflared.binary means the project", async () => {
+		const project = await fs.mkdtemp(path.join(import.meta.dirname, ".resolve-bin-"));
+		const elsewhere = await fs.mkdtemp(path.join(import.meta.dirname, ".resolve-bin-cwd-"));
+		try {
+			await fs.writeFile(
+				path.join(project, "vkma-tunnel.config.json"),
+				JSON.stringify({
+					provider: "cloudflared",
+					cloudflared: {
+						mode: "token",
+						hostname: "app.example.com",
+						binary: "./bin/cloudflared",
+					},
+				}),
+			);
+			// Found above the working directory: still the FILE's directory.
+			const nested = path.join(project, "a", "b");
+			await fs.mkdir(nested, { recursive: true });
+			const fromFile = await resolveTunnelConfig({ cwd: nested });
+			expect(fromFile.config.cloudflared?.binary).toBe(
+				path.join(project, "bin", "cloudflared"),
+			);
+
+			// A flag's or a plugin option's: the working directory (the Vite
+			// root for the plugin). The file's other keys survive the merge.
+			const fromOverride = await resolveTunnelConfig({
+				cwd: nested,
+				overrides: { cloudflared: { binary: "../elsewhere/cloudflared" } },
+			});
+			expect(fromOverride.config.cloudflared).toMatchObject({
+				binary: path.resolve(nested, "../elsewhere/cloudflared"),
+				mode: "token",
+				hostname: "app.example.com",
+			});
+			// Without a file, the working directory as well.
+			const noFile = await resolveTunnelConfig({
+				cwd: elsewhere,
+				overrides: {
+					provider: "cloudflared",
+					cloudflared: { binary: "./bin/cloudflared" },
+				},
+			});
+			expect(noFile.config.cloudflared?.binary).toBe(
+				path.join(elsewhere, "bin", "cloudflared"),
+			);
+		} finally {
+			await fs.rm(project, { recursive: true, force: true });
+			await fs.rm(elsewhere, { recursive: true, force: true });
+		}
+	});
+
+	it("a bare binary name and an absolute path are left alone", async () => {
+		const isolated = await fs.mkdtemp(path.join(import.meta.dirname, ".resolve-bin-as-is-"));
+		try {
+			const absolute = path.join(isolated, "cloudflared");
+			const resolve = (binary: string) =>
+				resolveTunnelConfig({
+					cwd: isolated,
+					overrides: { provider: "cloudflared", cloudflared: { binary } },
+				});
+			// A name is looked up on PATH; an absolute path needs no base.
+			expect((await resolve("cloudflared")).config.cloudflared?.binary).toBe("cloudflared");
+			expect((await resolve(absolute)).config.cloudflared?.binary).toBe(absolute);
+		} finally {
+			await fs.rm(isolated, { recursive: true, force: true });
+		}
+	});
+
+	it("an explicit undefined inside an override section does not erase the file's value", async () => {
+		const isolated = await fs.mkdtemp(path.join(import.meta.dirname, ".resolve-undef-"));
+		try {
+			await fs.writeFile(
+				path.join(isolated, "vkma-tunnel.config.json"),
+				JSON.stringify({
+					provider: "cloudflared",
+					cloudflared: { mode: "token", hostname: "app.example.com" },
+				}),
+			);
+			// A plugin that builds its options dynamically may hand over
+			// keys it does not set. At the top level that already meant "not
+			// set"; inside a section it used to wipe the file's value.
+			const overrides: TunnelConfigInput = { cloudflared: { protocol: "quic" } };
+			(overrides.cloudflared as { mode?: "quick" | "token" }).mode = undefined;
+			const { config } = await resolveTunnelConfig({ cwd: isolated, overrides });
+			expect(config.cloudflared).toMatchObject({
+				mode: "token",
+				hostname: "app.example.com",
+				protocol: "quic",
+			});
 		} finally {
 			await fs.rm(isolated, { recursive: true, force: true });
 		}

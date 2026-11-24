@@ -96,7 +96,7 @@ export default defineTunnelConfig({
         hostname: "app.example.com", // token mode: required, the dashboard's public hostname
         token: "…", // token mode: optional here, TUNNEL_TOKEN is preferred
         protocol: "http2", // "http2" (default) or "quic"
-        binary: "cloudflared", // a command name on PATH, or an absolute path
+        binary: "cloudflared", // a name on PATH, an absolute path, or a path relative to the config file
     },
 });
 ```
