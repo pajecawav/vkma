@@ -41,7 +41,7 @@ The devtools panel is already wired into the dev server: open `/__vkma/` and wat
 | [`router`](/en/router/)               | a router on TanStack Router: views, panels, modals and popouts as URLs                |
 | [`vkui-bridge`](/en/vkui-bridge/)     | a React provider: host theme, insets and adaptivity wired into VKUI                   |
 | [`devtools`](/en/devtools/)           | the `/__vkma/` panel on your dev server: timeline, execute, clients                   |
-| [`deploy`](/en/deploy/)               | static hosting deploy for VK Mini Apps, drop-in for `vk-miniapps-deploy`              |
+| [`deploy`](/en/deploy/)               | static hosting deploy for VK Mini Apps                                                |
 | [`tunnel`](/en/tunnel/)               | public HTTPS tunnels to your dev server, a stable opentunnel URL or Cloudflare Tunnel |
 | [`bridge-schema`](/en/bridge-schema/) | the VK Bridge event catalogue as data + TypeScript types                              |
 | [`api-schema`](/en/api-schema/)       | types and zod/valibot schemas for the whole VK API                                    |

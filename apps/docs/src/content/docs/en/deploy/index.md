@@ -6,18 +6,20 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/deploy` is a deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting, a drop-in compatible replacement for `@vkontakte/vk-miniapps-deploy`.
+`@vkma.dev/deploy` is a deploy CLI and library for [VK Mini Apps](https://vk.ru/mini-apps) hosting.
 
 ```sh
 npx @vkma.dev/deploy        # or: pnpm dlx / yarn dlx / bunx
 vkma-deploy                 # deploys using the config in your project
 ```
 
-**Drop-in compatibility.** Your existing setup keeps working:
+## Compatibility
 
-- reads `vk-hosting-config.json` (the legacy format) as a fallback
-- reads the `MINI_APPS_ACCESS_TOKEN`, `MINI_APPS_APP_ID`, `MINI_APPS_ENVIRONMENT`, `CI_URLS` env vars (forever, not deprecated)
-- reuses the token stored by the official tool, so migrating requires no re-login
+`vkma-deploy` works with what `@vkontakte/vk-miniapps-deploy` already set up:
+
+- reads `vk-hosting-config.json` as a fallback
+- reads the `MINI_APPS_ACCESS_TOKEN`, `MINI_APPS_APP_ID`, `MINI_APPS_ENVIRONMENT` and `CI_URLS` env vars, with no deprecation planned
+- recognizes the token `@vkontakte/vk-miniapps-deploy` stored, so there is no need to log in again
 
 ## Quick start
 

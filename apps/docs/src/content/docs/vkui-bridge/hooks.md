@@ -6,7 +6,7 @@ sidebar:
     label: "Хуки"
 ---
 
-Три хука стримят из событий моста решение хоста: тему, safe-area insets и адаптивность. Семантика 1:1 с `@vkontakte/vk-bridge-react`. Каждый хук читает дефолтный инстанс `@vkma.dev/bridge`.
+Три хука стримят из событий моста решение хоста: тему, safe-area insets и адаптивность. Каждый хук читает дефолтный инстанс `@vkma.dev/bridge`.
 
 ## useBridgeAppearance
 
