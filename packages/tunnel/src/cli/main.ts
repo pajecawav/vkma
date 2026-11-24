@@ -20,6 +20,7 @@ import {
 	resolveTunnelConfig,
 	tunnelDataDir,
 	type ProfileRecord,
+	type ResolvedTunnelConfig,
 } from "../index.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
 import { rivalHint } from "./conflict-hint.ts";
@@ -206,6 +207,21 @@ function flagOverrides(parsed: ParsedArgs) {
 	return overrides;
 }
 
+/**
+ * The `cloudflared` section as it may be logged: a token configured in
+ * the config file becomes a marker. The starting record shows what the
+ * run resolved, and a secret is not part of that (AGENTS.md, invariant
+ * 10). The provider still receives the real section.
+ */
+function withoutToken(
+	section: ResolvedTunnelConfig["cloudflared"],
+): ResolvedTunnelConfig["cloudflared"] {
+	if (section === undefined || section.token === undefined) {
+		return section;
+	}
+	return { ...section, token: "[redacted]" };
+}
+
 /** Provisioning stages → human labels (opentunnel ids, provider-supplied). */
 const STAGE_LABELS: Readonly<Record<string, string>> = {
 	"checking-certificate": "Checking stored certificate",
@@ -244,7 +260,7 @@ async function runTunnel(
 			level: "info",
 			event: "starting",
 			message: "starting tunnel",
-			data: { ...config },
+			data: { ...config, cloudflared: withoutToken(config.cloudflared) },
 		});
 	} else {
 		logger.spinnerStart("Starting tunnel…");

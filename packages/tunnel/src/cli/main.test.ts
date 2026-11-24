@@ -573,6 +573,53 @@ describe("run with the cloudflared provider", () => {
 		});
 	});
 
+	it("never prints a cloudflared token from the config file (--json)", async () => {
+		// The config file is the one place a token may be written down, and
+		// the starting record shows the resolved config.
+		const config = path.join(cwd, "vkma-tunnel.config.json");
+		await fs.writeFile(
+			config,
+			JSON.stringify({
+				provider: "cloudflared",
+				cloudflared: {
+					mode: "token",
+					hostname: "app.example.com",
+					token: "secret-token-123",
+				},
+			}),
+		);
+		out = [];
+		errOut = [];
+		let received: CreateTunnelOptions | undefined;
+		try {
+			const code = await main(["--json"], {
+				cwd,
+				dataDir,
+				env: { HOME: "/home/test" },
+				stdout,
+				stderr: { write: (text: string) => void errOut.push(text) },
+				createTunnel: async options => {
+					received = options;
+					return shortLivedTunnel();
+				},
+			});
+			expect(code).toBe(0);
+			// The provider gets the real token…
+			expect(received?.cloudflared?.token).toBe("secret-token-123");
+			// …and the log does not: a marker says one was configured.
+			const text = out.join("");
+			expect(text).not.toContain("secret-token-123");
+			expect(errOut.join("")).not.toContain("secret-token-123");
+			const starting = text.split("\n").find(line => line.includes('"event":"starting"'));
+			expect(starting).toBeDefined();
+			expect(JSON.parse(starting ?? "{}")).toMatchObject({
+				data: { cloudflared: { mode: "token", token: "[redacted]" } },
+			});
+		} finally {
+			await fs.rm(config, { force: true });
+		}
+	});
+
 	it("fails with exit 1 when token mode has no hostname", async () => {
 		const result = await run(["--provider", "cloudflared", "--cloudflared-mode", "token"]);
 		expect(result.code).toBe(1);

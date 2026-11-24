@@ -10,8 +10,9 @@
  * - quiet:  errors only
  *
  * Colors respect NO_COLOR, --no-color, and TTY detection. There is no
- * redactor: tunnel output carries no secrets (the identity file never
- * reaches the log).
+ * general redactor: tunnel output carries no secrets (the identity file
+ * never reaches the log). The one key that can carry one,
+ * `cloudflared.token`, is cut where the config is logged (`main.ts`).
  */
 
 export type LoggerMode = "pretty" | "json" | "quiet";
