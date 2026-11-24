@@ -47,8 +47,12 @@ Write comments, commits and docs in English.
   plugin never iterate it, so the buffer stays bounded.
 - `src/providers/probe.ts` has two HTTP probes because the providers read
   different signals. `probeHttp` reports whether anything at all answered
-  (opentunnel's watchdog). `httpStatus` reports what answered (cloudflared's:
-  the Cloudflare edge answers `530` while the tunnel behind it is dead).
+  (opentunnel's watchdog). `httpStatus` reports what answered, and
+  `CLOUDFLARE_ERROR_STATUS` is the line between down and up (cloudflared's
+  gate and watchdog: the Cloudflare edge answers `530` while the tunnel
+  behind it is dead). The CLI's `status` reads a cloudflared profile by
+  that line too: any answer used to count, and a tunnel with nothing
+  running showed "responding".
 - `src/providers/cloudflared-binary.ts` looks up `cloudflared` on PATH (the
   package never downloads it) and runs the `--version` check.
 - `src/providers/cloudflared.ts` is the cloudflared provider: a child process

@@ -7,11 +7,20 @@
  *   proof the whole chain is up);
  * - `httpStatus`: WHAT answered? (cloudflared's gate and watchdog — there
  *   the Cloudflare edge answers with `530` even when the tunnel behind it
- *   is dead, so the status is the signal).
+ *   is dead, so the status is the signal, and `CLOUDFLARE_ERROR_STATUS` is
+ *   the line between down and up. The CLI's `status` reads a cloudflared
+ *   profile by the same line).
  */
 
 /** Direct-target probe deadline (the watchdog baseline). */
 export const DIRECT_PROBE_TIMEOUT_MS = 5_000;
+
+/**
+ * Cloudflare's own error statuses and up: `530` is "the tunnel behind
+ * this hostname is not being served". Anything below came from the local
+ * target (its 404s and 500s included) and means the chain is up.
+ */
+export const CLOUDFLARE_ERROR_STATUS = 520;
 
 /**
  * HEAD probe with a deadline: the HTTP status code, or undefined when

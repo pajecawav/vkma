@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	mergeRecordFile,
 	profileFilePath,
@@ -97,38 +97,89 @@ describe("list", () => {
 });
 
 describe("status", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
 	it("fails with a hint for a profile without identity", async () => {
 		const result = await run(["status", "unknown-profile"]);
 		expect(result.code).toBe(1);
 		expect(result.out).toContain("No stored tunnel");
 	});
 
-	it("probes the local target and the public URL", async () => {
-		// A real local listener: the target probe must see it.
+	/** A real loopback listener: the target probe must see one. */
+	async function listen(): Promise<{ server: http.Server; port: number }> {
 		const server = http.createServer((_req, res) => {
 			res.end("ok");
 		});
 		await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
 		const address = server.address();
-		const port = typeof address === "object" && address !== null ? address.port : 0;
+		return {
+			server,
+			port: typeof address === "object" && address !== null ? address.port : 0,
+		};
+	}
+	const close = (server: http.Server): Promise<void> =>
+		new Promise(resolve => server.close(() => resolve()));
+
+	type Status = { targetReachable: boolean; tunnelReachable: boolean; url: string };
+	const statusOf = async (profile: string): Promise<Status> =>
+		JSON.parse((await run(["status", profile, "--json"])).out) as Status;
+
+	it("probes the local target and the public URL", async () => {
+		// Nothing leaves the machine: a tunnel that is not serving resets
+		// the handshake. (This used to be a real request to the service.)
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => {
+				throw new Error("connection reset");
+			}),
+		);
+		const { server, port } = await listen();
 		try {
 			await mergeRecordFile(dataDir, "live", {
 				hostname: "def.opentunnel.xyz",
 				lastTarget: `127.0.0.1:${String(port)}`,
 			});
-			const result = await run(["status", "live", "--json"]);
-			expect(result.code).toBe(0);
-			const parsed = JSON.parse(result.out) as {
-				targetReachable: boolean;
-				tunnelReachable: boolean;
-				url: string;
-			};
+			const parsed = await statusOf("live");
 			expect(parsed.targetReachable).toBe(true);
 			// https://def.opentunnel.xyz is not really serving: false is honest.
 			expect(parsed.tunnelReachable).toBe(false);
 			expect(parsed.url).toBe("https://def.opentunnel.xyz");
 		} finally {
-			await new Promise<void>(resolve => server.close(() => resolve()));
+			await close(server);
+		}
+	});
+
+	it("reads a Cloudflare 530 as down, and the same answer as up elsewhere", async () => {
+		const { server, port } = await listen();
+		const lastTarget = `127.0.0.1:${String(port)}`;
+		try {
+			await mergeRecordFile(dataDir, "cf-down", {
+				provider: "cloudflared",
+				hostname: "app.example.com",
+				lastTarget,
+			});
+			await mergeRecordFile(dataDir, "ot-any", {
+				hostname: "def.opentunnel.xyz",
+				lastTarget,
+			});
+			// Cloudflare's edge answers 530 for a hostname whose tunnel has
+			// no connector: the tunnel is down and something still answered.
+			vi.stubGlobal(
+				"fetch",
+				vi.fn(async () => new Response(null, { status: 530 })),
+			);
+			expect((await statusOf("cf-down")).tunnelReachable).toBe(false);
+			// opentunnel's edge cannot answer for a dead bridge: any reply is proof.
+			expect((await statusOf("ot-any")).tunnelReachable).toBe(true);
+			vi.stubGlobal(
+				"fetch",
+				vi.fn(async () => new Response(null, { status: 200 })),
+			);
+			expect((await statusOf("cf-down")).tunnelReachable).toBe(true);
+		} finally {
+			await close(server);
 		}
 	});
 });

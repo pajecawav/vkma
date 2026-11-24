@@ -38,7 +38,7 @@ import {
 	resolveCloudflaredBinary,
 } from "./cloudflared-binary.ts";
 import { createEventStream } from "./event-stream.ts";
-import { httpStatus, probeHttp } from "./probe.ts";
+import { CLOUDFLARE_ERROR_STATUS, httpStatus, probeHttp } from "./probe.ts";
 
 /**
  * Every timing in one mutable object so tests can shrink them; production
@@ -72,13 +72,6 @@ export const cloudflaredTimings = {
 	watchdogIntervalMs: 20_000,
 	watchdogFailureLimit: 2,
 };
-
-/**
- * Cloudflare's own error statuses and up: `530` is "the tunnel behind
- * this hostname is not being served". Anything below came from the local
- * target (its 404s and 500s included) and means the chain is up.
- */
-const CLOUDFLARE_ERROR_STATUS = 520;
 
 const QUICK_URL_PATTERN = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
 

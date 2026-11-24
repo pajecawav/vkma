@@ -8,6 +8,7 @@
 
 import net from "node:net";
 import pkg from "../../package.json";
+import { CLOUDFLARED_PROVIDER } from "../constants.ts";
 import { createTunnel } from "../core/tunnel.ts";
 import type { TunnelEvent, TunnelHandle } from "../core/types.ts";
 import { isTunnelError } from "../errors.ts";
@@ -22,6 +23,7 @@ import {
 	type ProfileRecord,
 	type ResolvedTunnelConfig,
 } from "../index.ts";
+import { CLOUDFLARE_ERROR_STATUS, httpStatus } from "../providers/probe.ts";
 import { parseArgv, type ParsedArgs } from "./args.ts";
 import { rivalHint } from "./conflict-hint.ts";
 import { TunnelLogger, paint, type LoggerMode } from "./logger.ts";
@@ -704,9 +706,11 @@ async function runStatus(
 	}
 
 	const url = recordUrl(record);
+	// Behind Cloudflare an answer is not proof of life: the edge answers
+	// `530` for a hostname whose tunnel has no connector.
 	const [targetReachable, tunnelReachable] = await Promise.all([
 		record.lastTarget === undefined ? Promise.resolve(false) : probeTarget(record.lastTarget),
-		probeUrl(url),
+		probeUrl(url, 2500, record.provider === CLOUDFLARED_PROVIDER),
 	]);
 
 	if (parsed.booleans.json) {
@@ -765,16 +769,18 @@ async function probeTarget(target: string, timeoutMs = 1500): Promise<boolean> {
 	});
 }
 
-/** HTTP probe of the public URL: any response (even 5xx) means the tunnel serves. */
-async function probeUrl(url: string, timeoutMs = 2500): Promise<boolean> {
-	try {
-		const response = await fetch(url, {
-			signal: AbortSignal.timeout(timeoutMs),
-			redirect: "manual",
-		});
-		response.body?.cancel().catch(() => undefined);
-		return true;
-	} catch {
+/**
+ * HTTP probe of the public URL. For a tunnel that answers by itself, any
+ * response (even 5xx) means it serves. Behind Cloudflare it does not: the
+ * edge answers `530` while the tunnel behind it is dead, so only a status
+ * below Cloudflare's error range counts — the reading the cloudflared
+ * provider's watchdog gives its own probe. `status` used to report
+ * "responding" for a cloudflared profile with nothing running.
+ */
+async function probeUrl(url: string, timeoutMs = 2500, behindCloudflare = false): Promise<boolean> {
+	const status = await httpStatus(url, timeoutMs, { method: "GET" });
+	if (status === undefined) {
 		return false;
 	}
+	return behindCloudflare ? status < CLOUDFLARE_ERROR_STATUS : true;
 }
