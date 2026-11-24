@@ -1,0 +1,92 @@
+<!--
+  The social preview card: the 1200x630 image astro.config.mjs points
+  og:image and twitter:image at. `pnpm og` renders this file to
+  public/og.png. Edit it here, rerun, commit the PNG.
+
+  scripts/og.mjs registers the fonts by family name, so there is no
+  @font-face here. Inter comes from the @fontsource-variable package the
+  site loads; Geist is takumi's built-in.
+-->
+<style>
+	.canvas {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		background-color: #17181c;
+	}
+	/* The site's blue, a wide ellipse above the top edge. */
+	.glow {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			841px 483px at 159px -33px,
+			rgba(0, 119, 255, 0.36) 0%,
+			rgba(0, 119, 255, 0.2) 40%,
+			rgba(0, 119, 255, 0.07) 72%,
+			rgba(0, 119, 255, 0) 100%
+		);
+	}
+	.card {
+		position: absolute;
+		left: 63px;
+		top: 63px;
+		width: 1074px;
+		height: 504px;
+		box-sizing: border-box;
+		border: 2px solid #2a2c33;
+		border-radius: 24px;
+		background: linear-gradient(rgba(0, 119, 255, 0.028), rgba(0, 119, 255, 0) 38%);
+	}
+	/* Inter at its display optical size (the opsz file), as on the card before. */
+	.title {
+		position: absolute;
+		left: 112px;
+		top: 173px;
+		font-family: Inter Display;
+		font-size: 112px;
+		font-weight: 800;
+		line-height: 1;
+		background-image: linear-gradient(90deg, #ffffff, #bcc8dc);
+		background-clip: text;
+		color: transparent;
+	}
+	.subtitle {
+		position: absolute;
+		left: 114px;
+		top: 302px;
+		font-family: Inter;
+		font-size: 40px;
+		font-weight: 500;
+		line-height: 1;
+		color: #9a9ba3;
+	}
+	/*
+    The roster, in the sidebar's order (sections.mjs). To change it, edit
+    the words between the separators.
+  */
+	.roster {
+		position: absolute;
+		left: 115px;
+		top: 466px;
+		font-family: Geist;
+		font-size: 28.8px;
+		font-weight: 400;
+		line-height: 1;
+		color: #7d818c;
+	}
+	.roster i {
+		font-style: normal;
+		margin: 0 30px;
+	}
+</style>
+
+<div class="canvas">
+	<div class="glow"></div>
+	<div class="card"></div>
+	<div class="title">vkma.dev</div>
+	<div class="subtitle">Инструменты для VK Mini Apps</div>
+	<div class="roster">
+		create-app<i>·</i>bridge<i>·</i>router<i>·</i>devtools<i>·</i>deploy<i>·</i>tunnel
+	</div>
+</div>
