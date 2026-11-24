@@ -135,20 +135,23 @@ tells a well-meant change from a breaking one.
 5. **Bound every exit-path await.** The opentunnel promise wrapper can leave
    `closed` and `close()` unresolved when a bridge half-dies (an idle timeout
    into a route-conflict retry loop). The CLI therefore caps each wait on the
-   exit path: abort grace 3 s, close cap 3 s, plus an unref'd force-exit
-   timer in `src/cli.ts`. These caps are upper bounds and not the normal
-   path. The provider settles `closed` as soon as the SDK has closed the
-   bridge (the wrapper closes it itself on abort), so a Ctrl+C leaves right
-   after the SDK close. SIGHUP and SIGTERM take the same graceful path as
-   SIGINT. A hard kill skips the bridge close, the server keeps the route
-   bound to the closed session, and the next run gets `route_conflict`
-   errors until it takes the route over.
+   exit path: abort grace 3 s, close cap 3 s (or the handle's
+   `closeTimeoutMs` when the provider's own teardown bound is longer), plus
+   an unref'd force-exit timer in `src/cli.ts`. These caps are upper bounds
+   and not the normal path. The provider settles `closed` as soon as the SDK
+   has closed the bridge (the wrapper closes it itself on abort), so a
+   Ctrl+C leaves right after the SDK close. SIGHUP and SIGTERM take the same
+   graceful path as SIGINT. A hard kill skips the bridge close, the server
+   keeps the route bound to the closed session, and the next run gets
+   `route_conflict` errors until it takes the route over.
 
     The plugin closes the tunnel on every Vite exit path (verified on 8.3.8
     for dev and preview, SIGINT and SIGTERM):
     - `closeServer` and `closePreviewServer` return the close promise, capped
-      at `EXIT_CLOSE_CAP_MS`. Vite awaits hook results before it exits on
-      `q`, SIGTERM and stdin closing, and it runs no hook at all on SIGINT.
+      at `EXIT_CLOSE_CAP_MS` (1.5 s) or at the handle's `closeTimeoutMs` when
+      the provider's own teardown bound is longer. Vite awaits hook results
+      before it exits on `q`, SIGTERM and stdin closing, and it runs no hook
+      at all on SIGINT.
     - `stop()` returns the promise of a close already in flight. Vite closes
       its HTTP server before it awaits the hooks; the httpServer `close`
       event starts our close, and a hook that found no handle would resolve
@@ -231,6 +234,14 @@ tells a well-meant change from a breaking one.
     grace period. Its edge connection ignores proxies by design
     (`net.Dialer`), so the provider gives cloudflared the environment as it
     is.
+
+    The cap is only as good as the longest wait for it. The provider
+    declares the whole of it (5 s) as `closeTimeoutMs`, the core copies
+    the number onto the handle, and the CLI and the plugin wait at least
+    that long on their exit paths. The plugin's own cap was 1.5 s on its
+    own: a child that took its time outlived Vite, and the SIGKILL for a
+    wedged one never went out.
+
 13. **The config's top level holds what every provider understands**
     (`provider`, `port`, `host`, `profile`). A provider's own options live in
     its section (`opentunnel: { route, api }`, `cloudflared: { … }`), and its

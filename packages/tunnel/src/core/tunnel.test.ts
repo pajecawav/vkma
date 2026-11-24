@@ -223,6 +223,8 @@ describe("the opentunnel section", () => {
 			expect(fakeSdk.requests.api).toBeUndefined();
 			expect(Object.keys(fakeSdk.requests.routes)).toEqual(["@"]);
 			expect(handle.primaryUrl).toBe(`https://${fakeSdk.hostname}`);
+			// opentunnel caps nothing: a caller waits only as long as it chooses.
+			expect(handle.closeTimeoutMs).toBeUndefined();
 		} finally {
 			await handle.close();
 		}
@@ -485,6 +487,12 @@ describe("createTunnel with the cloudflared provider", () => {
 			expect(warnings.join("\n")).toContain("HTTP Host header override");
 			const record = await readProfileRecord(cfDir, "named-app");
 			expect(record).toMatchObject({ provider: "cloudflared", hostname: "app.example.com" });
+			// The handle names the provider's own teardown bound: SIGTERM's
+			// grace plus the kill's. A caller capping its wait on `close()`
+			// needs it (the plugin's own cap is shorter than the grace).
+			expect(handle.closeTimeoutMs).toBe(
+				cloudflaredTimings.termGraceMs + cloudflaredTimings.killGraceMs,
+			);
 		} finally {
 			await handle.close();
 		}

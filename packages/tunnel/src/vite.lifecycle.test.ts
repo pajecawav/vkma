@@ -300,6 +300,42 @@ describe("vkmaTunnel shutdown", () => {
 		}
 	});
 
+	it("waits for the provider's own teardown bound when it is longer than the cap", async () => {
+		// cloudflared: SIGTERM, a 3 s grace, then SIGKILL and 2 s more. A
+		// close cut at the plugin's 1.5 s left a slow child running.
+		let closeCalls = 0;
+		vi.mocked(createTunnel).mockImplementation(async () => ({
+			...fakeHandle(),
+			closeTimeoutMs: 5000,
+			close: () => {
+				closeCalls += 1;
+				return new Promise<void>(() => undefined);
+			},
+		}));
+		const { plugin } = await boot({ profile: "app" });
+		await vi.waitFor(() => expect(output()).toContain(URL));
+
+		vi.useFakeTimers();
+		try {
+			let settled = false;
+			const closing = Promise.resolve(
+				hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never),
+			).then(() => {
+				settled = true;
+			});
+			await vi.advanceTimersByTimeAsync(EXIT_CLOSE_CAP_MS);
+			// The plugin's own cap passed; the child is still inside its grace.
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(5000 - EXIT_CLOSE_CAP_MS - 1);
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			await closing;
+			expect(closeCalls).toBe(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("a close hook waits for the close the httpServer 'close' event already started", async () => {
 		// Vite closes its HTTP server BEFORE it awaits the plugin hooks.
 		let settled = false;

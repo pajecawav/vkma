@@ -7,7 +7,11 @@
 
 import os from "node:os";
 
-/** Upper bound on the graceful tunnel close while Vite is shutting down. */
+/**
+ * The plugin's own cap on the graceful tunnel close while Vite is shutting
+ * down — a floor. A handle may declare a longer `closeTimeoutMs` (the
+ * bound of its provider's teardown), and `stop()` waits that long instead.
+ */
 export const EXIT_CLOSE_CAP_MS = 1500;
 
 /** Signals that end a Vite process without running a single plugin hook. */

@@ -69,6 +69,14 @@ export interface TunnelHandle {
 	readonly status: () => TunnelStatus;
 	/** Stops the tunnel and frees provider resources. Idempotent. */
 	readonly close: () => Promise<void>;
+	/**
+	 * Upper bound on what `close()` may take, when the provider caps its own
+	 * teardown (cloudflared: SIGTERM, a grace, SIGKILL). A caller that stops
+	 * waiting for `close()` after its own limit should make that limit at
+	 * least this long: cut short, the provider never reaches the end of its
+	 * teardown. Undefined when the provider caps nothing.
+	 */
+	readonly closeTimeoutMs?: number;
 	/** Settles when the tunnel stops (fatal error or `close()`); rejection carries the error. */
 	readonly closed: Promise<void>;
 }
@@ -233,5 +241,15 @@ export interface TunnelProvider<Id extends string = string> {
 	 * a provider without routes has.
 	 */
 	readonly primaryRoute?: (options: TunnelProviderConnectOptions) => string | undefined;
+	/**
+	 * Upper bound on the provider's own teardown — `close()`, and unwinding
+	 * a connect that was aborted — in milliseconds. Undefined when the
+	 * provider caps nothing. The core copies it onto the handle
+	 * (`TunnelHandle.closeTimeoutMs`), and a caller that caps its wait on an
+	 * exit path waits at least this long. The plugin's cap used to be
+	 * shorter than cloudflared's SIGTERM grace, so a child that took its
+	 * time was left behind instead of killed.
+	 */
+	readonly closeTimeoutMs?: () => number;
 	connect(options: TunnelProviderConnectOptions): Promise<TunnelProviderConnection>;
 }

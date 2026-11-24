@@ -177,6 +177,10 @@ export const cloudflaredProvider: TunnelProvider<"cloudflared"> = {
 	// Token mode's hostname is configured, not minted: known up front.
 	knownHostname: options =>
 		cloudflaredMode(options) === "token" ? options.cloudflared?.hostname : undefined,
+	// SIGTERM, its grace, then SIGKILL: whoever caps a wait on `close()`
+	// must outlast the whole of it, or a child that ignores SIGTERM is
+	// left running instead of killed.
+	closeTimeoutMs: () => cloudflaredTimings.termGraceMs + cloudflaredTimings.killGraceMs,
 	connect(options) {
 		return connectCloudflared(options);
 	},

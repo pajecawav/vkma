@@ -32,7 +32,10 @@ const VERSION = pkg.version;
 
 /** How long a clean stop may take after SIGINT before we stop waiting. */
 const ABORT_GRACE_MS = 3000;
-/** Hard cap on provider teardown in the CLI exit path. */
+/**
+ * Hard cap on provider teardown in the CLI exit path — a floor: a provider
+ * that declares a longer `closeTimeoutMs` gets that long.
+ */
 const CLOSE_TIMEOUT_MS = 3000;
 
 export interface MainOptions {
@@ -460,8 +463,11 @@ function abortGrace(signal: AbortSignal | undefined): Promise<"aborted"> {
 
 /** Provider teardown with a hard cap: a hung SDK close must not wedge the CLI. */
 function boundedClose(handle: TunnelHandle): Promise<void> {
+	// A provider that hard-caps its own teardown gets the time to reach that
+	// cap. Stopped earlier, cloudflared never sends its SIGKILL.
+	const limit = Math.max(CLOSE_TIMEOUT_MS, handle.closeTimeoutMs ?? 0);
 	return new Promise(resolve => {
-		const timer = setTimeout(() => resolve(undefined), CLOSE_TIMEOUT_MS);
+		const timer = setTimeout(() => resolve(undefined), limit);
 		timer.unref?.();
 		handle.close().then(
 			() => {

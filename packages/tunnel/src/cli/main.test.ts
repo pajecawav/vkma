@@ -410,6 +410,47 @@ describe("run shutdown resilience", () => {
 		expect(out.join("")).toContain("https://wedged.opentunnel.xyz");
 	}, 10_000);
 
+	it("waits for a close at least as long as the provider caps its own teardown", async () => {
+		vi.useFakeTimers();
+		out = [];
+		errOut = [];
+		try {
+			let closeCalls = 0;
+			const pending = main([], {
+				cwd,
+				dataDir,
+				env: { HOME: "/home/test" },
+				stdout,
+				stderr: { write: (text: string) => void errOut.push(text) },
+				createTunnel: async () => ({
+					...wedgedTunnel(),
+					// The tunnel stops on its own; its close() never settles,
+					// and the provider says its teardown may take 4.5 s.
+					closeTimeoutMs: 4500,
+					closed: new Promise<void>(resolve => setTimeout(resolve, 20)),
+					close: () => {
+						closeCalls += 1;
+						return new Promise<void>(() => undefined);
+					},
+				}),
+			});
+			let settled = false;
+			void pending.then(() => {
+				settled = true;
+			});
+			await vi.advanceTimersByTimeAsync(20 + 3000);
+			// The CLI's own cap (3 s) passed; the provider's has not.
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1499);
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(await pending).toBe(0);
+			expect(closeCalls).toBe(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("exits 0 when the tunnel stops cleanly on its own", async () => {
 		out = [];
 		errOut = [];

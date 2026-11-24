@@ -75,6 +75,8 @@ const UNHANDLED_HOST_HEADER = [
 export async function createTunnel(options: CreateTunnelOptions): Promise<TunnelHandle> {
 	const providerId = options.provider ?? DEFAULT_PROVIDER;
 	const provider = getTunnelProvider(providerId);
+	// The provider's own teardown bound, for a caller capping its wait on it.
+	const closeTimeoutMs = provider.closeTimeoutMs?.();
 
 	const port = options.port;
 	if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -279,6 +281,7 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 		return {
 			provider: providerId,
 			profile,
+			...(closeTimeoutMs === undefined ? {} : { closeTimeoutMs }),
 			get hostname() {
 				return connection.hostname;
 			},

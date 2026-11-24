@@ -206,9 +206,15 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 		(await resolve(root)).config.profile ?? defaultProfile(root);
 
 	/**
-	 * Closes the active tunnel — never taking longer than EXIT_CLOSE_CAP_MS
-	 * — and returns a promise for that close. While a close is in flight,
-	 * every later call returns the SAME promise.
+	 * Closes the active tunnel — never taking longer than the plugin's cap,
+	 * or the provider's own `closeTimeoutMs` when that is longer — and
+	 * returns a promise for that close. While a close is in flight, every
+	 * later call returns the SAME promise.
+	 *
+	 * The provider's bound is not optional here. The cap used to be 1.5 s
+	 * on its own, shorter than cloudflared's 3 s SIGTERM grace: a child that
+	 * took its time was left running when Vite left, and the SIGKILL that
+	 * ends a wedged one never went out.
 	 *
 	 * That matters because Vite closes its HTTP server BEFORE it awaits
 	 * the plugin hooks: the httpServer "close" event starts our close, and
@@ -225,7 +231,7 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 		if (current !== undefined) {
 			closing = cap(
 				current.close().catch(() => undefined),
-				EXIT_CLOSE_CAP_MS,
+				Math.max(EXIT_CLOSE_CAP_MS, current.closeTimeoutMs ?? 0),
 			);
 		}
 		return closing ?? Promise.resolve();
