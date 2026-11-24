@@ -13,15 +13,12 @@
  */
 
 import fs from "node:fs/promises";
-import {
-	create,
-	OpenTunnelClientError,
-	publicUrl,
-	type OpenTunnelClientEvent,
-	type OpenTunnelIdentity,
-	type OpenTunnelPendingIdentity,
-	type OpenTunnelStatus,
-	type OpenTunnelStorage,
+import type {
+	OpenTunnelClientEvent,
+	OpenTunnelIdentity,
+	OpenTunnelPendingIdentity,
+	OpenTunnelStatus,
+	OpenTunnelStorage,
 } from "@opentunnel/client";
 import { DEFAULT_ROUTE } from "../constants.ts";
 import {
@@ -51,6 +48,23 @@ const IDENTITY_KEYS = [
 	"certificateExpiry",
 ] as const;
 
+/** The SDK's runtime values (`create`, `OpenTunnelClientError`, `publicUrl`), typed from its module. */
+type OpenTunnelSdk = typeof import("@opentunnel/client");
+
+/**
+ * Loads the SDK, on the first connect of a tunnel and not before.
+ *
+ * As a static import (and for a while a re-export of `publicUrl`) it sat
+ * on the startup of everyone who imported this package, cloudflared users
+ * included: importing `@vkma.dev/tunnel` took 160 ms, 137 of them the SDK
+ * and the `effect` graph behind it. Nothing but `connect` needs it; the
+ * record store and the CLI's `list`, `status` and `reset` read the files
+ * themselves. Node caches the module, so the load happens once.
+ */
+function loadSdk(): Promise<OpenTunnelSdk> {
+	return import("@opentunnel/client");
+}
+
 export const opentunnelProvider: TunnelProvider<"opentunnel"> = {
 	id: "opentunnel",
 	// The run's public route is this provider's setting: `"@"` serves the
@@ -69,10 +83,11 @@ function routeOf(options: TunnelProviderConnectOptions): string {
 async function connectOpenTunnel(
 	options: TunnelProviderConnectOptions,
 ): Promise<TunnelProviderConnection> {
+	const sdk = await loadSdk();
 	const target = `${options.host}:${options.port}`;
 	const route = routeOf(options);
 
-	const client = create({
+	const client = sdk.create({
 		api: options.opentunnel?.api,
 		store: createRecordStorage(options.dataDir),
 	});
@@ -99,7 +114,7 @@ async function connectOpenTunnel(
 				code: "E_ABORTED",
 			});
 		}
-		throw mapClientError(error);
+		throw mapClientError(error, sdk);
 	}
 
 	type SdkConnection = Awaited<ReturnType<typeof client.tunnel.connect>>;
@@ -143,7 +158,7 @@ async function connectOpenTunnel(
 		void bounded(client.dispose());
 		// The package's error model: a TunnelError with a `kind` (and the
 		// SDK's code), never the raw third-party error.
-		settleReject(mapClientError(error));
+		settleReject(mapClientError(error, sdk));
 		// No terminal event on a fatal: `closed` carries the error.
 		events.end();
 	};
@@ -253,7 +268,7 @@ async function connectOpenTunnel(
 		// within a second when its relay dies, so "fast error" is NOT proof of
 		// health; the direct probe above is what proves the target is fine.
 		const tunneled = await probeHttp(
-			publicUrl(route, current.tunnel.hostname),
+			sdk.publicUrl(route, current.tunnel.hostname),
 			PROBE_TIMEOUT_MS,
 		);
 		if (!tunneled) {
@@ -295,7 +310,7 @@ async function connectOpenTunnel(
 				code: "E_ABORTED",
 			});
 		}
-		throw mapClientError(error);
+		throw mapClientError(error, sdk);
 	}
 
 	startWatchdog();
@@ -385,8 +400,8 @@ function raceAbort<T>(promise: Promise<T>, signal: AbortSignal | undefined): Pro
 }
 
 /** Maps an SDK error into the package error model (exit-code friendly). */
-function mapClientError(error: unknown): TunnelError {
-	if (error instanceof OpenTunnelClientError) {
+function mapClientError(error: unknown, sdk: OpenTunnelSdk): TunnelError {
+	if (error instanceof sdk.OpenTunnelClientError) {
 		return new TunnelError("network", `opentunnel: ${error.message}`, {
 			code: error.code ?? "E_OPENTUNNEL",
 			cause: error,
@@ -550,9 +565,3 @@ function revivePending(record: Record<string, unknown>): OpenTunnelPendingIdenti
 		csr: candidate["csr"] as string,
 	};
 }
-
-/**
- * Re-exported for callers that need the public URL of a stored route
- * without a connection (the `status` command).
- */
-export { publicUrl };
