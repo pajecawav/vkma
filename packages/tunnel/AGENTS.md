@@ -124,8 +124,12 @@ tells a well-meant change from a breaking one.
    process. Console logging and the browser opener belong to `src/cli*` and
    `src/vite.ts` only.
 4. **A fatal tunnel leaves the dev server running.** The plugin prints a red
-   line (devtools policy). The CLI maps failures to exit codes through
-   `TunnelError.kind`: 0 ok, 1 config or user, 2 network, 130 aborted.
+   line (devtools policy). The browser opener belongs under the same rule:
+   a missing `xdg-open` (Linux without xdg-utils) reports through an
+   `error` event, not a throw, and an `error` event without a listener is
+   an uncaught exception. `launchOpener` installs the listener. The CLI maps
+   failures to exit codes through `TunnelError.kind`: 0 ok, 1 config or
+   user, 2 network, 130 aborted.
 5. **Bound every exit-path await.** The opentunnel promise wrapper can leave
    `closed` and `close()` unresolved when a bridge half-dies (an idle timeout
    into a route-conflict retry loop). The CLI therefore caps each wait on the
