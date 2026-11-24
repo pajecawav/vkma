@@ -52,7 +52,9 @@ Write comments, commits and docs in English.
 - `src/providers/cloudflared.ts` is the cloudflared provider: a child process
   whose logfmt output is parsed, a warm-up gate before a Quick Tunnel is
   announced, respawns with backoff (`url-changed` when a Quick Tunnel comes
-  back under a new hostname), a hard-capped teardown and the health watchdog.
+  back under a new hostname; the five are a streak — a run that stayed up
+  for `respawnResetMs` after it settled resets the count on its death), a
+  hard-capped teardown and the health watchdog.
   `cloudflared.fake.mjs` is its test double and is not published.
 - `src/proxy.ts` is the loopback host-rewriting forward proxy. It swaps the
   tunnel hostname for a same-length `*.localhost` alias by pure byte

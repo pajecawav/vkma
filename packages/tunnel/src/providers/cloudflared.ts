@@ -59,6 +59,12 @@ export const cloudflaredTimings = {
 	probeTimeoutMs: 10_000,
 	/** Backoff before each respawn; past the last one the tunnel is given up. */
 	respawnDelaysMs: [1_000, 2_000, 4_000, 8_000, 16_000],
+	/**
+	 * A run that stayed up this long after it settled was healthy: its
+	 * death starts a new streak, so the budget above bounds a run of quick
+	 * failures and not the lifetime of the tunnel.
+	 */
+	respawnResetMs: 60_000,
 	/** SIGTERM, then this, then SIGKILL (see the file comment). */
 	termGraceMs: 3_000,
 	killGraceMs: 2_000,
@@ -325,6 +331,8 @@ async function connectCloudflared(
 	let started = false;
 	let runCounter = 0;
 	let respawns = 0;
+	/** When the live run last settled; a death long after it starts a new streak. */
+	let settledAt: number | undefined;
 	let failures = 0;
 	let watchdog: NodeJS.Timeout | undefined;
 	let current: Run | undefined;
@@ -552,6 +560,7 @@ async function connectCloudflared(
 			events.push({ type: "connected", session: `${String(run.id)}@edge`, routes: ["@"] });
 		}
 		announced = true;
+		settledAt = Date.now();
 	}
 
 	/**
@@ -562,6 +571,14 @@ async function connectCloudflared(
 	async function supervise(exitInfo: ExitInfo): Promise<void> {
 		// `tornDown` is closure state, changed from the outside.
 		const alive = (): boolean => !tornDown;
+		// A run that stayed up for `respawnResetMs` after it settled was
+		// healthy: its death starts a new streak. Without this the budget was
+		// the tunnel's whole lifetime, and the sixth separate death of a
+		// day-old tunnel — every earlier one recovered — was reported as
+		// "5 restarts did not keep it up".
+		if (settledAt !== undefined && Date.now() - settledAt >= timings.respawnResetMs) {
+			respawns = 0;
+		}
 		while (alive()) {
 			const delay = timings.respawnDelaysMs[respawns];
 			if (delay === undefined) {

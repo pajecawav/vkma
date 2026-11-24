@@ -585,6 +585,50 @@ describe("cloudflared provider — staying up and stopping", () => {
 		await connection.close();
 	});
 
+	it("a tunnel that stays up between deaths never runs out of respawns", async () => {
+		fast();
+		Object.assign(cloudflaredTimings, { respawnResetMs: 100 });
+		// Every run dies 300 ms after it starts; each respawn settles some
+		// 150 ms in, so every death follows a stable run.
+		const env = await fake({ FAKE_CF_EXIT_AFTER: "300" });
+		const collected = collect();
+		const connection = await connect({ env, onEvent: collected.onEvent });
+		try {
+			// More deaths than the whole budget (5), one streak each.
+			const changes = () => collected.events.filter(type => type === "url-changed").length;
+			await vi.waitFor(() => expect(changes()).toBeGreaterThanOrEqual(7), {
+				timeout: 15_000,
+			});
+			expect(await launches()).toBeGreaterThanOrEqual(8);
+			expect(connection.status().state).toBe("connected");
+		} finally {
+			await connection.close();
+		}
+	});
+
+	it("deaths that come too soon after a settle still use up the budget", async () => {
+		fast();
+		// Longer than any run here lives after it settles: nothing is stable.
+		Object.assign(cloudflaredTimings, { respawnResetMs: 10_000 });
+		// Each run settles about 30 ms in (URL at 5, registered at 10) and
+		// dies at 120: a run of quick failures, the case the budget is for.
+		const env = await fake({
+			FAKE_CF_URL_DELAY: "5",
+			FAKE_CF_REGISTER_DELAY: "10",
+			FAKE_CF_EXIT_AFTER: "120",
+		});
+		const collected = collect();
+		const connection = await connect({ env, onEvent: collected.onEvent });
+		connection.closed.catch(() => undefined);
+
+		await expect(connection.closed).rejects.toMatchObject({ code: "E_CLOUDFLARED_EXITED" });
+		// Every respawn did settle (so the start, not a crash loop, is what
+		// ran out) and still the budget ended it.
+		expect(collected.events.filter(type => type === "url-changed")).toHaveLength(5);
+		expect(await launches()).toBe(1 + cloudflaredTimings.respawnDelaysMs.length);
+		await connection.close();
+	});
+
 	it("warns about a cloudflared older than Cloudflare's one-year support", async () => {
 		fast();
 		const env = await fake({ FAKE_CF_VERSION: "2020.1.1" });

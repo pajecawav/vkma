@@ -200,11 +200,20 @@ token:  cloudflared tunnel --no-autoupdate --loglevel info --protocol <p> run
 ### Staying up
 
 cloudflared reconnects to the edge by itself, so the supervisor only reacts
-to the process dying. It respawns with a 1, 2, 4, 8, 16 s backoff, five
-times, and then rejects `closed` with `E_CLOUDFLARED_EXITED`. A respawn in
-quick mode mints a new hostname. The supervisor runs the readiness gate
-again and emits `url-changed`, and the CLI and the plugin print a fresh
-banner.
+to the process dying, and only once the first start has settled. It respawns
+with a 1, 2, 4, 8, 16 s backoff, five times, and then rejects `closed` with
+`E_CLOUDFLARED_EXITED`.
+
+The five are a streak. A run that stayed up for `respawnResetMs` (60 s)
+after it settled was healthy, and its death resets the count: the budget
+bounds a run of quick failures, not the lifetime of the tunnel. As first
+written the count was never reset, and a watchdog restart spent one too.
+The sixth separate death of a day-old tunnel, every earlier one recovered,
+ended it with "5 restarts did not keep it up".
+
+A respawn in quick mode mints a new hostname. The supervisor runs the
+readiness gate again and emits `url-changed`, and the CLI and the plugin
+print a fresh banner.
 
 The health watchdog follows opentunnel's policy with the same numbers: a
 probe every 20 s, and a restart after 2 failures. The signal differs. The
@@ -263,8 +272,8 @@ its `argv` to a file, can exit early, and can ignore SIGTERM. Covered:
 - the readiness gate: a good status gets the URL announced, the warm-up cap
   gets it announced silently, and no probe runs before `Registered`;
 - `hostRewrite: false` reaching the child's `argv`;
-- respawn and `url-changed`, and the respawn budget ending in
-  `E_CLOUDFLARED_EXITED`;
+- respawn and `url-changed`, the respawn budget as a streak (a stable run
+  resets it, a quick failure does not) and its end in `E_CLOUDFLARED_EXITED`;
 - a teardown that stays bounded when the child ignores SIGTERM.
 
 A live check is a manual step, because it needs a network that reaches
