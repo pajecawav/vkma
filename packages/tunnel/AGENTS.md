@@ -80,7 +80,10 @@ Write comments, commits and docs in English.
   renderers and the elapsed-time spinner, adapted from deploy's CliLogger),
   `main.ts` (dispatch and rendering; it returns exit codes instead of calling
   `process.exit`), `qr.ts` and `opener.ts`. `src/cli.ts` is the shebang entry
-  that wires SIGINT and SIGTERM.
+  that wires SIGINT and SIGTERM. `reset` and `status` need one key from the
+  config, the profile: a config that fails validation elsewhere still gives
+  it (`profileAsWritten` reads the file as written), and one that cannot be
+  read says to use `--profile`.
 - `src/vite.ts` is the plugin for dev and preview: the `config` hook that
   registers a stored hostname in `allowedHosts`, the tunnel lifecycle, the
   awaited close hooks, and the keep-alive hold (the server's

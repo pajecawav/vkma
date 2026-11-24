@@ -6,12 +6,15 @@
  *   0 ok · 1 config/user · 2 network · 130 aborted (SIGINT)
  */
 
+import fs from "node:fs";
 import net from "node:net";
 import pkg from "../../package.json";
-import { CLOUDFLARED_PROVIDER } from "../constants.ts";
+import { loadConfigFile } from "../config/load.ts";
+import { findConfigFile } from "../config/resolve.ts";
+import { CLOUDFLARED_PROVIDER, PROFILE_PATTERN } from "../constants.ts";
 import { createTunnel } from "../core/tunnel.ts";
 import type { TunnelEvent, TunnelHandle } from "../core/types.ts";
-import { isTunnelError } from "../errors.ts";
+import { TunnelError, isTunnelError } from "../errors.ts";
 import {
 	defaultProfile,
 	listProfileRecords,
@@ -545,15 +548,65 @@ function renderEvent(event: TunnelEvent, logger: TunnelLogger, reason?: string):
 	}
 }
 
+/**
+ * The profile `reset` and `status` act on: the flag's, else the config's,
+ * else the project directory's name.
+ *
+ * These two commands need that one key, and `reset` is often the way out
+ * of an error. So a config that fails validation elsewhere must not hide
+ * the profile it names: when its file can still be read, the `profile` in
+ * it is taken as written. A config that cannot be read, or names none, is
+ * still an error — with the way around it said.
+ */
 async function resolveProfile(parsed: ParsedArgs, context: RunContext): Promise<string> {
 	if (parsed.values.profile !== undefined) {
 		return parsed.values.profile;
 	}
-	const { config } = await resolveTunnelConfig({
-		cwd: context.cwd,
-		configPath: parsed.values.config,
-	});
-	return config.profile ?? defaultProfile(context.cwd);
+	const locating = { cwd: context.cwd, configPath: parsed.values.config };
+	try {
+		const { config } = await resolveTunnelConfig(locating);
+		return config.profile ?? defaultProfile(context.cwd);
+	} catch (error) {
+		const named = await profileAsWritten(locating);
+		if (named !== undefined) {
+			return named;
+		}
+		const message = error instanceof Error ? error.message : String(error);
+		throw new TunnelError(
+			"config",
+			`${message}\n(reset --profile <name> and status <profile> need no config file)`,
+			{
+				code: isTunnelError(error) ? error.code : undefined,
+				cause: error,
+			},
+		);
+	}
+}
+
+/**
+ * The `profile` a config file names, read without validating the rest of
+ * it. Undefined when there is no readable file or it names no valid one.
+ */
+async function profileAsWritten(locating: {
+	readonly cwd: string;
+	readonly configPath: string | undefined;
+}): Promise<string | undefined> {
+	try {
+		const file =
+			locating.configPath === undefined
+				? findConfigFile(locating.cwd)
+				: fs.existsSync(locating.configPath)
+					? locating.configPath
+					: undefined;
+		if (file === undefined) {
+			return undefined;
+		}
+		const { config } = await loadConfigFile(file);
+		const profile = (config as { readonly profile?: unknown }).profile;
+		return typeof profile === "string" && PROFILE_PATTERN.test(profile) ? profile : undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 /**

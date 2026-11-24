@@ -216,6 +216,39 @@ describe("reset", () => {
 		expect(result.out).toContain("No stored identity");
 	});
 
+	it("still find a profile that an invalid config names", async () => {
+		// `reset` is often the way out of an error. A config that fails
+		// validation elsewhere used to stop both commands before they got
+		// as far as the one key they need.
+		const config = path.join(cwd, "vkma-tunnel.config.json");
+		await fs.writeFile(config, JSON.stringify({ profile: "named-in-config", port: "nope" }));
+		try {
+			await mergeRecordFile(dataDir, "named-in-config", { hostname: "abc.opentunnel.xyz" });
+			const status = await run(["status"]);
+			expect(status.code).toBe(0);
+			expect(status.out).toContain("profile:    named-in-config");
+
+			const reset = await run(["reset"]);
+			expect(reset.code).toBe(0);
+			expect(reset.out).toContain('Removed identity for profile "named-in-config"');
+		} finally {
+			await fs.rm(config, { force: true });
+		}
+	});
+
+	it("fail on an invalid config that names no profile, and say how to do without it", async () => {
+		const config = path.join(cwd, "vkma-tunnel.config.json");
+		await fs.writeFile(config, JSON.stringify({ port: "nope" }));
+		try {
+			const result = await run(["reset"]);
+			expect(result.code).toBe(1);
+			expect(result.err).toContain("Invalid tunnel configuration");
+			expect(result.err).toContain("reset --profile <name>");
+		} finally {
+			await fs.rm(config, { force: true });
+		}
+	});
+
 	it("--all removes every profile", async () => {
 		await mergeRecordFile(dataDir, "one", { hostname: "a.opentunnel.xyz" });
 		await mergeRecordFile(dataDir, "two", { hostname: "b.opentunnel.xyz" });
