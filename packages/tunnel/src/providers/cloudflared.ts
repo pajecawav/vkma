@@ -264,7 +264,7 @@ async function connectCloudflared(
 
 	// -- the binary ----------------------------------------------------------
 	const binary = resolveCloudflaredBinary(settings?.binary, env, process.platform, options.cwd);
-	const version = readCloudflaredVersion(binary, env);
+	const version = await readCloudflaredVersion(binary, env);
 	if (version.ageDays > CLOUDFLARED_SUPPORT_DAYS) {
 		warn(
 			`cloudflared ${version.version} is about ${String(Math.round(version.ageDays / 30))} months old — Cloudflare supports releases for one year, update it`,

@@ -273,26 +273,50 @@ describe("cloudflared binary", () => {
 
 	it("reads the version and its age", async () => {
 		const env = await fake();
-		const current = readCloudflaredVersion(path.join(binDir, "cloudflared"), env);
+		const current = await readCloudflaredVersion(path.join(binDir, "cloudflared"), env);
 		expect(current.version).toBe("2026.11.0");
 		expect(current.built).toBe("20261113-20:44:36-UTC");
 		expect(current.ageDays).toBeLessThanOrEqual(CLOUDFLARED_SUPPORT_DAYS);
 
-		const old = readCloudflaredVersion(path.join(binDir, "cloudflared"), {
+		const old = await readCloudflaredVersion(path.join(binDir, "cloudflared"), {
 			...env,
 			FAKE_CF_VERSION: "2020.1.1",
 		});
 		expect(old.ageDays).toBeGreaterThan(CLOUDFLARED_SUPPORT_DAYS);
 	});
 
-	it("fails on a binary whose --version does not parse", () => {
-		let failure: unknown;
+	it("fails on a binary whose --version does not parse", async () => {
+		await expect(readCloudflaredVersion(process.execPath, {})).rejects.toMatchObject({
+			code: "E_CLOUDFLARED_VERSION",
+		});
+	});
+
+	it("gives up on a binary that does not answer, and blocks nothing meanwhile", async () => {
+		const dir = await fs.mkdtemp(path.join(import.meta.dirname, ".cf-silent-"));
 		try {
-			readCloudflaredVersion(process.execPath, {});
-		} catch (error) {
-			failure = error;
+			// `exec`: the signal must reach the sleeping process itself, not
+			// a shell in front of it.
+			const silent = path.join(dir, "silent");
+			await fs.writeFile(silent, "#!/bin/sh\nexec sleep 30\n");
+			await fs.chmod(silent, 0o755);
+
+			const startedAt = Date.now();
+			// Runs while the binary sits there: as `spawnSync` the check froze
+			// the event loop of the dev server for the whole wait.
+			const tick = new Promise<number>(resolve => {
+				setTimeout(() => resolve(Date.now() - startedAt), 20);
+			});
+			const check = readCloudflaredVersion(silent, {}, 200);
+
+			expect(await tick).toBeLessThan(150);
+			await expect(check).rejects.toMatchObject({
+				code: "E_CLOUDFLARED_VERSION",
+				message: expect.stringContaining("no answer within 200 ms"),
+			});
+			expect(Date.now() - startedAt).toBeLessThan(5_000);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
 		}
-		expect((failure as { code?: string }).code).toBe("E_CLOUDFLARED_VERSION");
 	});
 });
 

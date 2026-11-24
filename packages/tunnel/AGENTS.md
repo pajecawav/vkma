@@ -62,7 +62,9 @@ Write comments, commits and docs in English.
   that line too: any answer used to count, and a tunnel with nothing
   running showed "responding".
 - `src/providers/cloudflared-binary.ts` looks up `cloudflared` on PATH (the
-  package never downloads it) and runs the `--version` check.
+  package never downloads it) and runs the `--version` check. The check is
+  asynchronous: as `spawnSync` it froze the event loop of whoever called
+  `connect` — the Vite dev server — for as long as the binary took.
 - `src/providers/cloudflared.ts` is the cloudflared provider: a child process
   whose logfmt output is parsed, a warm-up gate before a Quick Tunnel is
   announced, respawns with backoff (`url-changed` when a Quick Tunnel comes

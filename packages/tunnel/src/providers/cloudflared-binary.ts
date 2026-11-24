@@ -10,7 +10,7 @@
  * is `name.exe`, and the variable is spelled `Path`.
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_CLOUDFLARED_BINARY } from "../constants.ts";
@@ -132,37 +132,85 @@ function isExecutableFile(file: string, platform: NodeJS.Platform): boolean {
 /**
  * Runs `cloudflared --version` once and parses its output
  * (`cloudflared version 2026.11.0 (built 20261113-20:44:36-UTC)`).
+ *
+ * Asynchronous on purpose. As `spawnSync` it froze the event loop of
+ * whoever called `connect` — the Vite dev server, every request and HMR
+ * socket included — for as long as the binary took, up to the whole
+ * timeout.
  */
 export function readCloudflaredVersion(
 	command: string,
 	env: ProviderEnv,
 	timeoutMs = 10_000,
-): CloudflaredVersion {
-	const result = spawnSync(command, ["--version"], {
-		env: childEnv(env),
-		encoding: "utf8",
-		timeout: timeoutMs,
+): Promise<CloudflaredVersion> {
+	return new Promise((resolve, reject) => {
+		let stdout = "";
+		let stderr = "";
+		let settled = false;
+		const settle = (run: { output: string; status: number | null; error?: Error }): void => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			clearTimeout(timer);
+			const output = run.output.trim();
+			const match =
+				/cloudflared version (\d{4})\.(\d{1,2})\.(\d{1,2})(?: \(built ([^)]*)\))?/.exec(
+					output,
+				);
+			if (run.error !== undefined || run.status !== 0 || match === null) {
+				reject(
+					new TunnelError(
+						"config",
+						`cloudflared --version did not answer as expected (exit ${String(run.status)}): ${output.slice(0, 200) || run.error?.message || "no output"}`,
+						{ code: "E_CLOUDFLARED_VERSION", cause: run.error },
+					),
+				);
+				return;
+			}
+			const releasedAt = Date.UTC(
+				Number(match[1]),
+				Number(match[2]) - 1,
+				Math.min(Number(match[3]), 28),
+			);
+			resolve({
+				version: `${match[1] ?? ""}.${match[2] ?? ""}.${match[3] ?? ""}`,
+				built: match[4],
+				ageDays: Math.max(0, Math.floor((Date.now() - releasedAt) / 86_400_000)),
+			});
+		};
+		const child = spawn(command, ["--version"], {
+			env: childEnv(env),
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		const timer = setTimeout(() => {
+			// A binary that does not answer is not waited for past its deadline.
+			child.kill("SIGKILL");
+			settle({
+				output: stdout + stderr,
+				status: null,
+				error: new Error(`no answer within ${String(timeoutMs)} ms`),
+			});
+		}, timeoutMs);
+		child.stdout?.setEncoding("utf8");
+		child.stderr?.setEncoding("utf8");
+		child.stdout?.on("data", (chunk: string) => {
+			stdout += chunk;
+		});
+		child.stderr?.on("data", (chunk: string) => {
+			stderr += chunk;
+		});
+		child.once("error", error => {
+			settle({ output: stdout + stderr, status: null, error });
+		});
+		child.once("close", (code, signal) => {
+			settle({
+				output: stdout + stderr,
+				status: signal === null ? code : null,
+				error: signal === null ? undefined : new Error(`killed by ${signal}`),
+			});
+		});
 	});
-	const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
-	const match = /cloudflared version (\d{4})\.(\d{1,2})\.(\d{1,2})(?: \(built ([^)]*)\))?/.exec(
-		output,
-	);
-	if (result.error !== undefined || result.status !== 0 || match === null) {
-		throw new TunnelError(
-			"config",
-			`cloudflared --version did not answer as expected (exit ${String(result.status)}): ${output.slice(0, 200) || result.error?.message || "no output"}`,
-			{ code: "E_CLOUDFLARED_VERSION", cause: result.error },
-		);
-	}
-	const year = Number(match[1]);
-	const month = Number(match[2]);
-	const patch = Number(match[3]);
-	const releasedAt = Date.UTC(year, month - 1, Math.min(patch, 28));
-	return {
-		version: `${match[1] ?? ""}.${match[2] ?? ""}.${match[3] ?? ""}`,
-		built: match[4],
-		ageDays: Math.max(0, Math.floor((Date.now() - releasedAt) / 86_400_000)),
-	};
 }
 
 /** The child's environment: the caller's snapshot without `undefined` values. */
