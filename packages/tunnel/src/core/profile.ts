@@ -7,19 +7,32 @@
  * always wins.
  */
 
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { PROFILE_PATTERN } from "../constants.ts";
 import { TunnelError } from "../errors.ts";
 
 /**
  * Derives the default profile name for a directory: its basename,
- * sanitized to the filename-safe profile charset. Falls back to
- * `"default"` when the name has nothing usable (e.g. `/`).
+ * sanitized to the filename-safe profile charset.
+ *
+ * A basename with no Latin letter or digit in it — a Cyrillic folder name,
+ * for one — has nothing to sanitize to. It becomes `project-<8 hex of the
+ * name>` instead of one shared `default`: every such project used to land
+ * on that one profile, and share one identity and one public URL. Falls
+ * back to `"default"` when there is no basename at all (the filesystem
+ * root).
  */
 export function defaultProfile(cwd: string): string {
 	const base = path.basename(path.resolve(cwd));
 	const sanitized = sanitizeProfile(base);
-	return sanitized === "" ? "default" : sanitized;
+	if (sanitized !== "") {
+		return sanitized;
+	}
+	if (base === "") {
+		return "default";
+	}
+	return `project-${createHash("sha256").update(base).digest("hex").slice(0, 8)}`;
 }
 
 /** Sanitizes any string into a profile-safe name (filename charset). */

@@ -32,7 +32,10 @@ Write comments, commits and docs in English.
 - `src/core/` is the provider-neutral surface: `types.ts` (`TunnelHandle`,
   `TunnelProvider`, the event union), `tunnel.ts` (`createTunnel`: defaults,
   validation, provider dispatch), `profile.ts` (the default profile is the
-  sanitized project directory basename) and `identity.ts` (record files under
+  sanitized project directory basename, or `project-<hash>` when the
+  basename has no Latin letter or digit in it — a Cyrillic folder name.
+  Every such project used to share the one profile `default`, and with it
+  one identity and one URL) and `identity.ts` (record files under
   the data dir, the read and remove functions the CLI uses, and
   `readProfileRecordFile` / `removeRecordIfUntouched` for who owns a
   profile — invariant 1).

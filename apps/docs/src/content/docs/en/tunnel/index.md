@@ -63,7 +63,7 @@ Flags: `--provider`, `--port`, `--host`, `--profile`, `--config`, `--qr`, `--ope
 
 ## Profile and the stable URL
 
-With `opentunnel` the address does not change between runs. The package stores the identity per profile, by default the project directory's name. A URL wired into the VK app settings therefore keeps working. On the first run the package waits for the certificate to be issued. On the hosted service this can take several minutes.
+With `opentunnel` the address does not change between runs. The package stores the identity per profile, by default the project directory's name. A directory name without Latin letters or digits becomes `project-<hash>`, so two such projects do not share an address. A URL wired into the VK app settings therefore keeps working. On the first run the package waits for the certificate to be issued. On the hosted service this can take several minutes.
 
 ```sh
 vkma-tunnel --profile my-app        # another profile, another address

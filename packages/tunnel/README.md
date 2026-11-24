@@ -5,7 +5,7 @@
 - [opentunnel](https://opentunnel.xyz) is the default. It forwards TLS without reading it, so the key never leaves your machine and HTTPS needs no setup.
 - [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (`cloudflared`) needs the `cloudflared` binary. TLS ends at Cloudflare's edge, so the browser speaks HTTP/2 and handshakes are fast.
 
-With opentunnel the public URL is stable across runs. The package stores the tunnel identity per profile, by default under the project directory's name, so a URL wired into the VK app settings keeps working. `vkma-tunnel reset` deletes the identity. The old URL then stops working, and the next run creates a new one.
+With opentunnel the public URL is stable across runs. The package stores the tunnel identity per profile, by default under the project directory's name, so a URL wired into the VK app settings keeps working. A directory name without Latin letters or digits, a Cyrillic one for example, becomes `project-<hash>`, so two such projects do not share an address. `vkma-tunnel reset` deletes the identity. The old URL then stops working, and the next run creates a new one.
 
 ## CLI
 
