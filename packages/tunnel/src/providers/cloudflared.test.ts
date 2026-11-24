@@ -440,12 +440,17 @@ describe("cloudflared provider — quick mode", () => {
 		// The URL never answers, so the gate is still open when launch 1 dies.
 		const env = await fake({ FAKE_CF_EXIT_AFTER: "150", FAKE_CF_EXIT_AFTER_LAUNCH: "1" });
 		vi.mocked(fetch).mockImplementation(async () => new Response(null, { status: 530 }));
+		const collected = collect();
 
-		const failure = await connect({ env }).catch((error: unknown) => error);
+		const failure = await connect({ env, onEvent: collected.onEvent }).catch(
+			(error: unknown) => error,
+		);
 
 		expect((failure as { code?: string }).code).toBe("E_CLOUDFLARED_EXITED");
-		// The respawn the exit triggered must not outlive the failed start.
+		// No respawn for a start that never finished: nothing was launched
+		// for it and nothing said `reconnecting` above the failure.
 		expect(await launches()).toBe(1);
+		expect(collected.events).toEqual(["connected"]);
 	});
 
 	it("respects the protocol and binary options", async () => {
@@ -615,6 +620,38 @@ describe("cloudflared provider — staying up and stopping", () => {
 
 		await connection.closed;
 		expect(connection.status().state).toBe("stopped");
+	});
+
+	it("refuses to start on a signal that is already aborted", async () => {
+		// An aborted signal fires no event: nothing would ever stop the tunnel.
+		const env = await fake();
+		const controller = new AbortController();
+		controller.abort();
+
+		await expect(connect({ env, signal: controller.signal })).rejects.toMatchObject({
+			kind: "aborted",
+		});
+		expect(await launches()).toBe(0);
+	});
+
+	it("an abort during the warm-up gate fails the start as an abort, not as a crash", async () => {
+		fast();
+		// The URL stays unanswered, so the gate is still open when the
+		// signal fires: the fake prints its URL at 50 ms and registers at 80.
+		Object.assign(cloudflaredTimings, { warmupCapMs: 10_000 });
+		vi.mocked(fetch).mockImplementation(async () => new Response(null, { status: 530 }));
+		const env = await fake();
+		const controller = new AbortController();
+		const pending = connect({ env, signal: controller.signal }).catch(
+			(error: unknown) => error,
+		);
+
+		await new Promise(resolve => setTimeout(resolve, 400));
+		controller.abort();
+
+		// The teardown kills the child, and its exit must not read as a crash.
+		const failure = await pending;
+		expect(failure).toMatchObject({ kind: "aborted", code: "E_ABORTED" });
 	});
 
 	it("restarts cloudflared when the tunnel stops serving (watchdog)", async () => {

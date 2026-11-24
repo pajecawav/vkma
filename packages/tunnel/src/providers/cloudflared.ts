@@ -247,6 +247,11 @@ async function settlesWithin(promise: Promise<unknown>, ms: number): Promise<boo
 async function connectCloudflared(
 	options: TunnelProviderConnectOptions,
 ): Promise<TunnelProviderConnection> {
+	// An already-aborted signal fires no `abort` event, so nothing below
+	// would ever stop the tunnel. The Node API can be handed one.
+	if (options.signal?.aborted === true) {
+		throw new TunnelError("aborted", "Tunnel connect aborted", { code: "E_ABORTED" });
+	}
 	const settings = options.cloudflared;
 	const mode = cloudflaredMode(options);
 	const protocol = settings?.protocol ?? DEFAULT_CLOUDFLARED_PROTOCOL;
@@ -313,13 +318,16 @@ async function connectCloudflared(
 	let announced = false;
 	let tornDown = false;
 	let respawning = false;
+	/**
+	 * The first settle succeeded. From there a death is the supervisor's to
+	 * answer; before it, the start owns the failure.
+	 */
+	let started = false;
 	let runCounter = 0;
 	let respawns = 0;
 	let failures = 0;
 	let watchdog: NodeJS.Timeout | undefined;
 	let current: Run | undefined;
-	/** How the current run died, for the error a failed start reports. */
-	let lastExit: ExitInfo | undefined;
 	/** The last lines of child output: what an unexpected exit shows. */
 	const recent: string[] = [];
 
@@ -433,10 +441,13 @@ async function connectCloudflared(
 	}
 
 	function onExit(run: Run, info: ExitInfo): void {
-		if (tornDown || respawning || run !== current) {
+		// Before the first settle the start owns the failure: `settle` races
+		// the exit, in front of the warm-up gate and behind it. A respawn from
+		// here launched a replacement for a tunnel that was about to be
+		// reported as failed, and printed `reconnecting` above that error.
+		if (tornDown || respawning || run !== current || !started) {
 			return;
 		}
-		lastExit = info;
 		registered = false;
 		state = "reconnecting";
 		void supervise(info);
@@ -463,35 +474,31 @@ async function connectCloudflared(
 	/**
 	 * Waits for the public URL to answer, or for the warm-up cap. Nothing
 	 * looks the name up before `warmupMinDelayMs` has passed since the URL
-	 * line. Returns false when the run was torn down or replaced meanwhile.
+	 * line. `signal` ends the wait early: the gate was abandoned (an abort,
+	 * a teardown, or the process died behind it).
+	 *
+	 * Returns without an answer in two cases the caller tells apart: the
+	 * cap ran out — the URL is then announced unverified, and silently on
+	 * purpose, because the line that used to go here ("does not answer
+	 * yet") printed on EVERY start wherever this machine cannot reach the
+	 * edge — or the tunnel is being torn down, which `settle` reports.
 	 */
-	async function warmUp(run: Run): Promise<boolean> {
-		const target = await abortable(run.url, options.signal);
+	async function warmUp(target: string, signal: AbortSignal): Promise<void> {
 		const startedAt = Date.now();
-		await sleep(timings.warmupMinDelayMs);
-		// Closure state, changed from the outside (teardown, a newer run).
-		const live = (): boolean => !tornDown && run === current;
-		while (live() && Date.now() - startedAt < timings.warmupCapMs) {
-			const status = await abortable(
-				httpStatus(target, timings.probeTimeoutMs),
-				options.signal,
-			);
-			if (status !== undefined && status < CLOUDFLARE_ERROR_STATUS) {
-				return true;
+		await sleep(timings.warmupMinDelayMs, undefined, { signal });
+		for (;;) {
+			if (tornDown || Date.now() - startedAt >= timings.warmupCapMs) {
+				return;
 			}
-			await sleep(timings.warmupStepMs);
+			const status = await httpStatus(target, timings.probeTimeoutMs, { signal });
+			if (status !== undefined && status < CLOUDFLARE_ERROR_STATUS) {
+				return;
+			}
+			await sleep(timings.warmupStepMs, undefined, { signal });
 		}
-		if (!live()) {
-			return false;
-		}
-		// The cap ran out: the URL is announced unverified, and silently on
-		// purpose. The line that used to go here ("does not answer yet")
-		// printed on EVERY start wherever this machine cannot reach the edge,
-		// and the one thing it had to say is in the README.
-		return true;
 	}
 
-	/** True once `run` is registered — and in quick mode once its URL answers. */
+	/** Settles once `run` is registered — and in quick mode once its URL answers. */
 	async function settle(run: Run, first: boolean): Promise<void> {
 		const ready =
 			mode === "token"
@@ -518,14 +525,21 @@ async function connectCloudflared(
 			timeout.abort();
 		}
 		if (mode === "quick") {
-			url = await abortable(run.url, options.signal);
-			if (!(await warmUp(run))) {
-				// The run died behind the gate: announcing its URL would hand
-				// out an address that is already dead.
-				if (lastExit !== undefined) {
-					throw exitedError(lastExit, first);
-				}
-				throw new TunnelError("aborted", "Tunnel connect aborted", { code: "E_ABORTED" });
+			const target = await abortable(run.url, options.signal);
+			url = target;
+			// The gate watches the process too. A death behind it fails this
+			// settle — the start, or a respawn's next backoff — so the handle
+			// never carries the URL of a dead process.
+			const gate = new AbortController();
+			try {
+				await Promise.race([
+					abortable(warmUp(target, gate.signal), options.signal),
+					run.exit.then(info => {
+						throw exitedError(info, first);
+					}),
+				]);
+			} finally {
+				gate.abort();
 			}
 		}
 		if (tornDown) {
@@ -686,6 +700,7 @@ async function connectCloudflared(
 		await dispose();
 		throw error;
 	}
+	started = true;
 	startWatchdog();
 
 	return {

@@ -16,16 +16,18 @@ export const DIRECT_PROBE_TIMEOUT_MS = 5_000;
 /**
  * HEAD probe with a deadline: the HTTP status code, or undefined when
  * nothing answered at all (timeout, connection refused, TLS reset).
+ * `signal` ends the probe early — the caller stopped caring.
  */
 export async function httpStatus(
 	url: string,
 	timeoutMs: number,
-	init: { readonly method?: "HEAD" | "GET" } = {},
+	init: { readonly method?: "HEAD" | "GET"; readonly signal?: AbortSignal } = {},
 ): Promise<number | undefined> {
 	try {
+		const deadline = AbortSignal.timeout(timeoutMs);
 		const response = await fetch(url, {
 			method: init.method ?? "HEAD",
-			signal: AbortSignal.timeout(timeoutMs),
+			signal: init.signal === undefined ? deadline : AbortSignal.any([deadline, init.signal]),
 			redirect: "manual",
 		});
 		response.body?.cancel().catch(() => undefined);

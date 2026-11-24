@@ -213,7 +213,11 @@ tells a well-meant change from a breaking one.
     they know the route. The provider therefore waits before the first probe
     and announces the URL only on a status below Cloudflare's error range. If
     the process dies behind that gate, the start fails, so the handle never
-    carries a dead URL. Past the cap (`warmupCapMs`) the URL is announced
+    carries a dead URL. The gate races the exit, and the supervisor answers
+    a death only once the first settle succeeded (`started`). As first
+    written, it respawned from behind the gate too: a `reconnecting` line
+    above the failure and a replacement child for a tunnel that was about to
+    be reported as failed. Past the cap (`warmupCapMs`) the URL is announced
     without a check and without a line about it, in every surface and in the
     Node API. The CLI and the plugin used to print one. It appeared on every
     start wherever the machine could not reach the edge. The same holds for

@@ -179,6 +179,12 @@ token:  cloudflared tunnel --no-autoupdate --loglevel info --protocol <p> run
   because a request that arrives first is answered `530` and proves
   nothing.
 
+    The gate also races the process's exit. A death behind it fails the
+    settle at once, and no respawn is started for a run that never finished
+    starting: as first written, the supervisor launched a replacement for a
+    tunnel that was about to be reported as failed, and said `reconnecting`
+    above the error.
+
     Amended during the implementation: the announcement past the cap is
     silent. The draft's `notice` ("Cloudflare may still be routing this
     hostname") and the warning that replaced it printed on every start
