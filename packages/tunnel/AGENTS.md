@@ -43,7 +43,8 @@ Write comments, commits and docs in English.
   `readProfileRecordFile` / `removeRecordIfUntouched` for who owns a
   profile — invariant 1).
 - `src/providers/opentunnel.ts` is the default provider and the
-  `OpenTunnelStorage` adapter over our record files. It does not use the
+  `OpenTunnelStorage` adapter over our record files. It loads the SDK on
+  the first `connect` and not on import (invariant 14). It does not use the
   SDK's XDG store: the format is ours, with shared metadata beside the
   identity. The file also supervises the bridge (watchdog restarts; the
   SDK's own close on abort settles `closed`). A restarted bridge announces
@@ -311,6 +312,17 @@ tells a well-meant change from a breaking one.
     is silently ignored (`api` beside cloudflared used to be accepted and
     dropped). Each provider reads its own section and applies its own
     defaults (see 7).
+14. **The opentunnel SDK loads on the first `connect`, not on import.**
+    `src/providers/opentunnel.ts` imports types only at module scope and
+    loads the runtime values through `loadSdk()`. Nothing else needs them:
+    the record store reads the files itself, and so do `list`, `status`
+    and `reset`. As a static import (and for a while a re-export of
+    `publicUrl`) the SDK sat on the startup of everyone who imported the
+    package, cloudflared users included: 160 ms to import
+    `@vkma.dev/tunnel`, 137 of them the SDK and the `effect` graph behind
+    it. A re-export (`export { x } from "@opentunnel/client"`) puts it
+    back. `src/lazy-sdk.test.ts` fails when any entry loads the SDK before
+    a connect.
 
 ## Testing notes
 
