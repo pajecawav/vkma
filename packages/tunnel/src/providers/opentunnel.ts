@@ -120,7 +120,6 @@ async function connectOpenTunnel(
 	let restarting = false;
 	let watchdogTimer: ReturnType<typeof setInterval> | undefined;
 	let timeoutStreak = 0;
-	let restarts = 0;
 
 	// Merged event stream: every SDK connection (initial + restarts) feeds
 	// one AsyncIterable + the caller's onEvent — bounded until something
@@ -210,8 +209,10 @@ async function connectOpenTunnel(
 		await current.setRoutes(routes);
 	};
 
+	// The new bridge announces itself: `attach` passes the SDK's
+	// `connected` through. A synthesized one here as well made every
+	// watchdog restart report "reconnected" twice.
 	const restart = async (): Promise<void> => {
-		restarts += 1;
 		restarting = true;
 		timeoutStreak = 0;
 		events.push({
@@ -221,11 +222,6 @@ async function connectOpenTunnel(
 		await bounded(current.close());
 		current = await attach();
 		restarting = false;
-		events.push({
-			type: "connected",
-			session: `watchdog-restart-${String(restarts)}`,
-			routes: [route],
-		});
 	};
 
 	const stopWatchdog = (): void => {

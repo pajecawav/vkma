@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TunnelEvent } from "../core/types.ts";
 import { OpenTunnelClientError, fakeSdk } from "../test-utils.ts";
 import { PRE_STREAM_EVENT_TAIL } from "./event-stream.ts";
@@ -108,6 +108,55 @@ describe("opentunnel provider — `closed`", () => {
 		await connection.close();
 
 		expect(connection.status().state).toBe("stopped");
+	});
+});
+
+describe("opentunnel provider — the health watchdog", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it("a restart reports the new bridge's own connected event, and only that", async () => {
+		// The target answers directly; nothing comes back through the public
+		// URL — a wedged relay, twice in a row.
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (input: unknown) => {
+				if (String(input).startsWith("https://")) {
+					throw new Error("connection reset");
+				}
+				return new Response(null, { status: 200 });
+			}),
+		);
+		vi.useFakeTimers();
+		let connection: Awaited<ReturnType<typeof opentunnelProvider.connect>> | undefined;
+		try {
+			const events: string[] = [];
+			connection = await opentunnelProvider.connect({
+				profile: "watched",
+				host: "127.0.0.1",
+				port: 5173,
+				dataDir,
+				keepAlive: true,
+				onEvent: event => {
+					events.push(event.type);
+				},
+			});
+			// Two probes 20 s apart fail, then the watchdog restarts the bridge.
+			await vi.advanceTimersByTimeAsync(41_000);
+			expect(events).toEqual([
+				"connecting",
+				"connected",
+				"disconnected",
+				"connecting",
+				"connected",
+			]);
+			expect(connection.status().state).toBe("connected");
+		} finally {
+			// Idempotent: also cleans up when an assertion above failed.
+			await connection?.close().catch(() => undefined);
+		}
 	});
 });
 

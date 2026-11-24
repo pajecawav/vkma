@@ -40,7 +40,9 @@ Write comments, commits and docs in English.
   `OpenTunnelStorage` adapter over our record files. It does not use the
   SDK's XDG store: the format is ours, with shared metadata beside the
   identity. The file also supervises the bridge (watchdog restarts; the
-  SDK's own close on abort settles `closed`).
+  SDK's own close on abort settles `closed`). A restarted bridge announces
+  itself: `attach` passes the SDK's `connected` through, and the provider
+  adds none of its own — a synthesized one reported every restart twice.
 - `src/providers/event-stream.ts` is the merged event stream every provider
   hands to the core. It keeps a bounded tail until something iterates it,
   streams live afterwards, and ends when the tunnel stops. The CLI and the
