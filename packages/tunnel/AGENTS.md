@@ -270,7 +270,9 @@ tells a well-meant change from a breaking one.
 10. **A cloudflared token reaches the child through `TUNNEL_TOKEN` in its
     environment only.** It stays out of `argv` (visible to every process),
     out of profile records and out of log lines, which is why there is no
-    `--cloudflared-token` flag.
+    `--cloudflared-token` flag. The CLI's `--json` starting record shows
+    the resolved config, so it puts a marker where `cloudflared.token` is
+    (`withoutToken` in `main.ts`). As first written it printed the token.
 11. **Announce only what answers.** A Quick Tunnel's DNS record appears
     seconds after cloudflared prints its URL, a lookup that comes earlier is
     cached as NXDOMAIN for a minute, and edge frontends answer `530` until

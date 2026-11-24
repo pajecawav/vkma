@@ -227,6 +227,12 @@ SIGTERM, wait at most 3 s, SIGKILL. This is the bounded-teardown invariant
 (AGENTS.md, invariant 12) with a sharper reason than usual: on a dead
 control stream cloudflared burns a core for its whole 30 s grace period.
 
+The cap holds only where something waits for it. The provider declares
+the whole 5 s as `closeTimeoutMs`, and the CLI and the plugin wait at
+least that long on their exit paths. The plugin's own cap was 1.5 s: a
+child that took its time outlived Vite, and the SIGKILL for a wedged one
+never went out.
+
 ### What it needed from the core
 
 - `TunnelProvider.hostHeaderPolicy`, a capability that says who makes the
@@ -238,6 +244,9 @@ control stream cloudflared burns a core for its whole 30 s grace period.
   `TunnelHandle`. It was not built.
 - `persistentIdentity`, `knownHostname` and `primaryRoute` are capabilities
   added along the way (AGENTS.md, invariant 7).
+- `TunnelProvider.closeTimeoutMs`, added with the plugin's ability to
+  stop a tunnel that is still starting: the bound of the provider's own
+  teardown, copied onto the handle. See "Stopping" above.
 - Profile records gained `provider`. `"opentunnel"` is implied for existing
   files. A run that stores a record refuses a profile that belongs to
   another provider and fails with `E_PROVIDER_MISMATCH`. Without the check
@@ -333,6 +342,15 @@ with the sandbox.
   resolving the new name. Pinning avoids the NXDOMAIN cache, but one such
   probe answered `530` while a plain one answered `200` in the same second.
   Most likely that was warm-up noise and not the pinning.
+- **The 20 s start timeout against the 24 s announce.** `urlTimeoutMs`
+  fails a start that has neither a URL nor a registration 20 s after the
+  launch. The live table below has one announce at 24 s. If that run was
+  late because cloudflared printed its URL late — the Quick Tunnel API
+  answered slowly — and not because the warm-up probes took their time, a
+  slow uplink turns a start that would have worked into
+  `E_CLOUDFLARED_URL`. Not reproduced: the measurement did not record when
+  the URL line came. Measure that on a slow uplink before raising the
+  number; until then it stays at 20 s.
 
 ## History
 
