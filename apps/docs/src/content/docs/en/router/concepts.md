@@ -8,9 +8,9 @@ sidebar:
 
 All navigation state lives in the URL: a view, a panel, a modal and a popout are TanStack Router routes. The host's back button, a reload and a deep link restore the screen with no separate navigation store.
 
-## Feature parity, not API parity
+## Compatibility with the old router
 
-`@vkma.dev/router` succeeds `@vkontakte/vk-mini-apps-router`: every capability of the old router is here, but the API is different. String panel ids are replaced by typed handles, the object route config by builders, and [TanStack Router](https://tanstack.com/router) does the matching underneath. Coming from the old package? Start with the [migration guide](/en/router/migration/).
+`@vkma.dev/router` does everything `@vkontakte/vk-mini-apps-router` does, with a different API. Typed handles replace string panel ids, builders replace the object route config, and [TanStack Router](https://tanstack.com/router) does the matching underneath. Coming from the old package? Start with the [migration guide](/en/router/migration/).
 
 ## Four layers
 

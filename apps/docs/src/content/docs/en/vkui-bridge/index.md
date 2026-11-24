@@ -6,7 +6,7 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/vkui-bridge` is React glue between [`@vkma.dev/bridge`](/en/bridge/) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell. The semantics are 1:1 with [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react).
+`@vkma.dev/vkui-bridge` is React glue between [`@vkma.dev/bridge`](/en/bridge/) and [`@vkontakte/vkui`](https://github.com/VKCOM/VKUI). The provider streams the host's theme, safe-area insets and adaptivity from bridge events into a ready `ConfigProvider` shell.
 
 ```sh
 npm install @vkma.dev/vkui-bridge
@@ -47,6 +47,10 @@ Every hook reads the default bridge instance.
 - **`useBridgeAppearance()`** returns `ColorSchemeType | undefined`. Streams `VKWebAppUpdateConfig` and bootstraps with `VKWebAppGetConfig`. Outside a mini app it returns `undefined` — VKUI resolves the theme itself.
 - **`useBridgeInsets()`** returns `SafeAreaInsets | undefined`. Reads `VKWebAppUpdateInsets` and the insets field of the config. A `bottom` beyond 150 becomes `0` — the virtual-keyboard clamp.
 - **`useBridgeAdaptivity()`** returns `{ type, viewportWidth, viewportHeight }`. `type` is the host verdict (`adaptive`, `force_mobile`, `force_mobile_compact`, or `null`) plus the viewport at the last change.
+
+## Compatibility
+
+The provider and the hooks copy the semantics of [`@vkontakte/vk-bridge-react`](https://www.npmjs.com/package/@vkontakte/vk-bridge-react) one to one.
 
 ## Links
 

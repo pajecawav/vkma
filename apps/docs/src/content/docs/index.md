@@ -34,16 +34,17 @@ Devtools-панель уже вшита в dev-сервер: открой `/__vk
 
 ## Пакеты
 
-| Пакет                              | Что делает                                                                 |
-| ---------------------------------- | -------------------------------------------------------------------------- |
-| [`create-app`](/create-app/)       | скаффолдер: приложение на Vite за одну команду                             |
-| [`bridge`](/bridge/)               | независимый VK Bridge: `send`/`subscribe`, таймауты, tap для observability |
-| [`router`](/router/)               | роутер на TanStack Router: вьюхи, панели, модалки и popout'ы как URL       |
-| [`vkui-bridge`](/vkui-bridge/)     | React-провайдер: тема, insets и адаптивность хоста в VKUI                  |
-| [`devtools`](/devtools/)           | панель `/__vkma/` на твоём dev-сервере: timeline, execute, клиенты         |
-| [`deploy`](/deploy/)               | деплой статики в хостинг VK Mini Apps, совместим с `vk-miniapps-deploy`    |
-| [`bridge-schema`](/bridge-schema/) | каталог событий VK Bridge как данные + TypeScript-типы                     |
-| [`api-schema`](/api-schema/)       | типы и zod/valibot-схемы всего VK API                                      |
+| Пакет                              | Что делает                                                                                   |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`create-app`](/create-app/)       | скаффолдер: приложение на Vite за одну команду                                               |
+| [`bridge`](/bridge/)               | независимый VK Bridge: `send`/`subscribe`, таймауты, tap для observability                   |
+| [`router`](/router/)               | роутер на TanStack Router: вьюхи, панели, модалки и popout'ы как URL                         |
+| [`vkui-bridge`](/vkui-bridge/)     | React-провайдер: тема, insets и адаптивность хоста в VKUI                                    |
+| [`devtools`](/devtools/)           | панель `/__vkma/` на твоём dev-сервере: timeline, execute, клиенты                           |
+| [`deploy`](/deploy/)               | деплой статики в хостинг VK Mini Apps                                                        |
+| [`tunnel`](/tunnel/)               | публичные HTTPS-туннели к dev-серверу, стабильный URL через opentunnel или Cloudflare Tunnel |
+| [`bridge-schema`](/bridge-schema/) | каталог событий VK Bridge как данные + TypeScript-типы                                       |
+| [`api-schema`](/api-schema/)       | типы и zod/valibot-схемы всего VK API                                                        |
 
 ## Ручная установка
 

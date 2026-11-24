@@ -6,7 +6,7 @@ sidebar:
     label: "Overview"
 ---
 
-`@vkma.dev/router` is a VK Mini Apps router on top of [TanStack Router](https://tanstack.com/router). Views, panels, modals and popouts are URL-driven and rendered by VKUI hosts: typed handles instead of string ids, VK history and host sync (`VKWebAppSetLocation`, `VKWebAppChangeFragment`), and native swipe-back management. Feature parity with `@vkontakte/vk-mini-apps-router`, not API parity.
+`@vkma.dev/router` is a VK Mini Apps router on top of [TanStack Router](https://tanstack.com/router). Views, panels, modals and popouts are URL-driven and rendered by VKUI hosts: typed handles instead of string ids, VK history and host sync (`VKWebAppSetLocation`, `VKWebAppChangeFragment`), and native swipe-back management.
 
 ```sh
 npm install @vkma.dev/router @tanstack/react-router

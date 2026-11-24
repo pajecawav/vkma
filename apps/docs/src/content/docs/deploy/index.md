@@ -1,23 +1,25 @@
 ---
-title: "vkma-deploy: деплой VK Mini Apps вместо vk-miniapps-deploy"
-description: "Деплой VK Mini Apps в хостинг VK: drop-in замена vk-miniapps-deploy."
+title: "@vkma.dev/deploy — деплой VK Mini Apps в хостинг VK"
+description: "Деплой VK Mini Apps в хостинг VK из CLI: init создаёт конфиг, login авторизует, deploy публикует сборку."
 sidebar:
     order: 0
     label: "Описание"
 ---
 
-`@vkma.dev/deploy` — CLI и библиотека деплоя для хостинга [VK Mini Apps](https://vk.ru/mini-apps), drop-in-совместимая замена `@vkontakte/vk-miniapps-deploy`.
+`@vkma.dev/deploy` — CLI и библиотека деплоя для хостинга [VK Mini Apps](https://vk.ru/mini-apps).
 
 ```sh
 npx @vkma.dev/deploy        # или: pnpm dlx / yarn dlx / bunx
 vkma-deploy                 # деплой по конфигу в проекте
 ```
 
-**Drop-in совместимость.** Существующая настройка продолжает работать:
+## Совместимость
 
-- читает `vk-hosting-config.json` (легаси-формат) как fallback
-- читает env-переменные `MINI_APPS_ACCESS_TOKEN`, `MINI_APPS_APP_ID`, `MINI_APPS_ENVIRONMENT`, `CI_URLS` (навсегда, без депрекации)
-- переиспользует токен официального тула, так что миграция не требует перелогина
+`vkma-deploy` работает с тем, что уже настроил `@vkontakte/vk-miniapps-deploy`:
+
+- читает `vk-hosting-config.json` как fallback
+- читает env-переменные `MINI_APPS_ACCESS_TOKEN`, `MINI_APPS_APP_ID`, `MINI_APPS_ENVIRONMENT` и `CI_URLS`, их депрекация не планируется
+- узнаёт токен, который сохранил `@vkontakte/vk-miniapps-deploy`, так что входить заново не нужно
 
 ## Быстрый старт
 

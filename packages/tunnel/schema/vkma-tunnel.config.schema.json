@@ -1,0 +1,118 @@
+{
+	"additionalProperties": false,
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://unpkg.com/@vkma.dev/tunnel/schema/vkma-tunnel.config.schema.json",
+	"title": "vkma-tunnel configuration",
+	"description": "Configuration for @vkma.dev/tunnel (vkma-tunnel).",
+	"type": "object",
+	"properties": {
+		"$schema": {
+			"description": "JSON Schema reference for this file.",
+			"type": "string"
+		},
+		"provider": {
+			"default": "opentunnel",
+			"description": "Tunnel provider: \"opentunnel\" (default) or \"cloudflared\" (needs the cloudflared binary on PATH; see the `cloudflared` section).",
+			"anyOf": [
+				{
+					"const": "opentunnel",
+					"type": "string"
+				},
+				{
+					"const": "cloudflared",
+					"type": "string"
+				}
+			]
+		},
+		"port": {
+			"minimum": 1,
+			"maximum": 65535,
+			"default": 5173,
+			"description": "Local port to expose through the tunnel. Default: 5173.",
+			"type": "integer"
+		},
+		"host": {
+			"minLength": 1,
+			"default": "localhost",
+			"description": "Local host the tunnel forwards to. Default: \"localhost\" (resolves to ::1 or 127.0.0.1 — vite preview often binds IPv6 only).",
+			"type": "string"
+		},
+		"profile": {
+			"pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+			"minLength": 1,
+			"maxLength": 64,
+			"description": "Identity-store profile: the name of the stored tunnel record, whichever provider wrote it. Defaults to the project directory name. A stable profile keeps the public URL stable across runs (reset with `vkma-tunnel reset`).",
+			"type": "string"
+		},
+		"opentunnel": {
+			"additionalProperties": false,
+			"description": "Options of the opentunnel provider; only meaningful with provider: \"opentunnel\".",
+			"type": "object",
+			"properties": {
+				"route": {
+					"pattern": "^(@|[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)$",
+					"default": "@",
+					"description": "Route name: \"@\" (apex, https://<id>.opentunnel.xyz) or a lowercase DNS label for a subdomain. Default: \"@\".",
+					"type": "string"
+				},
+				"api": {
+					"pattern": "^https?://",
+					"description": "API endpoint of a self-hosted opentunnel server, e.g. \"https://opentunnel.example\". Optional; the opentunnel client also honors the OPENTUNNEL_API env var.",
+					"type": "string"
+				}
+			}
+		},
+		"cloudflared": {
+			"additionalProperties": false,
+			"description": "Options of the cloudflared provider; only meaningful with provider: \"cloudflared\".",
+			"type": "object",
+			"properties": {
+				"mode": {
+					"default": "quick",
+					"description": "\"quick\": a one-time trycloudflare.com URL without an account — the hostname changes on every start. \"token\": a named tunnel created in the Cloudflare dashboard, stable hostname.",
+					"anyOf": [
+						{
+							"const": "quick",
+							"type": "string"
+						},
+						{
+							"const": "token",
+							"type": "string"
+						}
+					]
+				},
+				"hostname": {
+					"pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$",
+					"maxLength": 253,
+					"description": "Token mode: the public hostname configured in the dashboard for this tunnel, e.g. \"app.example.com\".",
+					"type": "string"
+				},
+				"token": {
+					"minLength": 1,
+					"description": "Token mode: the dashboard's tunnel token. Prefer the TUNNEL_TOKEN environment variable — never commit a token.",
+					"type": "string"
+				},
+				"protocol": {
+					"default": "http2",
+					"description": "Transport to the Cloudflare edge. \"http2\" (default) also works where UDP 7844 is blocked; \"quic\" is faster but keeps dying on such networks.",
+					"anyOf": [
+						{
+							"const": "http2",
+							"type": "string"
+						},
+						{
+							"const": "quic",
+							"type": "string"
+						}
+					]
+				},
+				"binary": {
+					"minLength": 1,
+					"default": "cloudflared",
+					"description": "The cloudflared executable: a name looked up on PATH (default \"cloudflared\"), an absolute path, or a path relative to the project: the config file's directory, or the working directory (the Vite root for the plugin) when a flag or an option names it.",
+					"type": "string"
+				}
+			}
+		}
+	}
+}

@@ -20,6 +20,7 @@ export const PACKAGES = [
 	"vkui-bridge",
 	"devtools",
 	"deploy",
+	"tunnel",
 	"bridge-schema",
 	"api-schema",
 ];

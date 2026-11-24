@@ -6,7 +6,7 @@ sidebar:
     label: "Hooks"
 ---
 
-Three hooks stream the host's verdict out of bridge events: the theme, safe-area insets and adaptivity. The semantics are 1:1 with `@vkontakte/vk-bridge-react`. Every hook reads the default `@vkma.dev/bridge` instance.
+Three hooks stream the host's verdict out of bridge events: the theme, safe-area insets and adaptivity. Every hook reads the default `@vkma.dev/bridge` instance.
 
 ## useBridgeAppearance
 
