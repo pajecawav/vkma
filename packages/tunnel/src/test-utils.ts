@@ -74,6 +74,8 @@ interface FakeSdk {
 	conflictOnAttach: boolean;
 	/** `connect` rejects with a non-recoverable attach error (`bad_token`). */
 	failConnect: boolean;
+	/** The bridge refuses a retarget (`setRoutes` rejects). */
+	failSetRoutes: boolean;
 	/** How long the SDK takes to close a bridge; 0 = at once. */
 	closeDelayMs: number;
 	stats: FakeSdkStats;
@@ -92,6 +94,7 @@ export const fakeSdk: FakeSdk = {
 	hostname: "4bznf5jcbkct.opentunnel.xyz",
 	conflictOnAttach: false,
 	failConnect: false,
+	failSetRoutes: false,
 	closeDelayMs: 0,
 	stats: { attaches: 0, closes: 0, disposed: 0 },
 	requests: { api: undefined, routes: {} },
@@ -112,6 +115,7 @@ export const fakeSdk: FakeSdk = {
 		this.hostname = "4bznf5jcbkct.opentunnel.xyz";
 		this.conflictOnAttach = false;
 		this.failConnect = false;
+		this.failSetRoutes = false;
 		this.closeDelayMs = 0;
 		this.stats = { attaches: 0, closes: 0, disposed: 0 };
 		this.requests = { api: undefined, routes: {} };
@@ -248,6 +252,12 @@ export function create(options: { api?: string; store?: OpenTunnelStorage } = {}
 						);
 					},
 					setRoutes: async next => {
+						if (fakeSdk.failSetRoutes) {
+							throw new OpenTunnelClientError({
+								message: "bridge is reconnecting",
+								code: "E_RECONNECTING",
+							});
+						}
 						routes = { ...next };
 					},
 					closed,

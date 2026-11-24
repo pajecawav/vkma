@@ -292,9 +292,16 @@ export async function createTunnel(options: CreateTunnelOptions): Promise<Tunnel
 					tunnelHostname: connection.hostname,
 					localhostAlias: alias,
 				});
-				await connection
-					.setRoutes({ [route]: `127.0.0.1:${String(proxy.port)}` })
-					.catch(() => undefined);
+				// Not fatal, and not silent either. The bridge keeps forwarding
+				// the public Host header, which vite answers with 403 unless the
+				// hostname is allowed. The proxy stays up: the provider remembered
+				// the new target, and the next bridge attaches to it.
+				const target = `127.0.0.1:${String(proxy.port)}`;
+				await connection.setRoutes({ [route]: target }).catch((error: unknown) => {
+					options.onWarning?.(
+						`the tunnel could not be switched to the host-rewriting proxy (${error instanceof Error ? error.message : String(error)}) — until the bridge reconnects, requests carry the public Host header, which vite rejects with 403 unless it is allowed`,
+					);
+				});
 			}
 		}
 

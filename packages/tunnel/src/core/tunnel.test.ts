@@ -211,6 +211,33 @@ describe("the opentunnel section", () => {
 		}
 	});
 
+	it("a failed switch to the rewriting proxy is reported, not swallowed", async () => {
+		// A first run attaches straight to the target and switches to the
+		// proxy afterwards. When the bridge refuses that switch, the tunnel
+		// is up but forwards the public Host header — a 403 from vite.
+		fakeSdk.failSetRoutes = true;
+		const warnings: string[] = [];
+
+		const handle = await createTunnel({
+			port: 5173,
+			profile: "no-switch",
+			dataDir: sectionDir,
+			env: sandboxEnv,
+			keepAlive: false,
+			onWarning: message => {
+				warnings.push(message);
+			},
+		});
+		try {
+			expect(handle.primaryUrl).toBe(`https://${fakeSdk.hostname}`);
+			expect(warnings).toHaveLength(1);
+			expect(warnings[0]).toContain("bridge is reconnecting");
+			expect(warnings[0]).toContain("403");
+		} finally {
+			await handle.close();
+		}
+	});
+
 	it("serves the apex when no section is given", async () => {
 		const handle = await createTunnel({
 			port: 5173,

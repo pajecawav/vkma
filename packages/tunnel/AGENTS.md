@@ -207,7 +207,12 @@ tells a well-meant change from a breaking one.
     - The core routes requests through the host-rewriting proxy
       (`hostRewrite`, on by default). A same-length `*.localhost` alias is
       always allowed, the byte substitution stays trivial, and the CLI is
-      covered too, since it cannot touch the user's vite config.
+      covered too, since it cannot touch the user's vite config. A first run
+      attaches straight to the target and switches the live bridge to the
+      proxy afterwards; when the bridge refuses that switch, the tunnel
+      stays up on the direct target and the core warns through
+      `onWarning`. That failure used to be swallowed: vite answered 403
+      and nothing said why.
     - The plugin registers in the `config` hook the hostname of an identity
       that is already stored, the last moment the list can change, and the
       hostname a token-mode run configures — from the plugin options or
