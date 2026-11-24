@@ -33,6 +33,9 @@
  *   from;
  * - a server restart reuses the stored identity (stable URL) and closes
  *   the previous connection first;
+ * - a server that closes while the tunnel is still starting aborts that
+ *   start, and waits for the provider to unwind it — a cloudflared child
+ *   included — instead of leaving it to outlive Vite;
  * - the bridge closes BEFORE the process leaves, on every exit path. A
  *   hard kill skips the bridge close and leaves the service holding the
  *   route for a ghost session — the `route_conflict` takeover storm the
@@ -51,7 +54,7 @@ import { resolveTunnelConfig, type ResolveTunnelConfigResult } from "./config/re
 import type { TunnelProviderId } from "./constants.ts";
 import { readProfileRecord, tunnelDataDir } from "./core/identity.ts";
 import { defaultProfile } from "./core/profile.ts";
-import { createTunnel } from "./core/tunnel.ts";
+import { createTunnel, getTunnelProvider } from "./core/tunnel.ts";
 import type { TunnelHandle, TunnelEvent } from "./core/types.ts";
 import { cap, EXIT_CLOSE_CAP_MS, installExitGuard } from "./vite-exit.ts";
 export interface VkmaTunnelPluginOptions {
@@ -175,10 +178,42 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 	let releaseExitGuard: (() => void) | undefined;
 	/** The tunnel close still in flight, if any — see `stop()`. */
 	let closing: Promise<void> | undefined;
+	/** Tunnels still connecting: no handle yet, so `stop()` reaches them through their signal. */
+	const starting = new Set<StartingTunnel>();
+	/**
+	 * The provider's own teardown bound, once the config named the provider.
+	 * An aborted start is unwound by that same teardown (a cloudflared child
+	 * is killed), so `stop()` gives it the same time.
+	 */
+	let closeLimit = 0;
 	/** Resolved tunnel configs by project root — one per root per plugin instance (Vite re-creates plugins on restart). */
 	const resolved = new Map<string, Promise<ResolveTunnelConfigResult>>();
 	/** The profile's hostname as the `config` hook found it — undefined for a brand-new profile. */
 	let storedHostname: string | undefined;
+
+	/** Registers a start from its first line: its signal for `stop()` to abort, its `done` for `stop()` to await. */
+	const trackStart = (): StartingTunnel => {
+		const controller = new AbortController();
+		let settle: () => void = () => undefined;
+		const done = new Promise<void>(resolve => {
+			settle = resolve;
+		});
+		const start: StartingTunnel = {
+			controller,
+			signal: controller.signal,
+			done,
+			finish: () => {
+				starting.delete(start);
+				settle();
+			},
+		};
+		starting.add(start);
+		return start;
+	};
+	/** A start's provider caps its own teardown at `ms`: a stop gives the unwind that long. */
+	const teardownBound = (ms: number): void => {
+		closeLimit = Math.max(closeLimit, ms);
+	};
 
 	/** Resolves the tunnel config once per root; a rejection (invalid config) is reported by `startTunnel`. */
 	const resolve = (root: string): Promise<ResolveTunnelConfigResult> => {
@@ -221,6 +256,14 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 	 * the hook that follows must wait for it instead of finding no handle,
 	 * resolving at once and letting Vite's `process.exit()` cut the bridge
 	 * close short. The exit guard awaits the same promise on a signal.
+	 *
+	 * A tunnel that is still connecting has no handle to close. It gets a
+	 * signal instead, and this aborts every start in flight and waits for
+	 * the providers to unwind (the cap above, again). Without that, a server
+	 * that closed during the start — `q`, SIGTERM, stdin closing — left it
+	 * running: a cloudflared child outlived Vite, and the tunnel came up on
+	 * a server that was gone and printed its banner. A tunnel that goes
+	 * live supersedes the other starts the same way.
 	 */
 	const stop = (): Promise<void> => {
 		const current = handle;
@@ -228,10 +271,19 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 		// No tunnel, no say in Ctrl+C: back to Vite's own (default) behaviour.
 		releaseExitGuard?.();
 		releaseExitGuard = undefined;
+		const starts = [...starting];
+		starting.clear();
+		for (const start of starts) {
+			start.controller.abort();
+		}
+		const waits: Promise<unknown>[] = starts.map(start => start.done);
 		if (current !== undefined) {
+			waits.push(current.close().catch(() => undefined));
+		}
+		if (waits.length > 0) {
 			closing = cap(
-				current.close().catch(() => undefined),
-				Math.max(EXIT_CLOSE_CAP_MS, current.closeTimeoutMs ?? 0),
+				Promise.all(waits),
+				Math.max(EXIT_CLOSE_CAP_MS, current?.closeTimeoutMs ?? 0, closeLimit),
 			);
 		}
 		return closing ?? Promise.resolve();
@@ -273,6 +325,8 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 					releaseExitGuard = installExitGuard(stop);
 				},
 				close: () => void stop(),
+				trackStart,
+				teardownBound,
 				resolve,
 				registeredHostname: () => storedHostname,
 			});
@@ -287,6 +341,8 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 					releaseExitGuard = installExitGuard(stop);
 				},
 				close: () => void stop(),
+				trackStart,
+				teardownBound,
 				resolve,
 				registeredHostname: () => storedHostname,
 				preview: true,
@@ -307,11 +363,29 @@ interface WireContext {
 	/** Close the active tunnel, if any (restarts and server shutdown). */
 	close(): void;
 	setHandle(handle: TunnelHandle): void;
+	/**
+	 * Registers a start from its first line, so that a `close()` during it
+	 * aborts the connect and waits for the provider to unwind.
+	 */
+	trackStart(): StartingTunnel;
+	/** The start's provider caps its own teardown at this many ms; a stop waits that long for the unwind. */
+	teardownBound(ms: number): void;
 	/** The plugin instance's config resolution, memoized per project root. */
 	resolve(root: string): Promise<ResolveTunnelConfigResult>;
 	/** Hostname the `config` hook registered — undefined for a brand-new profile. */
 	registeredHostname(): string | undefined;
 	preview?: boolean;
+}
+
+/** A tunnel that is still connecting: there is no handle, only a signal to abort and a promise to await. */
+interface StartingTunnel {
+	readonly controller: AbortController;
+	/** What `createTunnel` is given. */
+	readonly signal: AbortSignal;
+	/** Settles once the start is over and the provider has unwound. */
+	readonly done: Promise<void>;
+	/** The start is over: nothing left to abort or wait for. */
+	finish(): void;
 }
 
 function wireServer(
@@ -364,9 +438,14 @@ async function startTunnel(
 	/** The `cloudflared` section's mode once the config resolved (banner wording). */
 	let cloudflaredMode: "quick" | "token" | undefined;
 	const root = server.config.root;
+	// From its first line the start is `stop()`'s to abort: config resolution
+	// included, so a server that closes right away gets no tunnel at all.
+	const start = context.trackStart();
 	try {
 		const { config } = await context.resolve(root);
 		cloudflaredMode = config.cloudflared?.mode;
+		// An aborted start is unwound by the provider's own teardown.
+		context.teardownBound(getTunnelProvider(config.provider).closeTimeoutMs?.() ?? 0);
 		let announced = false;
 		let lastReason: string | undefined;
 		let lastStage: string | undefined;
@@ -381,6 +460,7 @@ async function startTunnel(
 			cwd: root,
 			port,
 			host,
+			signal: start.signal,
 			keepAlive: options.keepAlive,
 			hostRewrite: options.hostRewrite,
 			pid: process.pid,
@@ -430,12 +510,28 @@ async function startTunnel(
 		});
 		announced = true;
 	} catch (error) {
+		start.finish();
+		if (start.signal.aborted) {
+			// Stopped while starting (`q`, SIGTERM, a restart): not a failure.
+			return;
+		}
 		serverLog(
 			`tunnel: failed to start — ${error instanceof Error ? error.message : String(error)}`,
 			"red",
 		);
 		return;
 	}
+	if (start.signal.aborted) {
+		// The handle arrived a moment too late: the provider had already
+		// closed what it brought up (the SDK resolves its last attach before
+		// it closes the bridge). Nothing is announced, nothing is installed.
+		await tunnel.close().catch(() => undefined);
+		start.finish();
+		return;
+	}
+	// Before `setHandle`: that calls `stop()`, which aborts every start
+	// still registered — and this one is over.
+	start.finish();
 
 	// Through the tunnel every new connection pays TCP plus a TLS handshake
 	// across the whole relay path; hold idle keep-alive connections for as

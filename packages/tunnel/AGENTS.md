@@ -156,6 +156,14 @@ tells a well-meant change from a breaking one.
       its HTTP server before it awaits the hooks; the httpServer `close`
       event starts our close, and a hook that found no handle would resolve
       at once and let `process.exit()` cut the close short.
+    - A tunnel that is still starting has no handle. Every start is
+      registered from its first line (`trackStart`), and `stop()` aborts
+      its signal and waits for the provider to unwind, inside the same cap
+      (`closeLimit` holds the provider's bound once the config named it).
+      As first written the start ran on after the server closed: a
+      cloudflared child outlived Vite, and the tunnel came up on a server
+      that was gone and printed its banner. A tunnel that goes live
+      supersedes the other starts the same way.
     - `installExitGuard` owns SIGINT and SIGHUP while a tunnel is live: it
       closes the tunnel and exits with 128 + signal. Node's signal listeners
       are additive, and the default "die on SIGINT" applies only while no

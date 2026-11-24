@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { mergeRecordFile } from "./core/identity.ts";
 import { createTunnel } from "./core/tunnel.ts";
 import type { TunnelHandle } from "./core/types.ts";
+import { TunnelError } from "./errors.ts";
 import { EXIT_CLOSE_CAP_MS, installExitGuard } from "./vite-exit.ts";
 import { vkmaTunnel, type VkmaTunnelPluginOptions } from "./vite.ts";
 
@@ -19,7 +20,12 @@ import { vkmaTunnel, type VkmaTunnelPluginOptions } from "./vite.ts";
 
 const dirs = vi.hoisted(() => ({ dataDir: "", root: "" }));
 
-vi.mock("./core/tunnel.ts", () => ({ createTunnel: vi.fn() }));
+// Only the factory is replaced: the plugin also asks the registry for the
+// provider's teardown bound.
+vi.mock("./core/tunnel.ts", async importOriginal => {
+	const actual = await importOriginal<typeof import("./core/tunnel.ts")>();
+	return { ...actual, createTunnel: vi.fn() };
+});
 // Never touch the real XDG store: the plugin resolves its data dir lazily.
 vi.mock("./core/identity.ts", async importOriginal => {
 	const actual = await importOriginal<typeof import("./core/identity.ts")>();
@@ -334,6 +340,80 @@ describe("vkmaTunnel shutdown", () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+
+	it("a server that closes while the tunnel is still starting aborts it and waits for the unwind", async () => {
+		// No handle exists yet: the signal is the only way in. Before it,
+		// the start ran on, a cloudflared child included, and brought the
+		// tunnel up on a server that had just closed.
+		vi.mocked(createTunnel).mockImplementation(async options => {
+			await new Promise<never>((_, reject) => {
+				options.signal?.addEventListener(
+					"abort",
+					() => {
+						// The provider unwinds first, then the connect fails.
+						setTimeout(
+							() => reject(new TunnelError("aborted", "Tunnel connect aborted")),
+							30,
+						);
+					},
+					{ once: true },
+				);
+			});
+			return fakeHandle();
+		});
+		const { plugin } = await boot({ profile: "app" });
+		await vi.waitFor(() => expect(createTunnel).toHaveBeenCalled());
+
+		httpServers[0]?.emit("close");
+		let settled = false;
+		const closing = Promise.resolve(
+			hookOf(plugin.closeServer)?.({} as never, { reason: "close" } as never),
+		).then(() => {
+			settled = true;
+		});
+		// The signal reached the start at once…
+		expect(vi.mocked(createTunnel).mock.calls[0]?.[0]?.signal?.aborted).toBe(true);
+		// …and the hook waits for the unwind instead of resolving at once.
+		await new Promise(resolve => setTimeout(resolve, 10));
+		expect(settled).toBe(false);
+		await closing;
+		// Nothing was announced, nothing installed, and it is not a failure.
+		expect(output()).not.toContain(URL);
+		expect(output()).not.toContain("failed to start");
+		expect(process.listenerCount("SIGINT")).toBe(0);
+	});
+
+	it("a tunnel that goes live supersedes a start still in flight", async () => {
+		let firstSignal: AbortSignal | undefined;
+		vi.mocked(createTunnel)
+			.mockImplementationOnce(async options => {
+				firstSignal = options.signal;
+				await new Promise<never>((_, reject) => {
+					options.signal?.addEventListener(
+						"abort",
+						() => reject(new TunnelError("aborted", "Tunnel connect aborted")),
+						{ once: true },
+					);
+				});
+				return fakeHandle();
+			})
+			.mockImplementationOnce(async () => fakeHandle());
+		const plugin = vkmaTunnel({ profile: "app" })[0] as Plugin;
+		await hookOf(plugin.config)?.({ root: dirs.root } as never, {} as never);
+		// A restart while the first start is still connecting.
+		hookOf(plugin.configureServer)?.(fakeServer(dirs.root) as never);
+		await vi.waitFor(() => expect(createTunnel).toHaveBeenCalledTimes(1));
+		hookOf(plugin.configureServer)?.(fakeServer(dirs.root) as never);
+
+		await vi.waitFor(() => expect(output()).toContain(URL));
+		// The live tunnel took over; the older start was aborted, quietly.
+		expect(firstSignal?.aborted).toBe(true);
+		await vi.waitFor(() =>
+			expect(vi.mocked(createTunnel).mock.calls[1]?.[0]?.signal?.aborted).toBe(false),
+		);
+		expect(output()).not.toContain("failed to start");
+		expect(output().match(new RegExp(URL, "g"))).toHaveLength(1);
 	});
 
 	it("a close hook waits for the close the httpServer 'close' event already started", async () => {
