@@ -236,10 +236,6 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 		return pending;
 	};
 
-	/** The profile this run tunnels as — known long before any connection. */
-	const profileOf = async (root: string): Promise<string> =>
-		(await resolve(root)).config.profile ?? defaultProfile(root);
-
 	/**
 	 * Closes the active tunnel — never taking longer than the plugin's cap,
 	 * or the provider's own `closeTimeoutMs` when that is longer — and
@@ -297,19 +293,24 @@ function vkmaTunnelPlugin(options: VkmaTunnelPluginOptions): Plugin {
 			// identity knows its hostname already: allow it here.
 			const root = viteRoot(userConfig);
 			try {
+				const { config } = await resolve(root);
 				// A token-mode hostname is configured, not minted: known even
-				// before the first run stored anything.
+				// before the first run stored anything — from the plugin
+				// options or from the config file, whichever names it. The
+				// hook used to read the options only, so a hostname written
+				// in `vkma-tunnel.config.*` got nothing until a restart.
 				const tokenHostname =
-					options.cloudflared?.mode === "token"
-						? options.cloudflared.hostname
-						: undefined;
-				const hostname =
-					(await readProfileRecord(tunnelDataDir(), await profileOf(root)))?.hostname ??
-					tokenHostname;
-				if (hostname !== undefined) {
-					allowInConfig(userConfig, hostname);
+					config.cloudflared?.mode === "token" ? config.cloudflared.hostname : undefined;
+				const recordHostname = (
+					await readProfileRecord(tunnelDataDir(), config.profile ?? defaultProfile(root))
+				)?.hostname;
+				// Both, when they differ: the stored one may be an older name.
+				for (const hostname of new Set([recordHostname, tokenHostname])) {
+					if (hostname !== undefined) {
+						allowInConfig(userConfig, hostname);
+					}
 				}
-				storedHostname = hostname;
+				storedHostname = recordHostname ?? tokenHostname;
 			} catch {
 				// An invalid tunnel config must not take Vite down; the same
 				// (rejected) resolution surfaces as "failed to start" later.

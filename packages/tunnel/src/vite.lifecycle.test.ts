@@ -738,6 +738,28 @@ describe("vkmaTunnel with the cloudflared provider", () => {
 		);
 	});
 
+	it("registers a token-mode hostname that only the config file names", async () => {
+		// The hook used to read the plugin options alone: a hostname written
+		// in `vkma-tunnel.config.*` got nothing on the first run.
+		const config = path.join(dirs.dataDir, "token.config.json");
+		await fs.writeFile(
+			config,
+			JSON.stringify({
+				provider: "cloudflared",
+				cloudflared: { mode: "token", hostname: "app.example.com" },
+			}),
+		);
+		try {
+			tunnelComesUp();
+			const { userConfig } = await boot({ config }, { server: {} });
+			expect((userConfig.server as { allowedHosts?: string[] }).allowedHosts).toContain(
+				"app.example.com",
+			);
+		} finally {
+			await fs.rm(config, { force: true });
+		}
+	});
+
 	it("registers nothing for quick mode: the hostname is minted later", async () => {
 		tunnelComesUp();
 		const { userConfig } = await boot({

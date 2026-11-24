@@ -207,7 +207,11 @@ tells a well-meant change from a breaking one.
       always allowed, the byte substitution stays trivial, and the CLI is
       covered too, since it cannot touch the user's vite config.
     - The plugin registers in the `config` hook the hostname of an identity
-      that is already stored, the last moment the list can change. A brand-new profile gets its
+      that is already stored, the last moment the list can change, and the
+      hostname a token-mode run configures — from the plugin options or
+      from the config file, whichever names it. The hook used to read the
+      options alone, so a hostname written in `vkma-tunnel.config.*` got
+      nothing on the first run. A brand-new opentunnel profile gets its
       hostname later. With `hostRewrite: false` it then gets 403 until the
       next restart, and the plugin prints why.
 7. **The provider registry is closed** (`opentunnel`, `cloudflared`). The
