@@ -1,6 +1,6 @@
 ---
-title: "vkma-deploy: деплой VK Mini Apps вместо vk-miniapps-deploy"
-description: "Деплой VK Mini Apps в хостинг VK: drop-in замена vk-miniapps-deploy."
+title: "@vkma.dev/deploy — деплой VK Mini Apps в хостинг VK"
+description: "Деплой VK Mini Apps в хостинг VK из CLI: init создаёт конфиг, login авторизует, deploy публикует сборку."
 sidebar:
     order: 0
     label: "Описание"
