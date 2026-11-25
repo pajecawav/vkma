@@ -757,6 +757,9 @@ importers:
       '@vkma.dev/protocol':
         specifier: workspace:*
         version: link:../protocol
+      happy-dom:
+        specifier: 'catalog:'
+        version: 21.0.4
       lucide-react:
         specifier: 'catalog:'
         version: 1.61.0(@types/react@19.3.0)(react@19.3.1)

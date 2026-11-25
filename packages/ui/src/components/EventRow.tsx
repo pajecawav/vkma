@@ -1,12 +1,12 @@
 import type { ClientInfo, WireEvent } from "@vkma.dev/protocol";
-import { memo, useEffect, useRef, useState } from "react";
-import { copyText } from "../lib/clipboard.ts";
+import { memo, useState } from "react";
 import { clientColor } from "../lib/colors.ts";
 import { formatDuration, formatPayloadPreview, formatTime, shortId } from "../lib/format.ts";
 import { scrubUrl } from "../lib/sensitive.ts";
 import { ClientDot } from "./ClientDot.tsx";
+import { CopyButton } from "./CopyButton.tsx";
 import { IconButton } from "./IconButton.tsx";
-import { ArrowOutIcon, CheckIcon, CopyIcon, CrossIcon, DiamondIcon, EyeOffIcon } from "./icons.tsx";
+import { ArrowOutIcon, CheckIcon, CrossIcon, DiamondIcon, EyeOffIcon } from "./icons.tsx";
 import { JsonTree } from "./JsonTree.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
@@ -36,32 +36,6 @@ const stopEvent = (run: () => void) => (event: React.MouseEvent) => {
 	event.stopPropagation();
 	run();
 };
-
-function CopyButton({ text }: { text: string }) {
-	const [copied, setCopied] = useState(false);
-	const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-	// the "copied" flash outlives the row's unmount otherwise
-	useEffect(() => () => clearTimeout(resetTimer.current), []);
-
-	const copy = (event: React.MouseEvent) => {
-		event.stopPropagation();
-		void copyText(text).then(ok => {
-			if (!ok) {
-				return;
-			}
-			setCopied(true);
-			clearTimeout(resetTimer.current);
-			resetTimer.current = setTimeout(() => setCopied(false), 1200);
-		});
-	};
-
-	return (
-		<IconButton size="sm" label="Copy JSON" onClick={copy}>
-			{copied ? <CheckIcon width={13} height={13} /> : <CopyIcon width={13} height={13} />}
-		</IconButton>
-	);
-}
 
 /** Small type chip: → request, ↳ response, ◇ event. Lives in every
  * timeline row, so its hint waits longer than the shared 200ms. The
@@ -168,7 +142,10 @@ const EventRow = memo(function Row({
 			</button>
 			{open && (
 				<div className="flex items-start gap-1 px-3 pb-2 pl-9">
-					<CopyButton text={JSON.stringify(event.payload ?? null, null, "\t")} />
+					<CopyButton
+						text={JSON.stringify(event.payload ?? null, null, "\t")}
+						label="Copy JSON"
+					/>
 					{onIgnore && (
 						<IconButton
 							size="sm"

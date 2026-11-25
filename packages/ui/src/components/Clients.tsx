@@ -6,6 +6,7 @@ import { clientColor } from "../lib/colors.ts";
 import { platformLabel, relativeTime, shortId } from "../lib/format.ts";
 import { SENSITIVE_PARAMS, scrubUrl } from "../lib/sensitive.ts";
 import { ClientDot } from "./ClientDot.tsx";
+import { CopyButton } from "./CopyButton.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { ChevronIcon, CrossIcon, LocateIcon, PlatformIcon, WarningIcon } from "./icons.tsx";
 
@@ -43,12 +44,15 @@ function LaunchParams({ params }: { params: Record<string, string> }) {
 function ClientCard({
 	client,
 	bridgeWarning,
+	copyUrl,
 	onDelete,
 	onLocate,
 	focused,
 }: {
 	client: ClientStatus;
 	bridgeWarning?: ReactNode;
+	/** Puts the copy-url action in the card's header (see `Clients.copyUrl`). */
+	copyUrl?: boolean;
 	onDelete?: (clientId: string) => void;
 	onLocate?: (clientId: string) => void;
 	/** A frameFocus flash for this card: colored ring + bring into view,
@@ -93,7 +97,10 @@ function ClientCard({
 						className="shrink-0 text-neutral-400"
 					/>
 					<span className="flex min-w-0 flex-col gap-0.5">
-						<span className="flex items-center gap-2 text-sm font-medium">
+						{/* Wraps only as a last resort (both actions on a phone-width
+						 * card): an unwrapping row would paint the id chip over the
+						 * metadata on its right. */}
+						<span className="flex flex-wrap items-center gap-2 text-sm font-medium">
 							{platformLabel(client.platform)}
 							<span
 								className={`inline-flex items-center gap-1 font-mono text-[11px] font-normal ${clientColor(client.clientId).text}`}
@@ -119,7 +126,15 @@ function ClientCard({
 						</span>
 					</span>
 					<span className="ml-auto flex shrink-0 items-center gap-2 pr-3 text-[11px] text-neutral-400">
-						{client.appId !== undefined && <span>app {client.appId}</span>}
+						{/* The app id yields first on a narrow card that carries the copy
+						 * action (from the @sm line the timeline's filter row reflows at):
+						 * the header then holds up to two actions, and the label with its
+						 * id chip should keep its line. The id stays readable in the url row. */}
+						{client.appId !== undefined && (
+							<span className={copyUrl ? "hidden @sm:inline" : undefined}>
+								app {client.appId}
+							</span>
+						)}
 						{relativeTime(client.connectedAt)}
 						<ChevronIcon
 							width={13}
@@ -128,6 +143,22 @@ function ClientCard({
 						/>
 					</span>
 				</button>
+				{/* The clipboard gets the ORIGINAL url, not the masked row above
+				 * it. The mask guards what a screen shows passively (shoulder
+				 * surfing, a shared screen); a deliberate click is the one way
+				 * the real launch params leave the card. An empty url has
+				 * nothing to give: copying it would only wipe the clipboard. */}
+				{copyUrl && client.url !== "" && (
+					<CopyButton
+						className="mr-2"
+						text={client.url}
+						label={
+							scrubUrl(client.url) === client.url
+								? "Copy the page URL"
+								: "Copy the original page URL (tokens included)"
+						}
+					/>
+				)}
 				{/* Locate is a SIBLING of the toggle, like remove. Inside it
 				 * the click would bubble into setOpen (and nested buttons are
 				 * invalid HTML). Online-only: an offline client has no frame. */}
@@ -182,6 +213,7 @@ export function Clients({
 	clients,
 	emptyState,
 	bridgeWarning,
+	copyUrl,
 	onDeleteClient,
 	onLocateClient,
 	focusedClientId,
@@ -192,6 +224,14 @@ export function Clients({
 	/** Overrides the bridge-not-detected warning for surfaces where a
 	 * missing vkma bridge still means captured traffic (spy mode). */
 	bridgeWarning?: ReactNode;
+	/** Renders a per-card action that copies the client's url to the
+	 * clipboard UNMASKED: exactly what the collector reported, launch
+	 * tokens included (the url row on the card stays scrubbed). Opt-in,
+	 * because it only means something where the collectors ship the
+	 * page's real href (devtools, the extension). The inspector trims
+	 * the url before it leaves the page, so it has no original to copy
+	 * and leaves this off. */
+	copyUrl?: boolean;
 	/** Registry hygiene affordance: renders a per-card remove button for
 	 * offline clients and a bulk "remove offline" action. Live clients are
 	 * never deletable from here (a running collector re-registers within
@@ -211,7 +251,9 @@ export function Clients({
 			className="scroll-area min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"
 			aria-label="Clients"
 		>
-			<div className="mx-auto flex max-w-xl flex-col gap-2">
+			{/* The card-width container the header's container queries read
+			 * (the cards stretch to this column). */}
+			<div className="@container mx-auto flex max-w-xl flex-col gap-2">
 				{onDeleteClient && offline.length >= 2 && (
 					<button
 						type="button"
@@ -239,6 +281,7 @@ export function Clients({
 								key={client.clientId}
 								client={client}
 								bridgeWarning={bridgeWarning}
+								copyUrl={copyUrl}
 								onDelete={onDeleteClient}
 								onLocate={onLocateClient}
 								focused={client.clientId === focusedClientId}

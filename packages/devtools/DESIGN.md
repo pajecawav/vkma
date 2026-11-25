@@ -76,7 +76,8 @@ event, matching the wire.
   inline (`{ key : {…}, count : 42 }`), arrays get a length row, children
   chunk by 500 with "show more". All nodes memoized.
 - **Clients** — expandable registry cards: platform icon, colored short
-  id, url, launch params grid (sensitive params blurred:
+  id, url (masked on the card, copied in full by the header's copy
+  action), launch params grid (sensitive params blurred:
   sign/access_token/auth_key/sid), bridge-missing warning.
 
 ## Icons

@@ -44,6 +44,7 @@ The result lands right there: a Response (ok) or an Error response as a payload,
 Every connected page script — a desktop tab, a phone on LAN, an iframe, a standalone run — gets a card:
 
 - platform, a colored short id and the page URL (sensitive query params are masked);
+- copy URL — a button in the card header puts the page's original address on the clipboard, real `sign` and tokens included: the masking on the card is visual only;
 - User-Agent and the connection time ("connected 5m ago");
 - an online/offline status — an offline client is dimmed, and refocusing its tab brings it back online;
 - launch params as a key-value grid; sensitive values (`sign`, `access_token`, `auth_key`, `sid`, `secret`) are blurred and hinted nowhere.

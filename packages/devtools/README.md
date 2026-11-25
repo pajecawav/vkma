@@ -56,7 +56,9 @@ One line gives the mini app:
 - **Execute.** Send any bridge event into a chosen connected client from
   the panel; the round-trip result lands right there.
 - **Clients.** Every connected page script (desktop tab, phone on LAN,
-  iframe, standalone) with UA, platform, launch params.
+  iframe, standalone) with UA, platform, launch params, and a per-card
+  copy action for the page's original URL (launch tokens included: the
+  masking on the card is visual only).
 - **Embedded scope.** The FAB panel shows only its own page's traffic
   (colored client badge in the header); a page reload resets its history.
 - **MCP for coding agents.** Off by default; turn on with

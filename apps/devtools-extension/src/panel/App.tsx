@@ -214,6 +214,7 @@ function Sections({
 						</p>
 					}
 					bridgeWarning="No vkma bridge on this page — traffic is captured via the sniffer (spy mode). Events and execute still work."
+					copyUrl
 					onDeleteClient={clientId => {
 						void deleteClients([clientId]).catch(() => {});
 					}}
