@@ -13,6 +13,15 @@
  * wrap the methods IN PLACE on the original object and (b) replace the
  * window property with a Proxy that lazily wraps methods the native
  * side adds later.
+ *
+ * THE ANDROID PROXY IS THE RECEIVER. The WebView serves the bridge
+ * methods through a named-property interceptor that answers reads ahead
+ * of real properties, so (a) never takes effect there: a reference
+ * captured before us keeps the untapped native method. The Proxy hands
+ * out the WRAPPER, never the native method itself: gin accepts only the
+ * injected object as `this`, and a method fetched through a Proxy is
+ * called on the Proxy ("Java bridge method can't be invoked on a
+ * non-injected object").
  */
 
 interface NativeCall {
@@ -42,7 +51,8 @@ function wrapAndroidBridge(onCall: (call: NativeCall) => void): boolean {
 		return false;
 	}
 	const target = bridge as Record<string, unknown>;
-	const wrapped = new Set<string>();
+	/** The wrapper per method name, what the window Proxy hands out. */
+	const wrappers = new Map<string, (serialized: string) => unknown>();
 
 	const report = (name: string, serialized: string): void => {
 		let params: unknown;
@@ -56,37 +66,52 @@ function wrapAndroidBridge(onCall: (call: NativeCall) => void): boolean {
 		}
 	};
 
-	const wrapInPlace = (name: string): void => {
-		if (wrapped.has(name) || !isWrappableName(name)) {
+	const wrapMethod = (name: string): void => {
+		if (wrappers.has(name) || !isWrappableName(name)) {
+			return;
+		}
+		// Own bridge methods only: an inherited Object.prototype member
+		// must not become an own property of the host's object.
+		if (!Object.prototype.hasOwnProperty.call(target, name)) {
 			return;
 		}
 		const original = target[name];
 		if (typeof original !== "function") {
 			return;
 		}
+		const wrapper = (serialized: string): unknown => {
+			const result = (original as (data: string) => unknown).apply(target, [serialized]);
+			report(name, serialized);
+			return result;
+		};
+		wrappers.set(name, wrapper);
 		try {
-			target[name] = (serialized: string) => {
-				const result = (original as (data: string) => unknown).apply(target, [serialized]);
-				report(name, serialized);
-				return result;
-			};
-			wrapped.add(name);
+			target[name] = wrapper;
 		} catch {
-			// non-writable native surface, fresh readers still get the proxy
+			// non-writable native surface: a reference captured before
+			// us keeps the native method, the injected object its receiver
 		}
 	};
 
 	for (const name of Object.getOwnPropertyNames(target)) {
-		wrapInPlace(name);
+		wrapMethod(name);
 	}
-	w.AndroidBridge = new Proxy(target, {
-		get(obj, prop) {
-			if (typeof prop === "string") {
-				wrapInPlace(prop);
-			}
-			return Reflect.get(obj, prop);
-		},
-	});
+	try {
+		w.AndroidBridge = new Proxy(target, {
+			get(obj, prop) {
+				if (typeof prop === "string") {
+					wrapMethod(prop);
+					const wrapper = wrappers.get(prop);
+					if (wrapper !== undefined) {
+						return wrapper; // the native method would be called on the Proxy
+					}
+				}
+				return Reflect.get(obj, prop);
+			},
+		});
+	} catch {
+		// the window property is read-only: in-place wraps only
+	}
 	return true;
 }
 
@@ -138,7 +163,7 @@ function wrapIosBridge(onCall: (call: NativeCall) => void): boolean {
 			collection[name] = proxy;
 			wrapped.add(name);
 		} catch {
-			// the collection rejects writes, fresh readers still get the proxy
+			// the collection rejects writes: this handler stays untapped
 		}
 	};
 

@@ -7,6 +7,11 @@ import { installNativeCapture } from "./native.ts";
  * must behave as if we were never there), then report; and both an
  * already-captured reference (in-place mutation) and a fresh reader
  * (the window-level Proxy) see the wrap.
+ *
+ * Two Android fakes. A plain object stands for a surface where the
+ * in-place write sticks; `injectedAndroidBridge()` stands for the
+ * WebView itself, whose named-property interceptor serves the reads
+ * whatever an own-property write says.
  */
 
 type BridgeWindow = {
@@ -18,6 +23,26 @@ const bridgeWindow = (): BridgeWindow => window as unknown as BridgeWindow;
 
 const android = (): Record<string, (serialized: string) => unknown> =>
 	bridgeWindow().AndroidBridge as Record<string, (serialized: string) => unknown>;
+
+/** The WebView's injected object: a read returns the native method even
+ * after an own-property write (the native setter declines), and the
+ * method accepts only the object itself as its receiver. */
+function injectedAndroidBridge(): Record<string, (serialized: string) => unknown> {
+	const bridge: Record<string, (serialized: string) => unknown> = {};
+	const method = function (this: unknown, serialized: string): string {
+		if (this !== bridge) {
+			throw new Error("Java bridge method can't be invoked on a non-injected object");
+		}
+		return `native:${serialized}`;
+	};
+	Object.defineProperty(bridge, "VKWebAppInit", {
+		get: () => method,
+		set: () => {},
+		enumerable: true,
+		configurable: true,
+	});
+	return bridge;
+}
 
 afterEach(() => {
 	delete bridgeWindow().AndroidBridge;
@@ -69,6 +94,30 @@ describe("installNativeCapture", () => {
 		android()["VKWebAppNewThing"]?.(JSON.stringify({ request_id: "9" }));
 
 		expect(calls).toEqual(["VKWebAppNewThing"]);
+	});
+
+	it("a call through window.AndroidBridge works when the in-place write is shadowed", () => {
+		const calls: { name: string; params: Record<string, unknown> }[] = [];
+		bridgeWindow().AndroidBridge = injectedAndroidBridge();
+		installNativeCapture(call => calls.push(call));
+
+		// vk-bridge's shape: the object is read, the method called on it
+		const result = android()["VKWebAppInit"]?.(JSON.stringify({ a: 1 }));
+
+		expect(result).toBe('native:{"a":1}');
+		expect(calls).toEqual([{ name: "VKWebAppInit", params: { a: 1 } }]);
+	});
+
+	it("an inherited Object.prototype member is not planted on the host's object", () => {
+		bridgeWindow().AndroidBridge = injectedAndroidBridge();
+		installNativeCapture(() => {});
+
+		const bridge = android();
+		void bridge["hasOwnProperty"];
+		void bridge["toString"];
+
+		expect(Object.keys(bridge)).toEqual(["VKWebAppInit"]);
+		expect(Object.prototype.hasOwnProperty.call(bridge, "hasOwnProperty")).toBe(false);
 	});
 
 	it("never touches constructor or dunder members", () => {
