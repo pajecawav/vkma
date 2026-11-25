@@ -40,6 +40,10 @@ function resultPanel(result: ExecResult) {
 	}
 }
 
+/** The Params field as it starts: an empty object with room to type in.
+ * An event whose catalogue stub is empty puts the field back here. */
+const EMPTY_PARAMS = "{\n  \n}";
+
 export function Execute({
 	clients,
 	events,
@@ -94,7 +98,7 @@ export function Execute({
 		fixedClientId ??
 		(clients.some(client => client.clientId === target) ? target : latestClientId);
 	const [name, setName] = useState("");
-	const [paramsText, setParamsText] = useState("{\n  \n}");
+	const [paramsText, setParamsText] = useState(EMPTY_PARAMS);
 	// The params text this component last wrote itself. Replacing THAT on a
 	// later pick is safe; anything else may be the user's work and stays.
 	const lastAutoFillRef = useRef<string | undefined>(undefined);
@@ -111,7 +115,7 @@ export function Execute({
 			return;
 		}
 		setParamsText(prev => {
-			const text = nextParamsText(prev, stub, lastAutoFillRef.current);
+			const text = nextParamsText(prev, stub, lastAutoFillRef.current, EMPTY_PARAMS);
 			if (text === undefined) {
 				return prev;
 			}

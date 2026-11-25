@@ -5,21 +5,26 @@
  * JSON, anything non-empty) wins over the stub.
  */
 
-/** The text this surface last wrote itself; replacing it again is safe. */
+/**
+ * The text for the field after `stub` was picked, or undefined when the
+ * current text must stay. `lastAutoFill` is the text this surface wrote
+ * last time; `untouched` is what its field starts as, where an event
+ * without params puts it back.
+ */
 export function nextParamsText(
 	current: string,
 	stub: Record<string, unknown> | undefined,
 	lastAutoFill: string | undefined,
+	untouched = "",
 ): string | undefined {
-	// An empty stub shows nothing the default textarea doesn't already show.
+	// An empty stub has nothing to show, but it still clears the auto-fill
+	// this surface wrote before: the previous event's params must not ride
+	// along with a send that takes none.
 	if (!stub || Object.keys(stub).length === 0) {
-		return undefined;
+		return current === lastAutoFill ? untouched : undefined;
 	}
 	const text = JSON.stringify(stub, null, 2);
-	if (isUntouched(current) || current === lastAutoFill) {
-		return text;
-	}
-	return undefined;
+	return isUntouched(current) || current === lastAutoFill ? text : undefined;
 }
 
 /** Empty, whitespace, or a JSON object without keys: nothing to lose. */
