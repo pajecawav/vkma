@@ -5,14 +5,11 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<title>vkma inspect</title>
-		<link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
-		<link
-			rel="icon"
-			href="/icon-dark.svg"
-			sizes="any"
-			type="image/svg+xml"
-			media="(prefers-color-scheme: dark)"
-		/>
+		<!-- The tile reads on any tab strip; the raster is the fallback for
+		     engines that take no SVG (Safari, Yandex). -->
+		<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+		<link rel="icon" href="/favicon-96.png" sizes="96x96" type="image/png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<script>
 			// Theme before first paint (TopBar persists the preference in
 			// localStorage under "vkma:theme", the same key every vkma
