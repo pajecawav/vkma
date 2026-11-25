@@ -39,6 +39,14 @@ describe("identity url minimization", () => {
 		expect(identity.platform).not.toBe("standalone");
 	});
 
+	it("a page launched without an app id sends no appId key", () => {
+		window.location.href = "https://app.example.com/standalone/";
+		const info = createIdentity(() => {}).clientInfo(false);
+		// binarypack turns an `undefined` VALUE into `null` on the wire; an
+		// absent key survives it
+		expect("appId" in info).toBe(false);
+	});
+
 	it("clientInfo.url carries only the filtered params and no fragment", () => {
 		window.location.href =
 			"https://app.example.com/app/?vk_app_id=1&sign=LEAKED&code=OAUTH&email=x%40y.z#access_token=TOKEN";

@@ -126,6 +126,7 @@ export function createIdentity(onClientIdChange: () => void): CollectorIdentity 
 			} catch {
 				url = window.location.origin + window.location.pathname;
 			}
+			const appId = launchParams["vk_app_id"] ?? launchParams["api_id"];
 			return {
 				clientId,
 				sessionId,
@@ -135,7 +136,10 @@ export function createIdentity(onClientIdChange: () => void): CollectorIdentity 
 				url,
 				platform,
 				bridge,
-				appId: launchParams["vk_app_id"] ?? launchParams["api_id"],
+				// No key without an app id. The wire (binarypack) turns an
+				// `undefined` value into `null`; the panel's boundary reads
+				// that null only for inspectors built before this rule.
+				...(appId === undefined ? {} : { appId }),
 				launchParams,
 			};
 		},

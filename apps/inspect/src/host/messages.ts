@@ -11,6 +11,24 @@ import { PROTOCOL_VERSION } from "../shared/protocol.ts";
 
 const v = z.literal(PROTOCOL_VERSION);
 
+/**
+ * `clientInfoSchema` as this wire delivers it. PeerJS serializes with
+ * binarypack, which has no `undefined`: a key the inspector left undefined
+ * arrives as `null`, and the shared schema's `.optional()` rejects null.
+ * A page launched without `vk_app_id`/`api_id` has no app id, and its
+ * hello dropped silently here: no approval card, no client, ever. `appId`
+ * is the only optional typed key on this wire; a new one needs the same
+ * null tolerance.
+ */
+const wireClientInfoSchema = clientInfoSchema.extend({
+	appId: z
+		.string()
+		.max(64)
+		.nullable()
+		.optional()
+		.transform(value => value ?? undefined),
+});
+
 export const challengeMessageSchema = z.object({
 	v,
 	t: z.literal("challenge"),
@@ -20,7 +38,7 @@ export const challengeMessageSchema = z.object({
 export const helloMessageSchema = z.object({
 	v,
 	t: z.literal("hello"),
-	info: clientInfoSchema,
+	info: wireClientInfoSchema,
 });
 
 export const eventsMessageSchema = z.object({

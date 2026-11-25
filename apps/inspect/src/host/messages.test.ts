@@ -59,6 +59,34 @@ describe("inspect message boundary", () => {
 		).toBeUndefined();
 	});
 
+	it("admits a hello that crossed binarypack without an app id", () => {
+		// PeerJS has no `undefined` on the wire: the inspector's
+		// `appId: undefined` arrives as null. That hello dropped here, so a
+		// page launched without vk_app_id/api_id could never connect.
+		const parsed = parseInspectorMessage({
+			v: 1,
+			t: "hello",
+			info: { ...clientInfo, appId: null },
+		});
+		expect(parsed).toEqual({ v: 1, t: "hello", info: clientInfo });
+		expect(
+			parseInspectorMessage({ v: 1, t: "hello", info: { ...clientInfo, appId: "42" } }),
+		).toEqual({ v: 1, t: "hello", info: { ...clientInfo, appId: "42" } });
+	});
+
+	it("an app id still has to be a string of a sane size, null aside", () => {
+		expect(
+			parseInspectorMessage({ v: 1, t: "hello", info: { ...clientInfo, appId: 42 } }),
+		).toBeUndefined();
+		expect(
+			parseInspectorMessage({
+				v: 1,
+				t: "hello",
+				info: { ...clientInfo, appId: "x".repeat(65) },
+			}),
+		).toBeUndefined();
+	});
+
 	it("rejects events with malformed tap events", () => {
 		const bad = { ...tapEvent, direction: "sideways" };
 		expect(

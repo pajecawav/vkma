@@ -202,6 +202,20 @@ describe("InspectHost", () => {
 		expect(host.store.snapshotEvents()).toHaveLength(1); // buffered replay
 	});
 
+	it("a page launched without an app id parks behind the gate like any other", () => {
+		// PeerJS has no `undefined` on the wire: the inspector's
+		// `appId: undefined` arrives as null. That hello used to drop at the
+		// boundary, so a standalone page never got an approval card.
+		const host = new InspectHost();
+		const channel = new FakeChannel();
+		host.addChannel(channel);
+		host.handleMessage(channel, { v: 1, t: "hello", info: { ...info("c1"), appId: null } });
+
+		expect(host.pendingApprovals().map(pending => pending.clientId)).toEqual(["c1"]);
+		expect(host.pendingApprovals()[0]?.info.appId).toBeUndefined();
+		expect(channel.closed).toBe(false);
+	});
+
 	it("allow-once admits the connection, not the client: a new connection re-parks", () => {
 		const host = new InspectHost();
 		const channel = new FakeChannel();
