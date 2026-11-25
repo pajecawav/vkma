@@ -96,7 +96,7 @@ const EventRow = memo(function Row({
 	const isOkResponse = event.kind === "response" && event.ok === true;
 
 	return (
-		<div data-seq={event.seq} className={`${indent ? "pl-9" : ""} ${animate ? "row-in" : ""}`}>
+		<div data-seq={event.seq} className={`${indent ? "pl-5" : ""} ${animate ? "row-in" : ""}`}>
 			<button
 				type="button"
 				onClick={() => {
@@ -140,8 +140,11 @@ const EventRow = memo(function Row({
 					{formatPayloadPreview(event.payload)}
 				</span>
 			</button>
+			{/* The panel shares the row's own inset (px-3), so the copy
+			 * action starts at the time column and the payload box keeps
+			 * the width a second inset used to take. */}
 			{open && (
-				<div className="flex items-start gap-1 px-3 pb-2 pl-9">
+				<div className="flex items-start gap-1 px-3 pb-2">
 					<CopyButton
 						text={JSON.stringify(event.payload ?? null, null, "\t")}
 						label="Copy JSON"

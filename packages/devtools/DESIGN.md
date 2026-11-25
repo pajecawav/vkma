@@ -18,7 +18,7 @@ rounded:
     control: "0.375rem"
     card: "0.5rem"
 spacing:
-    row: "28px timeline rows, responses indented 36px"
+    row: "28px timeline rows, responses indented 20px"
     control: "28px controls, 32px inputs"
 ---
 
