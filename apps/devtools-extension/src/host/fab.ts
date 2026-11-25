@@ -1,3 +1,4 @@
+import { isFabClose } from "@vkma.dev/ui/fab-close";
 import type { FabPosition } from "@vkma.dev/ui/fab-position";
 
 /**
@@ -8,6 +9,10 @@ import type { FabPosition } from "@vkma.dev/ui/fab-position";
  * client to tint by) and hides while the side panel of the tab is open.
  * The placement (bottom-right / bottom / bottom-left) is a preference,
  * see @vkma.dev/ui/fab-position.
+ *
+ * Wide viewports: a floating card under the corner, the button stays in
+ * view as its toggle. Narrow ones (≤560px): a full-bleed sheet that
+ * covers the button, closed from the panel's own header.
  */
 
 const GLYPH_LOGO = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="currentColor" stroke="none"><path d="M3.3 5.9 L11.1 21.1 L16.11 11.33 L12.55 9.5 L11.1 12.33 L7.8 5.9 Z M17.5 2.8 L21 6.3 L17.5 9.8 L14 6.3 Z"/></svg>`;
@@ -96,20 +101,33 @@ const STYLES = `
   right: auto;
   transform-origin: bottom left;
 }
+/* Narrow viewports (a phone): the overlay is a full-bleed sheet. It
+   stretches over the viewport (inset, no vh unit: mobile browsers keep
+   resizing theirs) and covers the button, so the button hides while the
+   sheet is open and the panel's own header closes it
+   (@vkma.dev/ui/fab-close). The sheet still grows out of the button's
+   corner. */
 @media (max-width: 560px) {
   .panel {
-    right: 12px;
-    bottom: 64px;
-    width: calc(100vw - 24px);
-    height: calc(100vh - 84px);
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  :host(.vkma-pos-bottom) .panel,
+  :host(.vkma-pos-bottom-left) .panel {
+    left: 0;
+    right: 0;
   }
   :host(.vkma-pos-bottom) .panel {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%) translateY(10px) scale(0.98);
+    transform: translateY(10px) scale(0.98);
   }
-  :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
-  :host(.vkma-pos-bottom-left) .panel { left: 12px; right: auto; }
+  :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: none; }
+  :host([data-open]) .button { display: none; }
 }
 /* The FLIP swap frame: anchors (left/right, transform-origin, the
  * per-variant transform) are not interpolable across positions, so they
@@ -168,12 +186,25 @@ export function mountFab({ panelUrl, position }: FabOptions): FabHandle {
 			loaded = true;
 		}
 		panel.dataset["open"] = String(open);
+		// A full-bleed sheet (narrow viewport) covers the button: the
+		// attribute lets the stylesheet hide it for exactly as long.
+		host.toggleAttribute("data-open", open);
 		button.setAttribute("aria-expanded", String(open));
 		button.innerHTML = open ? GLYPH_CLOSE : GLYPH_LOGO;
 	};
 
 	button.addEventListener("click", () => {
 		setOpen(panel.dataset["open"] !== "true");
+	});
+
+	// The panel closes itself from inside (its header's × button,
+	// Escape): under a full-bleed sheet this is its only way out. Only
+	// our own iframe's window is honored.
+	window.addEventListener("message", event => {
+		if (isFabClose(event, iframe)) {
+			setOpen(false);
+			button.focus();
+		}
 	});
 
 	document.addEventListener("keydown", event => {

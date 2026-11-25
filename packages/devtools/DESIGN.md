@@ -51,19 +51,31 @@ event, matching the wire.
   a persisted toggle; theme set pre-paint (no flash).
 - One authored motion: rows surface from 4px below (160ms, ease-out),
   disabled under `prefers-reduced-motion`.
+- Narrow is a designed tier, not a fallback: the FAB iframe goes down
+  to a 320px phone. Chrome reflows by container queries (a row that can
+  be too wide has a stacked copy), the panel root clips `overflow-x`,
+  and no surface ever scrolls sideways.
 
 ## Components
 
 - **TopBar** — wordmark (authored VK Mini Apps logo SVG), connection
   status dot + label, theme toggle; embedded panels show a colored client
-  badge left of the status.
+  badge left of the status. Sized by the panel itself, items yield as the
+  room runs out: on a FAB panel the wordmark gives way to the bare logo
+  (below 576px), secondary controls fold behind a ⋯ button (512px), the
+  capture chip hides and the client badge keeps only its color dot
+  (384px). The status never yields — its label truncates; theme and
+  close are always there.
 - **Rail** — icon+label nav (Timeline / Execute / Clients); left column
   ≥640px, segmented top bar below (the panel lives in small overlays).
   Embedded panels drop the Clients entry.
 - **Timeline** — filter row (search, All/Requests/Events segmented
-  control, client switcher once more than one client is connected, pause,
-  clear) over the ledger: request groups with nested responses,
-  standalone event rows, payload expands into a JsonTree with copy.
+  control, client switcher once more than one client is connected, pause
+  with the buffered count pinned to its corner, clear) over the ledger:
+  request groups with nested responses, standalone event rows, payload
+  expands into a JsonTree with copy. The filter row is single only where
+  everything fits at its natural size — the search keeps its 160px;
+  narrower, the chrome stacks into two rows.
 - **Execute** — target select (hidden in embedded mode), event name input
   with the Base UI Autocomplete popup (bridge catalogue + session-seen
   names; picking a catalogue event prefills Params with its generated

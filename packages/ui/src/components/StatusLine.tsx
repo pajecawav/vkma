@@ -28,6 +28,10 @@ export const STATUS_META: Record<ConnectionStatus, { label: string; dot: string;
  * The `title` hint rides a Tooltip (the shared delay profile applies);
  * without it the row renders bare. A default hint would only repeat
  * the visible label.
+ *
+ * In a tight flex row the label yields with an ellipsis (the dot never
+ * does): the text is the one part of a header a problem state can make
+ * wider than the room there is.
  */
 export function StatusLine({
 	status,
@@ -45,19 +49,14 @@ export function StatusLine({
 	const meta = STATUS_META[status];
 	// The hint only rides when it adds something. A bare `RPC: Connected`
 	// over the visible "Connected" would be noise.
-	return title === undefined ? (
-		<span className="flex items-center gap-2 text-xs">
-			<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
-			<span className={meta.text}>{label ?? meta.label}</span>
-			{extra !== undefined && <span className="text-neutral-400">{extra}</span>}
+	const row = (
+		<span className="flex min-w-0 items-center gap-2 text-xs">
+			<span className={`size-1.5 shrink-0 rounded-full ${meta.dot}`} aria-hidden="true" />
+			<span className={`min-w-0 truncate ${meta.text}`}>{label ?? meta.label}</span>
+			{extra !== undefined && (
+				<span className="min-w-0 truncate text-neutral-400">{extra}</span>
+			)}
 		</span>
-	) : (
-		<Tooltip content={title}>
-			<span className="flex items-center gap-2 text-xs">
-				<span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
-				<span className={meta.text}>{label ?? meta.label}</span>
-				{extra !== undefined && <span className="text-neutral-400">{extra}</span>}
-			</span>
-		</Tooltip>
 	);
+	return title === undefined ? row : <Tooltip content={title}>{row}</Tooltip>;
 }

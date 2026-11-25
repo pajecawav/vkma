@@ -5,8 +5,13 @@
  * affects the panel chrome. The placement (bottom-right / bottom /
  * bottom-left) is a localStorage preference of the dev server origin,
  * see @vkma.dev/ui/fab-position.
+ *
+ * Wide viewports: a floating card under the corner, the button stays in
+ * view as its toggle. Narrow ones (≤560px): a full-bleed sheet that
+ * covers the button, closed from the panel's own header.
  */
 import { CLIENT_PALETTE, clientColorIndex } from "@vkma.dev/protocol";
+import { isFabClose } from "@vkma.dev/ui/fab-close";
 import type { FabPosition } from "@vkma.dev/ui/fab-position";
 
 export interface FabOptions {
@@ -113,20 +118,33 @@ const STYLES = `
   right: auto;
   transform-origin: bottom left;
 }
+/* Narrow viewports (a phone): the overlay is a full-bleed sheet. It
+   stretches over the viewport (inset, no vh unit: mobile browsers keep
+   resizing theirs) and covers the button, so the button hides while the
+   sheet is open and the panel's own header closes it
+   (@vkma.dev/ui/fab-close). The sheet still grows out of the button's
+   corner. */
 @media (max-width: 560px) {
   .panel {
-    right: 12px;
-    bottom: 64px;
-    width: calc(100vw - 24px);
-    height: calc(100vh - 84px);
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  :host(.vkma-pos-bottom) .panel,
+  :host(.vkma-pos-bottom-left) .panel {
+    left: 0;
+    right: 0;
   }
   :host(.vkma-pos-bottom) .panel {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%) translateY(10px) scale(0.98);
+    transform: translateY(10px) scale(0.98);
   }
-  :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: translateX(-50%); }
-  :host(.vkma-pos-bottom-left) .panel { left: 12px; right: auto; }
+  :host(.vkma-pos-bottom) .panel[data-open="true"] { transform: none; }
+  :host([data-open]) .button { display: none; }
 }
 /* The FLIP swap frame: anchors (left/right, transform-origin, the
  * per-variant transform) are not interpolable across positions, so they
@@ -183,12 +201,25 @@ export function mountFab({ base, getClientId, position }: FabOptions): FabHandle
 			loaded = true;
 		}
 		panel.dataset["open"] = String(open);
+		// A full-bleed sheet (narrow viewport) covers the button: the
+		// attribute lets the stylesheet hide it for exactly as long.
+		host.toggleAttribute("data-open", open);
 		button.setAttribute("aria-expanded", String(open));
 		button.innerHTML = open ? GLYPH_CLOSE : GLYPH_LOGO;
 	};
 
 	button.addEventListener("click", () => {
 		setOpen(panel.dataset["open"] !== "true");
+	});
+
+	// The panel closes itself from inside (its header's × button,
+	// Escape): under a full-bleed sheet this is its only way out. Only
+	// our own iframe's window is honored.
+	window.addEventListener("message", event => {
+		if (isFabClose(event, iframe)) {
+			setOpen(false);
+			button.focus();
+		}
 	});
 
 	document.addEventListener("keydown", event => {

@@ -45,6 +45,14 @@ html.dark body {
 	@apply bg-neutral-950 text-neutral-100;
 }
 
+/* The panels are full-viewport surfaces (an `h-dvh` root): a horizontal
+   document scroll is never a layout, only the symptom of something that
+   overflowed. Clip it at the edge — components own their reflow, and one
+   stray row must not make the whole panel pan sideways. */
+body {
+	overflow-x: clip;
+}
+
 *:focus-visible {
 	outline: 2px solid var(--color-neutral-500);
 	outline-offset: 1px;

@@ -18,6 +18,7 @@ export {
 	Copy as CopyIcon,
 	Crosshair as LocateIcon,
 	Diamond as DiamondIcon,
+	Ellipsis as MoreIcon,
 	EyeOff as EyeOffIcon,
 	Globe as GlobeIcon,
 	Monitor as ClientsIcon,

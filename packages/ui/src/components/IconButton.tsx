@@ -11,12 +11,18 @@ import { Tooltip } from "./Tooltip.tsx";
  * system's (delayed, escape-able) instead of a native title. Rest props
  * forward to the button element, so render-prop triggers (Base UI's
  * Popover.Trigger) can compose with it.
+ *
+ * `badge` pins a count to the button's corner (the timeline's buffered
+ * events while paused). It overlays instead of taking width: a control
+ * row must not reflow the moment something is counted. The count is
+ * decorative for assistive tech — put it in `label`.
  */
 export function IconButton({
 	label,
 	onClick,
 	size = "md",
 	active,
+	badge,
 	className = "",
 	children,
 	...rest
@@ -29,6 +35,8 @@ export function IconButton({
 	size?: "sm" | "md";
 	/** Pressed look for toggle buttons; omit on plain ones. */
 	active?: boolean;
+	/** A count pinned to the corner. */
+	badge?: number;
 	className?: string;
 	children: ReactNode;
 }) {
@@ -46,9 +54,17 @@ export function IconButton({
 				aria-label={label}
 				aria-pressed={active}
 				{...rest}
-				className={`grid place-items-center ${shape} ${tone} ${className}`}
+				className={`relative grid place-items-center ${shape} ${tone} ${className}`}
 			>
 				{children}
+				{badge !== undefined && (
+					<span
+						aria-hidden="true"
+						className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-800 px-1 text-[10px] leading-none font-medium text-white tabular-nums ring-2 ring-neutral-50 dark:bg-neutral-100 dark:text-neutral-900 dark:ring-neutral-950"
+					>
+						{badge}
+					</span>
+				)}
 			</button>
 		</Tooltip>
 	);

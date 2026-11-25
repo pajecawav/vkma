@@ -37,7 +37,7 @@ A devframe-based devtools page (`/__vkma`, like `/__unocss` for UnoCSS) embedded
 - A mini app reload starts a new session — the node side purges that client's history on every surface.
 - Auth always on (devframe interactive OTP); `allowedOrigins` widened by the plugin for LAN/tunnel.
 - v0.1 ships as a Vite plugin only; other bundlers use manual alias/import later. React is an optional peer dependency of the package.
-- Decided: ring buffer keeps the last 500 events per node; FAB is a shadow-DOM button + overlay iframe.
+- Decided: ring buffer keeps the last 500 events per node; FAB is a shadow-DOM button + overlay iframe. On viewports ≤560px the overlay is a full-bleed sheet: it covers the button and closes from the panel header (× or Escape).
 
 ## Brand Commitments
 

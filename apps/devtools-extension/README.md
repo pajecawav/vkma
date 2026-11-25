@@ -22,9 +22,12 @@ The TopBar chip shows which: `vkma bridge` (direct) vs `sniffer` (spy).
 ## Surfaces
 
 - **FAB** on every VK host page (vk.com/vk.ru and friends): opens the
-  panel inline, yields to the side panel when that is open.
+  panel inline, yields to the side panel when that is open. In a window
+  up to 560px wide the panel is a full-bleed sheet, closed from its
+  own header (× or Escape).
 - **Action icon.** The full panel in a tab, bound to the clicked tab.
-- **Side panel.** Chrome only, opened from the FAB panel's toolbar.
+- **Side panel.** Chrome only, opened from the FAB panel's toolbar
+  (behind its ⋯ button on a narrow panel).
   Firefox has no sidePanel API: the button hides there, the FAB and the
   action-icon tab are the Firefox surfaces.
 

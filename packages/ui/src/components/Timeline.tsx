@@ -8,7 +8,6 @@ import {
 	resolveIgnoredNames,
 } from "../lib/ignored-events.ts";
 import { compileNameFilter } from "../lib/name-filter.ts";
-import { Button } from "./Button.tsx";
 import { ClientSelect } from "./ClientSelect.tsx";
 import { RequestGroup, EventRow } from "./EventRow.tsx";
 import { IconButton } from "./IconButton.tsx";
@@ -202,10 +201,14 @@ export function Timeline({
 		(events.length === 0 || ignoredSet === undefined);
 
 	// The filter chrome renders twice: a single row for wide containers and
-	// a stacked variant for narrow ones (side panel, FAB iframe). Container
-	// queries pick the visible copy; display:none keeps the hidden one out
-	// of the a11y tree. The collapse point depends on whether the client
-	// filter rides along: with it one row needs ~576px, without, ~384px.
+	// a stacked variant for narrow ones. Container queries pick the visible
+	// copy; display:none keeps the hidden one out of the a11y tree.
+	// A single row is only used where it fits at natural sizes — the search
+	// never shrinks below its placeholder. Measured, one row needs ~495px
+	// (12 + 160 search + 8 + 171 tabs + 8 + 124 actions + 12), and ~100px
+	// more once the client filter rides along: hence the 512 / 672px switch
+	// points. The stacked rows need 319px; narrower than that, `flex-wrap`
+	// drops the actions onto their own line instead of clipping them.
 	// The select also stays rendered while a non-`all` filter is active
 	// even with a single client left. Otherwise the filter would pin the
 	// feed to a departed client with no control to reset it.
@@ -216,7 +219,7 @@ export function Timeline({
 				type="search"
 				value={query}
 				onChange={event => setQuery(event.target.value)}
-				placeholder="Filter by event name…"
+				placeholder="Filter events…"
 				aria-label="Filter by event name"
 				className={`h-7 rounded-md border border-neutral-200 bg-white px-2.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 ${className}`}
 			/>
@@ -309,15 +312,20 @@ export function Timeline({
 					</Popover.Root>
 				</>
 			)}
-			{paused && buffered > 0 && (
-				<Button variant="solid" size="sm" onClick={() => setPaused(false)}>
-					{buffered} new — resume
-				</Button>
-			)}
+			{/* One control for both pause states: while events buffer, the
+			    count rides on the button. A separate "N new — resume" button
+			    once lived here and was the widest thing in the row. */}
 			<IconButton
-				label={paused ? "Resume live tail" : "Pause live tail"}
+				label={
+					paused && buffered > 0
+						? `Resume live tail — ${buffered} new event${buffered === 1 ? "" : "s"} buffered`
+						: paused
+							? "Resume live tail"
+							: "Pause live tail"
+				}
 				onClick={() => setPaused(value => !value)}
 				active={paused || undefined}
+				badge={paused && buffered > 0 ? buffered : undefined}
 			>
 				{paused ? (
 					<PlayIcon width={14} height={14} />
@@ -335,17 +343,17 @@ export function Timeline({
 		<section className="@container flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Timeline">
 			<div
 				className={`hidden h-11 shrink-0 items-center gap-2 border-b border-neutral-200 px-3 dark:border-neutral-800 ${
-					showClientFilter ? "@xl:flex" : "@sm:flex"
+					showClientFilter ? "@2xl:flex" : "@lg:flex"
 				}`}
 			>
-				{search("w-40 min-w-24 @2xl:w-56")}
+				{search("min-w-40 max-w-56 flex-1")}
 				{showClientFilter && clientSelect("max-w-44")}
 				{tabs}
 				{actions}
 			</div>
 			<div
 				className={`flex shrink-0 flex-col gap-1.5 border-b border-neutral-200 px-2 py-1.5 dark:border-neutral-800 ${
-					showClientFilter ? "@xl:hidden" : "@sm:hidden"
+					showClientFilter ? "@2xl:hidden" : "@lg:hidden"
 				}`}
 			>
 				{showClientFilter ? (
@@ -362,7 +370,7 @@ export function Timeline({
 				) : (
 					<>
 						{search("min-w-0 flex-1")}
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center gap-2">
 							{tabs}
 							{actions}
 						</div>

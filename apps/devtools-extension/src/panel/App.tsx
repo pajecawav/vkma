@@ -13,6 +13,7 @@ import {
 	type Section,
 } from "@vkma.dev/ui";
 import { FabPositionControl } from "@vkma.dev/ui";
+import { requestFabClose } from "@vkma.dev/ui/fab-close";
 import { useEffect, useState } from "react";
 import { api, sidePanelSupported } from "../shared/api.ts";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
@@ -340,22 +341,50 @@ function TabPanel({
 				onReconnect={connection.reconnect}
 				capture={captureOf(connection.clients)}
 				theme={theme}
-				actions={
-					<>
-						<FabPositionControl
-							position={fabPosition.position}
-							onPick={fabPosition.pick}
-						/>
-						{openSidePanel && (
-							<IconButton
-								label="Open the side panel for this tab"
-								onClick={openSidePanel}
-							>
-								<PanelRightIcon />
-							</IconButton>
-						)}
-					</>
-				}
+				// Secondary controls: the position picker and the side-panel
+				// shortcut inline on a header from 512px (the FAB's iframe is
+				// 520px at its widest), both behind the ⋯ button below that.
+				overflow={{
+					inline: (
+						<>
+							<FabPositionControl
+								position={fabPosition.position}
+								onPick={fabPosition.pick}
+							/>
+							{openSidePanel && (
+								<IconButton
+									label="Open the side panel for this tab"
+									onClick={openSidePanel}
+								>
+									<PanelRightIcon />
+								</IconButton>
+							)}
+						</>
+					),
+					menu: (
+						<>
+							<FabPositionControl
+								position={fabPosition.position}
+								onPick={fabPosition.pick}
+								variant="list"
+							/>
+							{openSidePanel && (
+								<button
+									type="button"
+									onClick={openSidePanel}
+									className="mt-1.5 flex w-full items-center gap-2 rounded-md border-t border-neutral-100 px-2 pt-2.5 pb-1.5 text-left text-xs font-medium text-neutral-600 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100"
+								>
+									<PanelRightIcon />
+									Open the side panel for this tab
+								</button>
+							)}
+						</>
+					),
+				}}
+				// A full-bleed sheet (narrow window) covers the FAB's own button:
+				// the header is where the panel closes from there. The side
+				// panel has the browser's own close button.
+				onClose={embeddedInSidePanel ? undefined : requestFabClose}
 			/>
 			<Sections
 				events={connection.events}
