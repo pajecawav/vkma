@@ -50,6 +50,10 @@ pnpm dev      # panel + inspector on one origin (localhost:3000)
 pnpm build    # two passes: dist/index.html… then dist/inspector.js (single file)
 pnpm test
 pnpm deploy   # build + wrangler deploy (Cloudflare Workers static assets)
+pnpm gen:favicon  # public/ icons from the shared logo glyph (commit the result)
+pnpm og           # public/og.png from scripts/og.html (commit the result)
 ```
 
 `dist/inspector.js` must stay **one self-contained file** free of ESM-only syntax, since it runs as a plain classic `<script>` and as a console `import()` on foreign pages; `src/inspector/artifact.test.ts` guards that after a build.
+
+The page head (`src/panel/index.html`) is indexable on purpose: title, description, canonical, Open Graph and Twitter tags with the social card at `/og.png`, and the site's tile as the favicon with a raster fallback. Tests fail when a committed icon or the card lags its source.

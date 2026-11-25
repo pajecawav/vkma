@@ -1,5 +1,9 @@
 import type { RsbuildConfig } from "@rsbuild/core";
 
+/** The panel's document title. src/panel/index.html carries the same
+ * string in its static head (a test holds the two together). */
+export const SITE_TITLE = "Inspect | vkma.dev";
+
 /**
  * Shared base for every inspect build: stable filenames (the inspector URL
  * is pasted into other people's HTML, so it must never rot), flat output,

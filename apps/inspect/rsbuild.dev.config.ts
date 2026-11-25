@@ -1,6 +1,6 @@
 import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
-import { baseConfig } from "./rsbuild.config.ts";
+import { baseConfig, SITE_TITLE } from "./rsbuild.config.ts";
 
 /**
  * Dev: both entries in one build so `rsbuild dev` serves the panel with
@@ -19,6 +19,6 @@ export default defineConfig({
 	},
 	html: {
 		template: "./src/panel/index.html",
-		title: "vkma inspect",
+		title: SITE_TITLE,
 	},
 });

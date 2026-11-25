@@ -1,6 +1,6 @@
 import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
-import { baseConfig } from "./rsbuild.config.ts";
+import { baseConfig, SITE_TITLE } from "./rsbuild.config.ts";
 
 /** The panel SPA: `/` serves the same @vkma.dev/ui surface the extension
  * renders, with the DevtoolsStore and the PeerJS host in-process. The
@@ -16,7 +16,7 @@ export default defineConfig({
 	},
 	html: {
 		template: "./src/panel/index.html",
-		title: "vkma inspect",
+		title: SITE_TITLE,
 	},
 	performance: {
 		chunkSplit: {

@@ -3,22 +3,73 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="robots" content="noindex" />
-		<title>vkma inspect</title>
+		<title>Inspect | vkma.dev</title>
+		<meta
+			name="description"
+			content="Remote devtools for VK Mini Apps: the vkma.dev panel over WebRTC for pages the dev-server plugin and the extension cannot reach."
+		/>
+		<link rel="canonical" href="https://inspect.vkma.dev/" />
+		<!-- Indexable on purpose. The large preview lets search results show
+		     the social card (og:image below). -->
+		<meta name="robots" content="index, follow, max-image-preview:large" />
+		<!-- Kept in step with the panel's theme by the script at the end of
+		     this head. -->
+		<meta name="theme-color" content="#ffffff" />
 		<!-- The tile reads on any tab strip; the raster is the fallback for
 		     engines that take no SVG (Safari, Yandex). -->
 		<link rel="icon" href="/icon.svg" type="image/svg+xml" />
 		<link rel="icon" href="/favicon-96.png" sizes="96x96" type="image/png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="vkma.dev" />
+		<meta property="og:title" content="Inspect | vkma.dev" />
+		<meta
+			property="og:description"
+			content="Remote devtools for VK Mini Apps: the vkma.dev panel over WebRTC for pages the dev-server plugin and the extension cannot reach."
+		/>
+		<meta property="og:url" content="https://inspect.vkma.dev/" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:image" content="https://inspect.vkma.dev/og.png" />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta
+			property="og:image:alt"
+			content="vkma.dev Inspect: remote devtools for VK Mini Apps, for phone webviews, production builds and third-party apps"
+		/>
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content="https://inspect.vkma.dev/og.png" />
 		<script>
 			// Theme before first paint (TopBar persists the preference in
 			// localStorage under "vkma:theme", the same key every vkma
-			// panel uses).
+			// panel uses): the stored pick wins, otherwise the system scheme.
 			try {
-				if (localStorage.getItem("vkma:theme") === "dark") {
-					document.documentElement.classList.add("dark");
-				}
+				var stored = localStorage.getItem("vkma:theme");
+				var dark =
+					stored === "dark" ||
+					(stored === null && matchMedia("(prefers-color-scheme: dark)").matches);
+				document.documentElement.classList.toggle("dark", dark);
 			} catch {}
+			// The browser chrome (a phone's address bar) takes the panel's
+			// own header color, the persisted pick included. The `dark`
+			// class on <html> is the one theme switch, so follow it.
+			(function () {
+				var meta = document.querySelector('meta[name="theme-color"]');
+				if (!meta) {
+					return;
+				}
+				var sync = function () {
+					meta.setAttribute(
+						"content",
+						document.documentElement.classList.contains("dark") ? "#171717" : "#ffffff",
+					);
+				};
+				sync();
+				new MutationObserver(sync).observe(document.documentElement, {
+					attributes: true,
+					attributeFilter: ["class"],
+				});
+			})();
 		</script>
 	</head>
 	<body>
