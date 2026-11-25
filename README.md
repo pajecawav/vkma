@@ -12,6 +12,7 @@ Monorepo toolchain for VK Mini Apps.
 | [`@vkma.dev/deploy`](./packages/deploy)               | Deploy CLI & library for VK Mini Apps hosting           |
 | [`@vkma.dev/devtools`](./packages/devtools)           | Devtools panel on your own dev server                   |
 | [`@vkma.dev/router`](./packages/router)               | TanStack-based router for VK Mini Apps (pre-release)    |
+| [`@vkma.dev/tunnel`](./packages/tunnel)               | Public HTTPS tunnels for local dev servers (CLI, Vite)  |
 
 ## Apps (private)
 
