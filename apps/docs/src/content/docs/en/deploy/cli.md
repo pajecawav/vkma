@@ -49,7 +49,7 @@ By default the CLI never prompts. That default is CI-safe. `--interactive` (TTY 
 Prompted unconditionally, TTY only (skipped with the `CI` env var, non-TTY stdin, and `--json`/`--quiet`):
 
 - **The VK confirmation code** (queue event 205): VK sends a code for some deploys. An empty answer or Ctrl+C aborts with exit `130`, never a fake success. In CI the run fails fast. Supply the code programmatically via the library API (`confirmCode`).
-- **The deploy plan + `Deploy? (Y/n)`**: environments, URL switching, test group, bundle, endpoints. Enter proceeds; `n` cancels with exit `130` before anything leaves the machine.
+- **The deploy plan + `Deploy? (Y/n)`**: the app (its id and name), environments, URL switching, test group, bundle, endpoints. The name comes from one read-only `apps.get` before the plan; when VK returns no title, the lookup fails, or there is no token yet, the `name` row is simply gone — the deploy itself is unaffected. Enter proceeds; `n` cancels with exit `130` before anything is uploaded.
 
 ## URL policy
 

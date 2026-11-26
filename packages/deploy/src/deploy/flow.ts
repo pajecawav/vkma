@@ -110,7 +110,12 @@ function buildTaskParams(
 	return params;
 }
 
-async function resolveToken(
+/**
+ * The access token this deploy uses, by the documented precedence
+ * (config/env token first, then the credential stores). Throws
+ * `E_NO_TOKEN` when no layer provides one.
+ */
+export async function resolveToken(
 	config: ResolvedConfig,
 	meta: ResolvedConfigMeta,
 	env: Record<string, string | undefined>,

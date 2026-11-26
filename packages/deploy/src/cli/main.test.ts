@@ -3,7 +3,14 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { saveCredentials } from "../credentials/store.ts";
-import { createFetchSpy, instantSleep, makeTempDir, route } from "../test-utils.ts";
+import {
+	createFetchSpy,
+	instantSleep,
+	makeTempDir,
+	route,
+	type FetchSpy,
+	type MockResponseSpec,
+} from "../test-utils.ts";
 import { completionScript } from "./completions.ts";
 import { main } from "./main.ts";
 
@@ -34,13 +41,27 @@ function makeProject(): Promise<void> {
 		.then(() => fs.writeFile(path.join(root, "build", "index.html"), "ok"));
 }
 
-/** Full successful deploy route: upload -> task -> queue -> URL event. */
+const APP_TITLE = "Тестовое мини-приложение";
+
+/** What `apps.get` answers for app 42 when its title is known. */
+function appTitle(title = APP_TITLE): MockResponseSpec {
+	return { body: { response: { count: 1, items: [{ id: 42, type: "html5_game", title }] } } };
+}
+
+/**
+ * Full successful deploy route: title lookup -> upload -> task -> queue ->
+ * URL event. A run with a token opens with `apps.get` (the plan's app
+ * name); listing it after the upload server on purpose — "apps.get" is a
+ * prefix of "apps.getGoHostingUploadServer", so the matcher carries the
+ * query "?" and must not shadow the real first hosting call.
+ */
 function deployRoute(): Parameters<typeof route>[0] {
 	return [
 		[
 			"getGoHostingUploadServer",
 			() => ({ body: { response: { upload_url: "https://upload.vk/t" } } }),
 		],
+		["apps.get?", () => appTitle()],
 		["upload.vk/t", () => ({ body: { ticket: 1 } })],
 		["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
 		[
@@ -71,6 +92,20 @@ function deployRoute(): Parameters<typeof route>[0] {
 			}),
 		],
 	];
+}
+
+/** URL of the run's upload-server call: the first hosting request after the title lookup. */
+function uploadServerUrl(spy: FetchSpy): string {
+	const call = spy.calls.find(entry => entry.url.includes("getGoHostingUploadServer"));
+	if (call === undefined) {
+		throw new Error("No getGoHostingUploadServer call was recorded");
+	}
+	return call.url;
+}
+
+/** True when the run looked the app title up (the plan's `name` line). */
+function hasTitleLookup(spy: FetchSpy): boolean {
+	return spy.calls.some(entry => entry.url.includes("method/apps.get?"));
 }
 
 describe("main()", () => {
@@ -234,6 +269,8 @@ describe("main()", () => {
 		expect(code).toBe(0);
 		expect(spy.calls.length).toBe(0);
 		expect(out.join("")).toContain("Dry run");
+		// Offline by contract: no lookup either, so the plan carries no name.
+		expect(out.join("")).not.toContain("name:");
 	});
 
 	it("deploy runs end-to-end through the mocked API and exits 0", async () => {
@@ -254,6 +291,7 @@ describe("main()", () => {
 					"getGoHostingUploadServer",
 					() => ({ body: { response: { upload_url: "https://upload.vk/t" } } }),
 				],
+				["apps.get?", () => appTitle()],
 				["upload.vk/t", () => ({ body: { ticket: 1 } })],
 				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
 				[
@@ -313,8 +351,8 @@ describe("main()", () => {
 		expect(text).toContain("Waiting for hosting queue");
 		// Explicit update flags from the config reach the wire (this run is
 		// non-interactive, so unset flags would fail instead).
-		expect(spy.calls[0]?.url).toContain("update_prod=1");
-		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(uploadServerUrl(spy)).toContain("update_prod=1");
+		expect(uploadServerUrl(spy)).toContain("update_dev=1");
 	});
 
 	it("deploy maps API errors to exit code 3", async () => {
@@ -380,6 +418,7 @@ describe("main()", () => {
 					"getGoHostingUploadServer",
 					() => ({ body: { response: { upload_url: "https://upload.vk/t" } } }),
 				],
+				["apps.get?", () => appTitle()],
 				["upload.vk/t", () => ({ body: { ticket: 1 } })],
 				["createGoHostingTask", () => ({ body: { response: { version: 9 } } })],
 				[
@@ -425,7 +464,7 @@ describe("main()", () => {
 		expect(code).toBe(0);
 		const records = out.map(line => JSON.parse(line) as { event: string });
 		expect(records.some(record => record.event === "deploy:success")).toBe(true);
-		expect(spy.calls[0]?.url).toContain("environment=2");
+		expect(uploadServerUrl(spy)).toContain("environment=2");
 	});
 
 	it("login saves credentials without printing the token", async () => {
@@ -797,8 +836,11 @@ describe("main()", () => {
 		input.write("n\n");
 		const code = await pending;
 		expect(code).toBe(130);
-		// Canceled before preflight/zip/upload: nothing touched the network.
-		expect(spy.calls.length).toBe(0);
+		// Canceled before preflight/zip/upload: the only request that left
+		// the machine is the read-only title lookup for the plan.
+		expect(spy.calls.map(call => call.url)).toEqual([
+			expect.stringContaining("method/apps.get?"),
+		]);
 		expect(err.join("")).toContain("canceled");
 	});
 
@@ -969,8 +1011,8 @@ describe("main()", () => {
 		setTimeout(() => input.write("\n"), 60);
 		const code = await pending;
 		expect(code).toBe(0);
-		expect(spy.calls[0]?.url).toContain("update_prod=1");
-		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(uploadServerUrl(spy)).toContain("update_prod=1");
+		expect(uploadServerUrl(spy)).toContain("update_dev=1");
 		// The plan reports where each answer came from.
 		expect(out.join("")).toContain("URL switch: prod yes (prompt) · dev yes (prompt)");
 	});
@@ -999,8 +1041,8 @@ describe("main()", () => {
 		const code = await pending;
 		expect(code).toBe(0);
 		expect(spy.calls.length).toBeGreaterThan(0);
-		expect(spy.calls[0]?.url).toContain("update_prod=0");
-		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(uploadServerUrl(spy)).toContain("update_prod=0");
+		expect(uploadServerUrl(spy)).toContain("update_dev=1");
 		expect(out.join("")).toContain("URL switch: prod no (prompt) · dev yes (prompt)");
 	});
 
@@ -1027,8 +1069,8 @@ describe("main()", () => {
 		setTimeout(() => input.write("\n"), 60);
 		const code = await pending;
 		expect(code).toBe(0);
-		expect(spy.calls[0]?.url).toContain("update_prod=0");
-		expect(spy.calls[0]?.url).toContain("update_dev=0");
+		expect(uploadServerUrl(spy)).toContain("update_prod=0");
+		expect(uploadServerUrl(spy)).toContain("update_dev=0");
 		expect(err.join("")).toContain("no URLs will switch");
 	});
 
@@ -1055,8 +1097,8 @@ describe("main()", () => {
 		input.write("\n");
 		const code = await pending;
 		expect(code).toBe(0);
-		expect(spy.calls[0]?.url).toContain("update_prod=0");
-		expect(spy.calls[0]?.url).toContain("update_dev=1");
+		expect(uploadServerUrl(spy)).toContain("update_prod=0");
+		expect(uploadServerUrl(spy)).toContain("update_dev=1");
 		expect(out.join("")).toContain("URL switch: prod no (override) · dev yes (override)");
 	});
 
@@ -1083,8 +1125,8 @@ describe("main()", () => {
 		setTimeout(() => input.write("\n"), 30);
 		const code = await pending;
 		expect(code).toBe(0);
-		expect(spy.calls[0]?.url).toContain("update_dev=1");
-		expect(spy.calls[0]?.url).not.toContain("update_prod");
+		expect(uploadServerUrl(spy)).toContain("update_dev=1");
+		expect(uploadServerUrl(spy)).not.toContain("update_prod");
 	});
 
 	it("--yes on a TTY keeps the VK server default for unset update flags", async () => {
@@ -1105,8 +1147,8 @@ describe("main()", () => {
 		});
 		expect(code).toBe(0);
 		// Upstream `noprompt` parity: unset flags are simply not sent.
-		expect(spy.calls[0]?.url).not.toContain("update_prod");
-		expect(spy.calls[0]?.url).not.toContain("update_dev");
+		expect(uploadServerUrl(spy)).not.toContain("update_prod");
+		expect(uploadServerUrl(spy)).not.toContain("update_dev");
 		expect(out.join("")).toContain("URL switch: prod server default · dev server default");
 	});
 
@@ -1283,6 +1325,214 @@ describe("main()", () => {
 	});
 });
 
+describe("app name in the deploy plan", () => {
+	/** A deployable project with every switch pinned: safe to run non-interactively. */
+	async function makeDeployableProject(): Promise<void> {
+		await makeProject();
+		await fs.writeFile(
+			path.join(root, "vkma-deploy.config.json"),
+			JSON.stringify({
+				appId: 42,
+				staticPath: "./build",
+				endpoints: { web: "index.html" },
+				updateProd: true,
+				updateDev: true,
+			}),
+		);
+	}
+
+	/** deployRoute() with `apps.get` answering something else (first match wins). */
+	function withTitleLookup(responder: () => MockResponseSpec): Parameters<typeof route>[0] {
+		return [["apps.get?", responder], ...deployRoute()];
+	}
+
+	/** One deploy run; `tokenEnv` defaults to a token in the environment. */
+	function run(
+		argv: readonly string[],
+		spy: FetchSpy,
+		tokenEnv: Record<string, string | undefined> = { VKMA_ACCESS_TOKEN: "cli-token-1" },
+	): Promise<number> {
+		return main(argv, {
+			stdout,
+			stderr,
+			stdin,
+			env: env(tokenEnv),
+			cwd: root,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+	}
+
+	const NO_APP: () => MockResponseSpec = () => ({
+		body: { response: { count: 0, items: [] } },
+	});
+
+	/** The plan's rows in print order, starting at `app:` (which ends with the config path). */
+	function planRows(): string[] {
+		const lines = out.join("").split("\n");
+		return lines.slice(lines.findIndex(line => line.startsWith("  app:")));
+	}
+
+	it("prints the name under the app line, in the plan's value column", async () => {
+		await makeDeployableProject();
+		const spy = createFetchSpy(route(deployRoute()));
+		expect(await run([], spy)).toBe(0);
+		// Same value column as the other plan rows; the id keeps its own line.
+		expect(planRows()[0]).toMatch(/^  app:        42/);
+		expect(planRows()[1]).toBe(`  name:       ${APP_TITLE}`);
+		expect(planRows()[2]).toMatch(/^  target:/);
+	});
+
+	it("fetches the title with apps.get as the run's first request", async () => {
+		await makeDeployableProject();
+		const spy = createFetchSpy(route(deployRoute()));
+		expect(await run([], spy)).toBe(0);
+		// The plan shows the name before "Deploy?", so the read-only lookup
+		// opens the run; nothing of the bundle has left yet.
+		expect(spy.calls[0]?.url.startsWith("https://api.vk.ru/method/apps.get?")).toBe(true);
+		const lookup = spy.calls[0]?.url ?? "";
+		expect(lookup).toContain("app_id=42");
+		expect(lookup).toContain("app_fields=title");
+		expect(lookup).toContain(`access_token=${encodeURIComponent("cli-token-1")}`);
+		expect(lookup).toContain("v=5.199");
+		expect(lookup).toContain("cli_version=2");
+		// Invariant #3 holds for the new call's output too.
+		expect(out.join("")).not.toContain("cli-token-1");
+	});
+
+	it("looks the title up with the stored credentials when no token is configured", async () => {
+		await makeDeployableProject();
+		await saveCredentials({ accessToken: "stored-token-12345" }, env());
+		const spy = createFetchSpy(route(deployRoute()));
+		expect(await run([], spy, {})).toBe(0);
+		expect(spy.calls[0]?.url).toContain(
+			`access_token=${encodeURIComponent("stored-token-12345")}`,
+		);
+		expect(out.join("")).toContain(`  name:       ${APP_TITLE}`);
+	});
+
+	it("no name line when VK knows no such app", async () => {
+		await makeDeployableProject();
+		const spy = createFetchSpy(route(withTitleLookup(NO_APP)));
+		expect(await run([], spy)).toBe(0);
+		// The plan closes up over the missing row: app, then target.
+		expect(planRows()[0]).toMatch(/^  app:        42/);
+		expect(planRows()[1]).toMatch(/^  target:/);
+	});
+
+	const LOOKUP_FAILURES: [string, () => MockResponseSpec][] = [
+		["a VK error", () => ({ body: { error: { error_code: 15, error_msg: "Access denied" } } })],
+		["a malformed payload", () => ({ body: {} })],
+		["an HTML error page", () => ({ body: "<!DOCTYPE html><html></html>" })],
+	];
+	it.each(LOOKUP_FAILURES)(
+		"no name line on %s — the deploy itself still succeeds",
+		async (_label, responder) => {
+			await makeDeployableProject();
+			const spy = createFetchSpy(route(withTitleLookup(responder)));
+			expect(await run([], spy)).toBe(0);
+			expect(out.join("")).toContain("version 9");
+			expect(out.join("")).not.toContain("name:");
+		},
+	);
+
+	it("a network failure of the lookup is tried once and never fails the deploy", async () => {
+		await makeDeployableProject();
+		let lookups = 0;
+		const spy = createFetchSpy(
+			route(
+				withTitleLookup(() => {
+					lookups += 1;
+					throw new Error("ECONNRESET");
+				}),
+			),
+		);
+		expect(await run([], spy)).toBe(0);
+		// Decoration gets one attempt: no backoff sequence before the deploy.
+		expect(lookups).toBe(1);
+		expect(out.join("")).not.toContain("name:");
+	});
+
+	it("--json carries the name in the plan record, null when unfetchable", async () => {
+		await makeDeployableProject();
+		const planOf = (): unknown =>
+			out
+				.filter(line => line.trim() !== "")
+				.map(
+					line =>
+						JSON.parse(line) as {
+							message: string;
+							data?: { plan?: Record<string, unknown> };
+						},
+				)
+				.find(record => record.message === "deploy plan")?.data?.plan;
+
+		const named = createFetchSpy(route(deployRoute()));
+		expect(await run(["--json"], named)).toBe(0);
+		expect(planOf()).toMatchObject({ appId: 42, name: APP_TITLE });
+
+		out = [];
+		const unnamed = createFetchSpy(route(withTitleLookup(NO_APP)));
+		expect(await run(["--json"], unnamed)).toBe(0);
+		expect(planOf()).toMatchObject({ appId: 42, name: null });
+	});
+
+	it("no lookup without a token; the flow still reports the missing token", async () => {
+		await makeDeployableProject();
+		const spy = createFetchSpy(route(deployRoute()));
+		expect(await run([], spy, {})).toBe(1);
+		expect(err.join("")).toContain("vkma-deploy login");
+		expect(hasTitleLookup(spy)).toBe(false);
+	});
+
+	it("--quiet prints no plan and makes no lookup", async () => {
+		await makeDeployableProject();
+		const spy = createFetchSpy(route(deployRoute()));
+		expect(await run(["--quiet"], spy)).toBe(0);
+		expect(hasTitleLookup(spy)).toBe(false);
+		expect(uploadServerUrl(spy)).toContain("app_id=42");
+	});
+
+	it("control characters in the title never reach the terminal", async () => {
+		await makeDeployableProject();
+		// An escape, a newline and a bidi override: remote data is text.
+		const spy = createFetchSpy(
+			route(withTitleLookup(() => appTitle("Evil\u001b[31m\n\u202eapp"))),
+		);
+		expect(await run([], spy)).toBe(0);
+		const text = out.join("");
+		expect(text).toContain("\n  name:       Evil [31m app\n");
+		expect(text).not.toContain("\u001b");
+		expect(text).not.toContain("\u202e");
+	});
+
+	it("Ctrl+C during the lookup aborts before a plan is printed", async () => {
+		await makeDeployableProject();
+		const controller = new AbortController();
+		const spy = createFetchSpy(
+			route(
+				withTitleLookup(() => {
+					controller.abort();
+					throw new Error("socket gone");
+				}),
+			),
+		);
+		const code = await main([], {
+			stdout,
+			stderr,
+			stdin,
+			env: env({ VKMA_ACCESS_TOKEN: "cli-token-1" }),
+			cwd: root,
+			signal: controller.signal,
+			fetchImpl: spy.fetchImpl,
+			sleep: instantSleep,
+		});
+		expect(code).toBe(130);
+		expect(out.join("")).not.toContain("Deploy plan:");
+		expect(spy.calls.length).toBe(1);
+	});
+});
+
 describe("OSC 7501 status reports", () => {
 	// The protocol is literally defined by these escape bytes.
 	// oxlint-disable-next-line eslint/no-control-regex
@@ -1366,7 +1616,9 @@ describe("OSC 7501 status reports", () => {
 		input.write("n\n");
 		const code = await pending;
 		expect(code).toBe(130);
-		expect(spy.calls.length).toBe(0);
+		// Nothing was uploaded; the title lookup for the plan was the only request.
+		expect(hasTitleLookup(spy)).toBe(true);
+		expect(spy.calls.length).toBe(1);
 		const text = outStream.writes.join("");
 		const closed = reports(text);
 		expect(closed.some(part => part.includes("state=blocked:kind=question"))).toBe(true);

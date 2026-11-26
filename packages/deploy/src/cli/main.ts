@@ -8,6 +8,7 @@
 
 import http from "node:http";
 import pkg from "../../package.json";
+import { getAppTitle } from "../api/apps.ts";
 import type { FetchLike } from "../api/client.ts";
 import { loginDeviceFlow } from "../api/oauth.ts";
 import { normalizeEnvironment } from "../config/env.ts";
@@ -24,6 +25,7 @@ import {
 	type DeployEvent,
 	type DeployOptions,
 	type DeployResult,
+	resolveToken,
 } from "../deploy/flow.ts";
 import type { QueueEvent } from "../deploy/queue.ts";
 import { DeployError, isDeployError } from "../errors.ts";
@@ -471,7 +473,15 @@ async function runDeploy(parsed: ParsedArgs, context: RunContext): Promise<numbe
 				}
 			: undefined;
 
-	renderDeployPlan(logger, context.mode, effectiveConfig, effectiveMeta, color);
+	// The plan names the app when a token can fetch its title. Decoration
+	// only: a dry run stays offline by contract and --quiet prints no plan,
+	// so neither pays for the lookup.
+	const appName =
+		parsed.booleans.dryRun || context.mode === "quiet"
+			? undefined
+			: await lookupAppName(effectiveConfig, effectiveMeta, context);
+
+	renderDeployPlan(logger, context.mode, effectiveConfig, effectiveMeta, color, appName);
 	status.working(deployStatusMsg(effectiveConfig));
 
 	// Pre-deploy confirmation: interactive humans get a last look at where
@@ -698,6 +708,7 @@ function urlSwitchLabel(
 /**
  * Prints where the deploy is going, always logged (NDJSON event in json
  * mode), so pipelines can audit targets even though they skip the prompt.
+ * `appName` is set only when VK answered the title lookup.
  */
 function renderDeployPlan(
 	logger: CliLogger,
@@ -705,6 +716,7 @@ function renderDeployPlan(
 	config: ResolvedConfig,
 	meta: ResolvedConfigMeta,
 	color: boolean,
+	appName: string | undefined,
 ): void {
 	const target =
 		config.environment === "production"
@@ -717,6 +729,7 @@ function renderDeployPlan(
 		.join(", ");
 	const plan = {
 		appId: config.appId,
+		name: appName ?? null,
 		configPath: meta.configPath ?? null,
 		environment: config.environment,
 		updateProd: config.updateProd ?? null,
@@ -733,6 +746,8 @@ function renderDeployPlan(
 		[
 			"Deploy plan:",
 			`  app:        ${String(config.appId)}${meta.configPath === undefined ? "" : `  (${meta.configPath})`}`,
+			// No fetched title, no line: the id alone is a complete plan.
+			...(appName === undefined ? [] : [`  name:       ${appName}`]),
 			`  target:     ${target}  (environment: ${config.environment})`,
 			`  URL switch: prod ${urlSwitchLabel(config.updateProd, meta.sources["updateProd"], { color, caution: true })} · dev ${urlSwitchLabel(config.updateDev, meta.sources["updateDev"], { color, caution: false })}`,
 			`  test group: ${config.testGroupName ?? "—"}`,
@@ -754,6 +769,55 @@ function renderDeployPlan(
 	if (relevantSwitches.length > 0 && relevantSwitches.every(value => !value)) {
 		logger.warn("no URLs will switch to the new version — the upload alone creates it");
 	}
+}
+
+/**
+ * The app's title for the deploy plan, or undefined. Decoration: no
+ * token, an unknown app, a VK error or a network failure all mean "no
+ * name" and never fail the deploy — the flow reports a real problem (a
+ * missing token included) at its own point. Ctrl+C is the one exception:
+ * a cancel is not a missing title.
+ */
+async function lookupAppName(
+	config: ResolvedConfig,
+	meta: ResolvedConfigMeta,
+	context: RunContext,
+): Promise<string | undefined> {
+	try {
+		const title = await getAppTitle(config.appId, {
+			accessToken: await resolveToken(config, meta, context.env),
+			apiHost: config.apiHost,
+			apiVersion: config.apiVersion,
+			signal: context.signal,
+			fetchImpl: context.fetchImpl,
+			sleep: context.sleep,
+			// One attempt: a decoration must not put the deploy through a
+			// backoff sequence over a missing title.
+			maxAttempts: 1,
+			onEvent: event => renderDeployEvent(context.logger, { type: "http", event }),
+		});
+		return title === undefined ? undefined : singleLine(title);
+	} catch (error) {
+		if (context.signal?.aborted === true) {
+			throw error;
+		}
+		return undefined;
+	}
+}
+
+/**
+ * The title is remote data, never terminal control: control characters
+ * (escapes, newlines, bidi overrides) are replaced with a space.
+ */
+// Stripping control characters is this regex's entire job — the lint
+// rule cannot know that (same as the OSC 7501 report formatter).
+// oxlint-disable-next-line eslint/no-control-regex
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]+/g;
+
+/** Collapses remote text onto one printable line; undefined when nothing is left. */
+function singleLine(value: string): string | undefined {
+	const line = value.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim();
+	return line === "" ? undefined : line;
 }
 
 function renderResolve(logger: CliLogger, _config: ResolvedConfig, meta: ResolvedConfigMeta): void {

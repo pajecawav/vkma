@@ -58,6 +58,7 @@ export { loginDeviceFlow } from "./api/oauth.ts";
 export type { LoginOptions, LoginResult } from "./api/oauth.ts";
 export { uploadBundle } from "./api/upload.ts";
 export type { UploadOptions } from "./api/upload.ts";
+export { getAppTitle } from "./api/apps.ts";
 
 export { zipDirectory } from "./zip.ts";
 export type { ZipOptions, ZipResult } from "./zip.ts";

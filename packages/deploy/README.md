@@ -153,12 +153,16 @@ unconditional case: the wizard asks for missing values and shows the exact
 file before writing (non-TTY runs take flags instead and fail fast with a
 paste-ready example when `--app-id` is missing).
 
-Before a deploy, the CLI prints a deploy plan and asks `Deploy? (Y/n)`: target
-environments, URL switching, test group, bundle, endpoints.
-`Enter` proceeds, `n` cancels with exit code `130` before anything leaves
-the machine. The prompt is skipped (the plan is still logged) for `--yes`/`-y`,
+Before a deploy, the CLI prints a deploy plan and asks `Deploy? (Y/n)`: the
+app (its id and name), target environments, URL switching, test group,
+bundle, endpoints. The name comes from one read-only `apps.get` made before
+the plan; when VK has no title for the app, the lookup fails, or there is
+no token yet, the `name` row is simply omitted and the deploy is unaffected.
+`Enter` proceeds, `n` cancels with exit code `130` before anything is
+uploaded. The prompt is skipped (the plan is still logged) for `--yes`/`-y`,
 `--dry-run`, the `CI` environment variable, non-TTY stdin, and
-`--json`/`--quiet` modes.
+`--json`/`--quiet` modes. `--dry-run` makes no network calls at all, so its
+plan carries no name.
 
 ### URL-switch policy (`--update-prod` / `--update-dev`)
 
@@ -259,7 +263,8 @@ failures are `DeployError`s with a `kind` (`config` | `user` | `network` |
 Granular building blocks are exported too: `resolveConfig`,
 `deployResolved` (run the flow from an already-resolved config; the CLI
 uses it to avoid resolving twice), `loginDeviceFlow`, `zipDirectory`,
-`uploadBundle`, `waitForQueue`, `callApi`, `loadCredentials`/`saveCredentials`/
+`uploadBundle`, `waitForQueue`, `callApi`, `getAppTitle` (the app's name
+from VK), `loadCredentials`/`saveCredentials`/
 `clearCredentials`, `createRedactor`.
 
 ## Credentials

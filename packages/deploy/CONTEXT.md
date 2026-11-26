@@ -70,6 +70,15 @@ one: a TTY run asks, `--yes`/`--dry-run` keep the VK server default
 silently. The library itself never prompts and treats unset exactly as
 upstream did: the param is simply not sent.
 
+## App name lookup
+
+The plan's `name` row is **decoration**: `getAppTitle` (one read-only
+`apps.get`) resolves the title with the deploy's own token right before
+the plan. Every failure — no token, an unknown app (VK answers an empty
+list, not an error), a VK error, a network failure — means "no row", never
+a failed or delayed deploy. An abort is the exception: Ctrl+C is a cancel,
+not a missing title.
+
 ## Related vocabulary
 
 See the architecture review vocabulary (module, interface, depth, seam,

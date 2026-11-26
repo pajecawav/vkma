@@ -26,7 +26,8 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
   to the upstream configstore vault.
 - `src/api/` — `client.ts` (retry/backoff/jitter, HTML detection, VK error
   mapping, token masking), `oauth.ts` (device flow), `upload.ts`
-  (multipart with byte-level progress).
+  (multipart with byte-level progress), `apps.ts` (`getAppTitle`: the
+  app's title for the plan's `name` row).
 - `src/deploy/` — `queue.ts` (long-poll with hard deadline), `flow.ts`
   (orchestration emitting the `DeployEvent` stream).
 - `src/cli/` — argv parser, prompts (TTY-only), completions, `main.ts`
@@ -83,6 +84,16 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    cancel/SIGINT → `idle` (written synchronously in the signal handler
    too, so even the second-Ctrl+C force exit leaves a clean record), any
    other failure → `error`, success → `done`.
+9. **The plan's `name` row is decoration, never a gate.** `getAppTitle`
+   (one read-only `apps.get`) resolves the title with the deploy's own
+   token right before the plan, so the name is on screen before
+   `Deploy?`. It must never steer the run: no token, an unknown app (VK
+   answers an empty list, not an error — verified live), a VK error or a
+   network failure all just drop the row — one attempt, no backoff, no
+   `E_NO_TOKEN` of its own (the flow reports a real problem at its own
+   point). Only an abort propagates. Skipped in `--dry-run` (offline by
+   contract) and `--quiet` (no plan to carry it). The title is remote
+   data: it reaches the terminal through `singleLine`.
 
 ## Upstream reference (@vkontakte/vk-miniapps-deploy 1.0.3)
 
