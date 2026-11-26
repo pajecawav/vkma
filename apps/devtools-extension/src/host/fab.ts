@@ -38,6 +38,9 @@ const STYLES = `
   background: #ffffff;
   color: #171717;
   cursor: pointer;
+  /* Chrome for Android paints a bluish tap highlight over the pressed
+   * target; the :active press below is this button's touch feedback */
+  -webkit-tap-highlight-color: transparent;
   /* white on a page needs real separation: hairline edge + layered
    * ambient shadows, stronger than the usual quiet-button treatment */
   box-shadow:
