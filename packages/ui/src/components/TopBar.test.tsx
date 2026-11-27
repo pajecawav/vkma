@@ -104,12 +104,19 @@ describe("TopBar close", () => {
 				}),
 		);
 
-	const press = (target: EventTarget) =>
-		act(async () => {
+	/** Dispatches the key. The panel defers its verdict past the key's
+	 * whole dispatch, and an awaited act() resolves only in a later
+	 * macrotask, by which time that verdict may already have run (it
+	 * did on a loaded CI runner). So "not closed yet" holds only right
+	 * here, synchronously: nothing may be awaited between this call and
+	 * that check. */
+	const press = (target: EventTarget) => {
+		act(() => {
 			target.dispatchEvent(
 				new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
 			);
 		});
+	};
 
 	it("adds the button only when the panel can close itself", async () => {
 		const onClose = vi.fn();
@@ -132,7 +139,8 @@ describe("TopBar close", () => {
 		await mount(
 			<TopBar status="connected" onReconnect={() => {}} theme={theme} onClose={onClose} />,
 		);
-		await press(document.body);
+		// still in the dispatch's own task: deferred, not run
+		press(document.body);
 		expect(onClose).not.toHaveBeenCalled();
 		await settle();
 		expect(onClose).toHaveBeenCalledTimes(1);
@@ -147,7 +155,7 @@ describe("TopBar close", () => {
 		const claim = (event: KeyboardEvent) => event.preventDefault();
 		document.addEventListener("keydown", claim);
 		try {
-			await press(document.body);
+			press(document.body);
 			await settle();
 		} finally {
 			document.removeEventListener("keydown", claim);
@@ -183,13 +191,13 @@ describe("TopBar close", () => {
 		document.body.append(input);
 		try {
 			input.focus();
-			await press(input);
+			press(input);
 			await settle();
 			expect(document.activeElement).not.toBe(input);
 			expect(onClose).not.toHaveBeenCalled();
 
 			// focus left the field: the next press is the panel's
-			await press(document.body);
+			press(document.body);
 			await settle();
 			expect(onClose).toHaveBeenCalledTimes(1);
 		} finally {
