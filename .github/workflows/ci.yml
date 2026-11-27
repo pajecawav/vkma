@@ -41,16 +41,20 @@ jobs:
                   pnpm --filter @vkma.dev/create-app build
                   pnpm --filter @vkma.dev/create-app test:e2e
 
+            # upload-artifact zips whatever it is handed, so a zip uploaded
+            # the default way downloads as a zip inside a zip. archive: false
+            # uploads the file as it is. The artifact is then named after
+            # the file (the name input is ignored): vkma-devtools-<browser>-<version>.zip
             - name: Upload the firefox zip
               uses: actions/upload-artifact@v7
               with:
-                  name: devtools-extension-firefox
                   path: apps/devtools-extension/web-ext-artifacts/vkma-devtools-firefox-*.zip
+                  archive: false
                   if-no-files-found: error
 
             - name: Upload the chrome zip
               uses: actions/upload-artifact@v7
               with:
-                  name: devtools-extension-chrome
                   path: apps/devtools-extension/web-ext-artifacts/vkma-devtools-chrome-*.zip
+                  archive: false
                   if-no-files-found: error
