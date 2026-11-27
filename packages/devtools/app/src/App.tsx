@@ -12,6 +12,7 @@ import {
 import { requestFabClose } from "@vkma.dev/ui/fab-close";
 import { useEffect, useState } from "react";
 import { StatusGate } from "./components/StatusGate.tsx";
+import { useExecuteDraft } from "./lib/execute-draft.ts";
 import { useFabPosition } from "./lib/fab-position.ts";
 import { useIgnoredEventsSettings } from "./lib/ignored-events.ts";
 import { useVkma } from "./lib/rpc.ts";
@@ -36,6 +37,9 @@ export function App() {
 	const connection = useVkma(embeddedClientId);
 	const fabPosition = useFabPosition();
 	const ignoredEvents = useIgnoredEventsSettings();
+	// The form's state outlives the page: the FAB iframe dies with the
+	// mini app page, the tab's draft does not.
+	const executeDraft = useExecuteDraft();
 	const [section, setSection] = useState<Section>(() => {
 		const stored = localStorage.getItem(SECTION_KEY);
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
@@ -115,6 +119,8 @@ export function App() {
 									suggestedEvents={SUGGESTED_EVENTS}
 									paramsStub={name => stubs[name]}
 									fixedClientId={embeddedClientId}
+									draft={executeDraft.draft}
+									onDraftChange={executeDraft.save}
 								/>
 							</div>
 							<div

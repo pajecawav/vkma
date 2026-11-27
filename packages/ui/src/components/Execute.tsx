@@ -1,6 +1,12 @@
 import type { ClientStatus, ExecResult, WireEvent } from "@vkma.dev/protocol";
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import {
+	EMPTY_EXECUTE_DRAFT,
+	EMPTY_PARAMS,
+	resolveExecuteTarget,
+	type ExecuteDraft,
+} from "../lib/execute-draft.ts";
 import { shortId } from "../lib/format.ts";
 import { nextParamsText } from "../lib/params-prefill.ts";
 import { ClientSelect } from "./ClientSelect.tsx";
@@ -40,10 +46,6 @@ function resultPanel(result: ExecResult) {
 	}
 }
 
-/** The Params field as it starts: an empty object with room to type in.
- * An event whose catalogue stub is empty puts the field back here. */
-const EMPTY_PARAMS = "{\n  \n}";
-
 export function Execute({
 	clients,
 	events,
@@ -52,6 +54,8 @@ export function Execute({
 	paramsStub,
 	fixedClientId,
 	emptyState,
+	draft,
+	onDraftChange,
 }: {
 	clients: ClientStatus[];
 	events: WireEvent[];
@@ -71,6 +75,16 @@ export function Execute({
 	fixedClientId?: string;
 	/** Overrides the "no clients" card (surfaces with other capture modes). */
 	emptyState?: ReactNode;
+	/**
+	 * The form's state, owned by the consumer: restored on mount (the
+	 * extension persists it across page reloads) and shared live between
+	 * its surfaces. With a draft the form keeps nothing of its own, every
+	 * edit reports through `onDraftChange`. `undefined` means "not loaded
+	 * yet": the form then starts empty and adopts the draft once it lands.
+	 * Omit both and the form keeps its own state.
+	 */
+	draft?: ExecuteDraft;
+	onDraftChange?: (draft: ExecuteDraft) => void;
 }) {
 	const knownNames = useMemo(() => {
 		const names = new Set<string>(suggestedEvents);
@@ -80,49 +94,54 @@ export function Execute({
 		return [...names].toSorted();
 	}, [suggestedEvents, events]);
 
-	// Registry order is online-first, oldest → newest within each group,
-	// so the last ONLINE client is the newest live one. A bare `at(-1)`
-	// would land on the OLDEST offline client the moment one exists
-	// (backgrounded tab) and sends would die on the 20s exec timeout.
-	// With everyone offline, the newest offline entry is still the sanest
-	// default, it may just be throttled, not gone.
-	const latest = clients.toReversed().find(client => client.online) ?? clients.at(-1);
-	const latestClientId = latest?.clientId ?? "";
-	const [target, setTarget] = useState("");
+	// The form's state: the consumer's draft when it supplies one, the
+	// panel's own otherwise. One object, so an edit that touches two
+	// fields (picking an event also fills its params) is one update.
+	const [ownDraft, setOwnDraft] = useState<ExecuteDraft>(EMPTY_EXECUTE_DRAFT);
+	const form = draft ?? ownDraft;
+	const setForm = (next: ExecuteDraft): void => {
+		if (draft !== undefined) {
+			onDraftChange?.(next);
+		} else {
+			setOwnDraft(next);
+		}
+	};
+	const { target, name, paramsText, lastAutoFill } = form;
 	// Derived, not stored: clients land after this component mounts (the
 	// state snapshot follows the connect), so a stored id would stay `""`
 	// forever, and every Send would silently no-op. Falls back to the
 	// latest client while nothing is picked and when a picked client has
-	// disconnected.
-	const activeTarget =
-		fixedClientId ??
-		(clients.some(client => client.clientId === target) ? target : latestClientId);
-	const [name, setName] = useState("");
-	const [paramsText, setParamsText] = useState(EMPTY_PARAMS);
-	// The params text this component last wrote itself. Replacing THAT on a
-	// later pick is safe; anything else may be the user's work and stays.
-	const lastAutoFillRef = useRef<string | undefined>(undefined);
+	// disconnected. A target restored from a draft outlives its client on
+	// a page reload: resolveExecuteTarget then follows it to the same
+	// page's new client before giving up.
+	const activeTarget = fixedClientId ?? resolveExecuteTarget(clients, target, form.targetUrl);
 	const [pending, setPending] = useState<Pending>();
 	// Identifies the in-flight execute: Cancel bumps it, so the abandoned
 	// call's late settlement (real result or the store's 60s timeout) finds
 	// a stale token and is ignored.
 	const pendingTokenRef = useRef(0);
 
+	const pickTarget = (next: string) => {
+		setForm({
+			...form,
+			target: next,
+			targetUrl: clients.find(client => client.clientId === next)?.url,
+		});
+	};
+
 	const pickName = (next: string) => {
-		setName(next);
 		const stub = paramsStub?.(next.trim());
-		if (!stub) {
-			return;
-		}
-		setParamsText(prev => {
-			const text = nextParamsText(prev, stub, lastAutoFillRef.current, EMPTY_PARAMS);
-			if (text === undefined) {
-				return prev;
-			}
-			// Idempotent under StrictMode's double-invoked updaters: same prev,
-			// same stub → same text.
-			lastAutoFillRef.current = text;
-			return text;
+		// Only the params text the form wrote itself (a catalogue stub) is
+		// replaced on a pick; anything else may be the user's work and
+		// stays. nextParamsText decides against lastAutoFill.
+		const text = stub
+			? nextParamsText(paramsText, stub, lastAutoFill, EMPTY_PARAMS)
+			: undefined;
+		setForm({
+			...form,
+			name: next,
+			paramsText: text ?? paramsText,
+			lastAutoFill: text ?? lastAutoFill,
 		});
 	};
 
@@ -206,7 +225,7 @@ export function Execute({
 									ariaLabel="Target"
 									clients={clients}
 									value={activeTarget}
-									onValueChange={setTarget}
+									onValueChange={pickTarget}
 								/>
 							</div>
 						)}
@@ -231,7 +250,9 @@ export function Execute({
 							</span>
 							<textarea
 								value={paramsText}
-								onChange={event => setParamsText(event.target.value)}
+								onChange={event =>
+									setForm({ ...form, paramsText: event.target.value })
+								}
 								rows={6}
 								spellCheck={false}
 								className="scroll-area rounded-md border border-neutral-200 bg-white p-2.5 font-mono text-xs leading-relaxed dark:border-neutral-800 dark:bg-neutral-900"

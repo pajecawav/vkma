@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { api, sidePanelSupported } from "../shared/api.ts";
 import { OPEN_SIDE_PANEL_MESSAGE } from "../shared/hosts.ts";
 import { useVkmaAllTabs, useVkmaExtension, type ExtensionConnection } from "./connection.ts";
+import { useExecuteDraft } from "./execute-draft.ts";
 import { useFabPosition } from "./fab-position.ts";
 import { useIgnoredEventsSettings } from "./ignored-events.ts";
 import { useExtensionTheme } from "./theme.ts";
@@ -106,6 +107,7 @@ function PanelRoot() {
 /** The panel body shared by both modes: sections render whatever
  * connection is handed in (tab-scoped or global). */
 function Sections({
+	tabId,
 	events,
 	clients,
 	execute,
@@ -113,6 +115,10 @@ function Sections({
 	locateClients,
 	focused,
 }: {
+	/** The tab this panel watches; the Execute draft is one per tab.
+	 * Omitted by the panel that watches every tab at once: its draft is
+	 * the surface's own. */
+	tabId?: number;
 	events: WireEvent[];
 	clients: ClientStatus[];
 	execute: ExtensionConnection["execute"];
@@ -125,6 +131,7 @@ function Sections({
 		return stored === "execute" || stored === "clients" ? stored : "timeline";
 	});
 	const ignoredEvents = useIgnoredEventsSettings();
+	const executeDraft = useExecuteDraft(tabId);
 
 	// A frameFocus flash: the matching card wears a colored ring for a
 	// beat. The event may land while this panel is a background tab
@@ -197,6 +204,10 @@ function Sections({
 					execute={execute}
 					suggestedEvents={SUGGESTED_EVENTS}
 					paramsStub={name => stubs[name]}
+					// The form's state outlives the page: the FAB iframe dies
+					// with the page it watches, the draft does not.
+					draft={executeDraft.draft}
+					onDraftChange={executeDraft.save}
 					emptyState={
 						<p className="rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
 							No mini app clients yet. Open one — then execute bridge events here.
@@ -387,6 +398,7 @@ function TabPanel({
 				onClose={embeddedInSidePanel ? undefined : requestFabClose}
 			/>
 			<Sections
+				tabId={tabId}
 				events={connection.events}
 				clients={connection.clients}
 				execute={connection.execute}
