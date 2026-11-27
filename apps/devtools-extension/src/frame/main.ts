@@ -10,8 +10,15 @@
  *   apps). A second `@vkma.dev/bridge` instance lives here in the
  *   isolated world: `message` events reach listeners of every world, so
  *   it sees everything the host sends INTO the frame; the app's outgoing
- *   requests are sniffed by the host script. Execute sends through this
- *   own instance with a reserved request_id prefix.
+ *   requests are sniffed in the frame they are posted to (below). Execute
+ *   sends through this own instance with a reserved request_id prefix.
+ *
+ * Besides collecting, every frame but the top sniffs: vk-bridge's web
+ * transport posts to `window.parent`, so an app's requests surface in
+ * their DIRECT parent, where the `message` event fires in this isolated
+ * world too. On vk.com that is the top frame, whose host script listens
+ * for itself; on OK the game sits one level down and nothing of it would
+ * reach the top otherwise. See frame/sniff.ts.
  */
 import { createVKBridge } from "@vkma.dev/bridge";
 import { isLaunchParamKey, type ClientInfo } from "@vkma.dev/protocol";
@@ -22,7 +29,8 @@ import {
 	relayHelloMessageSchema,
 	relaySendResultSchema,
 } from "@vkma.dev/protocol/schemas";
-import { createClient } from "werpc";
+import { createClient, type WERPClient } from "werpc";
+import { SniffUplink, childEnvelopeListener } from "./sniff.ts";
 
 const FLUSH_MS = 250;
 const HEARTBEAT_MS = 5_000;
@@ -41,6 +49,31 @@ const looksLikeMiniApp =
 
 if (framed && looksLikeMiniApp) {
 	void main();
+}
+
+/** The collector's werpc client, made on first use. */
+let client: WERPClient | undefined;
+function getClient(): WERPClient {
+	client ??= createClient({ clientName: "frame", scopeToTab: true });
+	return client;
+}
+
+// The top frame is listened to by the host script itself; every frame
+// below reports what its children post into it. Its client is separate
+// and short-fused: on a tab with no host (not a VK page) a delivery must
+// fail fast for the uplink to move on.
+if (framed) {
+	let sniffer: WERPClient | undefined;
+	const uplink = new SniffUplink(batch => {
+		sniffer ??= createClient({ clientName: "sniff", scopeToTab: true, timeoutMs: 5_000 });
+		return sniffer.vkma.sniffed.mutate({ envelopes: batch });
+	});
+	window.addEventListener(
+		"message",
+		childEnvelopeListener(window, sniffed => {
+			uplink.push(sniffed);
+		}),
+	);
 }
 
 function launchParams(): Record<string, string> {
@@ -83,12 +116,20 @@ async function main(): Promise<void> {
 	// host can join sniffed envelopes to this collector.
 	window.addEventListener("message", event => {
 		const data = event.data as { type?: unknown; frameId?: unknown } | undefined;
-		if (data?.type === "VKWebAppSettings" && typeof data.frameId === "string") {
+		if (
+			data?.type === "VKWebAppSettings" &&
+			typeof data.frameId === "string" &&
+			data.frameId !== webFrameId
+		) {
 			webFrameId = data.frameId;
+			// The host learns the id from hello alone: without this, the
+			// first heartbeat (5s) would be the earliest a send could be
+			// joined to this collector by it.
+			void hello().catch(() => {});
 		}
 	});
 
-	const client = createClient({ clientName: "frame", scopeToTab: true });
+	const client = getClient();
 
 	// ---------------------------------------------------------------- relay
 

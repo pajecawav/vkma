@@ -5,12 +5,14 @@ import {
 	executeInputSchema,
 	looksLikeVkConnect,
 	tapEventSchema,
+	type VkConnectEnvelope,
 	vkConnectEnvelopeSchema,
 } from "@vkma.dev/protocol/schemas";
 import { FAB_POSITION_STORAGE_KEY, normalizeFabPosition } from "@vkma.dev/ui/fab-position";
 import { createClient, type InferNamespace, createHandler, initWERPC } from "werpc";
 import { z } from "zod";
 import { api } from "../shared/api.ts";
+import { EnvelopeAttributor } from "./attribute.ts";
 import { mountFab } from "./fab.ts";
 import { createFrameHighlighter } from "./highlight.ts";
 import { BatchedHub, Hub } from "./hub.ts";
@@ -53,39 +55,25 @@ const broadcastClients = () => {
  * why synthesized ids draw from the negative space.
  */
 const spy = new SpyTracker();
-const clientByWebFrameId = new Map<string, string>();
-const clientByOrigin = new Map<string, string>();
+const attribution = new EnvelopeAttributor();
 
 // --- the vk-connect sniffer ----------------------------------------------------
 
 /** Our own execute sends ride the same wire; the sniffer must drop them. */
 const EXT_REQUEST_ID_PREFIX = "__vkma_ext_";
 
-function attributeEnvelope(webFrameId: string | undefined, origin: string): string | undefined {
-	if (webFrameId !== undefined && clientByWebFrameId.has(webFrameId)) {
-		return clientByWebFrameId.get(webFrameId);
-	}
-	return clientByOrigin.get(origin);
-}
-
-window.addEventListener("message", event => {
-	const data: unknown = event.data;
-	// The app's web transport posts the envelope to its parent, which is
-	// this window; every listener world sees it (the spy trick). Self-posts
-	// (the host page talking to itself) and non-vk-connect chatter are not
-	// mini app traffic.
-	if (event.source === window || !looksLikeVkConnect(data)) {
-		return;
-	}
-	const parsed = vkConnectEnvelopeSchema.safeParse(data);
-	if (!parsed.success) {
-		return;
-	}
-	const envelope = parsed.data;
-
-	const clientId = attributeEnvelope(envelope.webFrameId, event.origin);
+/**
+ * One app → host envelope enters the timeline, wherever it was seen: by
+ * this window's own listener (the app is the top frame's child, as on
+ * vk.com) or reported by the frame the app actually posts to (a game one
+ * level down, as on OK: every frame but the top reports what its children
+ * post into it, see frame/sniff.ts). vk-bridge's web transport always
+ * targets `window.parent`, so that frame is always the app's parent.
+ */
+function ingestEnvelope(envelope: VkConnectEnvelope, origin: string, ts: number): void {
+	const clientId = attribution.attribute(envelope.webFrameId, origin);
 	if (clientId === undefined) {
-		return; // a frame with no collector (ads, service iframes), not ours
+		return; // no collector said hello from that origin: a relay, a frame with no collector — not ours
 	}
 	const client = store.getClient(clientId);
 	if (client === undefined) {
@@ -99,11 +87,42 @@ window.addEventListener("message", event => {
 		return; // the collector's own execute send; its tap already reports it
 	}
 
-	const wire = spy.synthesizeSend(clientId, envelope);
+	const wire = spy.synthesizeSend(clientId, envelope, ts);
 	const stamped = store.pushEvents(clientId, [wire]);
 	if (stamped.length > 0) {
 		timelineHub.pushMany(stamped);
 	}
+}
+
+window.addEventListener("message", event => {
+	const data: unknown = event.data;
+	// The app's web transport posts the envelope to its parent; when that
+	// is this window, every listener world sees it (the spy trick).
+	// Self-posts (the host page talking to itself) and non-vk-connect
+	// chatter are not mini app traffic.
+	if (event.source === window || !looksLikeVkConnect(data)) {
+		return;
+	}
+	const parsed = vkConnectEnvelopeSchema.safeParse(data);
+	if (!parsed.success) {
+		return;
+	}
+	ingestEnvelope(parsed.data, event.origin, Date.now());
+});
+
+/** What a frame below the top saw a child post into it (`vkma.sniffed`). */
+const sniffedInputSchema = z.object({
+	envelopes: z
+		.array(
+			z.object({
+				envelope: vkConnectEnvelopeSchema,
+				/** The sender's origin as the browser reported it to that frame. */
+				origin: z.string().max(256),
+				/** When the frame saw it (the report travels): the same bound as a tap's. */
+				ts: tapEventSchema.shape.ts,
+			}),
+		)
+		.max(100),
 });
 
 // --- the vkma namespace --------------------------------------------------------
@@ -171,10 +190,7 @@ const handler = createHandler({
 			const captureFlipped = previous !== undefined && !previous.bridge && info.bridge;
 			const changed = store.touchClient(info);
 
-			if (webFrameId !== undefined) {
-				clientByWebFrameId.set(webFrameId, info.clientId);
-			}
-			clientByOrigin.set(origin, info.clientId);
+			attribution.register(info.clientId, webFrameId, origin);
 
 			if (sessionChanged || captureFlipped) {
 				// The page reloaded (or the direct tap took over): the old
@@ -203,6 +219,14 @@ const handler = createHandler({
 			const stamped = store.pushEvents(input.clientId, out);
 			if (stamped.length > 0) {
 				timelineHub.pushMany(stamped);
+			}
+		}),
+
+		/** vk-connect envelopes a frame below the top saw a child post into
+		 * it (an app nested one level down, as on OK). */
+		sniffed: werpc.procedure.input(sniffedInputSchema).mutation(({ input }) => {
+			for (const { envelope, origin, ts } of input.envelopes) {
+				ingestEnvelope(envelope, origin, ts);
 			}
 		}),
 

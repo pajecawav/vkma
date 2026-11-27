@@ -14,8 +14,11 @@ Two modes, picked per mini app frame:
   own bridge instance. Zero changes to the bridge package.
 - **spy.** Any other bridge (`@vkontakte/vk-bridge`): a second
   `@vkma.dev/bridge` instance in the frame's isolated world sees
-  host→app traffic, the top frame sniffs app→host `vk-connect`
-  postMessages, and the halves are joined by wire `request_id`.
+  host→app traffic, and app→host `vk-connect` postMessages are sniffed
+  in the frame the app posts to, its parent: the top frame's host script
+  on vk.com, or the frame one level down when the app is nested (OK
+  puts its games inside an adapter frame), whose collector reports what
+  its children post into it. The halves are joined by wire `request_id`.
 
 The TopBar chip shows which: `vkma bridge` (direct) vs `sniffer` (spy).
 
