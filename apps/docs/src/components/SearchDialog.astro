@@ -1,0 +1,49 @@
+---
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+
+export interface QuickLink {
+	href: string;
+	title: string;
+	section: string;
+}
+
+interface Props {
+	locale: Locale;
+	/** Shown before anything is typed: the start page and every package index. */
+	quick: QuickLink[];
+}
+
+const { locale, quick } = Astro.props;
+const s = t(locale);
+---
+
+<dialog class="sdialog" data-search-dialog aria-label={s.search}>
+	<div class="sd-input">
+		<Icon name="search" />
+		<input
+			type="search"
+			placeholder={s.searchPh}
+			autocomplete="off"
+			autocapitalize="off"
+			spellcheck="false"
+			aria-label={s.search}
+		/>
+		<kbd class="kbd">Esc</kbd>
+	</div>
+	<ul class="sd-results" role="listbox" aria-label={s.search}>
+		{
+			quick.map(link => (
+				<li class="sd-r" role="option" aria-selected="false" data-url={link.href}>
+					<span class="rt">{link.title}</span>
+					<span class="rs">{link.section}</span>
+				</li>
+			))
+		}
+	</ul>
+	<div class="sd-foot" aria-hidden="true">
+		<span><kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd>{s.hintSel}</span>
+		<span><kbd class="kbd">↵</kbd>{s.hintOpen}</span>
+		<span><kbd class="kbd">Esc</kbd>{s.hintEsc}</span>
+	</div>
+</dialog>

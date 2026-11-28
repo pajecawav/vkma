@@ -1,0 +1,179 @@
+/* vkma.dev docs — the page frame. «Бумага · Шапка»: a full-width header on a
+   hairline, and below it one centred island of navigation · column · contents.
+   The header content is aligned to the island: the wordmark sits over the
+   navigation, the controls end over the contents. */
+
+:root {
+	--nav-w: 216px;
+	--gap-nav: 24px;
+	--gap-toc: 56px;
+}
+
+.top {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	border-bottom: 1px solid var(--line);
+	background: color-mix(in oklab, var(--bg) 92%, transparent);
+	-webkit-backdrop-filter: saturate(1.5) blur(14px);
+	backdrop-filter: saturate(1.5) blur(14px);
+}
+
+.top-in {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 56px;
+	max-width: 1248px;
+	margin: 0 auto;
+	padding: 0 0 0 10px;
+}
+
+.top-in .brand {
+	margin-right: 4px;
+}
+
+.top-in .search {
+	width: 220px;
+	margin-right: 10px;
+}
+
+/* navigation lives in the island; the menu opens the drawer below 1024px */
+.top-in .menubtn {
+	display: none;
+	margin-right: 4px;
+}
+
+.shell {
+	display: grid;
+	grid-template-columns: var(--nav-w) var(--gap-nav) minmax(0, 720px) var(--gap-toc) 232px;
+	justify-content: center;
+	align-items: start;
+	padding: 0 32px 96px;
+}
+
+.shell.is-single {
+	display: block;
+	max-width: 720px;
+	margin: 0 auto;
+}
+
+.island-nav {
+	grid-column: 1;
+	position: sticky;
+	top: 88px;
+	min-width: 0;
+	padding: 48px 0 24px;
+}
+
+.nav.island-nav {
+	margin-left: 0;
+}
+
+.main {
+	grid-column: 3;
+	min-width: 0;
+}
+
+/* the article's own top edge lines up with the first navigation row */
+.doc {
+	padding-top: 48px;
+}
+
+/* sticks below the header (56px) with the same air the navigation keeps */
+.toc {
+	grid-column: 5;
+	top: 80px;
+	padding-top: 51px;
+}
+
+.toc li.depth3 a {
+	padding-left: 28px;
+}
+
+@media (max-width: 1339px) {
+	.top-in {
+		padding: 0 24px;
+	}
+
+	.shell {
+		grid-template-columns: var(--nav-w) var(--gap-nav) minmax(0, 720px);
+	}
+
+	.toc {
+		display: none;
+	}
+
+	.toc-m {
+		display: block;
+	}
+}
+
+@media (max-width: 1023px) {
+	.shell {
+		grid-template-columns: minmax(0, 720px);
+	}
+
+	.main {
+		grid-column: 1;
+	}
+
+	.island-nav {
+		display: none;
+	}
+
+	.top-in .menubtn {
+		display: inline-grid;
+	}
+}
+
+@media (max-width: 899px) {
+	.shell {
+		padding: 0 20px 96px;
+	}
+
+	.doc {
+		padding-top: 28px;
+	}
+
+	.top-in {
+		height: 52px;
+		padding: 0 12px 0 10px;
+	}
+
+	.top-in .brand {
+		margin-right: 4px;
+	}
+
+	.top-in .search {
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		justify-content: center;
+		border-color: transparent;
+		background: transparent;
+	}
+
+	.top-in .search-label,
+	.top-in .search .kbd {
+		display: none;
+	}
+
+	.doc-head {
+		padding-bottom: 22px;
+		margin-bottom: 22px;
+	}
+
+	.doc-head h1 {
+		font-size: 28px;
+		letter-spacing: -0.022em;
+	}
+
+	.home .doc-head h1 {
+		font-size: 34px;
+	}
+
+	.lede {
+		font-size: 16.5px;
+	}
+}

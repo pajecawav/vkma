@@ -1,0 +1,17 @@
+---
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+	/** The other locale's version of the current page. */
+	href: string;
+	locale: Locale;
+}
+
+const { href, locale } = Astro.props;
+const other: Locale = locale === "ru" ? "en" : "ru";
+const s = t(locale);
+---
+
+<a class="iconbtn lang" href={href} hreflang={other} lang={other} aria-label={s.langLabel} title={s.langLabel}>
+	{s.lang}
+</a>

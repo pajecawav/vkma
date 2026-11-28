@@ -1,0 +1,18 @@
+---
+import { glyphTile } from "../lib/icons";
+import { t, type Locale } from "../lib/i18n";
+import { homeId } from "../lib/navigation";
+import { pathOf } from "../lib/docs";
+
+interface Props {
+	locale: Locale;
+}
+
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<a class="brand" href={pathOf(homeId(locale))} aria-label={`vkma.dev — ${s.home}`}>
+	<Fragment set:html={glyphTile} />
+	<span class="brand-name">vkma.dev</span>
+</a>

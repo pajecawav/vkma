@@ -1,0 +1,41 @@
+---
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+import { entryPath, navLabel, type Doc } from "../lib/navigation";
+
+interface Props {
+	locale: Locale;
+	prev: Doc | null;
+	next: Doc | null;
+}
+
+const { locale, prev, next } = Astro.props;
+const s = t(locale);
+---
+
+{
+	(prev || next) && (
+		<nav class="pager" aria-label={s.pagesNav} data-pagefind-ignore>
+			{prev ? (
+				<a class="pl prev" href={entryPath(prev)} rel="prev">
+					<span class="dir">
+						<Icon name="arrowLeft" />
+						{s.prev}
+					</span>
+					<span class="t">{navLabel(prev)}</span>
+				</a>
+			) : (
+				<span />
+			)}
+			{next && (
+				<a class="pl next" href={entryPath(next)} rel="next">
+					<span class="dir">
+						{s.next}
+						<Icon name="arrowRight" />
+					</span>
+					<span class="t">{navLabel(next)}</span>
+				</a>
+			)}
+		</nav>
+	)
+}

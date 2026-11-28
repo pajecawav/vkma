@@ -1,105 +1,72 @@
-import starlight from "@astrojs/starlight";
+import { existsSync, readdirSync, rmdirSync } from "node:fs";
+import { renameSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { unified, rehypeHeadingIds } from "@astrojs/markdown-remark";
+import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
-import { PACKAGES, START } from "./sections.mjs";
+import { PACKAGES } from "./sections.mjs";
+import { rehypeProse } from "./src/plugins/rehype-prose";
+import { remarkCodeBlocks } from "./src/plugins/remark-code-blocks";
 
-// packages are top-level collapsed groups in PACKAGES order; the package
-// index page sorts first inside its group via sidebar.order 0. The start
-// page is a plain top-level link — its group wrapper would hold one item.
-const sidebar = [
-	{ slug: "index", label: START.label, translations: START.translations },
-	...PACKAGES.map(directory => ({
-		label: directory,
-		collapsed: true,
-		items: [{ autogenerate: { directory } }],
-	})),
-];
+// The English 404 has to be a literal `en/404.html`: the hoster answers a
+// missing `/en/…` path with the nearest 404.html, and the directory format
+// would give it the Russian one at the root. Starlight only ever built the
+// Russian page as a file.
+function nested404() {
+	return {
+		name: "vkma:nested-404",
+		hooks: {
+			"astro:build:done": ({ dir }) => {
+				const from = new URL("en/404/index.html", dir);
+				if (!existsSync(from)) {
+					return;
+				}
+				renameSync(from, new URL("en/404.html", dir));
+				rmdirSync(dirname(fileURLToPath(from)));
+			},
+		},
+	};
+}
+
+const docsDir = fileURLToPath(new URL("./src/content/docs/", import.meta.url));
+const mdFiles = dir =>
+	readdirSync(dir, { withFileTypes: true }).filter(
+		entry => entry.isFile() && entry.name.endsWith(".md"),
+	).length;
 
 export default defineConfig({
 	site: "https://vkma.dev",
 	// hover-prefetch every link: navigations serve from the memory cache
 	// instead of re-fetching, which shrinks the blank frame between loads
 	prefetch: { prefetchAll: true, defaultStrategy: "hover" },
+	// ru is the root locale (no prefix), en lives under /en/
+	i18n: {
+		defaultLocale: "ru",
+		locales: ["ru", "en"],
+		routing: { prefixDefaultLocale: false },
+	},
 	integrations: [
-		starlight({
-			title: "vkma.dev",
-			description: "Инструменты для VK Mini Apps: мост, роутер, devtools, деплой и схемы",
-			defaultLocale: "root",
-			locales: {
-				root: { label: "Русский", lang: "ru" },
-				en: { label: "English" },
-			},
-			sidebar,
-			customCss: [
-				"@fontsource-variable/inter",
-				"@fontsource-variable/geist-mono",
-				"./src/styles/theme.css",
-			],
-			head: [
-				// paint the pre-CSS blank canvas in the user's scheme instead
-				// of the browser-default white — kills the white flash on
-				// navigation for dark-theme readers
-				{
-					tag: "meta",
-					attrs: { name: "color-scheme", content: "dark light" },
-				},
-				{
-					tag: "meta",
-					attrs: {
-						name: "theme-color",
-						media: "(prefers-color-scheme: dark)",
-						content: "#17181c",
+		sitemap({ i18n: { defaultLocale: "ru", locales: { ru: "ru", en: "en" } } }),
+		nested404(),
+	],
+	markdown: {
+		// code is highlighted inside remarkCodeBlocks (it owns the whole figure)
+		syntaxHighlight: false,
+		processor: unified({
+			remarkPlugins: [remarkCodeBlocks],
+			// heading ids come first so the prose plugin can anchor to them
+			rehypePlugins: [
+				rehypeHeadingIds,
+				[
+					rehypeProse,
+					{
+						pkgCounts: Object.fromEntries(
+							PACKAGES.map(dir => [dir, mdFiles(docsDir + dir)]),
+						),
 					},
-				},
-				{
-					tag: "meta",
-					attrs: {
-						name: "theme-color",
-						media: "(prefers-color-scheme: light)",
-						content: "#ffffff",
-					},
-				},
-				// Starlight emits twitter:card but no image of any kind; link
-				// previews (Telegram, Slack, X) render bare text without these
-				{
-					tag: "meta",
-					attrs: { property: "og:image", content: "https://vkma.dev/og.png" },
-				},
-				{
-					tag: "meta",
-					attrs: { property: "og:image:width", content: "1200" },
-				},
-				{
-					tag: "meta",
-					attrs: { property: "og:image:height", content: "630" },
-				},
-				{
-					tag: "meta",
-					attrs: { name: "twitter:image", content: "https://vkma.dev/og.png" },
-				},
-				{
-					tag: "link",
-					attrs: {
-						rel: "icon",
-						href: "/favicon-96.png",
-						sizes: "96x96",
-						type: "image/png",
-					},
-				},
-				{
-					tag: "link",
-					attrs: { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-				},
-			],
-			editLink: {
-				baseUrl: "https://github.com/pajecawav/vkma/edit/master/apps/docs/src/content/docs",
-			},
-			social: [
-				{
-					icon: "github",
-					label: "GitHub",
-					href: "https://github.com/pajecawav/vkma",
-				},
+				],
 			],
 		}),
-	],
+	},
 });

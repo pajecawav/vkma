@@ -1,0 +1,39 @@
+---
+import Brand from "./Brand.astro";
+import Icon from "./Icon.astro";
+import LangSwitch from "./LangSwitch.astro";
+import Nav from "./Nav.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import { icon } from "../lib/icons";
+import { t, type Locale } from "../lib/i18n";
+import type { Doc, NavItem } from "../lib/navigation";
+
+interface Props {
+	nav: NavItem[];
+	current: Doc;
+	locale: Locale;
+	altHref: string | undefined;
+}
+
+const { nav, current, locale, altHref } = Astro.props;
+const s = t(locale);
+---
+
+<dialog class="drawer" data-drawer aria-label={s.menu}>
+	<div class="drawer-head">
+		<Brand locale={locale} />
+		<button class="iconbtn" type="button" data-drawer-close aria-label={s.close}>
+			<Icon name="close" />
+		</button>
+	</div>
+	<div class="drawer-scroll">
+		<Nav nav={nav} current={current} locale={locale} />
+	</div>
+	<div class="drawer-foot">
+		{altHref && <LangSwitch locale={locale} href={altHref} />}
+		<ThemeToggle locale={locale} />
+		<a class="iconbtn" href="https://github.com/pajecawav/vkma" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+			<Fragment set:html={icon("github")} />
+		</a>
+	</div>
+</dialog>

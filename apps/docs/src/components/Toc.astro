@@ -1,0 +1,37 @@
+---
+import type { MarkdownHeading } from "astro";
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+	headings: MarkdownHeading[];
+	locale: Locale;
+	editUrl: string;
+}
+
+const { headings, locale, editUrl } = Astro.props;
+const s = t(locale);
+// h2 and h3 make the contents; deeper headings would only add noise
+const items = headings.filter(heading => heading.depth === 2 || heading.depth === 3);
+---
+
+{
+	items.length > 0 && (
+		<aside class="toc" aria-label={s.toc}>
+			<p class="toc-title">{s.toc}</p>
+			<ul>
+				{items.map(heading => (
+					<li class:list={{ depth3: heading.depth === 3 }}>
+						<a href={`#${heading.slug}`}>{heading.text}</a>
+					</li>
+				))}
+			</ul>
+			<div class="toc-foot">
+				<a class="edit" href={editUrl} target="_blank" rel="noopener noreferrer">
+					<Icon name="pencil" />
+					<span>{s.edit}</span>
+				</a>
+			</div>
+		</aside>
+	)
+}
