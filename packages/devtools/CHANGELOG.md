@@ -1,5 +1,16 @@
 # @vkma.dev/devtools
 
+## 0.2.3
+
+### Patch Changes
+
+- af9bf43: Clients: copy a client's original page URL, tokens included
+- 974241e: Execute: the form's draft survives the page reload, one per tab
+- 8c79bd4: Execute: an event without params clears the previous event's prefilled params
+- 43af868: FAB: no browser tap highlight on touch
+- fae6033: Narrow panels without horizontal overflow; the FAB overlay is a full-bleed sheet on phones
+- e1135f8: Timeline: lighter response indent, wider payload panel
+
 ## 0.2.2
 
 ### Patch Changes

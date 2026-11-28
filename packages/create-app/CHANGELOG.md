@@ -1,5 +1,12 @@
 # @vkma.dev/create-app
 
+## 0.2.1
+
+### Patch Changes
+
+- 937ab96: Router template: profile loader timeout + null fallback so the app renders in a plain browser tab
+- 3460021: Templates: raise the @vkma.dev/deploy and @vkma.dev/devtools pins to 0.3.1 and 0.2.2
+
 ## 0.2.0
 
 ### Minor Changes

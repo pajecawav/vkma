@@ -1,5 +1,24 @@
 # @vkma.dev/devtools-extension
 
+## 0.2.4
+
+### Patch Changes
+
+- af9bf43: Clients: copy a client's original page URL, tokens included
+- 974241e: Execute: the form's draft survives the page reload, one per tab
+- 43af868: FAB: no browser tap highlight on touch
+- fae6033: Narrow panels without horizontal overflow; the FAB overlay is a full-bleed sheet on phones
+- cf3830f: Spy mode: an app nested one frame down (OK's games sit inside an adapter frame) has its requests captured
+- e1135f8: Timeline: lighter response indent, wider payload panel
+- 268bd3a: The side panel and the all-tabs tab keep receiving events after the watched page reloads
+- Updated dependencies [af9bf43]
+- Updated dependencies [974241e]
+- Updated dependencies [8c79bd4]
+- Updated dependencies [43af868]
+- Updated dependencies [fae6033]
+- Updated dependencies [e1135f8]
+    - @vkma.dev/devtools@0.2.3
+
 ## 0.2.3
 
 ### Patch Changes

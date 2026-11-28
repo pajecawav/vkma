@@ -1,5 +1,17 @@
 # @vkma.dev/inspect
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [af9bf43]
+- Updated dependencies [974241e]
+- Updated dependencies [8c79bd4]
+- Updated dependencies [43af868]
+- Updated dependencies [fae6033]
+- Updated dependencies [e1135f8]
+    - @vkma.dev/devtools@0.2.3
+
 ## 0.0.4
 
 ### Patch Changes

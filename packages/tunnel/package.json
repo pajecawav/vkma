@@ -1,6 +1,6 @@
 {
 	"name": "@vkma.dev/tunnel",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "Public HTTPS tunnels for local VK Mini App dev servers. CLI (vkma-tunnel), Node API and a Vite plugin.",
 	"type": "module",
 	"license": "MIT",

@@ -1,5 +1,12 @@
 # @vkma.dev/deploy
 
+## 0.3.2
+
+### Patch Changes
+
+- 93a897b: Deploy plan: print the app's name (apps.get) under the app id
+- d792199: `vkma-deploy login` no longer crashes on a Linux without `xdg-open` when it opens the browser
+
 ## 0.3.1
 
 ### Patch Changes
