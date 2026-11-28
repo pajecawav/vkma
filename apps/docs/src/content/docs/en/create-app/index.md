@@ -42,6 +42,7 @@ Flags:
   --pm <id>       Package manager: npm | pnpm | yarn | bun
   --no-install    Skip installing dependencies
   --no-git        Skip git init
+  -V, --version   Print the version
   -h, --help      Print this help
 ```
 

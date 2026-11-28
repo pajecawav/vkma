@@ -10,6 +10,7 @@ describe("parseArgs", () => {
 			install: true,
 			git: true,
 			help: false,
+			version: false,
 		});
 	});
 
@@ -33,6 +34,11 @@ describe("parseArgs", () => {
 	it("help aliases", () => {
 		expect(parseArgs(["-h"]).help).toBe(true);
 		expect(parseArgs(["--help"]).help).toBe(true);
+	});
+
+	it("version aliases", () => {
+		expect(parseArgs(["-V"]).version).toBe(true);
+		expect(parseArgs(["--version"]).version).toBe(true);
 	});
 
 	it("ignores everything after --", () => {

@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
 import { ArgsError, parseArgs } from "./args.ts";
@@ -15,6 +16,16 @@ import {
 import { DEFAULT_PRESET_ID, getPreset, PRESETS } from "./presets.ts";
 import { scaffoldProject } from "./scaffold.ts";
 
+/**
+ * The version of the package this CLI is installed from, read where it
+ * runs. A static JSON import would hand tsdown something to freeze into
+ * `dist/package.js` at build time, and a build from before a version bump
+ * then reports the previous release (`built-version.test.ts`).
+ */
+const { version: VERSION } = createRequire(import.meta.url)("../package.json") as {
+	version: string;
+};
+
 const USAGE = `Usage: npm create @vkma.dev/app [path] [flags]
 
 Presets: ${PRESETS.map(preset => preset.id).join(", ")}
@@ -25,6 +36,7 @@ Flags:
                   invoking command by default)
   --no-install    Skip installing dependencies
   --no-git        Skip git init
+  -V, --version   Print the version
   -h, --help      Print this help`;
 
 async function main(): Promise<number> {
@@ -39,6 +51,11 @@ async function main(): Promise<number> {
 
 	if (args.help) {
 		console.log(USAGE);
+		return 0;
+	}
+	// Before clack draws anything: `--version` is a plain line on stdout.
+	if (args.version) {
+		console.log(VERSION);
 		return 0;
 	}
 

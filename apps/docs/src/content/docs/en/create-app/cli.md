@@ -25,13 +25,14 @@ npm needs `--` before flags. Otherwise it swallows them as its own options (npm 
 
 ## Flags
 
-| Flag            | Meaning                                               |
-| --------------- | ----------------------------------------------------- |
-| `--preset <id>` | Preset: `base`, `vkui` or `router` (default `router`) |
-| `--pm <id>`     | Package manager: `npm` \| `pnpm` \| `yarn` \| `bun`   |
-| `--no-install`  | Skip installing dependencies after the scaffold       |
-| `--no-git`      | Skip git repository init                              |
-| `-h`, `--help`  | Print help                                            |
+| Flag              | Meaning                                               |
+| ----------------- | ----------------------------------------------------- |
+| `--preset <id>`   | Preset: `base`, `vkui` or `router` (default `router`) |
+| `--pm <id>`       | Package manager: `npm` \| `pnpm` \| `yarn` \| `bun`   |
+| `--no-install`    | Skip installing dependencies after the scaffold       |
+| `--no-git`        | Skip git repository init                              |
+| `-V`, `--version` | Print the version of `@vkma.dev/create-app`           |
+| `-h`, `--help`    | Print help                                            |
 
 The `--flag=value` form works too: `--preset=base`, `--pm=pnpm`. An unknown flag, a second positional argument or a valueless `--preset` fails with the usage text.
 

@@ -6,12 +6,13 @@ export interface CliArgs {
 	install: boolean;
 	git: boolean;
 	help: boolean;
+	version: boolean;
 }
 
 export class ArgsError extends Error {}
 
 /**
- * Hand-rolled flag parser. The CLI surface is five flags, a parser library
+ * Hand-rolled flag parser. The CLI surface is six flags, a parser library
  * would outweigh it. Supports `--flag value` and `--flag=value`; everything
  * after a bare `--` is ignored (npm forwards it from `npm create`).
  */
@@ -23,6 +24,7 @@ export function parseArgs(argv: readonly string[]): CliArgs {
 		install: true,
 		git: true,
 		help: false,
+		version: false,
 	};
 
 	let positionalAllowed = true;
@@ -53,6 +55,8 @@ export function parseArgs(argv: readonly string[]): CliArgs {
 
 		if (arg === "--help" || arg === "-h") {
 			args.help = true;
+		} else if (arg === "--version" || arg === "-V") {
+			args.version = true;
 		} else if (arg === "--preset") {
 			args.preset = next();
 		} else if (arg.startsWith("--preset=")) {

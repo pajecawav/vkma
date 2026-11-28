@@ -42,6 +42,7 @@ Flags:
   --pm <id>       Менеджер пакетов: npm | pnpm | yarn | bun
   --no-install    Не устанавливать зависимости
   --no-git        Не инициализировать git
+  -V, --version   Версия пакета
   -h, --help      Справка
 ```
 
