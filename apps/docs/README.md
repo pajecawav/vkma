@@ -10,6 +10,9 @@ plugins), byte-exact `.md` copies of every page plus `llms.txt` / `llms-full.txt
 `tests/` pins that contract, the SEO head and the code chrome; run a build before
 `pnpm test`.
 
+`PRODUCT.md` says who the site is for and what must not change; `DESIGN.md` records
+the tokens, the frame and the code block.
+
 ## Layout
 
 - `astro.config.mjs` — the Markdown pipeline (`unified()` plus the two in-house
