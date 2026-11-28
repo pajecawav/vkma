@@ -7,6 +7,17 @@
 	--sl-font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* Header selects (theme, language). Starlight sizes them in em — 6.25em and
+   7em — a budget its English strings fit and its own TODO questions. The
+   Russian ones run past it and get an ellipsis: «Светлая» in any font, and
+   «Русский» under Inter, which is a touch wider than the system stack. Fit
+   the widest option instead, never narrower than the stock box. */
+starlight-theme-select select,
+starlight-lang-select select {
+	width: max-content;
+	min-width: calc(var(--sl-select-width) + var(--sl-inline-padding) * 2);
+}
+
 /* Code blocks keep Expressive Code's default themes (night-owl dark and
    light) — syntax highlighting is colored and switches with the site
    theme. */
