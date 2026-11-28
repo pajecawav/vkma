@@ -13,7 +13,7 @@ my-app/
 ├── index.html              # точка входа: <div id="root">, lang="ru"
 ├── package.json            # имя из каталога, скрипты, caret-диапазоны
 ├── tsconfig.json           # strict, moduleResolution: bundler, noEmit
-├── vite.config.ts          # react() + vkmaDevtools()
+├── vite.config.ts          # react() + vkmaDevtools() + vkmaTunnel()
 ├── vkma-deploy.config.ts   # appId, staticPath, endpoints
 ├── .gitignore
 ├── README.md               # как запускать и деплоить
@@ -33,28 +33,39 @@ my-app/
 
 ## Скрипты
 
-| Скрипт    | Что делает                                                     |
-| --------- | -------------------------------------------------------------- |
-| `dev`     | `vite` — dev-сервер с панелью `/__vkma/`                       |
-| `build`   | `tsc --noEmit && vite build` — проверка типов, бандл в `dist/` |
-| `preview` | `vite preview` — локальный прогон сборки                       |
-| `deploy`  | `vkma-deploy` — публикация `dist/` в хостинг VK Mini Apps      |
+| Скрипт    | Что делает                                                        |
+| --------- | ----------------------------------------------------------------- |
+| `dev`     | `vite` — dev-сервер с панелью `/__vkma/`                          |
+| `build`   | `tsc --noEmit && vite build` — проверка типов, бандл в `dist/`    |
+| `preview` | `vite preview` — локальный прогон сборки                          |
+| `deploy`  | `vkma-deploy` — публикация `dist/` в хостинг VK Mini Apps         |
+| `tunnel`  | `vkma-tunnel --port 5173` — публичный HTTPS-адрес для dev-сервера |
 
 `build` сначала прогоняет `tsc --noEmit` по strict-конфигу. Сборка не начнётся, пока есть ошибки типов.
+
+`tunnel` — отдельный процесс: CLI `vkma-tunnel` поднимает туннель к уже запущенному dev-серверу на 5173 и печатает адрес. Плагин в `vite.config.ts` (ниже) делает то же, но сам, вместе с dev-сервером.
 
 ## vite.config.ts
 
 ```ts
 import react from "@vitejs/plugin-react";
 import { vkmaDevtools } from "@vkma.dev/devtools";
+import { vkmaTunnel } from "@vkma.dev/tunnel/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [react(), vkmaDevtools()],
+    plugins: [react(), vkmaDevtools(), vkmaTunnel({ enabled: false })],
 });
 ```
 
 Плагин `vkmaDevtools()` вешает панель devtools на `/__vkma/`: timeline всех событий моста, подключённые клиенты и интерактивный execute. У моста в приложении уже есть tap, и панель видит трафик без настройки.
+
+Плагин `vkmaTunnel()` из `@vkma.dev/tunnel` даёт dev-серверу публичный HTTPS-адрес: приложение можно открыть на телефоне или вписать адрес в настройки VK-приложения, не деплоя. В шаблоне он **выключен** (`enabled: false`) и включается явно, одним из двух способов:
+
+- `enabled: true` — туннель поднимается вместе с dev-сервером и печатает адрес рядом со строками Vite;
+- `npm run tunnel` во втором терминале при запущенном dev-сервере, плагин остаётся выключен.
+
+Одно из двух: оба способа делят профиль проекта и спорили бы за его маршрут. Подробности в разделе [tunnel](/tunnel/).
 
 ## vkma-deploy.config.ts
 

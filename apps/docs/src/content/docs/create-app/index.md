@@ -27,6 +27,7 @@ npm create @vkma.dev/app my-app
 - `@vkma.dev/bridge` — мост со встроенным tap для devtools
 - devtools vite-плагин и панель `/__vkma/` (timeline моста, клиенты, execute)
 - `@vkma.dev/deploy`: `vkma-deploy.config.ts`, `npm run deploy`, `npx vkma-deploy login`
+- `@vkma.dev/tunnel`: плагин в `vite.config.ts`, выключен по умолчанию — включается явно через `enabled: true` или `npm run tunnel` во втором терминале
 - TypeScript strict, `engines`, README, `.gitignore`
 
 В пресеты `vkui` и `router` входит `@vkma.dev/vkui-bridge`, собранный `<VKBridgeConfigProvider>` (тема хоста, safe-area insets, адаптивность, платформа `vkcom`), подключённый в `main.tsx`.

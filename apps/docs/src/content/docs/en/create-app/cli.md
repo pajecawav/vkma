@@ -64,4 +64,6 @@ npm create @vkma.dev/app my-app -- \
 
 After scaffolding the CLI prints next steps: `cd` into the directory, `<pm> install` too when `--no-install` was passed, then the dev command in your manager's shape (`npm run dev`, `pnpm dev`, `bun run dev`) and the deploy hint: set `appId` in `vkma-deploy.config.ts`, authorize once with `npx vkma-deploy login`, then run `deploy`, see [deploy](/en/deploy/).
 
+The last lines are the tunnel hint: `@vkma.dev/tunnel` is wired in but off. Enable it explicitly, with `enabled: true` on `vkmaTunnel()` in `vite.config.ts` or with the `tunnel` script in your manager's shape, in a second terminal while the dev server runs, see the [app structure](/en/create-app/structure/).
+
 What exactly gets generated is covered in the [app structure](/en/create-app/structure/).

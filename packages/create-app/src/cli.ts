@@ -205,7 +205,11 @@ async function main(): Promise<number> {
 
 Deploy: set your appId in vkma-deploy.config.ts, authorize once with
   npx vkma-deploy login
-then deploy with ${runCommand(pm, "deploy")}`);
+then deploy with ${runCommand(pm, "deploy")}
+
+Tunnel: @vkma.dev/tunnel is wired in but off — enable it explicitly, either
+  enabled: true on vkmaTunnel() in vite.config.ts
+  or ${runCommand(pm, "tunnel")} in a second terminal while the dev server runs`);
 
 	p.outro("Done — happy hacking!");
 	return 0;

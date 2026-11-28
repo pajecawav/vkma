@@ -64,4 +64,6 @@ npm create @vkma.dev/app my-app -- \
 
 После скаффолда CLI печатает следующие шаги: `cd` в каталог, при `--no-install` ещё `<pm> install`, затем запуск dev-сервера в форме твоего менеджера (`npm run dev`, `pnpm dev`, `bun run dev`) и подсказку про деплой: проставь `appId` в `vkma-deploy.config.ts`, залогинься `npx vkma-deploy login` и вызови `deploy`, см. [deploy](/deploy/).
 
+Последними строками идёт подсказка про туннель: `@vkma.dev/tunnel` подключён, но выключен. Включи его явно — через `enabled: true` у `vkmaTunnel()` в `vite.config.ts` либо скриптом `tunnel` в форме твоего менеджера во втором терминале при запущенном dev-сервере, см. [структуру приложения](/create-app/structure/).
+
 Что именно генерируется, описано в [структуре приложения](/create-app/structure/).

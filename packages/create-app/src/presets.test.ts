@@ -69,6 +69,7 @@ describe("template package.json fragments", () => {
 			"@vkma.dev/bridge",
 			"@vkma.dev/deploy",
 			"@vkma.dev/devtools",
+			"@vkma.dev/tunnel",
 			"react",
 			"react-dom",
 			"vite",

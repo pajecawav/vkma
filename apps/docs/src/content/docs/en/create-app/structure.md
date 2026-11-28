@@ -13,7 +13,7 @@ my-app/
 ├── index.html              # entry: <div id="root">, lang="ru"
 ├── package.json            # name from the directory, scripts, caret ranges
 ├── tsconfig.json           # strict, moduleResolution: bundler, noEmit
-├── vite.config.ts          # react() + vkmaDevtools()
+├── vite.config.ts          # react() + vkmaDevtools() + vkmaTunnel()
 ├── vkma-deploy.config.ts   # appId, staticPath, endpoints
 ├── .gitignore
 ├── README.md               # how to run and deploy
@@ -33,28 +33,39 @@ In `base`, the `app.tsx`/`shell.tsx`/`panels/` part collapses to a single `App.t
 
 ## Scripts
 
-| Script    | What it does                                                   |
-| --------- | -------------------------------------------------------------- |
-| `dev`     | `vite` — dev server with the `/__vkma/` panel                  |
-| `build`   | `tsc --noEmit && vite build` — type check, bundle into `dist/` |
-| `preview` | `vite preview` — serve the production build locally            |
-| `deploy`  | `vkma-deploy` — publish `dist/` to VK Mini Apps hosting        |
+| Script    | What it does                                                        |
+| --------- | ------------------------------------------------------------------- |
+| `dev`     | `vite` — dev server with the `/__vkma/` panel                       |
+| `build`   | `tsc --noEmit && vite build` — type check, bundle into `dist/`      |
+| `preview` | `vite preview` — serve the production build locally                 |
+| `deploy`  | `vkma-deploy` — publish `dist/` to VK Mini Apps hosting             |
+| `tunnel`  | `vkma-tunnel --port 5173` — public HTTPS address for the dev server |
 
 `build` runs `tsc --noEmit` against the strict config first. The bundle never starts while type errors remain.
+
+`tunnel` is a separate process: the `vkma-tunnel` CLI opens a tunnel to the dev server already running on 5173 and prints the address. The plugin in `vite.config.ts` (below) does the same on its own, together with the dev server.
 
 ## vite.config.ts
 
 ```ts
 import react from "@vitejs/plugin-react";
 import { vkmaDevtools } from "@vkma.dev/devtools";
+import { vkmaTunnel } from "@vkma.dev/tunnel/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [react(), vkmaDevtools()],
+    plugins: [react(), vkmaDevtools(), vkmaTunnel({ enabled: false })],
 });
 ```
 
 The `vkmaDevtools()` plugin mounts the devtools panel at `/__vkma/`: a timeline of every bridge event, connected clients and interactive execute. The app's bridge already carries a tap, so the panel sees the traffic with zero setup.
+
+The `vkmaTunnel()` plugin from `@vkma.dev/tunnel` gives the dev server a public HTTPS address: the app can be opened on a phone, or the address wired into the VK app settings, without deploying. The template ships it **off** (`enabled: false`), and it is enabled explicitly, one of two ways:
+
+- `enabled: true` — the tunnel starts together with the dev server and prints its address next to Vite's lines;
+- `npm run tunnel` in a second terminal while the dev server runs, the plugin staying off.
+
+One of the two: both share the project's profile and would fight over its route. Details in the [tunnel](/en/tunnel/) section.
 
 ## vkma-deploy.config.ts
 

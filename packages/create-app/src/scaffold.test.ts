@@ -51,12 +51,14 @@ describe("scaffoldProject", () => {
 			expect(pkg.private).toBe(true);
 			expect(pkg.engines.node).toBe(">=22.18.0");
 			expect(pkg.scripts["deploy"]).toBe("vkma-deploy");
+			expect(pkg.scripts["tunnel"]).toBe("vkma-tunnel --port 5173");
 
 			// base stack present in every preset, caret-ranged
 			for (const name of [
 				"@vkma.dev/bridge",
 				"@vkma.dev/devtools",
 				"@vkma.dev/deploy",
+				"@vkma.dev/tunnel",
 				"react",
 			]) {
 				const version = pkg.dependencies[name] ?? pkg.devDependencies[name];
@@ -99,6 +101,16 @@ describe("scaffoldProject", () => {
 			// --- index.html title ---
 			const html = await readFile(join(result.targetDir, "index.html"), "utf8");
 			expect(html).toContain(`<title>my cool app ${preset.id}</title>`);
+
+			// --- the tunnel ships wired in, but switched off: opting in is a
+			// deliberate edit, never a scaffold side effect ---
+			const viteConfig = await readFile(join(result.targetDir, "vite.config.ts"), "utf8");
+			expect(viteConfig, `${preset.id}:tunnel import`).toContain(
+				`from "@vkma.dev/tunnel/vite"`,
+			);
+			expect(viteConfig, `${preset.id}:tunnel disabled`).toMatch(
+				/vkmaTunnel\(\{\s*enabled:\s*false,?\s*\}\)/,
+			);
 
 			// --- preset source shape ---
 			if (preset.id === "router") {

@@ -27,6 +27,7 @@ Every generated app ships with:
 - `@vkma.dev/bridge`, the bridge with a built-in devtools tap
 - the devtools vite plugin mounting the `/__vkma/` panel (bridge timeline, clients, execute)
 - `@vkma.dev/deploy`: `vkma-deploy.config.ts`, `npm run deploy`, `npx vkma-deploy login`
+- `@vkma.dev/tunnel`: the plugin in `vite.config.ts`, off by default — enabled explicitly with `enabled: true`, or with `npm run tunnel` in a second terminal
 - TypeScript (strict), `engines`, README, `.gitignore`
 
 The `vkui` and `router` presets also ship `@vkma.dev/vkui-bridge`, a preassembled `<VKBridgeConfigProvider>` (host theme, safe-area insets, adaptivity, `vkcom` platform) wired in `main.tsx`.
