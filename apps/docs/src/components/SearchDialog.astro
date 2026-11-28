@@ -23,6 +23,10 @@ const s = t(locale);
 		<Icon name="search" />
 		<input
 			type="search"
+			role="combobox"
+			aria-expanded="true"
+			aria-controls="sd-results"
+			aria-autocomplete="list"
 			placeholder={s.searchPh}
 			autocomplete="off"
 			autocapitalize="off"
@@ -31,10 +35,10 @@ const s = t(locale);
 		/>
 		<kbd class="kbd">Esc</kbd>
 	</div>
-	<ul class="sd-results" role="listbox" aria-label={s.search}>
+	<ul class="sd-results" id="sd-results" role="listbox" aria-label={s.search}>
 		{
-			quick.map(link => (
-				<li class="sd-r" role="option" aria-selected="false" data-url={link.href}>
+			quick.map((link, index) => (
+				<li class="sd-r" id={`sd-option-${index}`} role="option" aria-selected="false" data-url={link.href}>
 					<span class="rt">{link.title}</span>
 					<span class="rs">{link.section}</span>
 				</li>

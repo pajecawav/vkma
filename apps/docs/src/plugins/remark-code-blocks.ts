@@ -315,25 +315,24 @@ export async function codeFigure(
 		const tabs = h(
 			"div",
 			{ class: "code-tabs", role: "tablist", ariaLabel: s.pm, dataPagefindIgnore: "" },
-			[
-				...block.pm.map((variant, index) =>
-					h(
-						"button",
-						{
-							type: "button",
-							role: "tab",
-							id: `${uid}-t${index}`,
-							ariaSelected: index === 0 ? "true" : "false",
-							ariaControls: [`${uid}-p${index}`],
-							tabIndex: index === 0 ? 0 : -1,
-							dataPm: variant.id,
-						},
-						[text(variant.label)],
-					),
+			block.pm.map((variant, index) =>
+				h(
+					"button",
+					{
+						type: "button",
+						role: "tab",
+						id: `${uid}-t${index}`,
+						ariaSelected: index === 0 ? "true" : "false",
+						ariaControls: [`${uid}-p${index}`],
+						tabIndex: index === 0 ? 0 : -1,
+						dataPm: variant.id,
+					},
+					[text(variant.label)],
 				),
-				copyButtonHast(s.copy),
-			],
+			),
 		);
+		// the tablist holds tabs only: the copy button is its sibling in the header row
+		const head = h("div", { class: "code-head" }, [tabs, copyButtonHast(s.copy)]);
 		const panels = await Promise.all(
 			block.pm.map(async (variant, index) =>
 				h(
@@ -350,7 +349,7 @@ export async function codeFigure(
 			),
 		);
 		return h("figure", { class: "code has-head code-group", dataLang: block.lang }, [
-			tabs,
+			head,
 			h("div", { class: "code-body" }, panels),
 		]);
 	}

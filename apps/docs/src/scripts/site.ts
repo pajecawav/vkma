@@ -68,6 +68,18 @@ $$("[data-theme-toggle]").forEach(button =>
 	),
 );
 
+// paper is printed in light ink whatever the screen says; print.css hides the frame
+let screenTheme: string | undefined;
+window.addEventListener("beforeprint", () => {
+	screenTheme = root.dataset.theme;
+	root.dataset.theme = "light";
+});
+window.addEventListener("afterprint", () => {
+	if (screenTheme) {
+		root.dataset.theme = screenTheme;
+	}
+});
+
 /* ------------------------------------------------------------ keyboard */
 
 const mac = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -166,6 +178,44 @@ $$(".code-group").forEach(group => {
 	}
 });
 
+/* ------------------------------------------------------ navigation memory */
+
+// The groups a reader opened stay open on the next page (for this tab). The
+// island and the drawer carry the same tree, so they are kept in step.
+const groups = $$<HTMLDetailsElement>("details.grp");
+if (groups.length > 0) {
+	const nameOf = (group: HTMLDetailsElement): string => $(".grp-name", group)?.textContent ?? "";
+	const remembered = store("vkma-nav");
+	if (remembered !== null) {
+		const open = new Set(remembered.split("\n"));
+		for (const group of groups) {
+			// the current page's group is always open on arrival; the reader
+			// may still fold it away afterwards
+			group.open =
+				group.querySelector('[aria-current="page"]') !== null || open.has(nameOf(group));
+		}
+	}
+	document.addEventListener(
+		"toggle",
+		event => {
+			const group = event.target;
+			if (!(group instanceof HTMLDetailsElement) || !group.classList.contains("grp")) {
+				return;
+			}
+			for (const other of groups) {
+				if (other !== group && nameOf(other) === nameOf(group)) {
+					other.open = group.open;
+				}
+			}
+			store(
+				"vkma-nav",
+				[...new Set(groups.filter(item => item.open).map(nameOf))].join("\n"),
+			);
+		},
+		true,
+	);
+}
+
 /* --------------------------------------------------- contents scroll-spy */
 
 const tocLinks = $$(".toc a[href^='#'], .toc-m a[href^='#']");
@@ -218,9 +268,15 @@ const drawer = $<HTMLDialogElement>("dialog[data-drawer]");
 if (drawer) {
 	$$("[data-drawer-open]").forEach(button =>
 		button.addEventListener("click", () => {
-			if (!drawer.open) {
-				drawer.showModal();
+			if (drawer.open) {
+				return;
 			}
+			drawer.showModal();
+			// start where the reader is: the current page, else the close button
+			const start =
+				$<HTMLElement>(".nl[aria-current='page']", drawer) ??
+				$<HTMLElement>("[data-drawer-close]", drawer);
+			start?.focus();
 		}),
 	);
 	$$("[data-drawer-close]", drawer).forEach(button =>
@@ -280,6 +336,8 @@ if (dialog) {
 				const on = index === selected;
 				item.setAttribute("aria-selected", String(on));
 				if (on) {
+					// the input keeps the focus; it names the option in view
+					input.setAttribute("aria-activedescendant", `sd-option-${index}`);
 					item.scrollIntoView({ block: "nearest" });
 				}
 			});
@@ -289,9 +347,10 @@ if (dialog) {
 			items = rows;
 			selected = 0;
 			list.replaceChildren(
-				...rows.map(row => {
+				...rows.map((row, index) => {
 					const item = document.createElement("li");
 					item.className = "sd-r";
+					item.id = `sd-option-${index}`;
 					item.setAttribute("role", "option");
 					item.setAttribute("aria-selected", "false");
 					item.dataset.url = row.url;
@@ -309,11 +368,13 @@ if (dialog) {
 					return item;
 				}),
 			);
+			paint();
 		};
 
 		const notice = (message: string): void => {
 			items = [];
 			list.replaceChildren(element("li", "sd-empty", message));
+			input.removeAttribute("aria-activedescendant");
 		};
 
 		const run = async (query: string): Promise<void> => {
@@ -354,6 +415,8 @@ if (dialog) {
 			void load();
 		};
 
+		// the opening list is server-rendered: mark its first row like any other
+		paint();
 		$$("[data-search]").forEach(button => button.addEventListener("click", open));
 		input.addEventListener("input", () => void run(input.value));
 		list.addEventListener("click", event => {
@@ -375,7 +438,12 @@ if (dialog) {
 			}
 		});
 		dialog.addEventListener("keydown", event => {
-			if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			if (event.key === "Escape") {
+				// a search field clears itself on the first Escape and swallows the
+				// close request: the dialog closes on the first press, as its hint says
+				event.preventDefault();
+				dialog.close();
+			} else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
 				event.preventDefault();
 				if (items.length === 0) {
 					return;

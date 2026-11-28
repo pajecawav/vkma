@@ -678,23 +678,19 @@ a .ic {
 	}
 }
 
-/* package-manager tabs: the active tab is "attached" to the code below */
+/* package-manager tabs: the tablist is the header row's first part and the copy
+   button its sibling (a tablist may hold nothing but tabs); the active tab is
+   "attached" to the code below — its 1px shadow covers the header's rule */
+.code-group .code-head {
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 0;
+	padding: 0 6px 0 0;
+}
 .code-tabs {
-	position: relative;
 	display: flex;
 	align-items: stretch;
 	min-height: 36px;
-	padding: 0 6px 0 6px;
-	background: var(--code-head);
-}
-.code-tabs::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	height: 1px;
-	background: var(--code-line);
 }
 .code-tabs [role="tab"] {
 	position: relative;
@@ -709,7 +705,7 @@ a .ic {
 		background-color 0.12s;
 }
 .code-tabs [role="tab"]:first-child {
-	padding-left: 12px;
+	padding-left: 10px;
 }
 .code-tabs [role="tab"]:hover {
 	color: var(--ink);
@@ -724,7 +720,7 @@ a .ic {
 html:not(.js) .code-tabs [role="tab"] {
 	cursor: default;
 }
-.code-tabs .copy {
+.code-head .copy {
 	margin-left: auto;
 	align-self: center;
 }
@@ -1094,7 +1090,7 @@ html[data-theme="dark"] .shiki span {
 }
 .sd-r .rs {
 	font: 500 12px/1 var(--mono);
-	color: var(--ink-3);
+	color: var(--ink-2);
 }
 .sd-r .rd mark {
 	background: var(--accent-soft);
@@ -1106,7 +1102,7 @@ html[data-theme="dark"] .shiki span {
 	grid-column: 1 / -1;
 	margin-top: 2px;
 	font-size: 12.5px;
-	color: var(--ink-3);
+	color: var(--ink-2);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;

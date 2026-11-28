@@ -39,6 +39,16 @@ function firstElement(node: Element, tagName: string): Element | null {
 	return null;
 }
 
+/** `Таблица: Менеджер, Команда` — the header row tells the tables on a page apart. */
+function tableLabel(table: Element, word: string): string {
+	const columns = elements(table, "thead")
+		.flatMap(head => elements(head, "tr"))
+		.flatMap(row => elements(row, "th"))
+		.map(cell => toText(cell).trim())
+		.filter(Boolean);
+	return columns.length > 0 ? `${word}: ${columns.slice(0, 3).join(", ")}` : word;
+}
+
 function anchor(heading: Element, label: string): void {
 	const id = heading.properties.id;
 	if (typeof id !== "string" || !id) {
@@ -114,11 +124,20 @@ export function rehypeProse(options: ProseOptions = {}) {
 					const index_ = options.pkgCounts
 						? packageIndex(node, options.pkgCounts, s.pages)
 						: null;
+					// focusable so a keyboard reader can scroll a wide table;
+					// a focusable region needs a name, and one that is its own
 					parent.children[index] =
 						index_ ??
-						h("div", { className: ["table-wrap"], tabIndex: 0, role: "region" }, [
-							node,
-						]);
+						h(
+							"div",
+							{
+								className: ["table-wrap"],
+								tabIndex: 0,
+								role: "region",
+								ariaLabel: tableLabel(node, s.table),
+							},
+							[node],
+						);
 					break;
 				}
 			}
