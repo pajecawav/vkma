@@ -1,0 +1,50 @@
+---
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+import { entryPath, navLabel, type Doc, type NavItem } from "../lib/navigation";
+
+interface Props {
+	nav: NavItem[];
+	current: Doc;
+	locale: Locale;
+	class?: string;
+}
+
+const { nav, current, locale, class: className } = Astro.props;
+const s = t(locale);
+const isCurrent = (entry: Doc) => entry.id === current.id;
+---
+
+<nav class:list={["nav", className]} aria-label={s.docs}>
+	<ul>
+		{
+			nav.map(item =>
+				item.type === "link" ? (
+					<li>
+						<a class="nl n-top" href={entryPath(item.entry)} aria-current={isCurrent(item.entry) ? "page" : undefined}>
+							{item.label}
+						</a>
+					</li>
+				) : (
+					<li>
+						<details class="grp" open={item.entries.some(isCurrent)}>
+							<summary>
+								<span class="grp-name">{item.dir}</span>
+								<Icon name="chevron" />
+							</summary>
+							<ul>
+								{item.entries.map(entry => (
+									<li>
+										<a class="nl" href={entryPath(entry)} aria-current={isCurrent(entry) ? "page" : undefined}>
+											{navLabel(entry)}
+										</a>
+									</li>
+								))}
+							</ul>
+						</details>
+					</li>
+				),
+			)
+		}
+	</ul>
+</nav>

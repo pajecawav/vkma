@@ -1,0 +1,56 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import MobileMenu from "../components/MobileMenu.astro";
+import Nav from "../components/Nav.astro";
+import Paginator from "../components/Paginator.astro";
+import SearchDialog from "../components/SearchDialog.astro";
+import Toc from "../components/Toc.astro";
+import TocMobile from "../components/TocMobile.astro";
+import { bareId, localeOf, pathOf } from "../lib/docs";
+import { t } from "../lib/i18n";
+import { allDocs, editUrl, entryPath, neighbours, navFor, quickLinks, translation } from "../lib/navigation";
+
+export async function getStaticPaths() {
+	const entries = await getCollection("docs", ({ id }) => bareId(id) !== "404");
+	return entries.map(entry => ({
+		// the home page is `/`, everything else is its id: /bridge/, /en/bridge/tap/
+		params: { slug: entry.id === "index" ? undefined : entry.id },
+		props: { entry },
+	}));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const locale = localeOf(entry.id);
+const s = t(locale);
+const entries = await allDocs();
+const nav = navFor(entries, locale);
+const { prev, next } = neighbours(nav, entry);
+const alt = translation(entries, entry);
+const home = bareId(entry.id) === "index";
+---
+
+<Base title={entry.data.title} description={entry.data.description} locale={locale} id={entry.id}>
+	<Header locale={locale} altHref={alt ? entryPath(alt) : undefined} />
+	<div class="shell">
+		<Nav class="island-nav" nav={nav} current={entry} locale={locale} />
+		<main class="main" id="main" data-pagefind-body tabindex="-1">
+			<article class:list={["doc", { home }]}>
+				<header class="doc-head">
+					<h1>{entry.data.title}</h1>
+					{entry.data.description && !home && <p class="lede">{entry.data.description}</p>}
+				</header>
+				<TocMobile headings={headings} locale={locale} />
+				<div class="prose">
+					<Content />
+				</div>
+				<Paginator locale={locale} prev={prev} next={next} />
+			</article>
+		</main>
+		<Toc headings={headings} locale={locale} editUrl={editUrl(entry)} />
+	</div>
+	<MobileMenu nav={nav} current={entry} locale={locale} altHref={alt ? entryPath(alt) : undefined} />
+	<SearchDialog locale={locale} quick={quickLinks(nav)} />
+</Base>

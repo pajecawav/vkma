@@ -1,0 +1,33 @@
+---
+import type { MarkdownHeading } from "astro";
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+	headings: MarkdownHeading[];
+	locale: Locale;
+}
+
+const { headings, locale } = Astro.props;
+const s = t(locale);
+// h2 and h3 make the contents; deeper headings would only add noise
+const items = headings.filter(heading => heading.depth === 2 || heading.depth === 3);
+---
+
+{
+	items.length > 0 && (
+		<details class="toc-m" data-pagefind-ignore>
+			<summary>
+				<span>{s.toc}</span>
+				<Icon name="chevron" />
+			</summary>
+			<ul>
+				{items.map(heading => (
+					<li>
+						<a href={`#${heading.slug}`}>{heading.text}</a>
+					</li>
+				))}
+			</ul>
+		</details>
+	)
+}

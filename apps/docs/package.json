@@ -1,7 +1,7 @@
 {
 	"name": "@vkma.dev/docs",
 	"version": "0.0.0",
-	"description": "The vkma.dev documentation site (Starlight on Astro)",
+	"description": "The vkma.dev documentation site (Astro)",
 	"private": true,
 	"type": "module",
 	"license": "MIT",
@@ -10,7 +10,7 @@
 	},
 	"scripts": {
 		"dev": "astro dev",
-		"build": "astro build && node scripts/ai-endpoints.mjs",
+		"build": "astro build --force && pagefind --site dist && node scripts/ai-endpoints.mjs",
 		"preview": "astro preview",
 		"preview:prod": "run-s build preview:wrangler",
 		"preview:wrangler": "pnpx wrangler dev",
@@ -21,11 +21,16 @@
 		"test:watch": "vitest watch"
 	},
 	"devDependencies": {
-		"@astrojs/starlight": "catalog:",
+		"@astrojs/markdown-remark": "catalog:",
+		"@astrojs/sitemap": "catalog:",
 		"@fontsource-variable/geist-mono": "5.3.0",
 		"@fontsource-variable/inter": "5.3.0",
+		"@types/hast": "catalog:",
+		"@types/mdast": "catalog:",
 		"astro": "catalog:",
 		"npm-run-all2": "catalog:",
+		"pagefind": "catalog:",
+		"shiki": "catalog:",
 		"takumi-js": "2.22.1",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

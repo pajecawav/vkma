@@ -1,0 +1,34 @@
+---
+import Brand from "./Brand.astro";
+import Icon from "./Icon.astro";
+import LangSwitch from "./LangSwitch.astro";
+import SearchButton from "./SearchButton.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import { icon } from "../lib/icons";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+	locale: Locale;
+	/** The other locale's version of the current page. */
+	altHref: string | undefined;
+}
+
+const { locale, altHref } = Astro.props;
+const s = t(locale);
+---
+
+<header class="top">
+	<div class="top-in">
+		<button class="iconbtn menubtn" type="button" data-drawer-open aria-label={s.menu} title={s.menu}>
+			<Icon name="menu" />
+		</button>
+		<Brand locale={locale} />
+		<span class="sp"></span>
+		<SearchButton locale={locale} />
+		{altHref && <LangSwitch locale={locale} href={altHref} />}
+		<ThemeToggle locale={locale} />
+		<a class="iconbtn" href="https://github.com/pajecawav/vkma" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+			<Fragment set:html={icon("github")} />
+		</a>
+	</div>
+</header>

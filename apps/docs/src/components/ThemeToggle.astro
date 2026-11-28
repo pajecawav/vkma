@@ -1,0 +1,16 @@
+---
+import { icon } from "../lib/icons";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+	locale: Locale;
+}
+
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<button class="iconbtn themebtn" type="button" data-theme-toggle aria-label={s.theme} title={s.theme}>
+	<Fragment set:html={icon("sun")} />
+	<Fragment set:html={icon("moon")} />
+</button>

@@ -1,0 +1,17 @@
+---
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+	locale: Locale;
+}
+
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<button class="search" type="button" data-search aria-label={s.search}>
+	<Icon name="search" />
+	<span class="search-label">{s.search}</span>
+	<kbd class="kbd" data-kbd>Ctrl K</kbd>
+</button>
