@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import pkg from "../../package.json";
 import { saveCredentials } from "../credentials/store.ts";
 import {
 	createFetchSpy,
@@ -116,10 +117,13 @@ describe("main()", () => {
 		expect(out.join("")).toContain("vk-hosting-config.json");
 	});
 
-	it("prints version", async () => {
+	it("prints the package's own version", async () => {
 		const code = await main(["--version"], { stdout, stderr, stdin, env: env(), cwd: root });
 		expect(code).toBe(0);
-		expect(out.join("")).toMatch(/^\d+\.\d+\.\d+\n$/);
+		// Exactly what package.json says: the CLI reads it where it runs,
+		// so a build from before a version bump cannot report the previous
+		// release. `built-version.test.ts` holds the built CLI to the same.
+		expect(out.join("")).toBe(`${pkg.version}\n`);
 	});
 
 	it("rejects unknown flags with exit 1", async () => {

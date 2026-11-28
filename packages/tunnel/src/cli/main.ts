@@ -7,8 +7,8 @@
  */
 
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import net from "node:net";
-import pkg from "../../package.json";
 import { loadConfigFile } from "../config/load.ts";
 import { findConfigFile } from "../config/resolve.ts";
 import { CLOUDFLARED_PROVIDER, PROFILE_PATTERN } from "../constants.ts";
@@ -33,7 +33,15 @@ import { TunnelLogger, paint, type LoggerMode } from "./logger.ts";
 import { openUrl } from "./opener.ts";
 import { renderQr } from "./qr.ts";
 
-const VERSION = pkg.version;
+/**
+ * The version of the package this CLI is installed from, read where it
+ * runs. A static JSON import would hand tsdown something to freeze into
+ * `dist/package.js` at build time, and a build from before a version bump
+ * then reports the previous release (`built-version.test.ts`).
+ */
+const { version: VERSION } = createRequire(import.meta.url)("../../package.json") as {
+	version: string;
+};
 
 /** How long a clean stop may take after SIGINT before we stop waiting. */
 const ABORT_GRACE_MS = 3000;

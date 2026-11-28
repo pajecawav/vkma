@@ -7,7 +7,7 @@
  */
 
 import http from "node:http";
-import pkg from "../../package.json";
+import { createRequire } from "node:module";
 import { getAppTitle } from "../api/apps.ts";
 import type { FetchLike } from "../api/client.ts";
 import { loginDeviceFlow } from "../api/oauth.ts";
@@ -41,7 +41,15 @@ import { confirm, text } from "./prompt.ts";
 import { nativeSetGlobalProxyFromEnv, setupProxy } from "./proxy.ts";
 import { StatusReporter } from "./status.ts";
 
-const VERSION = pkg.version;
+/**
+ * The version of the package this CLI is installed from, read where it
+ * runs. A static JSON import would hand tsdown something to freeze into
+ * `dist/package.js` at build time, and a build from before a version bump
+ * then reports the previous release (`built-version.test.ts`).
+ */
+const { version: VERSION } = createRequire(import.meta.url)("../../package.json") as {
+	version: string;
+};
 
 export interface MainOptions {
 	readonly env?: Record<string, string | undefined>;

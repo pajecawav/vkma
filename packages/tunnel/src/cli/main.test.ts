@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import pkg from "../../package.json";
 import {
 	mergeRecordFile,
 	profileFilePath,
@@ -62,10 +63,13 @@ describe("help and version", () => {
 		expect(result.out).toContain("vkma-tunnel");
 	});
 
-	it("prints the version and exits 0", async () => {
+	it("prints the package's own version and exits 0", async () => {
 		const result = await run(["--version"]);
 		expect(result.code).toBe(0);
-		expect(result.out).toMatch(/^\d+\.\d+\.\d+\n$/);
+		// Exactly what package.json says: the CLI reads it where it runs,
+		// so a build from before a version bump cannot report the previous
+		// release. `built-version.test.ts` holds the built CLI to the same.
+		expect(result.out).toBe(`${pkg.version}\n`);
 	});
 
 	it("reports parse errors with exit 1", async () => {

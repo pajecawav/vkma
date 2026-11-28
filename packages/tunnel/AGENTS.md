@@ -323,6 +323,14 @@ tells a well-meant change from a breaking one.
     it. A re-export (`export { x } from "@opentunnel/client"`) puts it
     back. `src/lazy-sdk.test.ts` fails when any entry loads the SDK before
     a connect.
+15. **The CLI reads its version where it runs.** `src/cli/main.ts` loads
+    `package.json` through `createRequire(import.meta.url)`, a call tsdown
+    cannot follow. A static JSON import it can: the unbundle build turns
+    one into `dist/package.js`, the version frozen at build time, and the
+    root `changeset:version` script builds before it bumps — the first
+    published tarball, 0.1.0, printed 0.0.1. `src/cli/built-version.test.ts`
+    runs the built CLI from a package with a sentinel version. It needs a
+    build and is skipped without one.
 
 ## Testing notes
 

@@ -94,6 +94,14 @@ library (`deploy()`). Keep all comments, commits, and docs in English.
    point). Only an abort propagates. Skipped in `--dry-run` (offline by
    contract) and `--quiet` (no plan to carry it). The title is remote
    data: it reaches the terminal through `singleLine`.
+10. **The CLI reads its version where it runs.** `src/cli/main.ts` loads
+    `package.json` through `createRequire(import.meta.url)`, a call tsdown
+    cannot follow. A static JSON import it can: the unbundle build turns
+    one into `dist/package.js`, the version frozen at build time, and the
+    root `changeset:version` script builds before it bumps — the published
+    0.3.1 printed 0.3.0 and 0.3.0 printed 0.2.1.
+    `src/cli/built-version.test.ts` runs the built CLI from a package with
+    a sentinel version. It needs a build and is skipped without one.
 
 ## Upstream reference (@vkontakte/vk-miniapps-deploy 1.0.3)
 
